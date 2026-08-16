@@ -22,7 +22,7 @@ function Skeleton() {
 }
 
 export default function Home() {
-  const { category, subcategory } = useOutletContext();
+  const { categories, subcategories } = useOutletContext();
   const { locationFilter, lang, prefs } = useStore();
   const t = useT();
   const nav = useNavigate();
@@ -45,8 +45,8 @@ export default function Home() {
   }, []);
 
   const filtered = items.filter((it) => {
-    if (category !== "all" && it.category !== category) return false;
-    if (subcategory && it.subcategory !== subcategory) return false;
+    if (categories.length && !categories.includes(it.category)) return false;
+    if (subcategories.length && !subcategories.includes(it.subcategory)) return false;
     if (!prefs.showSold && it.status === "sold") return false;
     return matchLocation(it, locationFilter);
   });
@@ -54,7 +54,7 @@ export default function Home() {
     .filter((it) => it.status !== "sold")
     .sort((a, b) => (Number(!!b.featured) - Number(!!a.featured)) || ((b.views || 0) - (a.views || 0)))
     .slice(0, 30);
-  const showFeatured = category === "all" && featured.length > 0;
+  const showFeatured = categories.length === 0 && featured.length > 0;
 
   return (
     <div className="space-y-5 pt-2">
@@ -96,7 +96,9 @@ export default function Home() {
 
       <div className="flex items-baseline justify-between">
         <h2 className="font-bold text-lg">
-          {category === "all" ? t("newArrivals") : (lang === "ar" ? getCategory(category).ar : getCategory(category).en)}
+          {categories.length === 1
+            ? (lang === "ar" ? getCategory(categories[0]).ar : getCategory(categories[0]).en)
+            : t("newArrivals")}
         </h2>
         <span className="text-xs text-muted-foreground">
           {filtered.length} {t("items")}

@@ -2,14 +2,16 @@ import React from "react";
 import { Home, Search, Plus, MessageCircle, User } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useT } from "@/lib/i18n";
+import useUnreadChats from "@/hooks/useUnreadChats";
 
 export default function BottomNav() {
   const t = useT();
+  const unread = useUnreadChats();
   const items = [
     { to: "/", icon: Home, label: t("home"), end: true },
     { to: "/search", icon: Search, label: t("search") },
     { to: "/sell", icon: Plus, label: t("sell"), center: true },
-    { to: "/chats", icon: MessageCircle, label: t("chats") },
+    { to: "/chats", icon: MessageCircle, label: t("chats"), badge: unread },
     { to: "/profile", icon: User, label: t("profile") },
   ];
 
@@ -36,14 +38,21 @@ export default function BottomNav() {
               to={it.to}
               end={it.end}
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition ${
+                `relative flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition ${
                   isActive ? "text-primary" : "text-muted-foreground"
                 }`
               }
             >
               {({ isActive }) => (
                 <>
-                  <it.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                  <span className="relative">
+                    <it.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                    {!!it.badge && (
+                      <span className="absolute -top-1.5 -end-1.5 min-w-4 h-4 px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
+                        {it.badge > 9 ? "9+" : it.badge}
+                      </span>
+                    )}
+                  </span>
                   <span>{it.label}</span>
                 </>
               )}

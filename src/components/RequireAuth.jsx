@@ -1,9 +1,20 @@
-import React from "react";
-import { Navigate } from "react-router-dom";
-import { useStore } from "@/lib/store";
+import React, { useEffect } from "react";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function RequireAuth({ children }) {
-  const { user } = useStore();
-  if (!user) return <Navigate to="/login" replace />;
+  const { isAuthenticated, isLoadingAuth, authChecked, navigateToLogin } = useAuth();
+
+  useEffect(() => {
+    if (authChecked && !isAuthenticated) navigateToLogin();
+  }, [authChecked, isAuthenticated, navigateToLogin]);
+
+  if (isLoadingAuth || !authChecked) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" />
+      </div>
+    );
+  }
+  if (!isAuthenticated) return null;
   return children;
 }

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Flag, MessageCircle, Star, Share2, ChevronRight, X, Tag, Trash2 } from "lucide-react";
+import { ArrowLeft, MapPin, Flag, MessageCircle, Star, Share2, ChevronRight, X, Tag, Trash2, CheckCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -32,6 +32,8 @@ export default function ItemDetail() {
   const [offerOpen, setOfferOpen] = useState(false);
   const [customOffer, setCustomOffer] = useState("");
   const [sending, setSending] = useState(false);
+  const [soldOpen, setSoldOpen] = useState(false);
+  const [buyers, setBuyers] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -75,6 +77,7 @@ export default function ItemDetail() {
   };
 
   const submitRating = async () => {
+    if (!(item.status === "sold" && item.sold_to === user.id)) return;
     await base44.entities.Rating.create({
       rated_user_id: item.seller_id,
       rated_user_name: item.seller_name,
@@ -120,6 +123,26 @@ export default function ItemDetail() {
     if (!window.confirm(t("deleteConfirm"))) return;
     try { await base44.entities.Item.delete(item.id); } catch {}
     nav("/profile");
+  };
+
+  const openSold = async () => {
+    try {
+      const rooms = await base44.entities.ChatRoom.filter({ item_id: item.id }, "-created_date", 50);
+      const map = new Map();
+      (rooms || []).forEach((r) => {
+        if (r.buyer_id && r.buyer_id !== user.id) map.set(r.buyer_id, r.buyer_name);
+      });
+      setBuyers(Array.from(map, ([id, name]) => ({ id, name })));
+    } catch {}
+    setSoldOpen(true);
+  };
+
+  const markSold = async (buyer) => {
+    try {
+      await base44.entities.Item.update(item.id, { status: "sold", sold_to: buyer.id, sold_to_name: buyer.name });
+      setItem({ ...item, status: "sold", sold_to: buyer.id, sold_to_name: buyer.name });
+    } catch {}
+    setSoldOpen(false);
   };
 
   if (loading) {
@@ -176,6 +199,11 @@ export default function ItemDetail() {
           <span>· {lang === "ar" ? cat?.ar : cat?.en}</span>
           <span>· {timeAgo(item.created_date, lang)}</span>
         </div>
+        {item.status === "sold" && (
+          <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 text-sm font-bold">
+            <CheckCircle size={15} /> {t("soldTo")} {item.sold_to_name || "—"}
+          </div>
+        )}
       </div>
 
       {/* Description */}
@@ -221,8 +249,8 @@ export default function ItemDetail() {
         </div>
       )}
 
-      {/* Rate seller (if not owner) */}
-      {user && item.seller_id !== user.id && (
+      {/* Rate seller (only the confirmed buyer) */}
+      {user && !isOwner && item.status === "sold" && item.sold_to === user.id && (
         <button onClick={() => setRateOpen(true)} className="mt-3 w-full py-3 rounded-2xl border border-border bg-card text-sm font-semibold flex items-center justify-center gap-2 hover:bg-muted/50">
           <Star size={16} className="fill-amber-400 text-amber-400" /> {t("rateSeller")}
         </button>
@@ -232,9 +260,16 @@ export default function ItemDetail() {
       <div className="fixed bottom-16 inset-x-0 z-20 bg-background/90 backdrop-blur-xl border-t border-border/60">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
           {isOwner ? (
-            <button onClick={deleteListing} className="flex-1 py-3.5 rounded-2xl bg-rose-600 text-white font-bold flex items-center justify-center gap-2">
-              <Trash2 size={18} /> {t("deleteListing")}
-            </button>
+            <>
+              {item.status !== "sold" && (
+                <button onClick={openSold} className="flex-1 py-3.5 rounded-2xl bg-emerald-600 text-white font-bold flex items-center justify-center gap-2">
+                  <CheckCircle size={18} /> {t("markAsSold")}
+                </button>
+              )}
+              <button onClick={deleteListing} className="px-4 py-3.5 rounded-2xl bg-rose-600 text-white font-bold flex items-center justify-center gap-2">
+                <Trash2 size={18} />
+              </button>
+            </>
           ) : (
             <>
               <div className="flex-1">
@@ -296,6 +331,31 @@ export default function ItemDetail() {
                 {t("send")}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {soldOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSoldOpen(false)} />
+          <div className="relative w-full sm:max-w-sm bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 animate-in fade-in slide-in-from-bottom-[100%] duration-300">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg">{t("markAsSold")}</h3>
+              <button onClick={() => setSoldOpen(false)} className="p-1.5 rounded-full hover:bg-muted"><X size={20} /></button>
+            </div>
+            <p className="text-sm text-muted-foreground mb-3">{t("chooseBuyer")}</p>
+            {buyers.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">{t("noBuyersYet")}</p>
+            ) : (
+              <div className="space-y-2">
+                {buyers.map((b) => (
+                  <button key={b.id} onClick={() => markSold(b)} className="w-full flex items-center gap-3 p-3 rounded-2xl bg-card border border-border/60 hover:bg-muted transition text-start">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">{b.name?.[0] || "?"}</div>
+                    <span className="font-semibold text-sm">{b.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

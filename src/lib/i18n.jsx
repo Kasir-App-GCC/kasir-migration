@@ -23,7 +23,7 @@ const en = {
   featuredDesc: "Homemade & local goods from Saudi families",
   browseAll: "Browse all",
   newArrivals: "Fresh listings",
-  condition_new: "New",
+  condition_new: "Brand New",
   condition_like_new: "Like New",
   condition_used: "Used",
   price: "Price",
@@ -156,6 +156,11 @@ const en = {
   locating: "Locating…",
   condition_good: "Good",
   condition_fair: "Fair",
+  markAsSold: "Mark as sold",
+  soldTo: "Sold to",
+  chooseBuyer: "Choose the buyer",
+  noBuyersYet: "No buyers have messaged about this item yet.",
+  onlyBuyerCanRate: "Only the buyer of this item can rate the seller.",
 };
 
 const ar = {
@@ -314,6 +319,11 @@ const ar = {
   locating: "جارٍ تحديد الموقع…",
   condition_good: "جيد",
   condition_fair: "مقبول",
+  markAsSold: "حدّد كمباع",
+  soldTo: "تم البيع إلى",
+  chooseBuyer: "اختر المشتري",
+  noBuyersYet: "ما فيه أحد راسل عن هالإعلان بعد.",
+  onlyBuyerCanRate: "فقط مشتري هالمنتج يقدر يقيّم البائع.",
 };
 
 export function useT() {

@@ -7,7 +7,7 @@ import { useT } from "@/lib/i18n";
 import { formatPrice, timeAgo } from "@/lib/format";
 
 export default function Chats() {
-  const { user, lang } = useStore();
+  const { user, lang, setLastChatsSeen } = useStore();
   const t = useT();
   const nav = useNavigate();
   const [rooms, setRooms] = useState([]);
@@ -27,6 +27,8 @@ export default function Chats() {
       }
     })();
   }, [user]);
+
+  useEffect(() => { setLastChatsSeen(new Date().toISOString()); }, []);
 
   const otherName = (r) => (r.seller_id === user.id ? r.buyer_name : r.seller_name);
 

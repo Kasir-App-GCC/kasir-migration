@@ -1,28 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { useT } from "./i18n";
+import { useAuth } from "@/lib/AuthContext";
 
 const StoreContext = createContext(null);
 
-const AVATARS = [
-  "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200",
-  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200",
-  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200",
-  "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200",
-];
-
 export function StoreProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    const s = localStorage.getItem("souqi_user");
-    return s ? JSON.parse(s) : null;
-  });
+  const auth = useAuth();
   const [theme, setThemeState] = useState(() => localStorage.getItem("souqi_theme") || "system");
   const [lang, setLangState] = useState(() => localStorage.getItem("souqi_lang") || "en");
   const [favorites, setFavorites] = useState(() => {
     const s = localStorage.getItem("souqi_favs");
     return s ? JSON.parse(s) : [];
   });
-  const [pendingOtp, setPendingOtp] = useState(null);
-  const [pendingPhone, setPendingPhone] = useState(null);
   const [locationFilter, setLocationFilter] = useState(() => {
     const s = localStorage.getItem("souqi_loc");
     return s ? JSON.parse(s) : { mode: "city", city: null, radius: 25 };
@@ -31,8 +19,21 @@ export function StoreProvider({ children }) {
     const s = localStorage.getItem("souqi_prefs");
     return s ? JSON.parse(s) : { showSold: true, defaultRadius: 25 };
   });
+  const [lastChatsSeen, setLastChatsSeenState] = useState(() => localStorage.getItem("souqi_chats_seen") || null);
 
-  // Theme application
+  // The signed-in user comes from the platform's built-in auth (Google / etc.)
+  const user = auth.user
+    ? {
+        id: auth.user.id,
+        name: auth.user.full_name || auth.user.email || "Member",
+        email: auth.user.email,
+        avatar: auth.user.avatar || null,
+        joinedAt: auth.user.created_date,
+        rating: 5.0,
+        ratingsCount: 0,
+      }
+    : null;
+
   useEffect(() => {
     const root = document.documentElement;
     const apply = (t) => {
@@ -60,10 +61,7 @@ export function StoreProvider({ children }) {
   useEffect(() => localStorage.setItem("souqi_favs", JSON.stringify(favorites)), [favorites]);
   useEffect(() => localStorage.setItem("souqi_loc", JSON.stringify(locationFilter)), [locationFilter]);
   useEffect(() => localStorage.setItem("souqi_prefs", JSON.stringify(prefs)), [prefs]);
-  useEffect(() => {
-    if (user) localStorage.setItem("souqi_user", JSON.stringify(user));
-    else localStorage.removeItem("souqi_user");
-  }, [user]);
+  useEffect(() => { if (lastChatsSeen) localStorage.setItem("souqi_chats_seen", lastChatsSeen); }, [lastChatsSeen]);
 
   const setTheme = (t) => setThemeState(t);
   const setLang = (l) => setLangState(l);
@@ -71,52 +69,13 @@ export function StoreProvider({ children }) {
     setFavorites((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]));
   const setPrefs = (patch) => setPrefsState((p) => ({ ...p, ...patch }));
   const clearFavorites = () => setFavorites([]);
-
-  const sendOtp = (phone) => {
-    const code = String(Math.floor(1000 + Math.random() * 9000));
-    setPendingOtp(code);
-    setPendingPhone(phone);
-    return code;
-  };
-
-  const verifyOtp = (code) => {
-    if (!pendingOtp || String(code) !== String(pendingOtp)) return false;
-    const u = {
-      id: "u_" + pendingPhone,
-      name: lang === "ar" ? "مستخدم جديد" : "New Member",
-      phone: pendingPhone,
-      avatar: AVATARS[Math.floor(Math.random() * AVATARS.length)],
-      rating: 5.0,
-      ratingsCount: 0,
-      joinedAt: new Date().toISOString(),
-    };
-    setUser(u);
-    setPendingOtp(null);
-    setPendingPhone(null);
-    return true;
-  };
-
-  const loginProvider = (provider) => {
-    const u = {
-      id: "u_" + provider,
-      name: provider === "google" ? "Google User" : "Apple User",
-      phone: null,
-      provider,
-      avatar: AVATARS[Math.floor(Math.random() * AVATARS.length)],
-      rating: 4.8,
-      ratingsCount: 12,
-      joinedAt: new Date().toISOString(),
-    };
-    setUser(u);
-  };
-
-  const logout = () => setUser(null);
+  const setLastChatsSeen = (val) => setLastChatsSeenState(val);
+  const logout = () => auth.logout(true);
 
   return (
     <StoreContext.Provider
       value={{
         user,
-        setUser,
         theme,
         setTheme,
         lang,
@@ -128,11 +87,9 @@ export function StoreProvider({ children }) {
         prefs,
         setPrefs,
         clearFavorites,
-        sendOtp,
-        verifyOtp,
-        loginProvider,
+        lastChatsSeen,
+        setLastChatsSeen,
         logout,
-        pendingPhone,
       }}
     >
       {children}

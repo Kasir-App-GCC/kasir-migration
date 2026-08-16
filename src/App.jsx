@@ -9,7 +9,6 @@ import ScrollToTop from './components/ScrollToTop';
 import { StoreProvider } from "@/lib/store";
 import AppLayout from "@/components/AppLayout";
 import RequireAuth from "@/components/RequireAuth";
-import Login from "@/pages/Login";
 import Home from "@/pages/Home";
 import Search from "@/pages/Search";
 import Sell from "@/pages/Sell";
@@ -44,7 +43,6 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
       <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
         <Route path="/" element={<Home />} />
         <Route path="/search" element={<Search />} />

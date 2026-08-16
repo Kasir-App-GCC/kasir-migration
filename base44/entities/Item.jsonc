@@ -51,6 +51,12 @@
       ],
       "default": "available"
     },
+    "sold_to": {
+      "type": "string"
+    },
+    "sold_to_name": {
+      "type": "string"
+    },
     "is_family": {
       "type": "boolean",
       "default": false

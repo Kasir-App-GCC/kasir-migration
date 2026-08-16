@@ -38,8 +38,8 @@ export const SUBCATEGORIES = {
     { en: "Other", ar: "أخرى" },
   ],
   cars: [
-    { en: "Cars", ar: "سيارات" },
-    { en: "SUVs & 4x4", ar: "دفع رباعي" },
+    { en: "Sedan", ar: "سيدان" },
+    { en: "SUV / 4x4", ar: "دفع رباعي" },
     { en: "Motorcycles", ar: "دراجات نارية" },
     { en: "Parts & Accessories", ar: "قطع غيار" },
     { en: "Other", ar: "أخرى" },
@@ -105,7 +105,7 @@ export function getSubcategories(catId) {
 }
 
 export const CONDITIONS = [
-  { id: "new", en: "New", ar: "جديد", color: "bg-emerald-500 text-white" },
+  { id: "new", en: "Brand New", ar: "جديد", color: "bg-emerald-500 text-white" },
   { id: "like_new", en: "Like New", ar: "كالجديد", color: "bg-teal-500 text-white" },
   { id: "good", en: "Good", ar: "جيد", color: "bg-blue-500 text-white" },
   { id: "fair", en: "Fair", ar: "مقبول", color: "bg-amber-500 text-white" },

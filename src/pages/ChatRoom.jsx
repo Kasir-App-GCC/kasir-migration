@@ -9,7 +9,7 @@ import { formatPrice } from "@/lib/format";
 export default function ChatRoom() {
   const { id } = useParams();
   const nav = useNavigate();
-  const { user, lang } = useStore();
+  const { user, lang, setLastChatsSeen } = useStore();
   const t = useT();
   const [room, setRoom] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -34,6 +34,8 @@ export default function ChatRoom() {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => { setLastChatsSeen(new Date().toISOString()); }, []);
 
   const send = async () => {
     if (!text.trim()) return;

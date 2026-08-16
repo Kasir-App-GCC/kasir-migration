@@ -215,7 +215,7 @@ export default function Profile() {
           <span className="flex items-center gap-2 text-sm font-semibold"><Trash2 size={18} /> {t("clearFavorites")}</span>
           <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
         </button>
-        <button onClick={() => { logout(); nav("/login"); }} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
+        <button onClick={() => logout()} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
           <span className="flex items-center gap-2 text-rose-600 font-semibold text-sm"><LogOut size={18} /> {t("logout")}</span>
           <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
         </button>

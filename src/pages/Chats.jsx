@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { MessageCircle, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -16,45 +16,87 @@ export default function Chats() {
   const [loading, setLoading] = useState(true);
   const [confirmRoom, setConfirmRoom] = useState(null);
   const [unread, setUnread] = useState({});
+  const roomsRef = useRef([]);
+  const seenRef = useRef(lastChatsSeen);
 
-  const deleteRoom = async (room) => {
-    try { await base44.entities.ChatRoom.delete(room.id); } catch {}
-    setRooms((prev) => prev.filter((r) => r.id !== room.id));
-    setConfirmRoom(null);
-  };
-
-  useEffect(() => {
-    (async () => {
-      if (!user) { setLoading(false); return; }
+  const loadRooms = useCallback(async () => {
+    if (!user) { setLoading(false); return; }
+    try {
+      const all = await base44.entities.ChatRoom.list("-updated_date", 100);
+      const mine = (all || []).filter((r) => {
+        if (!(r.buyer_id === user.id || r.seller_id === user.id)) return false;
+        if (r.buyer_id === user.id && r.hidden_for_buyer) return false;
+        if (r.seller_id === user.id && r.hidden_for_seller) return false;
+        return true;
+      });
+      roomsRef.current = mine;
+      setRooms(mine);
       try {
-        const all = await base44.entities.ChatRoom.list("-updated_date", 100);
-        const mine = (all || []).filter((r) => r.buyer_id === user.id || r.seller_id === user.id);
-        setRooms(mine);
-        try {
-          const since = lastChatsSeen ? new Date(lastChatsSeen).getTime() : 0;
-          const msgs = await base44.entities.Message.list("-created_date", 200);
-          const map = {};
-          (msgs || []).forEach((m) => {
-            if (m.sender_id === user.id) return;
-            if (!mine.some((r) => r.id === m.chatroom_id)) return;
-            if (new Date(m.created_date).getTime() > since) {
-              map[m.chatroom_id] = (map[m.chatroom_id] || 0) + 1;
-            }
-          });
-          setUnread(map);
-        } catch {}
-      } catch {
-        setRooms([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
+        const since = seenRef.current ? new Date(seenRef.current).getTime() : 0;
+        const msgs = await base44.entities.Message.list("-created_date", 200);
+        const map = {};
+        (msgs || []).forEach((m) => {
+          if (m.sender_id === user.id) return;
+          if (!mine.some((r) => r.id === m.chatroom_id)) return;
+          if (new Date(m.created_date).getTime() > since) {
+            map[m.chatroom_id] = (map[m.chatroom_id] || 0) + 1;
+          }
+        });
+        setUnread(map);
+      } catch {}
+    } catch {
+      setRooms([]);
+    } finally {
+      setLoading(false);
+    }
   }, [user]);
 
   useEffect(() => {
-    setLastChatsSeen(new Date().toISOString());
-    setUnread({});
-  }, []);
+    seenRef.current = lastChatsSeen;
+  }, [lastChatsSeen]);
+
+  useEffect(() => {
+    (async () => {
+      const ts = new Date().toISOString();
+      seenRef.current = ts;
+      setLastChatsSeen(ts);
+      setUnread({});
+      await loadRooms();
+    })();
+  }, [loadRooms, setLastChatsSeen]);
+
+  useEffect(() => {
+    if (!user) return;
+    const onRoom = () => loadRooms();
+    const onMsg = async (event) => {
+      if (event?.type !== "create") { loadRooms(); return; }
+      const m = event?.data;
+      if (!m) return;
+      if (m.sender_id === user.id) return;
+      const r = roomsRef.current.find((rr) => rr.id === m.chatroom_id);
+      if (r) {
+        const isBuyer = r.buyer_id === user.id;
+        if ((isBuyer && r.hidden_for_buyer) || (!isBuyer && r.hidden_for_seller)) {
+          try {
+            await base44.entities.ChatRoom.update(r.id, isBuyer ? { hidden_for_buyer: false } : { hidden_for_seller: false });
+          } catch {}
+        }
+      }
+      loadRooms();
+    };
+    const unsubR = base44.entities.ChatRoom.subscribe(onRoom);
+    const unsubM = base44.entities.Message.subscribe(onMsg);
+    return () => { unsubR?.(); unsubM?.(); };
+  }, [user, loadRooms]);
+
+  const deleteRoom = async (room) => {
+    const isBuyer = room.buyer_id === user.id;
+    try {
+      await base44.entities.ChatRoom.update(room.id, isBuyer ? { hidden_for_buyer: true } : { hidden_for_seller: true });
+    } catch {}
+    setRooms((prev) => prev.filter((r) => r.id !== room.id));
+    setConfirmRoom(null);
+  };
 
   const otherName = (r) => (r.seller_id === user.id ? r.buyer_name : r.seller_name);
   const otherAvatar = (r) => (r.seller_id === user.id ? r.buyer_avatar : r.seller_avatar);

@@ -34,6 +34,14 @@
     },
     "last_message": {
       "type": "string"
+    },
+    "hidden_for_buyer": {
+      "type": "boolean",
+      "default": false
+    },
+    "hidden_for_seller": {
+      "type": "boolean",
+      "default": false
     }
   },
   "required": [

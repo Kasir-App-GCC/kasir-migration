@@ -14,6 +14,7 @@ export default function ProfileSetup() {
   const [lastName, setLastName] = useState(user?.last_name || "");
   const [username, setUsername] = useState(user?.username || "");
   const [avatar, setAvatar] = useState(user?.avatar || null);
+  const [intent, setIntent] = useState(user?.intent || "");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -46,6 +47,10 @@ export default function ProfileSetup() {
       setError(ar ? "اسم المستخدم لا يقل عن 3 أحرف" : "Username must be at least 3 characters");
       return;
     }
+    if (!intent) {
+      setError(ar ? "اختر وش جاي تسويه" : "Please pick what you're here for");
+      return;
+    }
     setSaving(true);
     try {
       await base44.auth.updateMe({
@@ -53,6 +58,7 @@ export default function ProfileSetup() {
         last_name: lastName.trim(),
         username: uname,
         avatar,
+        intent,
       });
       await checkUserAuth();
     } catch (err) {
@@ -128,13 +134,33 @@ export default function ProfileSetup() {
             <p className="text-xs text-muted-foreground">{t("usernameHint")}</p>
           </div>
 
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold">{t("intentQuestion")} *</label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { id: "buy", label: t("intentBuy") },
+                { id: "sell", label: t("intentSell") },
+                { id: "both", label: t("intentBoth") },
+              ].map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => setIntent(o.id)}
+                  className={`py-3 rounded-2xl text-sm font-semibold border transition ${intent === o.id ? "bg-primary text-primary-foreground border-transparent" : "bg-muted border-border/60"}`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <button
             onClick={submit}
             disabled={saving}
             className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-lg disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {saving && <Loader2 className="w-5 h-5 animate-spin" />}
-            {saving ? (ar ? "جارٍ الحفظ…" : "Saving…") : t("continue")}
+            {saving ? (ar ? "نحفظ…" : "Saving…") : t("continue")}
           </button>
         </div>
       </div>

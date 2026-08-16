@@ -23,6 +23,15 @@
     "avatar": {
       "type": "string",
       "description": "URL of the user's profile picture"
+    },
+    "intent": {
+      "type": "string",
+      "description": "Whether the user is here to buy, sell, or both",
+      "enum": [
+        "buy",
+        "sell",
+        "both"
+      ]
     }
   },
   "required": [

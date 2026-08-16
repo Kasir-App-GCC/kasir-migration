@@ -186,6 +186,8 @@ const en = {
   rateBuyer: "Rate buyer",
   share: "Share",
   linkCopied: "Link copied",
+  soldItems: "Sold",
+  boughtItems: "Bought",
 };
 
 const ar = {
@@ -374,6 +376,8 @@ const ar = {
   rateBuyer: "قيّم المشتري",
   share: "مشاركة",
   linkCopied: "تم نسخ الرابط",
+  soldItems: "بعتها",
+  boughtItems: "اشتريتها",
 };
 
 export function useT() {

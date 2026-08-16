@@ -35,6 +35,8 @@ export default function Profile() {
   }, [user]);
 
   const myListings = allItems.filter((it) => it.seller_id === user.id);
+  const soldItems = myListings.filter((it) => it.status === "sold");
+  const boughtItems = allItems.filter((it) => it.sold_to === user.id);
   const saved = allItems.filter((it) => favorites.includes(it.id));
 
   const deleteListing = async (id) => {
@@ -91,6 +93,8 @@ export default function Profile() {
       <div className="flex gap-1 p-1 bg-muted rounded-2xl">
         {[
           { id: "listings", label: t("myListings") },
+          { id: "sold", label: t("soldItems") },
+          { id: "bought", label: t("boughtItems") },
           { id: "saved", label: t("savedItems") },
           { id: "reviews", label: t("reviews") },
         ].map((tb) => (
@@ -125,6 +129,32 @@ export default function Profile() {
           <div className="text-center py-16 text-muted-foreground">
             <p className="font-semibold">{t("emptyFeed")}</p>
             <button onClick={() => nav("/sell")} className="mt-3 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm">{t("postFirst")}</button>
+          </div>
+        )
+      )}
+
+      {tab === "sold" && (
+        soldItems.length ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {soldItems.map((it) => <ItemCard key={it.id} item={it} onClick={() => nav(`/item/${it.id}`)} />)}
+          </div>
+        ) : (
+          <div className="text-center py-16 text-muted-foreground">
+            <Tag size={32} className="mx-auto mb-2 opacity-40" />
+            <p className="font-semibold">{t("emptyFeed")}</p>
+          </div>
+        )
+      )}
+
+      {tab === "bought" && (
+        boughtItems.length ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {boughtItems.map((it) => <ItemCard key={it.id} item={it} onClick={() => nav(`/item/${it.id}`)} />)}
+          </div>
+        ) : (
+          <div className="text-center py-16 text-muted-foreground">
+            <Tag size={32} className="mx-auto mb-2 opacity-40" />
+            <p className="font-semibold">{t("emptyFeed")}</p>
           </div>
         )
       )}

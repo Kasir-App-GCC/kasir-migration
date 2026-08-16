@@ -1,7 +1,7 @@
 import { useStore } from "./store";
 
 const en = {
-  appName: "Souqi",
+  appName: "Souqna",
   tagline: "Buy & sell near you",
   home: "Home",
   search: "Search",
@@ -58,6 +58,9 @@ const en = {
   typeMessage: "Type a message…",
   myProfile: "My Profile",
   editProfile: "Edit profile",
+  save: "Save",
+  saving: "Saving…",
+  changePhoto: "Change photo",
   myListings: "My listings",
   reviews: "Reviews",
   settings: "Settings",
@@ -167,7 +170,7 @@ const en = {
   noBuyersYet: "No buyers have messaged about this item yet.",
   onlyBuyerCanRate: "Only the buyer of this item can rate the seller.",
   setupProfile: "Complete your profile",
-  setupProfileDesc: "This is how others will see you on Souqi",
+  setupProfileDesc: "This is how others will see you on Souqna",
   firstName: "First name",
   lastName: "Last name",
   username: "Username",
@@ -183,7 +186,7 @@ const en = {
 };
 
 const ar = {
-  appName: "سوقي",
+  appName: "سوقنا",
   tagline: "اشترِ وبِع حوالك",
   home: "الرئيسية",
   search: "بحث",
@@ -240,6 +243,9 @@ const ar = {
   typeMessage: "اكتب رسالة…",
   myProfile: "حسابي",
   editProfile: "تعديل الحساب",
+  save: "حفظ",
+  saving: "نحفظ…",
+  changePhoto: "غيّر الصورة",
   myListings: "إعلاناتي",
   reviews: "التقييمات",
   settings: "الإعدادات",
@@ -349,7 +355,7 @@ const ar = {
   noBuyersYet: "ما فيه أحد راسل عن هالإعلان بعد.",
   onlyBuyerCanRate: "بس مشتري هالمنتج يقدر يقيّم البائع.",
   setupProfile: "كمّل حسابك",
-  setupProfileDesc: "كذا بيشوفونك الناس في سوقي",
+  setupProfileDesc: "كذا بيشوفونك الناس في سوقنا",
   firstName: "الاسم الأول",
   lastName: "اسم العائلة",
   username: "اسم المستخدم",

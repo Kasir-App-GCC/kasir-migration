@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2 } from "lucide-react";
+import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import ItemCard from "@/components/ItemCard";
 import RatingStars from "@/components/RatingStars";
+import EditProfileDialog from "@/components/EditProfileDialog";
 import { formatPrice, timeAgo } from "@/lib/format";
 
 export default function Profile() {
@@ -16,6 +17,7 @@ export default function Profile() {
   const [allItems, setAllItems] = useState([]);
   const [ratings, setRatings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -51,7 +53,10 @@ export default function Profile() {
   return (
     <div className="pt-3 space-y-5">
       {/* Profile header */}
-      <div className="rounded-3xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground p-5">
+      <div className="rounded-3xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground p-5 relative">
+        <button onClick={() => setEditOpen(true)} className="absolute top-4 end-4 w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center" title={t("editProfile")}>
+          <Pencil size={16} />
+        </button>
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full overflow-hidden bg-white/20 ring-2 ring-white/30 shrink-0">
             {user.avatar ? <img src={user.avatar} className="w-full h-full object-cover" /> : <Tag size={28} className="w-full h-full flex items-center justify-center p-3" />}
@@ -220,6 +225,8 @@ export default function Profile() {
           <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
         </button>
       </div>
+
+      <EditProfileDialog open={editOpen} onClose={() => setEditOpen(false)} />
     </div>
   );
 }

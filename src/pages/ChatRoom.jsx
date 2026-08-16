@@ -49,6 +49,20 @@ export default function ChatRoom() {
   };
 
   const otherName = room ? (room.seller_id === user.id ? room.buyer_name : room.seller_name) : "";
+  const isSeller = room?.seller_id === user.id;
+  const suggestions = isSeller
+    ? [
+        { ar: "نعم، متوفر", en: "Yes, it's available" },
+        { ar: "السعر نهائي", en: "Price is firm" },
+        { ar: "متى تقدر تلتقي؟", en: "When can you meet?" },
+        { ar: "وين موقعك؟", en: "Where are you located?" },
+      ]
+    : [
+        { ar: "هل ما زال متوفر؟", en: "Is it still available?" },
+        { ar: "كم أخر سعر؟", en: "What's your last price?" },
+        { ar: "وين نقدر نلتقي؟", en: "Where can we meet?" },
+        { ar: "تقدر توصل؟", en: "Can you deliver?" },
+      ];
 
   return (
     <div className="fixed inset-0 z-40 bg-background flex flex-col">
@@ -81,6 +95,19 @@ export default function ChatRoom() {
         <div ref={endRef} />
       </div>
 
+      <div className="px-3 pt-2 pb-1.5 overflow-x-auto no-scrollbar shrink-0">
+        <div className="flex gap-2 min-w-max">
+          {suggestions.map((s, i) => (
+            <button
+              key={i}
+              onClick={() => setText(lang === "ar" ? s.ar : s.en)}
+              className="px-3 py-1.5 rounded-full bg-muted hover:bg-muted/70 text-xs font-medium whitespace-nowrap"
+            >
+              {lang === "ar" ? s.ar : s.en}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="p-3 border-t border-border/60 flex items-center gap-2 pb-[env(safe-area-inset-bottom)] shrink-0">
         <input
           value={text}

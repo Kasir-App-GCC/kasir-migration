@@ -16,6 +16,7 @@ import Chats from "@/pages/Chats";
 import Profile from "@/pages/Profile";
 import ItemDetail from "@/pages/ItemDetail";
 import ChatRoom from "@/pages/ChatRoom";
+import Notifications from "@/pages/Notifications";
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -51,6 +52,7 @@ const AuthenticatedApp = () => {
         <Route path="/profile" element={<Profile />} />
         <Route path="/item/:id" element={<ItemDetail />} />
         <Route path="/chat/:id" element={<ChatRoom />} />
+        <Route path="/notifications" element={<Notifications />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

@@ -197,6 +197,21 @@ export default function LocationFilter({ open, onClose }) {
                     <span>1 {t("km")}</span>
                     <span>200 {t("km")}</span>
                   </div>
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    {[1, 5, 10, 15, 20, 50, 100].map((km) => (
+                      <button
+                        key={km}
+                        onClick={() => setRadius(km)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition ${
+                          radius === km
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground hover:bg-muted/70"
+                        }`}
+                      >
+                        {km} {t("km")}
+                      </button>
+                    ))}
+                  </div>
                 </>
               )}
             </div>

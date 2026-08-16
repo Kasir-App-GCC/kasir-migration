@@ -107,13 +107,14 @@ export function getSubcategories(catId) {
 export const CONDITIONS = [
   { id: "new", en: "Brand New", ar: "جديد", color: "bg-emerald-500 text-white" },
   { id: "like_new", en: "Like New", ar: "كالجديد", color: "bg-teal-500 text-white" },
-  { id: "good", en: "Good", ar: "جيد", color: "bg-blue-500 text-white" },
+  { id: "excellent", en: "Excellent", ar: "ممتاز", color: "bg-blue-500 text-white" },
+  { id: "good", en: "Good", ar: "جيد", color: "bg-cyan-500 text-white" },
   { id: "fair", en: "Fair", ar: "مقبول", color: "bg-amber-500 text-white" },
-  { id: "used", en: "Used", ar: "مستعمل", color: "bg-orange-500 text-white" },
+  { id: "poor", en: "Poor", ar: "ضعيف", color: "bg-orange-500 text-white" },
 ];
 
 export function getCondition(id) {
-  return CONDITIONS.find((c) => c.id === id) || CONDITIONS[4];
+  return CONDITIONS.find((c) => c.id === id) || (id === "used" ? CONDITIONS.find((c) => c.id === "good") : CONDITIONS[3]);
 }
 
 export function getCategory(id) {

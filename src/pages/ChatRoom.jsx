@@ -59,7 +59,7 @@ export default function ChatRoom() {
       ]
     : [
         { ar: "هل ما زال متوفر؟", en: "Is it still available?" },
-        { ar: "كم أخر سعر؟", en: "What's your last price?" },
+        { ar: "كم آخر سعر؟", en: "What's your last price?" },
         { ar: "وين نقدر نلتقي؟", en: "Where can we meet?" },
         { ar: "تقدر توصل؟", en: "Can you deliver?" },
       ];

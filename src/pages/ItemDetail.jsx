@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { formatPrice, timeAgo } from "@/lib/format";
-import { getCategory, getCityName } from "@/lib/constants";
+import { getCategory, getCityName, getCondition } from "@/lib/constants";
 import RatingStars from "@/components/RatingStars";
 import ReportDialog from "@/components/ReportDialog";
 
@@ -195,7 +195,7 @@ export default function ItemDetail() {
         </div>
         <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
           <span className="flex items-center gap-1"><MapPin size={14} /> {getCityName(item.city, lang)}</span>
-          <span>· {t("condition_" + (item.condition || "used"))}</span>
+          <span>· {lang === "ar" ? getCondition(item.condition).ar : getCondition(item.condition).en}</span>
           <span>· {lang === "ar" ? cat?.ar : cat?.en}</span>
           <span>· {timeAgo(item.created_date, lang)}</span>
         </div>

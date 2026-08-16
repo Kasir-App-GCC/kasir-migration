@@ -14,7 +14,7 @@ export default function Sell() {
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
-  const [condition, setCondition] = useState("used");
+  const [condition, setCondition] = useState("good");
   const [city, setCity] = useState("");
   const [description, setDescription] = useState("");
   const [subcategory, setSubcategory] = useState("");
@@ -124,7 +124,7 @@ export default function Sell() {
           <label className="text-sm font-semibold">{t("price")}</label>
           <div className="flex items-center px-4 py-3 rounded-2xl bg-muted">
             <input value={price} onChange={(e) => setPrice(e.target.value.replace(/\D/g, ""))} placeholder={t("pricePlaceholder")} className="bg-transparent outline-none flex-1" inputMode="numeric" />
-            <span className="text-muted-foreground text-sm font-bold">ر.س</span>
+            <span className="text-muted-foreground text-sm font-bold">⃁</span>
           </div>
         </div>
         <div className="space-y-1">

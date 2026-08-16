@@ -28,11 +28,12 @@
       "enum": [
         "new",
         "like_new",
+        "excellent",
         "good",
         "fair",
-        "used"
+        "poor"
       ],
-      "default": "used"
+      "default": "good"
     },
     "city": {
       "type": "string"

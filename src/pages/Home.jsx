@@ -71,7 +71,7 @@ export default function Home() {
             {lang === "ar" ? "مساعد التسوق الذكي" : "AI Shopping Assistant"}
           </p>
           <p className="text-xs text-white/80 leading-tight mt-0.5">
-            {lang === "ar" ? "وصف اللي تبيه وأساعدك تلاقيه" : "Describe what you need and I'll find it"}
+            {lang === "ar" ? "اوصف اللي تبيه وأساعدك تلاقيه" : "Describe what you need and I'll find it"}
           </p>
         </div>
         <Sparkles size={18} className="shrink-0" />

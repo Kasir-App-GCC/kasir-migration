@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { Heart, MapPin, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
-import { formatPrice, timeAgo } from "@/lib/format";
+import { timeAgo } from "@/lib/format";
+import Price from "@/components/Price";
 import { getCategory, getCityName, getCondition } from "@/lib/constants";
 
 export default function ItemCard({ item, onClick }) {
@@ -38,7 +39,7 @@ export default function ItemCard({ item, onClick }) {
           <div className="w-5 h-[2px] bg-amber-600/80 rounded-full" style={{ transform: "rotate(-18deg)", transformOrigin: "right center" }} />
           <div className="relative bg-amber-300 text-slate-900 pl-4 pr-3 py-1.5 rounded-md shadow-lg shadow-black/25">
             <span className="absolute left-1 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-900/25 ring-2 ring-amber-300" />
-            <span className="text-[13px] font-extrabold whitespace-nowrap">{formatPrice(item.price, lang)}</span>
+            <span className="text-[13px] font-extrabold whitespace-nowrap"><Price value={item.price} lang={lang} /></span>
           </div>
         </div>
 

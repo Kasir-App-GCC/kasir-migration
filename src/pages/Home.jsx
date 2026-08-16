@@ -7,7 +7,7 @@ import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { getCategory, getCityName } from "@/lib/constants";
 import { matchLocation } from "@/lib/location";
-import { formatPrice } from "@/lib/format";
+import Price from "@/components/Price";
 
 function Skeleton() {
   return (
@@ -86,7 +86,7 @@ export default function Home() {
                     <img src={it.images?.[0]} alt={it.title} className="w-full h-full object-cover" />
                   </div>
                   <p className="text-xs font-semibold mt-1.5 line-clamp-1">{it.title}</p>
-                  <p className="text-[11px] font-bold text-amber-300">{formatPrice(it.price, lang)}</p>
+                  <p className="text-[11px] font-bold text-amber-300"><Price value={it.price} lang={lang} /></p>
                 </div>
               ))}
             </div>

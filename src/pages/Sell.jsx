@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { CATEGORIES, CONDITIONS, SAUDI_CITIES, getSubcategories, nearestCity } from "@/lib/constants";
+import RiyalIcon from "@/components/RiyalIcon";
 
 export default function Sell() {
   const { user, lang } = useStore();
@@ -125,7 +126,7 @@ export default function Sell() {
           <label className="text-sm font-semibold">{t("price")}</label>
           <div className="flex items-center px-4 py-3 rounded-2xl bg-muted">
             <input value={price} onChange={(e) => setPrice(e.target.value.replace(/\D/g, ""))} placeholder={t("pricePlaceholder")} className="bg-transparent outline-none flex-1" inputMode="numeric" />
-            <span className="text-muted-foreground text-sm font-bold">⃁</span>
+            <RiyalIcon className="text-muted-foreground" />
           </div>
         </div>
         <div className="space-y-1">

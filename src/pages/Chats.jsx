@@ -4,7 +4,8 @@ import { MessageCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
-import { formatPrice, timeAgo } from "@/lib/format";
+import { timeAgo } from "@/lib/format";
+import Price from "@/components/Price";
 
 export default function Chats() {
   const { user, lang, setLastChatsSeen } = useStore();
@@ -81,7 +82,7 @@ export default function Chats() {
                   <p className="text-sm text-muted-foreground truncate">{r.last_message || r.item_title}</p>
                 </div>
                 {r.item_price != null && (
-                  <span className="text-xs font-bold text-primary whitespace-nowrap">{formatPrice(r.item_price, lang)}</span>
+                  <span className="text-xs font-bold text-primary whitespace-nowrap"><Price value={r.item_price} lang={lang} /></span>
                 )}
               </button>
             ))}

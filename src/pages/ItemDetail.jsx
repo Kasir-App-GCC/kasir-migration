@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { formatPrice, timeAgo } from "@/lib/format";
+import Price from "@/components/Price";
 import { getCategory, getCityName, getCondition } from "@/lib/constants";
 import RatingStars from "@/components/RatingStars";
 import ReportDialog from "@/components/ReportDialog";
@@ -194,7 +195,7 @@ export default function ItemDetail() {
         <div className="flex items-start justify-between gap-3">
           <h1 className="text-2xl font-extrabold leading-tight">{item.title}</h1>
           <div className="bg-amber-300 text-slate-900 px-3 py-1.5 rounded-xl font-extrabold whitespace-nowrap rotate-[-3deg] shadow">
-            {formatPrice(item.price, lang)}
+            <Price value={item.price} lang={lang} />
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
@@ -278,7 +279,7 @@ export default function ItemDetail() {
             <>
               <div className="flex-1">
                 <p className="text-xs text-muted-foreground">{t("price")}</p>
-                <p className="font-extrabold text-lg">{formatPrice(item.price, lang)}</p>
+                <p className="font-extrabold text-lg"><Price value={item.price} lang={lang} /></p>
               </div>
               <button onClick={() => setOfferOpen(true)} className="px-4 py-3.5 rounded-2xl border-2 border-primary text-primary font-bold flex items-center justify-center gap-2">
                 <Tag size={18} /> {t("makeOffer")}
@@ -309,7 +310,7 @@ export default function ItemDetail() {
                   className="py-3 rounded-2xl bg-primary text-primary-foreground font-bold text-sm leading-tight disabled:opacity-50"
                 >
                   {pct}% {t("off")}
-                  <span className="block text-xs font-semibold opacity-90 mt-0.5">{formatPrice(Math.round(item.price * (1 - pct / 100)), lang)}</span>
+                  <span className="block text-xs font-semibold opacity-90 mt-0.5"><Price value={Math.round(item.price * (1 - pct / 100))} lang={lang} /></span>
                 </button>
               ))}
             </div>

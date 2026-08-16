@@ -4,7 +4,7 @@ import { ArrowLeft, Send, Sparkles } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
-import { formatPrice } from "@/lib/format";
+import Price from "@/components/Price";
 
 export default function ChatRoom() {
   const { id } = useParams();
@@ -97,7 +97,7 @@ export default function ChatRoom() {
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-bold text-sm truncate">{otherName}</p>
-          {room?.item_title && <p className="text-xs text-muted-foreground truncate">{room.item_title} · {formatPrice(room.item_price, lang)}</p>}
+          {room?.item_title && <p className="text-xs text-muted-foreground truncate">{room.item_title} · <Price value={room.item_price} lang={lang} /></p>}
         </div>
       </header>
 

@@ -195,6 +195,9 @@ const en = {
   notAllowedEdit: "You can only edit your own listings.",
   haggleFor: "Haggle for",
   lessWord: "less",
+  deleteChat: "Delete chat",
+  deleteChatConfirm: "Delete this conversation?",
+  delete: "Delete",
   };
 
 const ar = {
@@ -392,6 +395,9 @@ const ar = {
   notAllowedEdit: "تقدر تعدّل بس إعلاناتك.",
   haggleFor: "كاسر على",
   lessWord: "خصم",
+  deleteChat: "حذف المحادثة",
+  deleteChatConfirm: "حذف هالمحادثة؟",
+  delete: "حذف",
   };
 
 export function useT() {

@@ -161,11 +161,6 @@ export default function ChatRoom() {
     try {
       await base44.entities.Item.update(offer.item_id, { status: "sold", sold_to: offer.buyer_id, sold_to_name: offer.buyer_name });
     } catch {}
-    const txt = lang === "ar"
-      ? "تم استلام المنتج ✅ اكتملت الصفقة، تقدرون تقيّمون بعض الحين"
-      : "Item received ✅ Transaction complete — you can rate each other now";
-    await sysMsg(txt, offer.id);
-    await base44.entities.ChatRoom.update(id, { last_message: txt });
     await loadAll();
   };
 

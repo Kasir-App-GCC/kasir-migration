@@ -1,0 +1,38 @@
+{
+  "name": "ChatRoom",
+  "type": "object",
+  "properties": {
+    "item_id": {
+      "type": "string"
+    },
+    "item_title": {
+      "type": "string"
+    },
+    "item_image": {
+      "type": "string"
+    },
+    "item_price": {
+      "type": "number"
+    },
+    "seller_id": {
+      "type": "string"
+    },
+    "seller_name": {
+      "type": "string"
+    },
+    "buyer_id": {
+      "type": "string"
+    },
+    "buyer_name": {
+      "type": "string"
+    },
+    "last_message": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "item_id",
+    "seller_id",
+    "buyer_id"
+  ]
+}

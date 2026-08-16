@@ -1,0 +1,39 @@
+{
+  "name": "Rating",
+  "type": "object",
+  "properties": {
+    "rated_user_id": {
+      "type": "string"
+    },
+    "rated_user_name": {
+      "type": "string"
+    },
+    "rater_user_id": {
+      "type": "string"
+    },
+    "rater_name": {
+      "type": "string"
+    },
+    "score": {
+      "type": "number"
+    },
+    "review": {
+      "type": "string"
+    },
+    "item_id": {
+      "type": "string"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "buyer",
+        "seller"
+      ]
+    }
+  },
+  "required": [
+    "rated_user_id",
+    "rater_user_id",
+    "score"
+  ]
+}

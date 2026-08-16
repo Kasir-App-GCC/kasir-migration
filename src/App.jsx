@@ -6,7 +6,17 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
-// Add page imports here
+import { StoreProvider } from "@/lib/store";
+import AppLayout from "@/components/AppLayout";
+import RequireAuth from "@/components/RequireAuth";
+import Login from "@/pages/Login";
+import Home from "@/pages/Home";
+import Search from "@/pages/Search";
+import Sell from "@/pages/Sell";
+import Chats from "@/pages/Chats";
+import Profile from "@/pages/Profile";
+import ItemDetail from "@/pages/ItemDetail";
+import ChatRoom from "@/pages/ChatRoom";
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -34,7 +44,16 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
-      {/* Add your page Route elements here */}
+      <Route path="/login" element={<Login />} />
+      <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
+        <Route path="/" element={<Home />} />
+        <Route path="/search" element={<Search />} />
+        <Route path="/sell" element={<Sell />} />
+        <Route path="/chats" element={<Chats />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/item/:id" element={<ItemDetail />} />
+        <Route path="/chat/:id" element={<ChatRoom />} />
+      </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
@@ -46,10 +65,12 @@ function App() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <ScrollToTop />
-          <AuthenticatedApp />
-        </Router>
+        <StoreProvider>
+          <Router>
+            <ScrollToTop />
+            <AuthenticatedApp />
+          </Router>
+        </StoreProvider>
         <Toaster />
       </QueryClientProvider>
     </AuthProvider>

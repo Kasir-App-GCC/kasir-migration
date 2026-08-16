@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Check, X, Tag, Pencil, ArrowLeftRight, Clock } from "lucide-react";
 import Price from "@/components/Price";
-import { formatPrice } from "@/lib/format";
 
 export default function OfferCard({ offer, user, lang, t, onAccept, onReject, onCounter, onModify }) {
   const mine = offer.direction === "buyer_offer" ? offer.buyer_id === user.id : offer.seller_id === user.id;

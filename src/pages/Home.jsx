@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { Sparkles, ChevronLeft, ChevronRight, ShoppingBag } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import ItemCard from "@/components/ItemCard";
 import { useStore } from "@/lib/store";
@@ -58,6 +58,25 @@ export default function Home() {
 
   return (
     <div className="space-y-5 pt-2">
+      {/* AI Shopping Assistant button */}
+      <button
+        onClick={() => nav("/assistant")}
+        className="w-full flex items-center gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg hover:shadow-xl hover:scale-[1.01] transition"
+      >
+        <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+          <ShoppingBag size={20} />
+        </div>
+        <div className="flex-1 text-start">
+          <p className="font-bold text-sm leading-tight">
+            {lang === "ar" ? "مساعد التسوق الذكي" : "AI Shopping Assistant"}
+          </p>
+          <p className="text-xs text-white/80 leading-tight mt-0.5">
+            {lang === "ar" ? "وصف اللي تبيه وأساعدك تلاقيه" : "Describe what you need and I'll find it"}
+          </p>
+        </div>
+        <Sparkles size={18} className="shrink-0" />
+      </button>
+
       {showFeatured && (
         <section className="rounded-3xl bg-gradient-to-br from-slate-800 to-slate-600 dark:from-slate-700 dark:to-slate-900 text-white p-4 overflow-hidden">
           <div className="flex items-center justify-between mb-3">

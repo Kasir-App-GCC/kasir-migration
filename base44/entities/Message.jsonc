@@ -13,6 +13,17 @@
     },
     "text": {
       "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "text",
+        "system"
+      ],
+      "default": "text"
+    },
+    "offer_id": {
+      "type": "string"
     }
   },
   "required": [

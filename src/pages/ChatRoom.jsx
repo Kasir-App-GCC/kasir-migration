@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, Sparkles } from "lucide-react";
+import { ArrowLeft, Send, Sparkles, ShieldCheck, Check, Star } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
+import { formatPrice } from "@/lib/format";
 import Price from "@/components/Price";
+import OfferCard from "@/components/OfferCard";
 
 export default function ChatRoom() {
   const { id } = useParams();
@@ -13,6 +15,7 @@ export default function ChatRoom() {
   const t = useT();
   const [room, setRoom] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [offers, setOffers] = useState([]);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [suggestions, setSuggestions] = useState([]);
@@ -21,13 +24,21 @@ export default function ChatRoom() {
   const suggTimer = useRef(null);
   const lastSig = useRef("");
 
+  const loadAll = useCallback(async () => {
+    const [ms, ofs] = await Promise.all([
+      base44.entities.Message.filter({ chatroom_id: id }, "created_date", 200),
+      base44.entities.Offer.filter({ chatroom_id: id }, "created_date", 100),
+    ]);
+    setMessages(ms || []);
+    setOffers(ofs || []);
+  }, [id]);
+
   useEffect(() => {
     (async () => {
       try {
         const r = await base44.entities.ChatRoom.get(id);
         setRoom(r);
-        const ms = await base44.entities.Message.filter({ chatroom_id: id }, "created_date", 200);
-        setMessages(ms || []);
+        await loadAll();
       } catch {
       } finally {
         setLoading(false);
@@ -37,7 +48,7 @@ export default function ChatRoom() {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, offers]);
 
   useEffect(() => { setLastChatsSeen(new Date().toISOString()); }, []);
 
@@ -88,6 +99,74 @@ export default function ChatRoom() {
     } catch {}
   };
 
+  const sysMsg = (text, offerId) =>
+    base44.entities.Message.create({ chatroom_id: id, sender_id: "system", sender_name: t("adminName"), text, kind: "system", offer_id: offerId || null });
+
+  const acceptOffer = async (offer) => {
+    await base44.entities.Offer.update(offer.id, { status: "accepted" });
+    const txt = lang === "ar"
+      ? `تم الاتفاق على السعر ${formatPrice(offer.amount, lang)} ✅ وصلك المنتج؟`
+      : `Price agreed at ${formatPrice(offer.amount, lang)} ✅ Have you received the item?`;
+    await sysMsg(txt, offer.id);
+    await base44.entities.ChatRoom.update(id, { last_message: txt });
+    await loadAll();
+  };
+
+  const rejectOffer = async (offer) => {
+    await base44.entities.Offer.update(offer.id, { status: "rejected" });
+    const txt = lang === "ar" ? "تم رفض العرض" : "Offer rejected";
+    await base44.entities.Message.create({ chatroom_id: id, sender_id: user.id, sender_name: user.name, text: txt });
+    await base44.entities.ChatRoom.update(id, { last_message: txt });
+    await loadAll();
+  };
+
+  const counterOffer = async (offer, amount) => {
+    await base44.entities.Offer.update(offer.id, { status: "countered" });
+    const direction = isSeller ? "seller_counter" : "buyer_offer";
+    await base44.entities.Offer.create({
+      chatroom_id: id,
+      item_id: offer.item_id,
+      item_title: offer.item_title,
+      buyer_id: offer.buyer_id,
+      buyer_name: offer.buyer_name,
+      seller_id: offer.seller_id,
+      seller_name: offer.seller_name,
+      amount,
+      status: "pending",
+      direction,
+      previous_offer_id: offer.id,
+    });
+    const txt = (isSeller
+      ? (lang === "ar" ? `عارض البائع بسعر ${formatPrice(amount, lang)}` : `Seller counters at ${formatPrice(amount, lang)}`)
+      : (lang === "ar" ? `عرض جديد بسعر ${formatPrice(amount, lang)}` : `New offer at ${formatPrice(amount, lang)}`));
+    await base44.entities.Message.create({ chatroom_id: id, sender_id: user.id, sender_name: user.name, text: txt });
+    await base44.entities.ChatRoom.update(id, { last_message: txt });
+    await loadAll();
+  };
+
+  const modifyOffer = async (offer, amount) => {
+    await base44.entities.Offer.update(offer.id, { amount });
+    await loadAll();
+  };
+
+  const confirmReceipt = async (offer) => {
+    await base44.entities.Offer.update(offer.id, { status: "completed", received_confirmed: true });
+    try {
+      await base44.entities.Item.update(offer.item_id, { status: "sold", sold_to: offer.buyer_id, sold_to_name: offer.buyer_name });
+    } catch {}
+    const txt = lang === "ar"
+      ? "تم استلام المنتج ✅ اكتملت الصفقة، تقدرون تقيّمون بعض الحين"
+      : "Item received ✅ Transaction complete — you can rate each other now";
+    await sysMsg(txt, offer.id);
+    await base44.entities.ChatRoom.update(id, { last_message: txt });
+    await loadAll();
+  };
+
+  const timeline = [
+    ...messages.map((m) => ({ type: "message", ...m })),
+    ...offers.map((o) => ({ type: "offer", ...o })),
+  ].sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+
   return (
     <div className="fixed inset-0 z-40 bg-background flex flex-col">
       <header className="h-14 border-b border-border/60 flex items-center gap-3 px-4 bg-background/90 backdrop-blur shrink-0">
@@ -107,14 +186,51 @@ export default function ChatRoom() {
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
         {loading ? (
           <div className="text-center text-muted-foreground text-sm py-10"><div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin mx-auto" /></div>
-        ) : messages.length === 0 ? (
+        ) : timeline.length === 0 ? (
           <p className="text-center text-muted-foreground text-sm py-10">{t("noChatsDesc")}</p>
         ) : (
-          messages.map((m, i) => {
+          timeline.map((item, i) => {
+            if (item.type === "offer") {
+              const o = item;
+              const mine = o.direction === "buyer_offer" ? o.buyer_id === user.id : o.seller_id === user.id;
+              return (
+                <div key={`o-${o.id}`} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                  <OfferCard offer={o} user={user} lang={lang} t={t}
+                    onAccept={acceptOffer} onReject={rejectOffer} onCounter={counterOffer} onModify={modifyOffer} />
+                </div>
+              );
+            }
+            const m = item;
+            if (m.sender_id === "system") {
+              const offer = offers.find((o) => o.id === m.offer_id);
+              const isBuyer = room?.buyer_id === user.id;
+              const needsConfirm = offer && offer.status === "accepted" && !offer.received_confirmed && isBuyer;
+              const done = offer && offer.status === "completed";
+              return (
+                <div key={`s-${i}`} className="flex justify-center">
+                  <div className="max-w-[85%] rounded-2xl bg-primary/5 border border-primary/20 px-4 py-3 text-center">
+                    <div className="flex items-center justify-center gap-1.5 text-primary font-bold text-xs mb-1">
+                      <ShieldCheck size={14} /> {t("adminName")}
+                    </div>
+                    <p className="text-sm">{m.text}</p>
+                    {needsConfirm && (
+                      <button onClick={() => confirmReceipt(offer)} className="mt-2.5 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 mx-auto">
+                        <Check size={14} /> {t("confirmReceipt")}
+                      </button>
+                    )}
+                    {done && (
+                      <button onClick={() => nav(`/item/${offer.item_id}`)} className="mt-2.5 px-4 py-2 rounded-xl bg-amber-400 text-slate-900 text-xs font-bold flex items-center justify-center gap-1.5 mx-auto">
+                        <Star size={14} /> {t("rateNow")}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            }
             const mine = m.sender_id === user.id;
-            const showAvatar = !mine && otherAvatar && (i === 0 || messages[i - 1].sender_id !== m.sender_id);
+            const showAvatar = !mine && otherAvatar && (i === 0 || timeline[i - 1].sender_id !== m.sender_id);
             return (
-              <div key={i} className={`flex items-end gap-2 ${mine ? "justify-end" : "justify-start"}`}>
+              <div key={`m-${i}`} className={`flex items-end gap-2 ${mine ? "justify-end" : "justify-start"}`}>
                 {!mine && (
                   <div className="w-6 h-6 rounded-full overflow-hidden bg-primary/10 shrink-0">
                     {showAvatar ? <img src={otherAvatar} className="w-full h-full object-cover" /> : <div className="w-full h-full" />}

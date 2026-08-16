@@ -120,8 +120,19 @@ export default function ItemDetail() {
         buyer_avatar: user?.avatar || null,
         last_message: "",
       });
+      await base44.entities.Offer.create({
+        chatroom_id: room.id,
+        item_id: item.id,
+        item_title: item.title,
+        buyer_id: user.id,
+        buyer_name: user.name,
+        seller_id: item.seller_id,
+        seller_name: item.seller_name,
+        amount: offerPrice,
+        status: "pending",
+        direction: "buyer_offer",
+      });
       const text = (lang === "ar" ? "أبي أعرض عليك بسعر " : "I'd like to offer ") + formatPrice(offerPrice, lang);
-      await base44.entities.Message.create({ chatroom_id: room.id, sender_id: user.id, sender_name: user.name, text });
       await base44.entities.ChatRoom.update(room.id, { last_message: text });
       nav(`/chat/${room.id}`);
     } catch {

@@ -103,7 +103,7 @@ export default function Chats() {
                       </div>
                     )}
                     {unread[r.id] ? (
-                      <span className="absolute top-0 start-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-card" />
+                      <span className="absolute top-0 start-0 w-3.5 h-3.5 rounded-full bg-rose-500 border-2 border-card" />
                     ) : null}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -117,7 +117,7 @@ export default function Chats() {
                     <span className="text-xs font-bold text-primary whitespace-nowrap"><Price value={r.item_price} lang={lang} /></span>
                   )}
                   {unread[r.id] ? (
-                    <span className="shrink-0 min-w-5 h-5 px-1.5 rounded-full bg-emerald-500 text-white text-[11px] font-bold flex items-center justify-center">
+                    <span className="shrink-0 min-w-5 h-5 px-1.5 rounded-full bg-rose-500 text-white text-[11px] font-bold flex items-center justify-center">
                       {unread[r.id]}
                     </span>
                   ) : null}

@@ -4,7 +4,7 @@ import { Bell, MessageCircle, Star } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
-import { timeAgo } from "@/lib/format";
+import { timeAgo, toDate } from "@/lib/format";
 
 export default function Notifications() {
   const { user, lang, lastChatsSeen } = useStore();
@@ -24,7 +24,7 @@ export default function Notifications() {
         const mine = (rooms || []).filter((r) => r.buyer_id === user.id || r.seller_id === user.id);
         const roomMap = new Map(mine.map((r) => [r.id, r]));
         const msgs = await base44.entities.Message.list("-created_date", 100);
-        const since = lastChatsSeen ? new Date(lastChatsSeen).getTime() : 0;
+        const since = lastChatsSeen ? toDate(lastChatsSeen).getTime() : 0;
         const notifs = (msgs || [])
           .filter((m) => roomMap.has(m.chatroom_id) && m.sender_id !== user.id)
           .map((m) => {
@@ -36,7 +36,7 @@ export default function Notifications() {
               name: m.sender_name,
               roomId: m.chatroom_id,
               date: m.created_date,
-              unread: new Date(m.created_date).getTime() > since,
+              unread: toDate(m.created_date).getTime() > since,
             };
           });
 
@@ -54,7 +54,7 @@ export default function Notifications() {
           }));
         } catch {}
 
-        const all = [...notifs, ...ratings].sort((a, b) => new Date(b.date) - new Date(a.date));
+        const all = [...notifs, ...ratings].sort((a, b) => toDate(b.date) - toDate(a.date));
         setItems(all);
       } catch {
         setItems([]);

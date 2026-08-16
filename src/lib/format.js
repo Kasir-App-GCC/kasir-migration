@@ -11,8 +11,15 @@ export function formatCompact(n, lang = "en") {
   return String(n);
 }
 
+export function toDate(date) {
+  const s = String(date);
+  const hasTz = /Z$/i.test(s) || /[+-]\d{2}:?\d{2}$/.test(s);
+  return new Date(hasTz ? s : s + "Z");
+}
+
 export function timeAgo(date, lang = "en") {
-  const diff = (Date.now() - new Date(date).getTime()) / 1000;
+  const d = toDate(date);
+  const diff = (Date.now() - d.getTime()) / 1000;
   const ar = lang === "ar";
   if (diff < 60) return ar ? "الآن" : "now";
   if (diff < 3600) {
@@ -27,5 +34,5 @@ export function timeAgo(date, lang = "en") {
     const d = Math.floor(diff / 86400);
     return ar ? `قبل ${d} يوم` : `${d}d ago`;
   }
-  return new Date(date).toLocaleDateString(ar ? "ar-SA" : "en-US", { month: "short", day: "numeric" });
+  return d.toLocaleDateString(ar ? "ar-SA" : "en-US", { month: "short", day: "numeric" });
 }

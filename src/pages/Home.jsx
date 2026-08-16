@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { Sparkles } from "lucide-react";
+import { Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import ItemCard from "@/components/ItemCard";
 import { useStore } from "@/lib/store";
@@ -28,6 +28,7 @@ export default function Home() {
   const nav = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const featRef = useRef(null);
 
   useEffect(() => {
     (async () => {
@@ -52,7 +53,7 @@ export default function Home() {
   const featured = [...items]
     .filter((it) => it.status !== "sold")
     .sort((a, b) => (Number(!!b.featured) - Number(!!a.featured)) || ((b.views || 0) - (a.views || 0)))
-    .slice(0, 10);
+    .slice(0, 30);
   const showFeatured = category === "all" && featured.length > 0;
 
   return (
@@ -67,20 +68,28 @@ export default function Home() {
               <p className="text-white/70 text-xs">{t("featuredStripDesc")}</p>
             </div>
           </div>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1">
-            {featured.map((it) => (
-              <div
-                key={it.id}
-                onClick={() => nav(`/item/${it.id}`)}
-                className="shrink-0 w-32 cursor-pointer"
-              >
-                <div className="aspect-square rounded-2xl overflow-hidden bg-white/10">
-                  <img src={it.images?.[0]} alt={it.title} className="w-full h-full object-cover" />
+          <div className="relative">
+            <button onClick={() => featRef.current?.scrollBy({ left: -280, behavior: "smooth" })} className="absolute start-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center">
+              <ChevronLeft size={18} className="rtl:rotate-180" />
+            </button>
+            <button onClick={() => featRef.current?.scrollBy({ left: 280, behavior: "smooth" })} className="absolute end-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center">
+              <ChevronRight size={18} className="rtl:rotate-180" />
+            </button>
+            <div ref={featRef} className="flex gap-3 overflow-x-auto no-scrollbar px-1 pb-1 scroll-smooth">
+              {featured.map((it) => (
+                <div
+                  key={it.id}
+                  onClick={() => nav(`/item/${it.id}`)}
+                  className="shrink-0 w-32 cursor-pointer"
+                >
+                  <div className="aspect-square rounded-2xl overflow-hidden bg-white/10">
+                    <img src={it.images?.[0]} alt={it.title} className="w-full h-full object-cover" />
+                  </div>
+                  <p className="text-xs font-semibold mt-1.5 line-clamp-1">{it.title}</p>
+                  <p className="text-[11px] font-bold text-amber-300">{formatPrice(it.price, lang)}</p>
                 </div>
-                <p className="text-xs font-semibold mt-1.5 line-clamp-1">{it.title}</p>
-                <p className="text-[11px] font-bold text-amber-300">{formatPrice(it.price, lang)}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </section>
       )}

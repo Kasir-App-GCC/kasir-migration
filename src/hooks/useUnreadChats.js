@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
+import { toDate } from "@/lib/format";
 
 function playBeep() {
   try {
@@ -25,49 +26,43 @@ function playBeep() {
 export default function useUnreadChats() {
   const { user, lastChatsSeen } = useStore();
   const [count, setCount] = useState(0);
-  const roomIds = useRef(new Set());
+  const prev = useRef(0);
+  const first = useRef(true);
 
   useEffect(() => {
     if (!user) {
       setCount(0);
+      prev.current = 0;
+      first.current = true;
       return;
     }
     let cancelled = false;
 
-    (async () => {
+    const compute = async () => {
       try {
         const rooms = await base44.entities.ChatRoom.list("-updated_date", 100);
         const mine = (rooms || []).filter((r) => r.buyer_id === user.id || r.seller_id === user.id);
-        roomIds.current = new Set(mine.map((r) => r.id));
+        const roomIds = new Set(mine.map((r) => r.id));
         const msgs = await base44.entities.Message.list("-created_date", 200);
         const since = lastChatsSeen ? new Date(lastChatsSeen).getTime() : 0;
-        const unread = (msgs || []).filter(
-          (m) =>
-            roomIds.current.has(m.chatroom_id) &&
-            m.sender_id !== user.id &&
-            new Date(m.created_date).getTime() > since
-        );
-        if (!cancelled) setCount(unread.length);
-      } catch {
-        if (!cancelled) setCount(0);
-      }
-    })();
+        const next = (msgs || []).filter(
+          (m) => roomIds.has(m.chatroom_id) && m.sender_id !== user.id && toDate(m.created_date).getTime() > since
+        ).length;
+        if (cancelled) return;
+        if (next > prev.current && !first.current && !window.location.pathname.startsWith("/chat/")) {
+          playBeep();
+        }
+        first.current = false;
+        prev.current = next;
+        setCount(next);
+      } catch {}
+    };
 
-    const unsub = base44.entities.Message.subscribe((event) => {
-      if (event.type !== "create") return;
-      const m = event.data;
-      if (!m || !user) return;
-      if (m.sender_id === user.id) return;
-      if (!roomIds.current.has(m.chatroom_id)) return;
-      // don't beep if the user is already inside that conversation
-      if (window.location.pathname === `/chat/${m.chatroom_id}`) return;
-      setCount((c) => c + 1);
-      playBeep();
-    });
-
+    compute();
+    const iv = setInterval(compute, 8000);
     return () => {
       cancelled = true;
-      unsub?.();
+      clearInterval(iv);
     };
   }, [user, lastChatsSeen]);
 

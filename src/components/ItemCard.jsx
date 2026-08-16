@@ -34,11 +34,14 @@ export default function ItemCard({ item, onClick }) {
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
 
-        {/* Price tag — tag with string from the left */}
-        <div className="absolute top-3 start-2.5 z-20 flex items-center" style={{ transform: "rotate(-4deg)" }}>
-          <div className="w-5 h-[2px] bg-amber-600/80 rounded-full" style={{ transform: "rotate(-18deg)", transformOrigin: "right center" }} />
-          <div className="relative bg-amber-300 text-slate-900 pl-4 pr-3 py-1.5 rounded-md shadow-lg shadow-black/25">
-            <span className="absolute left-1 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-900/25 ring-2 ring-amber-300" />
+        {/* Price tag — hanging from the top, tag with triangular corner + hole */}
+        <div className="absolute top-2 start-2.5 z-20">
+          <div className="w-px h-2.5 bg-amber-600/70 ms-2" />
+          <div
+            className="relative bg-amber-300 text-slate-900 pl-4 pr-3 py-1.5 shadow-lg shadow-black/25"
+            style={{ clipPath: "polygon(7px 0, 100% 0, 100% 100%, 0 100%, 0 7px)" }}
+          >
+            <span className="absolute left-1.5 top-1.5 w-1.5 h-1.5 rounded-full bg-slate-900/30 ring-2 ring-amber-300" />
             <span className="text-[13px] font-extrabold whitespace-nowrap"><Price value={item.price} lang={lang} /></span>
           </div>
         </div>

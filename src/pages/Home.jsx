@@ -6,6 +6,7 @@ import ItemCard from "@/components/ItemCard";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { getCategory, getCityName } from "@/lib/constants";
+import { matchLocation } from "@/lib/location";
 import { formatPrice } from "@/lib/format";
 
 function Skeleton() {
@@ -42,17 +43,11 @@ export default function Home() {
     })();
   }, []);
 
-  const matchLoc = (it) => {
-    if (locationFilter.mode === "radius") return true;
-    if (!locationFilter.city) return true;
-    return it.city === locationFilter.city;
-  };
-
   const filtered = items.filter((it) => {
     if (category !== "all" && it.category !== category) return false;
     if (subcategory && it.subcategory !== subcategory) return false;
     if (!prefs.showSold && it.status === "sold") return false;
-    return matchLoc(it);
+    return matchLocation(it, locationFilter);
   });
   const featured = [...items]
     .filter((it) => it.status !== "sold")

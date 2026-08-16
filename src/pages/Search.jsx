@@ -6,6 +6,7 @@ import ItemCard from "@/components/ItemCard";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { CATEGORIES, CONDITIONS, SAUDI_CITIES } from "@/lib/constants";
+import { matchLocation } from "@/lib/location";
 
 export default function Search() {
   const { category, subcategory } = useOutletContext();
@@ -40,7 +41,7 @@ export default function Search() {
       if (category !== "all" && it.category !== category) return false;
       if (subcategory && it.subcategory !== subcategory) return false;
       if (!prefs.showSold && it.status === "sold") return false;
-      if (locationFilter.mode === "city" && locationFilter.city && it.city !== locationFilter.city) return false;
+      if (!matchLocation(it, locationFilter)) return false;
       if (q && !(`${it.title} ${it.description}`.toLowerCase().includes(q.toLowerCase()))) return false;
       if (condition && it.condition !== condition) return false;
       if (minPrice && Number(it.price) < Number(minPrice)) return false;

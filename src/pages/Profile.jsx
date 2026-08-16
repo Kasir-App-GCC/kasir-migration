@@ -13,7 +13,7 @@ export default function Profile() {
   const t = useT();
   const nav = useNavigate();
   const [tab, setTab] = useState("listings");
-  const [items, setItems] = useState([]);
+  const [allItems, setAllItems] = useState([]);
   const [ratings, setRatings] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -21,8 +21,8 @@ export default function Profile() {
     (async () => {
       if (!user) { setLoading(false); return; }
       try {
-        const all = await base44.entities.Item.list("-created_date", 100);
-        setItems((all || []).filter((it) => it.seller_id === user.id));
+        const all = await base44.entities.Item.list("-created_date", 200);
+        setAllItems(all || []);
         const rs = await base44.entities.Rating.filter({ rated_user_id: user.id }, "-created_date", 50);
         setRatings(rs || []);
       } catch {
@@ -32,14 +32,14 @@ export default function Profile() {
     })();
   }, [user]);
 
-  const myListings = items;
-  const saved = items.filter((it) => favorites.includes(it.id)); // subset from loaded; fine for demo
+  const myListings = allItems.filter((it) => it.seller_id === user.id);
+  const saved = allItems.filter((it) => favorites.includes(it.id));
 
   const deleteListing = async (id) => {
     if (!window.confirm(t("deleteConfirm"))) return;
     try {
       await base44.entities.Item.delete(id);
-      setItems(items.filter((x) => x.id !== id));
+      setAllItems(allItems.filter((x) => x.id !== id));
     } catch {}
   };
   const avg = ratings.length

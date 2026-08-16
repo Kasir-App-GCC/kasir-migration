@@ -11,6 +11,7 @@ export default function LocationFilter({ open, onClose }) {
   const [radius, setRadius] = useState(locationFilter.radius);
   const [city, setCity] = useState(locationFilter.city);
   const [query, setQuery] = useState("");
+  const [locating, setLocating] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -30,8 +31,29 @@ export default function LocationFilter({ open, onClose }) {
   );
 
   const apply = () => {
-    setLocationFilter({ mode: tab, radius, city: tab === "city" ? city : null });
-    onClose();
+    if (tab === "city") {
+      setLocationFilter({ mode: "city", city, radius: 25 });
+      onClose();
+      return;
+    }
+    if (!navigator.geolocation) {
+      setLocationFilter({ mode: "radius", radius, city: null });
+      onClose();
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocating(false);
+        setLocationFilter({ mode: "radius", radius, city: null, lat: pos.coords.latitude, lng: pos.coords.longitude });
+        onClose();
+      },
+      () => {
+        setLocating(false);
+        alert(lang === "ar" ? "ما قدرنا نحدد موقعك" : "Couldn't get your location");
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
   };
 
   const clear = () => {
@@ -155,9 +177,10 @@ export default function LocationFilter({ open, onClose }) {
           </button>
           <button
             onClick={apply}
-            className="flex-1 py-3 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90"
+            disabled={locating}
+            className="flex-1 py-3 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
           >
-            {t("apply")}
+            {locating ? t("locating") : t("apply")}
           </button>
         </div>
       </div>

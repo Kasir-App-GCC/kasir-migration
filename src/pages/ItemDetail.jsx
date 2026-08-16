@@ -69,8 +69,10 @@ export default function ItemDetail() {
       item_price: item.price,
       seller_id: item.seller_id,
       seller_name: item.seller_name,
+      seller_avatar: item.seller_avatar || null,
       buyer_id: user.id,
       buyer_name: user.name,
+      buyer_avatar: user?.avatar || null,
       last_message: "",
     });
     nav(`/chat/${room.id}`);
@@ -106,8 +108,10 @@ export default function ItemDetail() {
         item_price: offerPrice,
         seller_id: item.seller_id,
         seller_name: item.seller_name,
+        seller_avatar: item.seller_avatar || null,
         buyer_id: user.id,
         buyer_name: user.name,
+        buyer_avatar: user?.avatar || null,
         last_message: "",
       });
       const text = (lang === "ar" ? "أبي أعرض عليك بسعر " : "I'd like to offer ") + formatPrice(offerPrice, lang);

@@ -20,10 +20,16 @@
     "seller_name": {
       "type": "string"
     },
+    "seller_avatar": {
+      "type": "string"
+    },
     "buyer_id": {
       "type": "string"
     },
     "buyer_name": {
+      "type": "string"
+    },
+    "buyer_avatar": {
       "type": "string"
     },
     "last_message": {

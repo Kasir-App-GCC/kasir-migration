@@ -31,6 +31,7 @@ export default function Chats() {
   useEffect(() => { setLastChatsSeen(new Date().toISOString()); }, []);
 
   const otherName = (r) => (r.seller_id === user.id ? r.buyer_name : r.seller_name);
+  const otherAvatar = (r) => (r.seller_id === user.id ? r.buyer_avatar : r.seller_avatar);
 
   if (!loading && rooms.length === 0) {
     return (
@@ -62,8 +63,15 @@ export default function Chats() {
                 onClick={() => nav(`/chat/${r.id}`)}
                 className="w-full flex items-center gap-3 p-2.5 rounded-2xl hover:bg-muted transition text-start"
               >
-                <div className="w-14 h-14 rounded-2xl overflow-hidden bg-muted shrink-0">
-                  {r.item_image && <img src={r.item_image} className="w-full h-full object-cover" />}
+                <div className="relative w-14 h-14 shrink-0">
+                  <div className="w-14 h-14 rounded-full overflow-hidden bg-primary/10 text-primary flex items-center justify-center font-bold">
+                    {otherAvatar(r) ? <img src={otherAvatar(r)} className="w-full h-full object-cover" /> : (otherName(r)?.[0] || "?")}
+                  </div>
+                  {r.item_image && (
+                    <div className="absolute -bottom-1 -end-1 w-6 h-6 rounded-md overflow-hidden border-2 border-background">
+                      <img src={r.item_image} className="w-full h-full object-cover" />
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">

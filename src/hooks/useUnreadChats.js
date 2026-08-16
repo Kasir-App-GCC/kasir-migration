@@ -26,43 +26,43 @@ function playBeep() {
 export default function useUnreadChats() {
   const { user, lastChatsSeen } = useStore();
   const [count, setCount] = useState(0);
-  const prev = useRef(0);
-  const first = useRef(true);
+  const roomIds = useRef(new Set());
 
   useEffect(() => {
     if (!user) {
       setCount(0);
-      prev.current = 0;
-      first.current = true;
+      roomIds.current = new Set();
       return;
     }
     let cancelled = false;
+    const since = lastChatsSeen ? new Date(lastChatsSeen).getTime() : 0;
 
     const compute = async () => {
       try {
         const rooms = await base44.entities.ChatRoom.list("-updated_date", 100);
         const mine = (rooms || []).filter((r) => r.buyer_id === user.id || r.seller_id === user.id);
-        const roomIds = new Set(mine.map((r) => r.id));
+        roomIds.current = new Set(mine.map((r) => r.id));
         const msgs = await base44.entities.Message.list("-created_date", 200);
-        const since = lastChatsSeen ? new Date(lastChatsSeen).getTime() : 0;
-        const next = (msgs || []).filter(
-          (m) => roomIds.has(m.chatroom_id) && m.sender_id !== user.id && toDate(m.created_date).getTime() > since
+        const unread = (msgs || []).filter(
+          (m) => roomIds.current.has(m.chatroom_id) && m.sender_id !== user.id && toDate(m.created_date).getTime() > since
         ).length;
-        if (cancelled) return;
-        if (next > prev.current && !first.current && !window.location.pathname.startsWith("/chat/")) {
-          playBeep();
-        }
-        first.current = false;
-        prev.current = next;
-        setCount(next);
+        if (!cancelled) setCount(unread);
       } catch {}
     };
-
     compute();
-    const iv = setInterval(compute, 8000);
+
+    const unsubscribe = base44.entities.Message.subscribe((event) => {
+      const m = event && event.data;
+      if (!m || m.sender_id === user.id) return;
+      if (!roomIds.current.has(m.chatroom_id)) return;
+      if (window.location.pathname.startsWith("/chat/")) return;
+      playBeep();
+      setCount((c) => c + 1);
+    });
+
     return () => {
       cancelled = true;
-      clearInterval(iv);
+      if (unsubscribe) unsubscribe();
     };
   }, [user, lastChatsSeen]);
 

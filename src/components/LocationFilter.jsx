@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { MapPin, Search, X, Check, Crosshair } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
-import { SAUDI_CITIES, getCityName } from "@/lib/constants";
+import { SAUDI_CITIES, getCityName, nearestCity } from "@/lib/constants";
 
 export default function LocationFilter({ open, onClose }) {
   const { lang, locationFilter, setLocationFilter } = useStore();
@@ -45,14 +45,15 @@ export default function LocationFilter({ open, onClose }) {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setLocating(false);
-        setLocationFilter({ mode: "radius", radius, city: null, lat: pos.coords.latitude, lng: pos.coords.longitude });
+        const c = nearestCity(pos.coords.latitude, pos.coords.longitude);
+        setLocationFilter({ mode: "radius", radius, city: c ? c.en : null, lat: pos.coords.latitude, lng: pos.coords.longitude });
         onClose();
       },
       () => {
         setLocating(false);
         alert(lang === "ar" ? "ما قدرنا نحدد موقعك" : "Couldn't get your location");
       },
-      { enableHighAccuracy: true, timeout: 8000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
 

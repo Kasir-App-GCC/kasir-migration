@@ -66,6 +66,7 @@ export default function Sell() {
         description,
         seller_id: user?.id,
         seller_name: user?.name,
+        seller_avatar: user?.avatar || null,
         is_family: false,
         featured,
         status: "available",

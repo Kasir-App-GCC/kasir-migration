@@ -13,7 +13,9 @@ export default function TopBar({ onOpenLocation }) {
 
   const locLabel =
     locationFilter.mode === "radius"
-      ? `${t("within")} ${locationFilter.radius} ${t("km")}`
+      ? locationFilter.city
+        ? `${getCityName(locationFilter.city, lang)} · ${locationFilter.radius} ${t("km")}`
+        : `${t("within")} ${locationFilter.radius} ${t("km")}`
       : locationFilter.city
       ? getCityName(locationFilter.city, lang)
       : t("allCities");

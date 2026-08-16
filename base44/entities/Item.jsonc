@@ -44,6 +44,9 @@
     "seller_name": {
       "type": "string"
     },
+    "seller_avatar": {
+      "type": "string"
+    },
     "status": {
       "type": "string",
       "enum": [

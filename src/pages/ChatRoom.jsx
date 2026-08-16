@@ -52,6 +52,16 @@ export default function ChatRoom() {
 
   useEffect(() => { setLastChatsSeen(new Date().toISOString()); }, []);
 
+  useEffect(() => {
+    const unsubM = base44.entities.Message.subscribe((event) => {
+      if (event?.data?.chatroom_id === id) loadAll();
+    });
+    const unsubO = base44.entities.Offer.subscribe((event) => {
+      if (event?.data?.chatroom_id === id) loadAll();
+    });
+    return () => { unsubM?.(); unsubO?.(); };
+  }, [id, loadAll]);
+
   const isSeller = room?.seller_id === user.id;
   const otherName = room ? (isSeller ? room.buyer_name : room.seller_name) : "";
   const otherAvatar = room ? (isSeller ? room.buyer_avatar : room.seller_avatar) : null;
@@ -114,9 +124,7 @@ export default function ChatRoom() {
 
   const rejectOffer = async (offer) => {
     await base44.entities.Offer.update(offer.id, { status: "rejected" });
-    const txt = lang === "ar" ? "تم رفض العرض" : "Offer rejected";
-    await base44.entities.Message.create({ chatroom_id: id, sender_id: user.id, sender_name: user.name, text: txt });
-    await base44.entities.ChatRoom.update(id, { last_message: txt });
+    await base44.entities.ChatRoom.update(id, { last_message: lang === "ar" ? "تم رفض العرض" : "Offer rejected" });
     await loadAll();
   };
 
@@ -136,11 +144,10 @@ export default function ChatRoom() {
       direction,
       previous_offer_id: offer.id,
     });
-    const txt = (isSeller
+    const preview = (isSeller
       ? (lang === "ar" ? `عارض البائع بسعر ${formatPrice(amount, lang)}` : `Seller counters at ${formatPrice(amount, lang)}`)
       : (lang === "ar" ? `عرض جديد بسعر ${formatPrice(amount, lang)}` : `New offer at ${formatPrice(amount, lang)}`));
-    await base44.entities.Message.create({ chatroom_id: id, sender_id: user.id, sender_name: user.name, text: txt });
-    await base44.entities.ChatRoom.update(id, { last_message: txt });
+    await base44.entities.ChatRoom.update(id, { last_message: preview });
     await loadAll();
   };
 

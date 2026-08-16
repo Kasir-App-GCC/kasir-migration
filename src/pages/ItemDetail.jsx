@@ -38,6 +38,8 @@ export default function ItemDetail() {
   const [rateBuyerOpen, setRateBuyerOpen] = useState(false);
   const [buyerScore, setBuyerScore] = useState(5);
   const [buyerReview, setBuyerReview] = useState("");
+  const [zoom, setZoom] = useState(false);
+  const [origin, setOrigin] = useState({ x: 50, y: 50 });
 
   useEffect(() => {
     (async () => {
@@ -200,8 +202,23 @@ export default function ItemDetail() {
       </button>
 
       {/* Gallery */}
-      <div className="relative aspect-[4/3] rounded-3xl overflow-hidden bg-muted">
-        <img src={imgs[activeImg]} className="w-full h-full object-cover" />
+      <div
+        className="relative aspect-[4/3] rounded-3xl overflow-hidden bg-muted cursor-zoom-in"
+        onMouseEnter={() => setZoom(true)}
+        onMouseLeave={() => setZoom(false)}
+        onMouseMove={(e) => {
+          const r = e.currentTarget.getBoundingClientRect();
+          setOrigin({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 });
+        }}
+      >
+        <img
+          src={imgs[activeImg]}
+          className="w-full h-full object-cover transition-transform duration-200 ease-out"
+          style={{
+            transform: zoom ? "scale(2.2)" : "scale(1)",
+            transformOrigin: `${origin.x}% ${origin.y}%`,
+          }}
+        />
         {item.is_family && (
           <span className="absolute top-3 start-3 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500 text-white">{t("featuredBadge")}</span>
         )}
@@ -344,15 +361,15 @@ export default function ItemDetail() {
               <button onClick={() => setOfferOpen(false)} className="p-1.5 rounded-full hover:bg-muted"><X size={20} /></button>
             </div>
             <p className="text-sm text-muted-foreground mb-3">{t("offerDesc")}</p>
-            <div className="grid grid-cols-3 gap-2 mb-3">
-              {[5, 10, 15].map((pct) => (
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              {[5, 10, 15, 20].map((pct) => (
                 <button
                   key={pct}
                   onClick={() => sendOffer(pct)}
                   disabled={sending}
                   className="py-3 rounded-2xl bg-primary text-primary-foreground font-bold text-sm leading-tight disabled:opacity-50"
                 >
-                  {pct}% {t("off")}
+                  {t("haggleFor")} {pct}% {t("lessWord")}
                   <span className="block text-xs font-semibold opacity-90 mt-0.5"><Price value={Math.round(item.price * (1 - pct / 100))} lang={lang} /></span>
                 </button>
               ))}

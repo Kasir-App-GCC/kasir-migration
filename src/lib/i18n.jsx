@@ -193,6 +193,8 @@ const en = {
   saveChanges: "Save changes",
   savingChanges: "Saving…",
   notAllowedEdit: "You can only edit your own listings.",
+  haggleFor: "Haggle for",
+  lessWord: "less",
   };
 
 const ar = {
@@ -388,6 +390,8 @@ const ar = {
   saveChanges: "حفظ التعديلات",
   savingChanges: "نحفظ…",
   notAllowedEdit: "تقدر تعدّل بس إعلاناتك.",
+  haggleFor: "كاسر على",
+  lessWord: "خصم",
   };
 
 export function useT() {

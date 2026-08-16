@@ -3,6 +3,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { base44 } from "@/api/base44Client";
+import { syncAvatarToEntities } from "@/lib/syncAvatar";
 import { Camera, Loader2, User } from "lucide-react";
 
 export default function ProfileSetup() {
@@ -87,6 +88,7 @@ export default function ProfileSetup() {
         intent,
       });
       await checkUserAuth();
+      await syncAvatarToEntities(user.id, avatar);
     } catch (err) {
       setError(err.message || (ar ? "فشل الحفظ" : "Failed to save"));
       setSaving(false);

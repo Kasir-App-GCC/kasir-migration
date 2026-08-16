@@ -59,7 +59,10 @@ export default function ChatRoom() {
     const unsubO = base44.entities.Offer.subscribe((event) => {
       if (event?.data?.chatroom_id === id) loadAll();
     });
-    return () => { unsubM?.(); unsubO?.(); };
+    const unsubR = base44.entities.ChatRoom.subscribe((event) => {
+      if (event?.data?.id === id) { setRoom(event.data); loadAll(); }
+    });
+    return () => { unsubM?.(); unsubO?.(); unsubR?.(); };
   }, [id, loadAll]);
 
   const isSeller = room?.seller_id === user.id;

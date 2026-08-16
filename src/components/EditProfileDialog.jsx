@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { base44 } from "@/api/base44Client";
+import { syncAvatarToEntities } from "@/lib/syncAvatar";
 
 export default function EditProfileDialog({ open, onClose }) {
   const { user, checkUserAuth } = useAuth();
@@ -57,6 +58,7 @@ export default function EditProfileDialog({ open, onClose }) {
         avatar,
       });
       await checkUserAuth();
+      await syncAvatarToEntities(user.id, avatar);
       onClose();
     } catch (err) {
       setError(err.message || (ar ? "فشل الحفظ" : "Failed to save"));

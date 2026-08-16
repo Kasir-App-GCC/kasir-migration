@@ -274,18 +274,26 @@ export default function ItemDetail() {
       {seller && (
         <div className="mt-5 rounded-2xl bg-card border border-border/60 p-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
-              {seller.name?.[0] || "?"}
-            </div>
-            <div className="flex-1">
-              <p className="font-bold">{seller.name}</p>
-              <div className="flex items-center gap-1.5 text-sm">
-                <Star size={13} className="fill-amber-400 text-amber-400" />
-                <span className="font-semibold">{seller.rating}</span>
-                <span className="text-muted-foreground text-xs">· {ratings.length} {t("ratings")}</span>
+            <button
+              onClick={() => item.seller_id && nav(`/user/${item.seller_id}`)}
+              className="flex items-center gap-3 flex-1 min-w-0 text-start hover:opacity-80 transition"
+            >
+              <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
+                {seller.name?.[0] || "?"}
               </div>
-            </div>
-            <button onClick={() => setReportOpen(true)} className="p-2 rounded-full hover:bg-muted text-muted-foreground" title={t("report")}>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold truncate flex items-center gap-1">
+                  {seller.name}
+                  <ChevronRight size={15} className="text-muted-foreground rtl:rotate-180 shrink-0" />
+                </p>
+                <div className="flex items-center gap-1.5 text-sm">
+                  <Star size={13} className="fill-amber-400 text-amber-400" />
+                  <span className="font-semibold">{seller.rating}</span>
+                  <span className="text-muted-foreground text-xs">· {ratings.length} {t("ratings")}</span>
+                </div>
+              </div>
+            </button>
+            <button onClick={() => setReportOpen(true)} className="p-2 rounded-full hover:bg-muted text-muted-foreground shrink-0" title={t("report")}>
               <Flag size={18} />
             </button>
           </div>

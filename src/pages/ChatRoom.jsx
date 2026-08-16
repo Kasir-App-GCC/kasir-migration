@@ -95,10 +95,13 @@ export default function ChatRoom() {
         <div className="w-9 h-9 rounded-full overflow-hidden bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0">
           {otherAvatar ? <img src={otherAvatar} alt={otherName} className="w-full h-full object-cover" /> : (otherName?.[0] || "?")}
         </div>
-        <div className="flex-1 min-w-0">
+        <button
+          onClick={() => nav(`/user/${isSeller ? room.buyer_id : room.seller_id}?name=${encodeURIComponent(otherName || "")}&avatar=${encodeURIComponent(otherAvatar || "")}`)}
+          className="flex-1 min-w-0 text-start"
+        >
           <p className="font-bold text-sm truncate">{otherName}</p>
           {room?.item_title && <p className="text-xs text-muted-foreground truncate">{room.item_title} · <Price value={room.item_price} lang={lang} /></p>}
-        </div>
+        </button>
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">

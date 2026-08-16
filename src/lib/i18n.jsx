@@ -183,6 +183,9 @@ const en = {
   intentBuy: "Buy",
   intentSell: "Sell",
   intentBoth: "Both",
+  rateBuyer: "Rate buyer",
+  share: "Share",
+  linkCopied: "Link copied",
 };
 
 const ar = {
@@ -368,6 +371,9 @@ const ar = {
   intentBuy: "أبي أشتري",
   intentSell: "أبي أبيع",
   intentBoth: "أبيع وأشتري",
+  rateBuyer: "قيّم المشتري",
+  share: "مشاركة",
+  linkCopied: "تم نسخ الرابط",
 };
 
 export function useT() {

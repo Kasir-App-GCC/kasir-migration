@@ -12,6 +12,8 @@ export default function LocationFilter({ open, onClose }) {
   const [city, setCity] = useState(locationFilter.city);
   const [query, setQuery] = useState("");
   const [locating, setLocating] = useState(false);
+  const [detectedCity, setDetectedCity] = useState(null);
+  const [detectedCoords, setDetectedCoords] = useState(null);
 
   useEffect(() => {
     if (open) {
@@ -19,6 +21,13 @@ export default function LocationFilter({ open, onClose }) {
       setRadius(locationFilter.radius);
       setCity(locationFilter.city);
       setQuery("");
+      if (locationFilter.mode === "radius" && locationFilter.lat) {
+        setDetectedCity(nearestCity(locationFilter.lat, locationFilter.lng));
+        setDetectedCoords({ lat: locationFilter.lat, lng: locationFilter.lng });
+      } else {
+        setDetectedCity(null);
+        setDetectedCoords(null);
+      }
     }
   }, [open]);
 
@@ -30,15 +39,9 @@ export default function LocationFilter({ open, onClose }) {
     c.ar.includes(query)
   );
 
-  const apply = () => {
-    if (tab === "city") {
-      setLocationFilter({ mode: "city", city, radius: 25 });
-      onClose();
-      return;
-    }
+  const detectLocation = () => {
     if (!navigator.geolocation) {
-      setLocationFilter({ mode: "radius", radius, city: null });
-      onClose();
+      alert(lang === "ar" ? "ما يدعم متصفحك تحديد الموقع" : "Geolocation not supported");
       return;
     }
     setLocating(true);
@@ -46,8 +49,8 @@ export default function LocationFilter({ open, onClose }) {
       (pos) => {
         setLocating(false);
         const c = nearestCity(pos.coords.latitude, pos.coords.longitude);
-        setLocationFilter({ mode: "radius", radius, city: c ? c.en : null, lat: pos.coords.latitude, lng: pos.coords.longitude });
-        onClose();
+        setDetectedCity(c);
+        setDetectedCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       },
       () => {
         setLocating(false);
@@ -55,6 +58,22 @@ export default function LocationFilter({ open, onClose }) {
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
+  };
+
+  const apply = () => {
+    if (tab === "city") {
+      setLocationFilter({ mode: "city", city, radius: 25 });
+      onClose();
+      return;
+    }
+    if (detectedCoords) {
+      setLocationFilter({ mode: "radius", radius, city: detectedCity?.en || null, lat: detectedCoords.lat, lng: detectedCoords.lng });
+    } else if (locationFilter.mode === "radius" && locationFilter.lat) {
+      setLocationFilter({ ...locationFilter, radius });
+    } else {
+      setLocationFilter({ mode: "radius", radius, city: null });
+    }
+    onClose();
   };
 
   const clear = () => {
@@ -144,27 +163,42 @@ export default function LocationFilter({ open, onClose }) {
                 </div>
                 <div>
                   <p className="font-semibold">{t("nearMe")}</p>
-                  <p className="text-xs text-muted-foreground">{t("useMyLocation")}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {locating ? t("locating") : detectedCity ? (lang === "ar" ? `تم تحديد موقعك: ${detectedCity.ar}` : `Location found: ${detectedCity.en}`) : t("useMyLocation")}
+                  </p>
                 </div>
               </div>
-              <div className="flex items-baseline justify-between mb-2">
-                <span className="text-sm text-muted-foreground">{t("radius")}</span>
-                <span className="text-2xl font-extrabold">
-                  {radius} <span className="text-sm font-medium text-muted-foreground">{t("km")}</span>
-                </span>
-              </div>
-              <input
-                type="range"
-                min={1}
-                max={200}
-                value={radius}
-                onChange={(e) => setRadius(Number(e.target.value))}
-                className="w-full accent-primary"
-              />
-              <div className="flex justify-between text-[11px] text-muted-foreground mt-1">
-                <span>1 {t("km")}</span>
-                <span>200 {t("km")}</span>
-              </div>
+              {locating ? (
+                <div className="text-center py-6"><div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin mx-auto" /></div>
+              ) : !detectedCity ? (
+                <button onClick={detectLocation} className="w-full py-3.5 rounded-xl bg-primary text-primary-foreground font-bold mb-4">
+                  {t("useMyLocation")}
+                </button>
+              ) : (
+                <>
+                  <button onClick={detectLocation} className="text-xs text-primary font-semibold mb-3 hover:underline">
+                    {lang === "ar" ? "إعادة تحديد الموقع" : "Re-detect location"}
+                  </button>
+                  <div className="flex items-baseline justify-between mb-2">
+                    <span className="text-sm text-muted-foreground">{t("radius")}</span>
+                    <span className="text-2xl font-extrabold">
+                      {radius} <span className="text-sm font-medium text-muted-foreground">{t("km")}</span>
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={1}
+                    max={200}
+                    value={radius}
+                    onChange={(e) => setRadius(Number(e.target.value))}
+                    className="w-full accent-primary"
+                  />
+                  <div className="flex justify-between text-[11px] text-muted-foreground mt-1">
+                    <span>1 {t("km")}</span>
+                    <span>200 {t("km")}</span>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

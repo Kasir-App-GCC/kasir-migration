@@ -35,6 +35,9 @@ export default function ItemDetail() {
   const [sending, setSending] = useState(false);
   const [soldOpen, setSoldOpen] = useState(false);
   const [buyers, setBuyers] = useState([]);
+  const [rateBuyerOpen, setRateBuyerOpen] = useState(false);
+  const [buyerScore, setBuyerScore] = useState(5);
+  const [buyerReview, setBuyerReview] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -130,6 +133,28 @@ export default function ItemDetail() {
     nav("/profile");
   };
 
+  const shareItem = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try { await navigator.share({ title: item.title, url }); } catch {}
+    } else {
+      try { await navigator.clipboard.writeText(url); } catch {}
+    }
+  };
+
+  const submitBuyerRating = async () => {
+    await base44.entities.Rating.create({
+      rated_user_id: item.sold_to,
+      rated_user_name: item.sold_to_name,
+      rater_user_id: user.id,
+      rater_name: user.name,
+      score: buyerScore,
+      review: buyerReview,
+      role: "seller",
+    });
+    setRateBuyerOpen(false);
+  };
+
   const openSold = async () => {
     try {
       const rooms = await base44.entities.ChatRoom.filter({ item_id: item.id }, "-created_date", 50);
@@ -146,6 +171,15 @@ export default function ItemDetail() {
     try {
       await base44.entities.Item.update(item.id, { status: "sold", sold_to: buyer.id, sold_to_name: buyer.name });
       setItem({ ...item, status: "sold", sold_to: buyer.id, sold_to_name: buyer.name });
+      try {
+        const rooms = await base44.entities.ChatRoom.filter({ item_id: item.id, buyer_id: buyer.id }, "-created_date", 5);
+        const room = rooms?.[0];
+        if (room) {
+          const text = lang === "ar" ? `تم بيع «${item.title}» إليك 🎉` : `"${item.title}" has been sold to you 🎉`;
+          await base44.entities.Message.create({ chatroom_id: room.id, sender_id: user.id, sender_name: user.name, text });
+          await base44.entities.ChatRoom.update(room.id, { last_message: text });
+        }
+      } catch {}
     } catch {}
     setSoldOpen(false);
   };
@@ -171,7 +205,7 @@ export default function ItemDetail() {
         {item.is_family && (
           <span className="absolute top-3 start-3 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500 text-white">{t("featuredBadge")}</span>
         )}
-        <button className="absolute top-3 end-3 w-9 h-9 rounded-full bg-white/85 dark:bg-slate-900/55 backdrop-blur flex items-center justify-center"><Share2 size={16} /></button>
+        <button onClick={shareItem} className="absolute top-3 end-3 w-9 h-9 rounded-full bg-white/85 dark:bg-slate-900/55 backdrop-blur flex items-center justify-center"><Share2 size={16} /></button>
         {imgs.length > 1 && (
           <div className="absolute bottom-3 inset-x-0 flex justify-center gap-1.5">
             {imgs.map((_, i) => (
@@ -206,7 +240,7 @@ export default function ItemDetail() {
         </div>
         {item.status === "sold" && (
           <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 text-sm font-bold">
-            <CheckCircle size={15} /> {t("soldTo")} {item.sold_to_name || "—"}
+            <CheckCircle size={15} /> {t("sold")}
           </div>
         )}
       </div>
@@ -258,6 +292,12 @@ export default function ItemDetail() {
       {user && !isOwner && item.status === "sold" && item.sold_to === user.id && (
         <button onClick={() => setRateOpen(true)} className="mt-3 w-full py-3 rounded-2xl border border-border bg-card text-sm font-semibold flex items-center justify-center gap-2 hover:bg-muted/50">
           <Star size={16} className="fill-amber-400 text-amber-400" /> {t("rateSeller")}
+        </button>
+      )}
+      {/* Rate buyer (only the seller of a sold item) */}
+      {isOwner && item.status === "sold" && item.sold_to && (
+        <button onClick={() => setRateBuyerOpen(true)} className="mt-3 w-full py-3 rounded-2xl border border-border bg-card text-sm font-semibold flex items-center justify-center gap-2 hover:bg-muted/50">
+          <Star size={16} className="fill-amber-400 text-amber-400" /> {t("rateBuyer")}
         </button>
       )}
 
@@ -379,6 +419,21 @@ export default function ItemDetail() {
             <RatingStars value={myScore} size={34} interactive onChange={setMyScore} />
             <textarea value={myReview} onChange={(e) => setMyReview(e.target.value)} placeholder={t("reviewPlaceholder")} rows={3} className="mt-4 w-full px-3.5 py-3 rounded-xl bg-muted text-sm outline-none resize-none" />
             <button onClick={submitRating} className="mt-4 w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold">{t("submitRating")}</button>
+          </div>
+        </div>
+      )}
+      {rateBuyerOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setRateBuyerOpen(false)} />
+          <div className="relative w-full sm:max-w-sm bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 animate-in fade-in slide-in-from-bottom-[100%] duration-300">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg">{t("rateBuyer")}</h3>
+              <button onClick={() => setRateBuyerOpen(false)} className="p-1.5 rounded-full hover:bg-muted"><X size={20} /></button>
+            </div>
+            <p className="text-sm text-muted-foreground mb-2">{t("yourRating")}</p>
+            <RatingStars value={buyerScore} size={34} interactive onChange={setBuyerScore} />
+            <textarea value={buyerReview} onChange={(e) => setBuyerReview(e.target.value)} placeholder={t("reviewPlaceholder")} rows={3} className="mt-4 w-full px-3.5 py-3 rounded-xl bg-muted text-sm outline-none resize-none" />
+            <button onClick={submitBuyerRating} className="mt-4 w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold">{t("submitRating")}</button>
           </div>
         </div>
       )}

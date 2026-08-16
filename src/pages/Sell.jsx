@@ -16,6 +16,8 @@ export default function Sell() {
   const [category, setCategory] = useState("");
   const [condition, setCondition] = useState("good");
   const [city, setCity] = useState("");
+  const [lat, setLat] = useState(null);
+  const [lng, setLng] = useState(null);
   const [description, setDescription] = useState("");
   const [subcategory, setSubcategory] = useState("");
   const [featured, setFeatured] = useState(false);
@@ -44,6 +46,8 @@ export default function Sell() {
       (pos) => {
         const c = nearestCity(pos.coords.latitude, pos.coords.longitude);
         if (c) setCity(c.en);
+        setLat(pos.coords.latitude);
+        setLng(pos.coords.longitude);
         setLocating(false);
       },
       () => setLocating(false),
@@ -63,6 +67,8 @@ export default function Sell() {
         subcategory: subcategory || undefined,
         condition,
         city,
+        lat,
+        lng,
         description,
         seller_id: user?.id,
         seller_name: user?.name,
@@ -150,7 +156,12 @@ export default function Sell() {
         </div>
         <div className="space-y-1">
           <label className="text-sm font-semibold">{t("selectCityLabel")}</label>
-          <select value={city} onChange={(e) => setCity(e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-muted outline-none">
+          <select value={city} onChange={(e) => {
+            const v = e.target.value;
+            setCity(v);
+            const sc = SAUDI_CITIES.find((x) => x.en === v);
+            if (sc && sc.lat) { setLat(sc.lat); setLng(sc.lng); }
+          }} className="w-full px-4 py-3 rounded-2xl bg-muted outline-none">
             <option value="">{t("selectCity")}</option>
             {SAUDI_CITIES.map((c) => (
               <option key={c.en} value={c.en}>{lang === "ar" ? c.ar : c.en}</option>

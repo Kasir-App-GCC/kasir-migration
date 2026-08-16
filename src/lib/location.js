@@ -25,7 +25,8 @@ export function matchLocation(it, loc) {
   }
   if (loc.mode === "radius") {
     if (!loc.lat || !loc.lng) return true;
-    const c = cityCoords(it.city);
+    // Use the item's exact GPS pin if present; otherwise fall back to city center
+    const c = (it.lat && it.lng) ? { lat: it.lat, lng: it.lng } : cityCoords(it.city);
     if (!c) return false;
     return distanceKm(loc.lat, loc.lng, c.lat, c.lng) <= loc.radius;
   }

@@ -38,6 +38,12 @@
     "city": {
       "type": "string"
     },
+    "lat": {
+      "type": "number"
+    },
+    "lng": {
+      "type": "number"
+    },
     "seller_id": {
       "type": "string"
     },

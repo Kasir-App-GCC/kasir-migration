@@ -33,14 +33,15 @@ export default function ItemCard({ item, onClick }) {
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
 
-        {/* Price tag hanging from the upper corner */}
-        <div className="absolute -top-1.5 start-2 -rotate-6 origin-top-start z-20">
+        {/* Price tag — hanging label from the upper corner */}
+        <div className="absolute top-0 start-3 z-20 flex flex-col items-center">
+          <div className="w-px h-3 bg-slate-900/40" />
           <div
-            className="relative ps-4 pe-3 py-1.5 bg-amber-300 text-slate-900 shadow-lg shadow-black/30 rounded-sm"
-            style={{ clipPath: "polygon(12px 0, 100% 0, 100% 100%, 12px 100%, 0 50%)" }}
+            className="relative -mt-px bg-amber-300 text-slate-900 px-3 py-1.5 shadow-lg shadow-black/30"
+            style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%)" }}
           >
-            <span className="absolute top-1/2 -translate-y-1/2 start-[3px] w-1.5 h-1.5 rounded-full bg-slate-900/30 ring-1 ring-slate-900/25" />
-            <span className="text-[13px] font-extrabold tracking-tight whitespace-nowrap">
+            <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-white ring-2 ring-amber-400" />
+            <span className="block text-[12px] font-extrabold tracking-tight whitespace-nowrap leading-none pt-0.5">
               {formatPrice(item.price, lang)}
             </span>
           </div>

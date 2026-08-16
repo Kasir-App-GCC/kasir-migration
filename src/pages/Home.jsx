@@ -21,7 +21,7 @@ function Skeleton() {
 }
 
 export default function Home() {
-  const { category } = useOutletContext();
+  const { category, subcategory } = useOutletContext();
   const { locationFilter, lang, prefs } = useStore();
   const t = useT();
   const nav = useNavigate();
@@ -50,12 +50,13 @@ export default function Home() {
 
   const filtered = items.filter((it) => {
     if (category !== "all" && it.category !== category) return false;
+    if (subcategory && it.subcategory !== subcategory) return false;
     if (!prefs.showSold && it.status === "sold") return false;
     return matchLoc(it);
   });
   const featured = [...items]
     .filter((it) => it.status !== "sold")
-    .sort((a, b) => (b.views || 0) - (a.views || 0))
+    .sort((a, b) => (Number(!!b.featured) - Number(!!a.featured)) || ((b.views || 0) - (a.views || 0)))
     .slice(0, 10);
   const showFeatured = category === "all" && featured.length > 0;
 

@@ -28,6 +28,8 @@
       "enum": [
         "new",
         "like_new",
+        "good",
+        "fair",
         "used"
       ],
       "default": "used"
@@ -50,6 +52,10 @@
       "default": "available"
     },
     "is_family": {
+      "type": "boolean",
+      "default": false
+    },
+    "featured": {
       "type": "boolean",
       "default": false
     },

@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ImagePlus, X, Sparkles, Check } from "lucide-react";
+import { ImagePlus, X, Sparkles, LocateFixed } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
-import { CATEGORIES, SAUDI_CITIES, getCategory, getSubcategories } from "@/lib/constants";
+import { CATEGORIES, CONDITIONS, SAUDI_CITIES, getSubcategories, nearestCity } from "@/lib/constants";
 
 export default function Sell() {
   const { user, lang } = useStore();
@@ -17,8 +17,9 @@ export default function Sell() {
   const [condition, setCondition] = useState("used");
   const [city, setCity] = useState("");
   const [description, setDescription] = useState("");
-  const [isFamily, setIsFamily] = useState(false);
   const [subcategory, setSubcategory] = useState("");
+  const [featured, setFeatured] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [posting, setPosting] = useState(false);
 
@@ -36,6 +37,20 @@ export default function Sell() {
     }
   };
 
+  const useMyLocation = () => {
+    if (!navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const c = nearestCity(pos.coords.latitude, pos.coords.longitude);
+        if (c) setCity(c.en);
+        setLocating(false);
+      },
+      () => setLocating(false),
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
+
   const submit = async () => {
     if (!title || !price || !category || !city) return;
     setPosting(true);
@@ -51,7 +66,8 @@ export default function Sell() {
         description,
         seller_id: user?.id,
         seller_name: user?.name,
-        is_family: isFamily,
+        is_family: false,
+        featured,
         status: "available",
       });
       nav("/");
@@ -114,9 +130,9 @@ export default function Sell() {
         <div className="space-y-1">
           <label className="text-sm font-semibold">{t("selectCondition")}</label>
           <select value={condition} onChange={(e) => setCondition(e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-muted outline-none">
-            <option value="new">{t("condition_new")}</option>
-            <option value="like_new">{t("condition_like_new")}</option>
-            <option value="used">{t("condition_used")}</option>
+            {CONDITIONS.map((c) => (
+              <option key={c.id} value={c.id}>{lang === "ar" ? c.ar : c.en}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -139,6 +155,9 @@ export default function Sell() {
               <option key={c.en} value={c.en}>{lang === "ar" ? c.ar : c.en}</option>
             ))}
           </select>
+          <button type="button" onClick={useMyLocation} className="text-xs font-semibold text-primary flex items-center gap-1 mt-1">
+            <LocateFixed size={13} /> {locating ? t("locating") : t("useMyLocation")}
+          </button>
         </div>
       </div>
 
@@ -167,15 +186,18 @@ export default function Sell() {
 
       <button
         type="button"
-        onClick={() => setIsFamily(!isFamily)}
-        className="w-full flex items-center justify-between p-3.5 rounded-2xl border border-border bg-card"
+        onClick={() => setFeatured(!featured)}
+        className={`w-full flex items-center justify-between p-3.5 rounded-2xl border transition ${featured ? "border-amber-400 bg-amber-50 dark:bg-amber-950/30" : "border-border bg-card"}`}
       >
-        <span className="flex items-center gap-2.5">
-          <Sparkles size={18} className="text-emerald-600" />
-          <span className="text-sm font-semibold">{t("markFamily")}</span>
+        <span className="flex items-center gap-2.5 text-start">
+          <Sparkles size={18} className="text-amber-500" />
+          <span>
+            <span className="text-sm font-semibold block">{t("promoteListing")}</span>
+            <span className="text-xs text-muted-foreground">{t("promoteDesc")} · {t("promoFee")}</span>
+          </span>
         </span>
-        <span className={`w-11 h-6 rounded-full p-0.5 transition ${isFamily ? "bg-emerald-500" : "bg-muted-foreground/30"}`}>
-          <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${isFamily ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
+        <span className={`w-11 h-6 rounded-full p-0.5 transition ${featured ? "bg-amber-500" : "bg-muted-foreground/30"}`}>
+          <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${featured ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
         </span>
       </button>
 

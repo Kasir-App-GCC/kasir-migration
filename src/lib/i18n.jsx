@@ -149,6 +149,13 @@ const en = {
   clearFavorites: "Clear saved items",
   clearFavsConfirm: "Remove all saved items?",
   offerMessage: "Offer",
+  promoteListing: "Promote in Featured",
+  promoteDesc: "Show in the featured strip",
+  promoFee: "9.99 SAR",
+  useMyLocation: "Use my location",
+  locating: "Locating…",
+  condition_good: "Good",
+  condition_fair: "Fair",
 };
 
 const ar = {
@@ -175,7 +182,7 @@ const ar = {
   browseAll: "تصفح الكل",
   newArrivals: "مضاف جديد",
   condition_new: "جديد",
-  condition_like_new: "مستعمل بحالة ممتازة",
+  condition_like_new: "كالجديد",
   condition_used: "مستعمل",
   price: "السعر",
   negotiable: "قابل للتفاوض",
@@ -287,7 +294,7 @@ const ar = {
   subcategory: "تصنيف فرعي",
   markFamily: "حدّد كمنتج أسري",
   makeOffer: "اعرض سعر",
-  offerDesc: "ابعت عرض بسعر أقل للبائع",
+  offerDesc: "أرسل عرض بسعر أقل للبائع",
   off: "خصم",
   yourOffer: "عرضك (ر.س)",
   send: "إرسال",
@@ -300,6 +307,13 @@ const ar = {
   clearFavorites: "مسح المحفوظات",
   clearFavsConfirm: "مسح كل المحفوظات؟",
   offerMessage: "عرض",
+  promoteListing: "ميّز الإعلان",
+  promoteDesc: "يظهر في الشريط المميز",
+  promoFee: "٩٫٩٩ ر.س",
+  useMyLocation: "استخدم موقعي الحالي",
+  locating: "جارٍ تحديد الموقع…",
+  condition_good: "جيد",
+  condition_fair: "مقبول",
 };
 
 export function useT() {

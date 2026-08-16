@@ -5,10 +5,10 @@ import { base44 } from "@/api/base44Client";
 import ItemCard from "@/components/ItemCard";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
-import { CATEGORIES, SAUDI_CITIES } from "@/lib/constants";
+import { CATEGORIES, CONDITIONS, SAUDI_CITIES } from "@/lib/constants";
 
 export default function Search() {
-  const { category } = useOutletContext();
+  const { category, subcategory } = useOutletContext();
   const { locationFilter, lang, prefs } = useStore();
   const t = useT();
   const nav = useNavigate();
@@ -38,6 +38,7 @@ export default function Search() {
   const results = useMemo(() => {
     let r = items.filter((it) => {
       if (category !== "all" && it.category !== category) return false;
+      if (subcategory && it.subcategory !== subcategory) return false;
       if (!prefs.showSold && it.status === "sold") return false;
       if (locationFilter.mode === "city" && locationFilter.city && it.city !== locationFilter.city) return false;
       if (q && !(`${it.title} ${it.description}`.toLowerCase().includes(q.toLowerCase()))) return false;
@@ -49,7 +50,7 @@ export default function Search() {
     if (sort === "priceLowHigh") r = [...r].sort((a, b) => a.price - b.price);
     if (sort === "priceHighLow") r = [...r].sort((a, b) => b.price - a.price);
     return r;
-  }, [items, category, locationFilter, q, condition, minPrice, maxPrice, sort, prefs.showSold]);
+  }, [items, category, subcategory, locationFilter, q, condition, minPrice, maxPrice, sort, prefs.showSold]);
 
   const reset = () => {
     setMinPrice(""); setMaxPrice(""); setCondition(""); setSort("newest");
@@ -128,14 +129,14 @@ export default function Search() {
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground block mb-1.5">{t("condition")}</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {["new", "like_new", "used"].map((c) => (
+                <div className="flex flex-wrap gap-2">
+                  {CONDITIONS.map((c) => (
                     <button
-                      key={c}
-                      onClick={() => setCondition(condition === c ? "" : c)}
-                      className={`py-2.5 rounded-xl text-sm font-semibold ${condition === c ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                      key={c.id}
+                      onClick={() => setCondition(condition === c.id ? "" : c.id)}
+                      className={`px-3 py-2 rounded-xl text-sm font-semibold ${condition === c.id ? "bg-primary text-primary-foreground" : "bg-muted"}`}
                     >
-                      {t("condition_" + c)}
+                      {lang === "ar" ? c.ar : c.en}
                     </button>
                   ))}
                 </div>

@@ -1,16 +1,25 @@
-import React from "react";
-import { Heart, MapPin, Clock } from "lucide-react";
-import { Image } from "@/components/ui/image";
+import React, { useState } from "react";
+import { Heart, MapPin, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { formatPrice, timeAgo } from "@/lib/format";
-import { getCategory, getCityName } from "@/lib/constants";
+import { getCategory, getCityName, getCondition } from "@/lib/constants";
 
 export default function ItemCard({ item, onClick }) {
   const { lang, favorites, toggleFavorite } = useStore();
   const t = useT();
+  const [idx, setIdx] = useState(0);
   const fav = favorites.includes(item.id);
-  const cat = getCategory(item.category);
+  const imgs = item.images?.length
+    ? item.images
+    : ["https://picsum.photos/seed/" + encodeURIComponent(item.title || item.id) + "/600/600"];
+  const cond = getCondition(item.condition);
+  const multi = imgs.length > 1;
+
+  const step = (d, e) => {
+    e.stopPropagation();
+    setIdx((i) => (i + d + imgs.length) % imgs.length);
+  };
 
   return (
     <div
@@ -18,17 +27,16 @@ export default function ItemCard({ item, onClick }) {
       className="group cursor-pointer rounded-2xl overflow-hidden bg-card border border-border/60 hover:shadow-xl hover:border-border transition-all duration-300 hover:-translate-y-0.5"
     >
       <div className="relative aspect-square bg-muted overflow-hidden">
-        <Image
-          src={item.images?.[0]}
-          fittingType="fill"
+        <img
+          src={imgs[idx]}
+          alt={item.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
-        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/35 to-transparent pointer-events-none" />
 
-        {/* Price tag (hanging label) */}
-        <div className="absolute bottom-0 start-0 -rotate-6 translate-y-2.5 -translate-x-0.5 origin-bottom-start z-10">
+        {/* Price tag hanging from the upper corner */}
+        <div className="absolute -top-1.5 start-2 -rotate-6 origin-top-start z-20">
           <div
-            className="relative ps-4 pe-3 py-1.5 bg-amber-300 text-slate-900 shadow-lg shadow-black/25"
+            className="relative ps-4 pe-3 py-1.5 bg-amber-300 text-slate-900 shadow-lg shadow-black/30 rounded-sm"
             style={{ clipPath: "polygon(12px 0, 100% 0, 100% 100%, 12px 100%, 0 50%)" }}
           >
             <span className="absolute top-1/2 -translate-y-1/2 start-[3px] w-1.5 h-1.5 rounded-full bg-slate-900/30 ring-1 ring-slate-900/25" />
@@ -45,7 +53,7 @@ export default function ItemCard({ item, onClick }) {
             toggleFavorite(item.id);
           }}
           aria-label={t("favorite")}
-          className="absolute top-2.5 end-2.5 w-9 h-9 rounded-full bg-white/85 dark:bg-slate-900/55 backdrop-blur flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition z-10"
+          className="absolute top-2.5 end-2.5 w-9 h-9 rounded-full bg-white/85 dark:bg-slate-900/55 backdrop-blur flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition z-20"
         >
           <Heart
             className={fav ? "fill-rose-500 text-rose-500" : "text-slate-700 dark:text-slate-100"}
@@ -53,9 +61,41 @@ export default function ItemCard({ item, onClick }) {
           />
         </button>
 
+        {/* Multi-image controls */}
+        {multi && (
+          <>
+            <button
+              onClick={(e) => step(-1, e)}
+              aria-label="prev"
+              className="absolute top-1/2 -translate-y-1/2 start-1 w-7 h-7 rounded-full bg-white/80 dark:bg-slate-900/60 backdrop-blur shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition z-10"
+            >
+              <ChevronLeft size={16} className="rtl:rotate-180" />
+            </button>
+            <button
+              onClick={(e) => step(1, e)}
+              aria-label="next"
+              className="absolute top-1/2 -translate-y-1/2 end-1 w-7 h-7 rounded-full bg-white/80 dark:bg-slate-900/60 backdrop-blur shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition z-10"
+            >
+              <ChevronRight size={16} className="rtl:rotate-180" />
+            </button>
+            <div className="absolute bottom-2 inset-x-0 flex justify-center gap-1 z-10">
+              {imgs.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIdx(i);
+                  }}
+                  className={`h-1.5 rounded-full transition-all ${i === idx ? "w-4 bg-white" : "w-1.5 bg-white/50"}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
         {/* Badges */}
         {item.is_family && (
-          <span className="absolute top-2.5 start-2.5 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500 text-white shadow">
+          <span className="absolute bottom-2.5 start-2.5 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500 text-white shadow">
             {t("featuredBadge")}
           </span>
         )}
@@ -69,6 +109,12 @@ export default function ItemCard({ item, onClick }) {
       </div>
 
       <div className="p-2.5">
+        <div className="flex items-center gap-1.5 mb-1">
+          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${cond.color}`}>
+            {lang === "ar" ? cond.ar : cond.en}
+          </span>
+          {multi && <span className="text-[10px] text-muted-foreground">{imgs.length} {t("photos")}</span>}
+        </div>
         <h3 className="text-sm font-semibold line-clamp-1 leading-snug">{item.title}</h3>
         <div className="flex items-center justify-between mt-1.5 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1 line-clamp-1">

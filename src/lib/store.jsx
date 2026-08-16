@@ -27,6 +27,10 @@ export function StoreProvider({ children }) {
     const s = localStorage.getItem("souqi_loc");
     return s ? JSON.parse(s) : { mode: "city", city: null, radius: 25 };
   });
+  const [prefs, setPrefsState] = useState(() => {
+    const s = localStorage.getItem("souqi_prefs");
+    return s ? JSON.parse(s) : { showSold: true, defaultRadius: 25 };
+  });
 
   // Theme application
   useEffect(() => {
@@ -55,6 +59,7 @@ export function StoreProvider({ children }) {
   useEffect(() => localStorage.setItem("souqi_theme", theme), [theme]);
   useEffect(() => localStorage.setItem("souqi_favs", JSON.stringify(favorites)), [favorites]);
   useEffect(() => localStorage.setItem("souqi_loc", JSON.stringify(locationFilter)), [locationFilter]);
+  useEffect(() => localStorage.setItem("souqi_prefs", JSON.stringify(prefs)), [prefs]);
   useEffect(() => {
     if (user) localStorage.setItem("souqi_user", JSON.stringify(user));
     else localStorage.removeItem("souqi_user");
@@ -64,6 +69,8 @@ export function StoreProvider({ children }) {
   const setLang = (l) => setLangState(l);
   const toggleFavorite = (id) =>
     setFavorites((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]));
+  const setPrefs = (patch) => setPrefsState((p) => ({ ...p, ...patch }));
+  const clearFavorites = () => setFavorites([]);
 
   const sendOtp = (phone) => {
     const code = String(Math.floor(1000 + Math.random() * 9000));
@@ -118,6 +125,9 @@ export function StoreProvider({ children }) {
         toggleFavorite,
         locationFilter,
         setLocationFilter,
+        prefs,
+        setPrefs,
+        clearFavorites,
         sendOtp,
         verifyOtp,
         loginProvider,

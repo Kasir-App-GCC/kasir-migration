@@ -20,6 +20,9 @@
     "category": {
       "type": "string"
     },
+    "subcategory": {
+      "type": "string"
+    },
     "condition": {
       "type": "string",
       "enum": [

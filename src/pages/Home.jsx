@@ -6,6 +6,7 @@ import ItemCard from "@/components/ItemCard";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { getCategory, getCityName } from "@/lib/constants";
+import { formatPrice } from "@/lib/format";
 
 function Skeleton() {
   return (
@@ -21,7 +22,7 @@ function Skeleton() {
 
 export default function Home() {
   const { category } = useOutletContext();
-  const { locationFilter, lang } = useStore();
+  const { locationFilter, lang, prefs } = useStore();
   const t = useT();
   const nav = useNavigate();
   const [items, setItems] = useState([]);
@@ -49,35 +50,39 @@ export default function Home() {
 
   const filtered = items.filter((it) => {
     if (category !== "all" && it.category !== category) return false;
+    if (!prefs.showSold && it.status === "sold") return false;
     return matchLoc(it);
   });
-  const families = items.filter((it) => it.is_family).slice(0, 10);
-  const showFamilies = category === "all" || category === "families";
+  const featured = [...items]
+    .filter((it) => it.status !== "sold")
+    .sort((a, b) => (b.views || 0) - (a.views || 0))
+    .slice(0, 10);
+  const showFeatured = category === "all" && featured.length > 0;
 
   return (
     <div className="space-y-5 pt-2">
-      {showFamilies && families.length > 0 && (
-        <section className="rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-4 overflow-hidden">
+      {showFeatured && (
+        <section className="rounded-3xl bg-gradient-to-br from-slate-800 to-slate-600 dark:from-slate-700 dark:to-slate-900 text-white p-4 overflow-hidden">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h2 className="font-extrabold text-lg flex items-center gap-1.5">
-                <Sparkles size={18} /> {t("productiveFamilies")}
+                <Sparkles size={18} /> {t("featuredStrip")}
               </h2>
-              <p className="text-white/80 text-xs">{t("featuredDesc")}</p>
+              <p className="text-white/70 text-xs">{t("featuredStripDesc")}</p>
             </div>
           </div>
           <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1">
-            {families.map((it) => (
+            {featured.map((it) => (
               <div
                 key={it.id}
                 onClick={() => nav(`/item/${it.id}`)}
                 className="shrink-0 w-32 cursor-pointer"
               >
-                <div className="aspect-square rounded-2xl overflow-hidden bg-white/20">
+                <div className="aspect-square rounded-2xl overflow-hidden bg-white/10">
                   <img src={it.images?.[0]} alt={it.title} className="w-full h-full object-cover" />
                 </div>
                 <p className="text-xs font-semibold mt-1.5 line-clamp-1">{it.title}</p>
-                <p className="text-[11px] font-bold text-amber-200">{it.price} ر.س</p>
+                <p className="text-[11px] font-bold text-amber-300">{formatPrice(it.price, lang)}</p>
               </div>
             ))}
           </div>

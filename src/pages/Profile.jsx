@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight } from "lucide-react";
+import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -9,7 +9,7 @@ import RatingStars from "@/components/RatingStars";
 import { formatPrice, timeAgo } from "@/lib/format";
 
 export default function Profile() {
-  const { user, lang, setLang, theme, setTheme, logout, favorites } = useStore();
+  const { user, lang, setLang, theme, setTheme, logout, favorites, prefs, setPrefs, clearFavorites } = useStore();
   const t = useT();
   const nav = useNavigate();
   const [tab, setTab] = useState("listings");
@@ -34,6 +34,14 @@ export default function Profile() {
 
   const myListings = items;
   const saved = items.filter((it) => favorites.includes(it.id)); // subset from loaded; fine for demo
+
+  const deleteListing = async (id) => {
+    if (!window.confirm(t("deleteConfirm"))) return;
+    try {
+      await base44.entities.Item.delete(id);
+      setItems(items.filter((x) => x.id !== id));
+    } catch {}
+  };
   const avg = ratings.length
     ? (ratings.reduce((s, r) => s + r.score, 0) / ratings.length).toFixed(1)
     : user?.rating?.toFixed(1) || "5.0";
@@ -95,7 +103,18 @@ export default function Profile() {
       {tab === "listings" && (
         myListings.length ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {myListings.map((it) => <ItemCard key={it.id} item={it} onClick={() => nav(`/item/${it.id}`)} />)}
+            {myListings.map((it) => (
+              <div key={it.id} className="relative">
+                <ItemCard item={it} onClick={() => nav(`/item/${it.id}`)} />
+                <button
+                  onClick={() => deleteListing(it.id)}
+                  className="absolute top-2 end-2 z-30 w-8 h-8 rounded-full bg-rose-600 text-white shadow flex items-center justify-center hover:scale-110 transition"
+                  title={t("deleteListing")}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="text-center py-16 text-muted-foreground">
@@ -165,6 +184,37 @@ export default function Profile() {
             <button onClick={() => setLang("ar")} className={`py-2.5 rounded-xl text-sm font-semibold ${lang === "ar" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>{t("arabic")}</button>
           </div>
         </div>
+        <div className="p-4">
+          <p className="text-sm font-semibold mb-3 flex items-center gap-2"><Settings size={16} /> {t("preferences")}</p>
+          <label className="flex items-center justify-between py-2">
+            <span className="text-sm">{t("showSold")}</span>
+            <button
+              onClick={() => setPrefs({ showSold: !prefs.showSold })}
+              className={`w-11 h-6 rounded-full p-0.5 transition ${prefs.showSold ? "bg-primary" : "bg-muted-foreground/30"}`}
+            >
+              <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${prefs.showSold ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
+            </button>
+          </label>
+          <div className="py-2">
+            <div className="flex items-center justify-between text-sm mb-1.5">
+              <span>{t("defaultRadius")}</span>
+              <span className="text-muted-foreground">{prefs.defaultRadius} {t("km")}</span>
+            </div>
+            <input
+              type="range"
+              min={5}
+              max={200}
+              step={5}
+              value={prefs.defaultRadius}
+              onChange={(e) => setPrefs({ defaultRadius: Number(e.target.value) })}
+              className="w-full accent-primary"
+            />
+          </div>
+        </div>
+        <button onClick={() => { if (window.confirm(t("clearFavsConfirm"))) clearFavorites(); }} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
+          <span className="flex items-center gap-2 text-sm font-semibold"><Trash2 size={18} /> {t("clearFavorites")}</span>
+          <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
+        </button>
         <button onClick={() => { logout(); nav("/login"); }} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
           <span className="flex items-center gap-2 text-rose-600 font-semibold text-sm"><LogOut size={18} /> {t("logout")}</span>
           <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />

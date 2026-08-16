@@ -4,7 +4,7 @@ import { ImagePlus, X, Sparkles, Check } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
-import { CATEGORIES, SAUDI_CITIES, getCategory } from "@/lib/constants";
+import { CATEGORIES, SAUDI_CITIES, getCategory, getSubcategories } from "@/lib/constants";
 
 export default function Sell() {
   const { user, lang } = useStore();
@@ -18,6 +18,7 @@ export default function Sell() {
   const [city, setCity] = useState("");
   const [description, setDescription] = useState("");
   const [isFamily, setIsFamily] = useState(false);
+  const [subcategory, setSubcategory] = useState("");
   const [uploading, setUploading] = useState(false);
   const [posting, setPosting] = useState(false);
 
@@ -44,6 +45,7 @@ export default function Sell() {
         price: Number(price),
         images: images.length ? images : ["https://picsum.photos/seed/" + encodeURIComponent(title) + "/600/600"],
         category,
+        subcategory: subcategory || undefined,
         condition,
         city,
         description,
@@ -122,7 +124,7 @@ export default function Sell() {
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <label className="text-sm font-semibold">{t("category")}</label>
-          <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-muted outline-none">
+          <select value={category} onChange={(e) => { setCategory(e.target.value); setSubcategory(""); }} className="w-full px-4 py-3 rounded-2xl bg-muted outline-none">
             <option value="">{t("selectCategory")}</option>
             {CATEGORIES.filter((c) => c.id !== "all").map((c) => (
               <option key={c.id} value={c.id}>{lang === "ar" ? c.ar : c.en}</option>
@@ -140,26 +142,40 @@ export default function Sell() {
         </div>
       </div>
 
+      {category && getSubcategories(category).length > 0 && (
+        <div className="space-y-1">
+          <label className="text-sm font-semibold">{t("subcategory")}</label>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+            {getSubcategories(category).map((s) => (
+              <button
+                key={s.en}
+                type="button"
+                onClick={() => setSubcategory(subcategory === s.en ? "" : s.en)}
+                className={`px-3.5 py-2 rounded-full text-sm font-semibold whitespace-nowrap border ${subcategory === s.en ? "bg-primary text-primary-foreground border-transparent" : "bg-card border-border/70 hover:bg-muted"}`}
+              >
+                {lang === "ar" ? s.ar : s.en}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="space-y-1">
         <label className="text-sm font-semibold">{t("description")}</label>
         <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("descriptionPlaceholder")} rows={4} className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30 resize-none" />
       </div>
 
       <button
+        type="button"
         onClick={() => setIsFamily(!isFamily)}
-        className={`w-full flex items-center justify-between p-4 rounded-2xl border transition ${
-          isFamily ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40" : "border-border bg-card"
-        }`}
+        className="w-full flex items-center justify-between p-3.5 rounded-2xl border border-border bg-card"
       >
-        <span className="flex items-center gap-3">
-          <Sparkles size={20} className={isFamily ? "text-emerald-600" : "text-muted-foreground"} />
-          <span className="text-start">
-            <span className="font-semibold block">{t("productiveFamilies")}</span>
-            <span className="text-xs text-muted-foreground">{t("featuredDesc")}</span>
-          </span>
+        <span className="flex items-center gap-2.5">
+          <Sparkles size={18} className="text-emerald-600" />
+          <span className="text-sm font-semibold">{t("markFamily")}</span>
         </span>
-        <span className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${isFamily ? "bg-emerald-500 border-emerald-500 text-white" : "border-muted-foreground/30"}`}>
-          {isFamily && <Check size={14} />}
+        <span className={`w-11 h-6 rounded-full p-0.5 transition ${isFamily ? "bg-emerald-500" : "bg-muted-foreground/30"}`}>
+          <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${isFamily ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
         </span>
       </button>
 

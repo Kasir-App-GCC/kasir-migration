@@ -9,7 +9,7 @@ import { CATEGORIES, SAUDI_CITIES } from "@/lib/constants";
 
 export default function Search() {
   const { category } = useOutletContext();
-  const { locationFilter, lang } = useStore();
+  const { locationFilter, lang, prefs } = useStore();
   const t = useT();
   const nav = useNavigate();
   const [q, setQ] = useState("");
@@ -38,6 +38,7 @@ export default function Search() {
   const results = useMemo(() => {
     let r = items.filter((it) => {
       if (category !== "all" && it.category !== category) return false;
+      if (!prefs.showSold && it.status === "sold") return false;
       if (locationFilter.mode === "city" && locationFilter.city && it.city !== locationFilter.city) return false;
       if (q && !(`${it.title} ${it.description}`.toLowerCase().includes(q.toLowerCase()))) return false;
       if (condition && it.condition !== condition) return false;
@@ -48,7 +49,7 @@ export default function Search() {
     if (sort === "priceLowHigh") r = [...r].sort((a, b) => a.price - b.price);
     if (sort === "priceHighLow") r = [...r].sort((a, b) => b.price - a.price);
     return r;
-  }, [items, category, locationFilter, q, condition, minPrice, maxPrice, sort]);
+  }, [items, category, locationFilter, q, condition, minPrice, maxPrice, sort, prefs.showSold]);
 
   const reset = () => {
     setMinPrice(""); setMaxPrice(""); setCondition(""); setSort("newest");

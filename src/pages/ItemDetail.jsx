@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Flag, MessageCircle, Star, Share2, ChevronRight, X } from "lucide-react";
+import { ArrowLeft, MapPin, Flag, MessageCircle, Star, Share2, ChevronRight, X, Tag, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -29,6 +29,9 @@ export default function ItemDetail() {
   const [myScore, setMyScore] = useState(5);
   const [myReview, setMyReview] = useState("");
   const [loading, setLoading] = useState(true);
+  const [offerOpen, setOfferOpen] = useState(false);
+  const [customOffer, setCustomOffer] = useState("");
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -84,6 +87,39 @@ export default function ItemDetail() {
     setRateOpen(false);
     const rs = await base44.entities.Rating.filter({ rated_user_id: item.seller_id }, "-created_date", 20);
     setRatings(rs || []);
+  };
+
+  const isOwner = user && item && item.seller_id === user.id;
+
+  const sendOffer = async (pct) => {
+    if (!user || !item) return;
+    const offerPrice = Math.round(item.price * (1 - pct / 100));
+    setSending(true);
+    try {
+      const room = await base44.entities.ChatRoom.create({
+        item_id: item.id,
+        item_title: item.title,
+        item_image: item.images?.[0],
+        item_price: offerPrice,
+        seller_id: item.seller_id,
+        seller_name: item.seller_name,
+        buyer_id: user.id,
+        buyer_name: user.name,
+        last_message: "",
+      });
+      const text = (lang === "ar" ? "أبي أعرض عليك بسعر " : "I'd like to offer ") + formatPrice(offerPrice, lang);
+      await base44.entities.Message.create({ chatroom_id: room.id, sender_id: user.id, sender_name: user.name, text });
+      await base44.entities.ChatRoom.update(room.id, { last_message: text });
+      nav(`/chat/${room.id}`);
+    } catch {
+      setSending(false);
+    }
+  };
+
+  const deleteListing = async () => {
+    if (!window.confirm(t("deleteConfirm"))) return;
+    try { await base44.entities.Item.delete(item.id); } catch {}
+    nav("/profile");
   };
 
   if (loading) {
@@ -195,15 +231,74 @@ export default function ItemDetail() {
       {/* Action bar */}
       <div className="fixed bottom-16 inset-x-0 z-20 bg-background/90 backdrop-blur-xl border-t border-border/60">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
-          <div className="flex-1">
-            <p className="text-xs text-muted-foreground">{t("price")}</p>
-            <p className="font-extrabold text-lg">{formatPrice(item.price, lang)}</p>
-          </div>
-          <button onClick={messageSeller} className="flex-1 py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold flex items-center justify-center gap-2">
-            <MessageCircle size={18} /> {t("startChat")}
-          </button>
+          {isOwner ? (
+            <button onClick={deleteListing} className="flex-1 py-3.5 rounded-2xl bg-rose-600 text-white font-bold flex items-center justify-center gap-2">
+              <Trash2 size={18} /> {t("deleteListing")}
+            </button>
+          ) : (
+            <>
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground">{t("price")}</p>
+                <p className="font-extrabold text-lg">{formatPrice(item.price, lang)}</p>
+              </div>
+              <button onClick={() => setOfferOpen(true)} className="px-4 py-3.5 rounded-2xl border-2 border-primary text-primary font-bold flex items-center justify-center gap-2">
+                <Tag size={18} /> {t("makeOffer")}
+              </button>
+              <button onClick={messageSeller} className="flex-1 py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold flex items-center justify-center gap-2">
+                <MessageCircle size={18} /> {t("startChat")}
+              </button>
+            </>
+          )}
         </div>
       </div>
+
+      {offerOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setOfferOpen(false)} />
+          <div className="relative w-full sm:max-w-sm bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 animate-in fade-in slide-in-from-bottom-[100%] duration-300">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold text-lg">{t("makeOffer")}</h3>
+              <button onClick={() => setOfferOpen(false)} className="p-1.5 rounded-full hover:bg-muted"><X size={20} /></button>
+            </div>
+            <p className="text-sm text-muted-foreground mb-3">{t("offerDesc")}</p>
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              {[5, 10, 15].map((pct) => (
+                <button
+                  key={pct}
+                  onClick={() => sendOffer(pct)}
+                  disabled={sending}
+                  className="py-3 rounded-2xl bg-primary text-primary-foreground font-bold text-sm leading-tight disabled:opacity-50"
+                >
+                  {pct}% {t("off")}
+                  <span className="block text-xs font-semibold opacity-90 mt-0.5">{formatPrice(Math.round(item.price * (1 - pct / 100)), lang)}</span>
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                value={customOffer}
+                onChange={(e) => setCustomOffer(e.target.value.replace(/\D/g, ""))}
+                placeholder={t("yourOffer")}
+                inputMode="numeric"
+                className="flex-1 px-4 py-3 rounded-2xl bg-muted outline-none"
+              />
+              <button
+                onClick={() => {
+                  const val = Number(customOffer);
+                  if (val > 0 && val < item.price) {
+                    const pct = Math.round((1 - val / item.price) * 100);
+                    sendOffer(pct);
+                  }
+                }}
+                disabled={sending || !customOffer}
+                className="px-5 rounded-2xl bg-primary text-primary-foreground font-bold disabled:opacity-50"
+              >
+                {t("send")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ReportDialog open={reportOpen} onClose={() => setReportOpen(false)} seller={seller} item={item} />
 

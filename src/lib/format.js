@@ -1,6 +1,6 @@
 export function formatPrice(n, lang = "en") {
   const num = Number(n || 0).toLocaleString(lang === "ar" ? "ar-SA" : "en-US");
-  return lang === "ar" ? `${num} ر.س` : `${num} SAR`;
+  return lang === "ar" ? `${num} ﷼` : `﷼ ${num}`;
 }
 
 export function formatCompact(n, lang = "en") {

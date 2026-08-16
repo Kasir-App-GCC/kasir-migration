@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Flag, MessageCircle, Star, Share2, ChevronRight, X, Tag, Trash2, CheckCircle } from "lucide-react";
+import { ArrowLeft, MapPin, Flag, MessageCircle, Star, Share2, ChevronRight, X, Tag, Trash2, CheckCircle, Pencil } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -311,6 +311,9 @@ export default function ItemDetail() {
                   <CheckCircle size={18} /> {t("markAsSold")}
                 </button>
               )}
+              <button onClick={() => nav(`/edit/${item.id}`)} className="px-4 py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold flex items-center justify-center gap-2">
+                <Pencil size={18} />
+              </button>
               <button onClick={deleteListing} className="px-4 py-3.5 rounded-2xl bg-rose-600 text-white font-bold flex items-center justify-center gap-2">
                 <Trash2 size={18} />
               </button>

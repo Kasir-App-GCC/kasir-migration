@@ -188,7 +188,12 @@ const en = {
   linkCopied: "Link copied",
   soldItems: "Sold",
   boughtItems: "Bought",
-};
+  editListing: "Edit listing",
+  editListingBtn: "Edit",
+  saveChanges: "Save changes",
+  savingChanges: "Saving…",
+  notAllowedEdit: "You can only edit your own listings.",
+  };
 
 const ar = {
   appName: "سوقنا",
@@ -378,7 +383,12 @@ const ar = {
   linkCopied: "تم نسخ الرابط",
   soldItems: "بعتها",
   boughtItems: "اشتريتها",
-};
+  editListing: "تعديل الإعلان",
+  editListingBtn: "تعديل",
+  saveChanges: "حفظ التعديلات",
+  savingChanges: "نحفظ…",
+  notAllowedEdit: "تقدر تعدّل بس إعلاناتك.",
+  };
 
 export function useT() {
   const { lang } = useStore();

@@ -210,14 +210,16 @@ export default function ChatRoom() {
               const offer = offers.find((o) => o.id === m.offer_id);
               const isBuyer = room?.buyer_id === user.id;
               const needsConfirm = offer && offer.status === "accepted" && !offer.received_confirmed && isBuyer;
+              const waiting = offer && offer.status === "accepted" && !offer.received_confirmed && !isBuyer;
               const done = offer && offer.status === "completed";
+              const displayText = waiting ? t("agreedWaitingReceipt") : m.text;
               return (
                 <div key={`s-${i}`} className="flex justify-center">
                   <div className="max-w-[85%] rounded-2xl bg-primary/5 border border-primary/20 px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-1.5 text-primary font-bold text-xs mb-1">
                       <ShieldCheck size={14} /> {t("adminName")}
                     </div>
-                    <p className="text-sm">{m.text}</p>
+                    <p className="text-sm">{displayText}</p>
                     {needsConfirm && (
                       <button onClick={() => confirmReceipt(offer)} className="mt-2.5 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 mx-auto">
                         <Check size={14} /> {t("confirmReceipt")}

@@ -25,7 +25,15 @@ export function StoreProvider({ children }) {
   const user = auth.user
     ? {
         id: auth.user.id,
-        name: auth.user.full_name || auth.user.email || "Member",
+        name:
+          [auth.user.first_name, auth.user.last_name].filter(Boolean).join(" ") ||
+          auth.user.username ||
+          auth.user.full_name ||
+          auth.user.email ||
+          "Member",
+        username: auth.user.username || null,
+        firstName: auth.user.first_name || null,
+        lastName: auth.user.last_name || null,
         email: auth.user.email,
         avatar: auth.user.avatar || null,
         joinedAt: auth.user.created_date,

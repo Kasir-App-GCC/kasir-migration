@@ -166,6 +166,16 @@ const en = {
   chooseBuyer: "Choose the buyer",
   noBuyersYet: "No buyers have messaged about this item yet.",
   onlyBuyerCanRate: "Only the buyer of this item can rate the seller.",
+  setupProfile: "Complete your profile",
+  setupProfileDesc: "This is how others will see you on Souqi",
+  firstName: "First name",
+  lastName: "Last name",
+  username: "Username",
+  usernamePlaceholder: "username",
+  usernameHint: "Letters, numbers, or underscores only",
+  uploadPhoto: "Upload photo",
+  optional: "optional",
+  continue: "Continue",
 };
 
 const ar = {
@@ -334,6 +344,16 @@ const ar = {
   chooseBuyer: "اختر المشتري",
   noBuyersYet: "ما فيه أحد راسل عن هالإعلان بعد.",
   onlyBuyerCanRate: "فقط مشتري هالمنتج يقدر يقيّم البائع.",
+  setupProfile: "كمّل حسابك",
+  setupProfileDesc: "هكذا يشوفونك غيرك في سوقي",
+  firstName: "الاسم الأول",
+  lastName: "اسم العائلة",
+  username: "اسم المستخدم",
+  usernamePlaceholder: "اسم_المستخدم",
+  usernameHint: "حروف أو أرقام أو شرطة سفلية فقط",
+  uploadPhoto: "أضف صورة",
+  optional: "اختياري",
+  continue: "متابعة",
 };
 
 export function useT() {

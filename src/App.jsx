@@ -17,9 +17,10 @@ import Profile from "@/pages/Profile";
 import ItemDetail from "@/pages/ItemDetail";
 import ChatRoom from "@/pages/ChatRoom";
 import Notifications from "@/pages/Notifications";
+import ProfileSetup from "@/pages/ProfileSetup";
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user } = useAuth();
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -39,6 +40,11 @@ const AuthenticatedApp = () => {
       navigateToLogin();
       return null;
     }
+  }
+
+  // Require profile completion before entering the app
+  if (user && !(user.first_name && user.username)) {
+    return <ProfileSetup />;
   }
 
   // Render the main app

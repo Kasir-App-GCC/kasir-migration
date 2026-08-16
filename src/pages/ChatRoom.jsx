@@ -37,9 +37,10 @@ export default function ChatRoom() {
 
   useEffect(() => { setLastChatsSeen(new Date().toISOString()); }, []);
 
-  const send = async () => {
-    if (!text.trim()) return;
-    const msg = { chatroom_id: id, sender_id: user.id, sender_name: user.name, text: text.trim() };
+  const sendText = async (value) => {
+    const body = (value ?? text).trim();
+    if (!body) return;
+    const msg = { chatroom_id: id, sender_id: user.id, sender_name: user.name, text: body };
     setText("");
     setMessages((m) => [...m, msg]);
     try {
@@ -54,11 +55,11 @@ export default function ChatRoom() {
     ? [
         { ar: "نعم، متوفر", en: "Yes, it's available" },
         { ar: "السعر نهائي", en: "Price is firm" },
-        { ar: "متى تقدر تلتقي؟", en: "When can you meet?" },
+        { ar: "متى تقدر نلتقي؟", en: "When can we meet?" },
         { ar: "وين موقعك؟", en: "Where are you located?" },
       ]
     : [
-        { ar: "هل ما زال متوفر؟", en: "Is it still available?" },
+        { ar: "متوفر للحين؟", en: "Is it still available?" },
         { ar: "كم آخر سعر؟", en: "What's your last price?" },
         { ar: "وين نقدر نلتقي؟", en: "Where can we meet?" },
         { ar: "تقدر توصل؟", en: "Can you deliver?" },
@@ -100,7 +101,7 @@ export default function ChatRoom() {
           {suggestions.map((s, i) => (
             <button
               key={i}
-              onClick={() => setText(lang === "ar" ? s.ar : s.en)}
+              onClick={() => sendText(lang === "ar" ? s.ar : s.en)}
               className="px-3 py-1.5 rounded-full bg-muted hover:bg-muted/70 text-xs font-medium whitespace-nowrap"
             >
               {lang === "ar" ? s.ar : s.en}
@@ -112,11 +113,11 @@ export default function ChatRoom() {
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && send()}
+          onKeyDown={(e) => e.key === "Enter" && sendText()}
           placeholder={t("typeMessage")}
           className="flex-1 px-4 py-3 rounded-full bg-muted outline-none focus:ring-2 ring-primary/30 text-sm"
         />
-        <button onClick={send} disabled={!text.trim()} className="w-11 h-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50">
+        <button onClick={() => sendText()} disabled={!text.trim()} className="w-11 h-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50">
           <Send size={18} className="rtl:rotate-180" />
         </button>
       </div>

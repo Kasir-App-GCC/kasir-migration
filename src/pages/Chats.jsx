@@ -59,6 +59,10 @@ export default function Chats() {
   const otherName = (r) => (r.seller_id === user.id ? r.buyer_name : r.seller_name);
   const otherAvatar = (r) => (r.seller_id === user.id ? r.buyer_avatar : r.seller_avatar);
 
+  const sortedRooms = [...rooms].sort(
+    (a, b) => (Number(!!unread[b.id]) - Number(!!unread[a.id])) || (new Date(b.updated_date) - new Date(a.updated_date))
+  );
+
   if (!loading && rooms.length === 0) {
     return (
       <div className="text-center py-24 text-muted-foreground">
@@ -83,7 +87,7 @@ export default function Chats() {
                 </div>
               </div>
             ))
-          : rooms.map((r) => (
+          : sortedRooms.map((r) => (
               <SwipeToDelete key={r.id} label={t("delete")} onDelete={() => setConfirmRoom(r)}>
                 <button
                   onClick={() => nav(`/chat/${r.id}`)}
@@ -98,6 +102,9 @@ export default function Chats() {
                         <img src={r.item_image} className="w-full h-full object-cover" />
                       </div>
                     )}
+                    {unread[r.id] ? (
+                      <span className="absolute top-0 start-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-card" />
+                    ) : null}
                   </div>
                   <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">

@@ -9,12 +9,13 @@ import Price from "@/components/Price";
 import SwipeToDelete from "@/components/SwipeToDelete";
 
 export default function Chats() {
-  const { user, lang, setLastChatsSeen } = useStore();
+  const { user, lang, lastChatsSeen, setLastChatsSeen } = useStore();
   const t = useT();
   const nav = useNavigate();
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [confirmRoom, setConfirmRoom] = useState(null);
+  const [unread, setUnread] = useState({});
 
   const deleteRoom = async (room) => {
     try { await base44.entities.ChatRoom.delete(room.id); } catch {}
@@ -29,6 +30,19 @@ export default function Chats() {
         const all = await base44.entities.ChatRoom.list("-updated_date", 100);
         const mine = (all || []).filter((r) => r.buyer_id === user.id || r.seller_id === user.id);
         setRooms(mine);
+        try {
+          const since = lastChatsSeen ? new Date(lastChatsSeen).getTime() : 0;
+          const msgs = await base44.entities.Message.list("-created_date", 200);
+          const map = {};
+          (msgs || []).forEach((m) => {
+            if (m.sender_id === user.id) return;
+            if (!mine.some((r) => r.id === m.chatroom_id)) return;
+            if (new Date(m.created_date).getTime() > since) {
+              map[m.chatroom_id] = (map[m.chatroom_id] || 0) + 1;
+            }
+          });
+          setUnread(map);
+        } catch {}
       } catch {
         setRooms([]);
       } finally {
@@ -37,7 +51,10 @@ export default function Chats() {
     })();
   }, [user]);
 
-  useEffect(() => { setLastChatsSeen(new Date().toISOString()); }, []);
+  useEffect(() => {
+    setLastChatsSeen(new Date().toISOString());
+    setUnread({});
+  }, []);
 
   const otherName = (r) => (r.seller_id === user.id ? r.buyer_name : r.seller_name);
   const otherAvatar = (r) => (r.seller_id === user.id ? r.buyer_avatar : r.seller_avatar);
@@ -83,16 +100,21 @@ export default function Chats() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold truncate">{otherName(r)}</span>
-                      <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(r.updated_date, lang)}</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground truncate">{r.last_message || r.item_title}</p>
+                  <div className="flex items-center justify-between">
+                    <span className={`truncate ${unread[r.id] ? "font-bold" : "font-semibold"}`}>{otherName(r)}</span>
+                    <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(r.updated_date, lang)}</span>
+                  </div>
+                  <p className={`text-sm truncate ${unread[r.id] ? "text-foreground font-medium" : "text-muted-foreground"}`}>{r.last_message || r.item_title}</p>
                   </div>
                   {r.item_price != null && (
                     <span className="text-xs font-bold text-primary whitespace-nowrap"><Price value={r.item_price} lang={lang} /></span>
                   )}
-                </button>
+                  {unread[r.id] ? (
+                    <span className="shrink-0 min-w-5 h-5 px-1.5 rounded-full bg-emerald-500 text-white text-[11px] font-bold flex items-center justify-center">
+                      {unread[r.id]}
+                    </span>
+                  ) : null}
+                  </button>
               </SwipeToDelete>
             ))}
       </div>

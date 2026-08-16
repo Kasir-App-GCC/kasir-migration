@@ -7,6 +7,7 @@ import { useT } from "@/lib/i18n";
 import ItemCard from "@/components/ItemCard";
 import RatingStars from "@/components/RatingStars";
 import EditProfileDialog from "@/components/EditProfileDialog";
+import SellerDashboard from "@/components/SellerDashboard";
 import { formatPrice, timeAgo } from "@/lib/format";
 
 export default function Profile() {
@@ -88,6 +89,8 @@ export default function Profile() {
           </div>
         </div>
       </div>
+
+      <SellerDashboard myListings={myListings} ratings={ratings} />
 
       {/* Tabs */}
       <div className="flex gap-1 p-1 bg-muted rounded-2xl">

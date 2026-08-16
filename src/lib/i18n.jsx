@@ -198,6 +198,11 @@ const en = {
   deleteChat: "Delete chat",
   deleteChatConfirm: "Delete this conversation?",
   delete: "Delete",
+  sellerDashboard: "Seller Dashboard",
+  activeListings: "Active listings",
+  totalViews: "Total views",
+  totalRevenue: "Total revenue",
+  conversionRate: "Conversion rate",
   };
 
 const ar = {
@@ -398,6 +403,11 @@ const ar = {
   deleteChat: "حذف المحادثة",
   deleteChatConfirm: "حذف هالمحادثة؟",
   delete: "حذف",
+  sellerDashboard: "لوحة البائع",
+  activeListings: "إعلانات نشطة",
+  totalViews: "إجمالي المشاهدات",
+  totalRevenue: "إجمالي المبيعات",
+  conversionRate: "نسبة البيع",
   };
 
 export function useT() {

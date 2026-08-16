@@ -32,6 +32,14 @@
         "sell",
         "both"
       ]
+    },
+    "phone": {
+      "type": "string",
+      "description": "The user's phone number (digits only)"
+    },
+    "country_code": {
+      "type": "string",
+      "description": "The country code prefix for the user's phone number (e.g. +966)"
     }
   },
   "required": [

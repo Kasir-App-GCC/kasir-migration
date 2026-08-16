@@ -13,8 +13,27 @@ export default function ProfileSetup() {
   const [firstName, setFirstName] = useState(user?.first_name || "");
   const [lastName, setLastName] = useState(user?.last_name || "");
   const [username, setUsername] = useState(user?.username || "");
+  const [phone, setPhone] = useState(user?.phone || "");
+  const [countryCode, setCountryCode] = useState(user?.country_code || "+966");
   const [avatar, setAvatar] = useState(user?.avatar || null);
   const [intent, setIntent] = useState(user?.intent || "");
+
+  const countryCodes = [
+    { code: "+966", label: "🇸🇦 +966", name: ar ? "السعودية" : "Saudi Arabia" },
+    { code: "+971", label: "🇦🇪 +971", name: ar ? "الإمارات" : "UAE" },
+    { code: "+965", label: "🇰🇼 +965", name: ar ? "الكويت" : "Kuwait" },
+    { code: "+974", label: "🇶🇦 +974", name: ar ? "قطر" : "Qatar" },
+    { code: "+973", label: "🇧🇭 +973", name: ar ? "البحرين" : "Bahrain" },
+    { code: "+968", label: "🇴🇲 +968", name: ar ? "عمان" : "Oman" },
+    { code: "+962", label: "🇯🇴 +962", name: ar ? "الأردن" : "Jordan" },
+    { code: "+963", label: "🇸🇾 +963", name: ar ? "سوريا" : "Syria" },
+    { code: "+964", label: "🇮🇶 +964", name: ar ? "العراق" : "Iraq" },
+    { code: "+967", label: "🇾🇪 +967", name: ar ? "اليمن" : "Yemen" },
+    { code: "+9665", label: "🇸🇦 +9665", name: ar ? "السعودية (جوال)" : "Saudi (mobile)" },
+    { code: "+20", label: "🇪🇬 +20", name: ar ? "مصر" : "Egypt" },
+    { code: "+1", label: "🇺🇸 +1", name: ar ? "أمريكا" : "USA" },
+    { code: "+44", label: "🇬🇧 +44", name: ar ? "بريطانيا" : "UK" },
+  ];
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -51,12 +70,19 @@ export default function ProfileSetup() {
       setError(ar ? "اختر وش جاي تسويه" : "Please pick what you're here for");
       return;
     }
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 6) {
+      setError(ar ? "اكتب رقم جوال صحيح" : "Please enter a valid phone number");
+      return;
+    }
     setSaving(true);
     try {
       await base44.auth.updateMe({
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         username: uname,
+        phone: digits,
+        country_code: countryCode,
         avatar,
         intent,
       });
@@ -132,6 +158,29 @@ export default function ProfileSetup() {
               />
             </div>
             <p className="text-xs text-muted-foreground">{t("usernameHint")}</p>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold">{ar ? "رقم الجوال" : "Phone number"} *</label>
+            <div className="flex gap-2">
+              <select
+                value={countryCode}
+                onChange={(e) => setCountryCode(e.target.value)}
+                className="px-3 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm font-semibold min-w-[110px]"
+              >
+                {countryCodes.map((c) => (
+                  <option key={c.code} value={c.code}>{c.label}</option>
+                ))}
+              </select>
+              <input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder={ar ? "5xxxxxxxx" : "5XXXXXXXX"}
+                inputMode="tel"
+                className="flex-1 px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">{ar ? "مثال: 512345678" : "Example: 512345678"}</p>
           </div>
 
           <div className="space-y-1.5">

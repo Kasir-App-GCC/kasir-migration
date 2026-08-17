@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, MapPin, Flag, MessageCircle, Star, Share2, ChevronRight, X, Tag, Trash2, CheckCircle, Pencil } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -35,6 +35,7 @@ export default function ItemDetail() {
   const [zoom, setZoom] = useState(false);
   const [similar, setSimilar] = useState([]);
   const [origin, setOrigin] = useState({ x: 50, y: 50 });
+  const swipeStart = useRef(null);
 
   useEffect(() => {
     (async () => {
@@ -215,12 +216,23 @@ export default function ItemDetail() {
 
       {/* Gallery */}
       <div
-        className="relative aspect-[4/3] rounded-3xl overflow-hidden bg-muted cursor-zoom-in"
+        className="relative aspect-[4/3] rounded-3xl overflow-hidden bg-muted cursor-zoom-in touch-pan-y"
         onMouseEnter={() => setZoom(true)}
         onMouseLeave={() => setZoom(false)}
         onMouseMove={(e) => {
           const r = e.currentTarget.getBoundingClientRect();
           setOrigin({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 });
+        }}
+        onPointerDown={(e) => { swipeStart.current = { x: e.clientX, y: e.clientY }; }}
+        onPointerUp={(e) => {
+          if (!swipeStart.current) return;
+          const dx = e.clientX - swipeStart.current.x;
+          const dy = e.clientY - swipeStart.current.y;
+          swipeStart.current = null;
+          if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+            if (dx < 0) setActiveImg((i) => Math.min(i + 1, imgs.length - 1));
+            else setActiveImg((i) => Math.max(i - 1, 0));
+          }
         }}
       >
         <img

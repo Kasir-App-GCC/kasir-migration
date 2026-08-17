@@ -2,10 +2,13 @@ import React from "react";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { CATEGORIES, getSubcategories } from "@/lib/constants";
+import { useDragScroll } from "@/hooks/useDragScroll";
 
 export default function CategoryBar({ categories, onCategoriesChange, subcategories, onSubcategoriesChange }) {
   const { lang } = useStore();
   const t = useT();
+  const catsScroll = useDragScroll();
+  const subsScroll = useDragScroll();
 
   const toggleCategory = (id) => {
     if (id === "all") {
@@ -30,7 +33,7 @@ export default function CategoryBar({ categories, onCategoriesChange, subcategor
 
   return (
     <div>
-      <div className="overflow-x-auto no-scrollbar touch-pan-x py-2.5">
+      <div ref={catsScroll.ref} onPointerDown={catsScroll.onPointerDown} onClickCapture={catsScroll.onClickCapture} onWheel={catsScroll.onWheel} className="overflow-x-auto no-scrollbar cursor-grab active:cursor-grabbing py-2.5">
         <div className="flex gap-2 px-4 min-w-max">
           {CATEGORIES.map((c) => {
             const active = c.id === "all" ? categories.length === 0 : categories.includes(c.id);
@@ -53,7 +56,7 @@ export default function CategoryBar({ categories, onCategoriesChange, subcategor
       </div>
 
       {subs.length > 0 && (
-        <div className="overflow-x-auto no-scrollbar touch-pan-x pb-2">
+        <div ref={subsScroll.ref} onPointerDown={subsScroll.onPointerDown} onClickCapture={subsScroll.onClickCapture} onWheel={subsScroll.onWheel} className="overflow-x-auto no-scrollbar cursor-grab active:cursor-grabbing pb-2">
           <div className="flex gap-2 px-4 min-w-max">
             <button
               onClick={() => onSubcategoriesChange([])}

@@ -1,24 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { X, Send, LifeBuoy, CheckCircle2, Hash } from "lucide-react";
+import { X, Send, LifeBuoy, CheckCircle2, Hash, Mail } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
-import { timeAgo } from "@/lib/format";
 
 const CATEGORIES = [
-  { id: "general", en: "General", ar: "عام" },
+  { id: "general", en: "General question", ar: "استفسار عام" },
   { id: "technical", en: "Technical issue", ar: "مشكلة تقنية" },
-  { id: "report", en: "Report a user", ar: "الإبلاغ عن مستخدم" },
-  { id: "billing", en: "Billing", ar: "المدفوعات" },
+  { id: "report", en: "Report a user or listing", ar: "إبلاغ عن مستخدم أو إعلان" },
+  { id: "billing", en: "Billing or payments", ar: "المدفوعات" },
   { id: "other", en: "Other", ar: "أخرى" },
 ];
-
-const STATUS_STYLES = {
-  open: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
-  in_progress: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
-  resolved: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
-  closed: "bg-muted text-muted-foreground",
-};
 
 export default function ContactSupportDialog({ open, onClose }) {
   const { user, lang } = useStore();
@@ -30,26 +22,10 @@ export default function ContactSupportDialog({ open, onClose }) {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [tickets, setTickets] = useState([]);
-  const [loadingTickets, setLoadingTickets] = useState(false);
   const [ticketNumber, setTicketNumber] = useState(null);
-
-  const loadTickets = async () => {
-    if (!user) return;
-    setLoadingTickets(true);
-    try {
-      const mine = await base44.entities.SupportTicket.filter({ user_id: user.id }, "-created_date", 20);
-      setTickets(mine || []);
-    } catch {
-      setTickets([]);
-    } finally {
-      setLoadingTickets(false);
-    }
-  };
 
   useEffect(() => {
     if (open) {
-      loadTickets();
       setTicketNumber(null);
       setSubject("");
       setMessage("");
@@ -81,21 +57,10 @@ export default function ContactSupportDialog({ open, onClose }) {
       setMessage("");
       setCategory("general");
       setPhone("");
-      loadTickets();
     } catch {
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const statusLabel = (s) => {
-    const map = {
-      open: lang === "ar" ? "مفتوح" : "Open",
-      in_progress: lang === "ar" ? "قيد المعالجة" : "In progress",
-      resolved: lang === "ar" ? "تم الحل" : "Resolved",
-      closed: lang === "ar" ? "مغلق" : "Closed",
-    };
-    return map[s] || s;
   };
 
   const valid = fullName.trim() && phone.trim() && email.trim() && subject.trim() && message.trim();
@@ -104,13 +69,15 @@ export default function ContactSupportDialog({ open, onClose }) {
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full sm:max-w-lg max-h-[90vh] overflow-y-auto bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl p-5 animate-in fade-in slide-in-from-bottom-[100%] duration-300">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <h3 className="font-bold text-lg flex items-center gap-2">
             <LifeBuoy size={20} className="text-primary" />
             {t("contactSupport")}
           </h3>
           <button onClick={onClose} className="p-1.5 rounded-full hover:bg-muted"><X size={20} /></button>
         </div>
+
+        <p className="text-sm text-muted-foreground mb-4">{t("supportFormDesc")}</p>
 
         {ticketNumber && (
           <div className="mb-4 p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900">
@@ -127,47 +94,6 @@ export default function ContactSupportDialog({ open, onClose }) {
           </div>
         )}
 
-        {/* Existing tickets */}
-        {tickets.length > 0 && (
-          <div className="mb-4">
-            <p className="text-sm font-semibold mb-2">{t("myTickets")}</p>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {tickets.map((tk) => (
-                <div key={tk.id} className="rounded-xl bg-muted/60 border border-border/60 p-3">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="text-sm font-semibold truncate">{tk.subject}</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${STATUS_STYLES[tk.status] || ""}`}>
-                      {statusLabel(tk.status)}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2">{tk.message}</p>
-                  <div className="flex items-center justify-between mt-1.5">
-                    <span className="text-[10px] text-muted-foreground">{timeAgo(tk.created_date, lang)}</span>
-                    {tk.category && (
-                      <span className="text-[10px] text-muted-foreground">
-                        {CATEGORIES.find((c) => c.id === tk.category)?.[lang] || tk.category}
-                      </span>
-                    )}
-                  </div>
-                  {tk.reply && (
-                    <div className="mt-2 pt-2 border-t border-border/60">
-                      <p className="text-[10px] font-bold text-primary mb-0.5">{t("supportReply")}</p>
-                      <p className="text-xs text-foreground">{tk.reply}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {loadingTickets && tickets.length === 0 && (
-          <div className="text-center py-4">
-            <div className="w-5 h-5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin mx-auto" />
-          </div>
-        )}
-
-        {/* New ticket form */}
         <div className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -195,14 +121,16 @@ export default function ContactSupportDialog({ open, onClose }) {
 
           <div>
             <label className="text-sm font-semibold mb-1.5 block">{t("supportEmail")}</label>
-            <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value.slice(0, 120))}
-              maxLength={120}
-              placeholder="you@example.com"
-              inputMode="email"
-              className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30"
-            />
+            <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-muted/70 border border-border/50">
+              <Mail size={16} className="text-muted-foreground shrink-0" />
+              <input
+                value={email}
+                disabled
+                readOnly
+                className="bg-transparent outline-none flex-1 text-muted-foreground cursor-not-allowed"
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1 ps-1">{t("supportEmailHint")}</p>
           </div>
 
           <div>

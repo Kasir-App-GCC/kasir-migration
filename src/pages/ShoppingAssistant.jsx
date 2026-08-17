@@ -28,7 +28,8 @@ function parseResultsItems(toolCalls) {
     if (!tc.results) return;
     const str = typeof tc.results === "string" ? tc.results : JSON.stringify(tc.results);
     if (!str || str.trim() === "[]") return;
-    const dicts = str.replace(/^\[/, "").replace(/\]$/, "").split(/}\s*,\s*{/);
+    // Match each flat item dict — handles one or many items per tool-call result.
+    const dicts = str.match(/\{[^{}]*\}/g) || [];
     const fstr = (d, key) => {
       const m = d.match(new RegExp("['\"]" + key + "['\"]:\\s*['\"]([^'\"]*)['\"]"));
       return m ? m[1] : "";
@@ -153,6 +154,16 @@ export default function ShoppingAssistant() {
         localStorage.setItem("souqna_assistant_convo_id", convo.id);
         setConversation(convo);
         setMessages(convo.messages || []);
+        // Parse items from the initial messages immediately. The real-time
+        // subscription can deliver messages with stripped tool-call results,
+        // so we can't rely on the messages-state effect alone to populate cards.
+        const initParsed = {};
+        (convo.messages || []).forEach((m) => {
+          if (m.role !== "assistant" || !m.tool_calls?.length || !m.id) return;
+          const parsed = parseResultsItems(m.tool_calls);
+          if (parsed.length) initParsed[m.id] = parsed;
+        });
+        setParsedByMsg(initParsed);
       } catch {
       } finally {
         setLoading(false);
@@ -172,24 +183,28 @@ export default function ShoppingAssistant() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  // Parse found items from tool-call results (immediate, clickable cards) and fetch full
-  // records to upgrade with real images. Parsed items persist across real-time updates.
+  // Merge newly-parsed items from incoming messages (real-time subscription updates).
+  // Existing entries persist, so cards survive updates that strip tool-call results.
   useEffect(() => {
     const byMsg = {};
-    const allIds = new Set();
     messages.forEach((m) => {
       if (m.role !== "assistant" || !m.tool_calls?.length || !m.id) return;
       const parsed = parseResultsItems(m.tool_calls);
-      if (!parsed.length) return;
-      byMsg[m.id] = parsed;
-      parsed.forEach((p) => allIds.add(p.id));
+      if (parsed.length) byMsg[m.id] = parsed;
     });
+    if (!Object.keys(byMsg).length) return;
     setParsedByMsg((prev) => {
       const next = { ...prev };
       Object.keys(byMsg).forEach((k) => { if (!(k in next)) next[k] = byMsg[k]; });
       return next;
     });
-    const missing = Array.from(allIds).filter((id) => !itemCache[id]);
+  }, [messages]);
+
+  // Fetch full item records (with real images) for every parsed item.
+  useEffect(() => {
+    const ids = new Set();
+    Object.values(parsedByMsg).forEach((arr) => arr.forEach((p) => ids.add(p.id)));
+    const missing = Array.from(ids).filter((id) => !itemCache[id]);
     if (!missing.length) return;
     Promise.all(missing.map((id) => base44.entities.Item.get(id).catch(() => null))).then((results) => {
       setItemCache((prev) => {
@@ -198,7 +213,7 @@ export default function ShoppingAssistant() {
         return next;
       });
     });
-  }, [messages]);
+  }, [parsedByMsg]);
 
   const send = async (text) => {
     const content = (text || input).trim();

@@ -67,7 +67,11 @@ export default function useUnreadChats() {
     const compute = async () => {
       try {
         const rooms = await base44.entities.ChatRoom.list("-updated_date", 100);
-        const mine = (rooms || []).filter((r) => r.buyer_id === user.id || r.seller_id === user.id);
+        const mine = (rooms || []).filter((r) => {
+          if (r.buyer_id !== user.id && r.seller_id !== user.id) return false;
+          // Skip rooms the user has deleted (hidden on their side).
+          return r.buyer_id === user.id ? !r.hidden_for_buyer : !r.hidden_for_seller;
+        });
         roomIds.current = new Set(mine.map((r) => r.id));
         const [msgs, offers] = await Promise.all([
           base44.entities.Message.list("-created_date", 200),

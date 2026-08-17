@@ -11,13 +11,6 @@ import { getCategory, getCityName, getCondition } from "@/lib/constants";
 import RatingStars from "@/components/RatingStars";
 import ReportDialog from "@/components/ReportDialog";
 
-function pseudoRating(id) {
-  if (!id) return 4.8;
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  return (4 + (h % 100) / 100).toFixed(1);
-}
-
 export default function ItemDetail() {
   const { id } = useParams();
   const nav = useNavigate();
@@ -70,7 +63,7 @@ export default function ItemDetail() {
     })();
   }, [id]);
 
-  const seller = item ? { id: item.seller_id, name: item.seller_name, rating: ratings.length ? (ratings.reduce((s, r) => s + r.score, 0) / ratings.length).toFixed(1) : pseudoRating(item.seller_id) } : null;
+  const seller = item ? { id: item.seller_id, name: item.seller_name, rating: ratings.length ? (ratings.reduce((s, r) => s + r.score, 0) / ratings.length).toFixed(1) : "5.0" } : null;
   const cat = item ? getCategory(item.category) : null;
 
   const messageSeller = async () => {
@@ -388,6 +381,13 @@ export default function ItemDetail() {
               <button onClick={() => setOfferOpen(false)} className="p-1.5 rounded-full hover:bg-muted"><X size={20} /></button>
             </div>
             <p className="text-sm text-muted-foreground mb-3">{t("offerDesc")}</p>
+            <button
+              onClick={() => sendOffer(0)}
+              disabled={sending}
+              className="w-full py-3 rounded-2xl bg-emerald-600 text-white font-bold text-sm mb-3 flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <CheckCircle size={16} /> {t("buyAtOriginal")} <Price value={item.price} lang={lang} />
+            </button>
             <div className="grid grid-cols-2 gap-2 mb-3">
               {[5, 10, 15, 20].map((pct) => (
                 <button

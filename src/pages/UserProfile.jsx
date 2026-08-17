@@ -35,7 +35,7 @@ export default function UserProfile() {
     })();
   }, [id]);
 
-  const avg = ratings.length ? (ratings.reduce((s, r) => s + r.score, 0) / ratings.length).toFixed(1) : "—";
+  const avg = ratings.length ? (ratings.reduce((s, r) => s + r.score, 0) / ratings.length).toFixed(1) : "5.0";
 
   return (
     <div className="pt-3 max-w-3xl mx-auto">

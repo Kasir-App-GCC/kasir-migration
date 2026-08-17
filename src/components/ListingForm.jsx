@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { ImagePlus, X, Sparkles, LocateFixed, MapPin, GripVertical } from "lucide-react";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -33,8 +34,6 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [locating, setLocating] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [posting, setPosting] = useState(false);
-  const [overIdx, setOverIdx] = useState(null);
-  const dragIdx = useRef(null);
 
   const detectLocation = () => {
     if (!navigator.geolocation) return;
@@ -76,12 +75,12 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
     }
   };
 
-  const reorder = (from, to) => {
-    if (from == null || from === to) return;
+  const onDragEnd = (res) => {
+    if (!res.destination || res.destination.index === res.source.index) return;
     setImages((prev) => {
       const copy = [...prev];
-      const [moved] = copy.splice(from, 1);
-      copy.splice(to, 0, moved);
+      const [moved] = copy.splice(res.source.index, 1);
+      copy.splice(res.destination.index, 0, moved);
       return copy;
     });
   };
@@ -121,50 +120,58 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
     <div className="space-y-5">
       <div>
         <label className="text-sm font-semibold mb-2 block">{t("photos")}</label>
-        <div className="grid grid-cols-5 gap-2">
-          {Array.from({ length: 5 }).map((_, i) => {
-            const url = images[i];
-            if (url) {
-              return (
-                <div
-                  key={url}
-                  draggable
-                  onDragStart={() => { dragIdx.current = i; }}
-                  onDragOver={(e) => { e.preventDefault(); setOverIdx(i); }}
-                  onDrop={(e) => { e.preventDefault(); reorder(dragIdx.current, i); dragIdx.current = null; setOverIdx(null); }}
-                  onDragEnd={() => { dragIdx.current = null; setOverIdx(null); }}
-                  className={`relative aspect-square rounded-xl overflow-hidden cursor-grab active:cursor-grabbing select-none ${overIdx === i ? "ring-2 ring-primary ring-offset-1" : ""}`}
-                >
-                  <img src={url} className="w-full h-full object-cover pointer-events-none" />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/25 transition">
-                    <GripVertical size={18} className="text-white opacity-70 drop-shadow" />
-                  </div>
-                  <button
-                    onClick={() => setImages(images.filter((_, idx) => idx !== i))}
-                    className="absolute top-1 end-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center z-10"
-                  >
-                    <X size={14} />
-                  </button>
-                  {i === 0 && <span className="absolute bottom-0 inset-x-0 bg-black/55 text-white text-[10px] text-center py-0.5">{t("cover")}</span>}
-                </div>
-              );
-            }
-            const isUploading = uploading && i === images.length;
-            return (
-              <label key={i} className="aspect-square rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:bg-muted cursor-pointer gap-1">
-                {isUploading ? (
-                  <div className="w-5 h-5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <ImagePlus size={20} />
-                    <span className="text-[10px] font-medium">{t("addPhotos")}</span>
-                  </>
-                )}
-                <input type="file" accept="image/*" multiple className="hidden" onChange={onPick} />
-              </label>
-            );
-          })}
-        </div>
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId="photos" direction="horizontal">
+            {(provided) => (
+              <div ref={provided.innerRef} {...provided.droppableProps} className="flex gap-2">
+                {Array.from({ length: 5 }).map((_, i) => {
+                  const url = images[i];
+                  if (url) {
+                    return (
+                      <Draggable key={url} draggableId={url} index={i}>
+                        {(prov, snap) => (
+                          <div
+                            ref={prov.innerRef}
+                            {...prov.draggableProps}
+                            {...prov.dragHandleProps}
+                            className={`relative aspect-square rounded-xl overflow-hidden flex-1 select-none ${snap.isDragging ? "opacity-70 ring-2 ring-primary" : ""}`}
+                          >
+                            <img src={url} className="w-full h-full object-cover pointer-events-none" />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/25 transition pointer-events-none">
+                              <GripVertical size={18} className="text-white opacity-70 drop-shadow" />
+                            </div>
+                            <button
+                              onClick={() => setImages(images.filter((_, idx) => idx !== i))}
+                              className="absolute top-1 end-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center z-10"
+                            >
+                              <X size={14} />
+                            </button>
+                            {i === 0 && <span className="absolute bottom-0 inset-x-0 bg-black/55 text-white text-[10px] text-center py-0.5">{t("cover")}</span>}
+                          </div>
+                        )}
+                      </Draggable>
+                    );
+                  }
+                  const isUploading = uploading && i === images.length;
+                  return (
+                    <label key={i} className="aspect-square rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:bg-muted cursor-pointer gap-1 flex-1">
+                      {isUploading ? (
+                        <div className="w-5 h-5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <ImagePlus size={20} />
+                          <span className="text-[10px] font-medium">{t("addPhotos")}</span>
+                        </>
+                      )}
+                      <input type="file" accept="image/*" multiple className="hidden" onChange={onPick} />
+                    </label>
+                  );
+                })}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
         <p className="text-[11px] text-muted-foreground mt-1.5">{t("dragToReorder")}</p>
       </div>
 

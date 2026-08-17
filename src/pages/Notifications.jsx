@@ -7,7 +7,7 @@ import { useT } from "@/lib/i18n";
 import { timeAgo, toDate } from "@/lib/format";
 
 export default function Notifications() {
-  const { user, lang, lastChatsSeen, notifsClearedAt, setNotifsClearedAt } = useStore();
+  const { user, lang, notifsClearedAt, setNotifsClearedAt } = useStore();
   const t = useT();
   const nav = useNavigate();
   const [items, setItems] = useState([]);
@@ -31,9 +31,14 @@ export default function Notifications() {
           base44.entities.Message.list("-created_date", 100),
           base44.entities.Offer.list("-created_date", 100),
         ]);
-        const since = lastChatsSeen ? toDate(lastChatsSeen).getTime() : 0;
         const isIncoming = (o) =>
           o && ((o.direction === "buyer_offer" && o.seller_id === user.id) || (o.direction === "seller_counter" && o.buyer_id === user.id));
+        const roomSince = (roomId) => {
+          const r = roomMap.get(roomId);
+          if (!r) return 0;
+          const seen = r.seller_id === user.id ? r.seller_last_seen : r.buyer_last_seen;
+          return seen ? toDate(seen).getTime() : 0;
+        };
         const notifs = (msgs || [])
           .filter((m) => roomMap.has(m.chatroom_id) && m.sender_id !== user.id)
           .map((m) => ({
@@ -43,12 +48,11 @@ export default function Notifications() {
             name: m.sender_name,
             roomId: m.chatroom_id,
             date: m.created_date,
-            unread: toDate(m.created_date).getTime() > since,
+            unread: toDate(m.created_date).getTime() > roomSince(m.chatroom_id),
           }));
         const offerNotifs = (offers || [])
           .filter((o) => roomMap.has(o.chatroom_id) && isIncoming(o))
           .map((o) => {
-            const r = roomMap.get(o.chatroom_id);
             const who = o.direction === "buyer_offer" ? o.buyer_name : o.seller_name;
             return {
               id: o.id,
@@ -57,7 +61,7 @@ export default function Notifications() {
               name: who,
               roomId: o.chatroom_id,
               date: o.created_date,
-              unread: toDate(o.created_date).getTime() > since,
+              unread: toDate(o.created_date).getTime() > roomSince(o.chatroom_id),
             };
           });
 
@@ -86,7 +90,7 @@ export default function Notifications() {
         setLoading(false);
       }
     })();
-  }, [user, lastChatsSeen, notifsClearedAt]);
+  }, [user, notifsClearedAt]);
 
   const clearAll = () => {
     setNotifsClearedAt(new Date().toISOString());

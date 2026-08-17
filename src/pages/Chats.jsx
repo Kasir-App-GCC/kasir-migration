@@ -9,7 +9,7 @@ import Price from "@/components/Price";
 import SwipeToDelete from "@/components/SwipeToDelete";
 
 export default function Chats() {
-  const { user, lang, lastChatsSeen, setLastChatsSeen } = useStore();
+  const { user, lang } = useStore();
   const t = useT();
   const nav = useNavigate();
   const [rooms, setRooms] = useState([]);
@@ -18,7 +18,13 @@ export default function Chats() {
   const [confirmAll, setConfirmAll] = useState(false);
   const [unread, setUnread] = useState({});
   const roomsRef = useRef([]);
-  const seenRef = useRef(lastChatsSeen);
+
+  const offerIsIncoming = (o, userId) => {
+    if (!o || !userId) return false;
+    if (o.direction === "buyer_offer") return o.seller_id === userId;
+    if (o.direction === "seller_counter") return o.buyer_id === userId;
+    return false;
+  };
 
   const loadRooms = useCallback(async () => {
     if (!user) { setLoading(false); return; }
@@ -33,15 +39,24 @@ export default function Chats() {
       roomsRef.current = mine;
       setRooms(mine);
       try {
-        const since = seenRef.current ? new Date(seenRef.current).getTime() : 0;
-        const msgs = await base44.entities.Message.list("-created_date", 200);
+        const [msgs, offers] = await Promise.all([
+          base44.entities.Message.list("-created_date", 200),
+          base44.entities.Offer.list("-created_date", 200),
+        ]);
+        // Unread is per-room, based on each room's own last-seen timestamp
+        // (same model as the bottom-nav badge and WhatsApp/Telegram).
         const map = {};
-        (msgs || []).forEach((m) => {
-          if (m.sender_id === user.id) return;
-          if (!mine.some((r) => r.id === m.chatroom_id)) return;
-          if (new Date(m.created_date).getTime() > since) {
-            map[m.chatroom_id] = (map[m.chatroom_id] || 0) + 1;
-          }
+        mine.forEach((r) => {
+          const seen = r.seller_id === user.id ? r.seller_last_seen : r.buyer_last_seen;
+          const since = seen ? new Date(seen).getTime() : 0;
+          let c = 0;
+          (msgs || []).forEach((m) => {
+            if (m.chatroom_id === r.id && m.sender_id !== user.id && new Date(m.created_date).getTime() > since) c++;
+          });
+          (offers || []).forEach((o) => {
+            if (o.chatroom_id === r.id && offerIsIncoming(o, user.id) && new Date(o.created_date).getTime() > since) c++;
+          });
+          if (c > 0) map[r.id] = c;
         });
         setUnread(map);
       } catch {}
@@ -54,16 +69,7 @@ export default function Chats() {
   }, [user]);
 
   useEffect(() => {
-    seenRef.current = lastChatsSeen;
-  }, [lastChatsSeen]);
-
-  useEffect(() => {
     loadRooms();
-    // Mark chats as seen only when leaving the list (not on mount),
-    // so unread dots persist while viewing the list.
-    return () => {
-      setLastChatsSeen(new Date().toISOString());
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadRooms]);
 
@@ -100,10 +106,20 @@ export default function Chats() {
         copy[idx] = { ...copy[idx], last_message: m.text, updated_date: m.created_date };
         return copy;
       });
+      setUnread((prev) => ({ ...prev, [m.chatroom_id]: (prev[m.chatroom_id] || 0) + 1 }));
+      scheduleLoad();
+    };
+    const onOffer = async (event) => {
+      if (event?.type !== "create") { scheduleLoad(); return; }
+      const o = event?.data;
+      if (!o || !offerIsIncoming(o, user.id)) { scheduleLoad(); return; }
+      if (!roomsRef.current.some((rr) => rr.id === o.chatroom_id)) { loadRooms(); return; }
+      setUnread((prev) => ({ ...prev, [o.chatroom_id]: (prev[o.chatroom_id] || 0) + 1 }));
       scheduleLoad();
     };
     const unsubR = base44.entities.ChatRoom.subscribe(onRoom);
     const unsubM = base44.entities.Message.subscribe(onMsg);
+    const unsubO = base44.entities.Offer.subscribe(onOffer);
     // Safety net: refresh periodically and whenever the window regains focus,
     // so reappearing chats and new messages surface even if a realtime event is missed.
     const poll = setInterval(() => loadRooms(), 8000);
@@ -112,7 +128,7 @@ export default function Chats() {
     document.addEventListener("visibilitychange", onFocus);
     return () => {
       if (timer) clearTimeout(timer);
-      unsubR?.(); unsubM?.();
+      unsubR?.(); unsubM?.(); unsubO?.();
       clearInterval(poll);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onFocus);

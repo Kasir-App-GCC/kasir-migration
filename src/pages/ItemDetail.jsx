@@ -119,6 +119,7 @@ export default function ItemDetail() {
       rater_name: user.name,
       score: myScore,
       review,
+      item_id: item.id,
       role: "buyer",
     });
     setRateOpen(false);
@@ -192,6 +193,7 @@ export default function ItemDetail() {
       rater_name: user.name,
       score: buyerScore,
       review,
+      item_id: item.id,
       role: "seller",
     });
     setRateBuyerOpen(false);

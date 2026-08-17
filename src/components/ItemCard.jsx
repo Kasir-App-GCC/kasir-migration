@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Heart, MapPin, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -10,6 +10,7 @@ export default function ItemCard({ item, onClick }) {
   const { lang, favorites, toggleFavorite } = useStore();
   const t = useT();
   const [idx, setIdx] = useState(0);
+  const swipeStart = useRef(null);
   const fav = favorites.includes(item.id);
   const imgs = item.images?.length
     ? item.images
@@ -27,7 +28,19 @@ export default function ItemCard({ item, onClick }) {
       onClick={onClick}
       className="group cursor-pointer rounded-2xl overflow-hidden bg-card border border-border/60 hover:shadow-xl hover:border-border transition-all duration-300 hover:-translate-y-0.5"
     >
-      <div className="relative aspect-square bg-muted overflow-hidden">
+      <div
+        className="relative aspect-square bg-muted overflow-hidden touch-pan-y"
+        onPointerDown={(e) => { swipeStart.current = { x: e.clientX, y: e.clientY }; }}
+        onPointerUp={(e) => {
+          if (!swipeStart.current) return;
+          const dx = e.clientX - swipeStart.current.x;
+          const dy = e.clientY - swipeStart.current.y;
+          swipeStart.current = null;
+          if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+            setIdx((i) => (dx < 0 ? (i + 1) % imgs.length : (i - 1 + imgs.length) % imgs.length));
+          }
+        }}
+      >
         <img
           src={imgs[idx]}
           alt={item.title}

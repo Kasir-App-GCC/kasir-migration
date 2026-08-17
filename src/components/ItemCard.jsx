@@ -11,6 +11,7 @@ export default function ItemCard({ item, onClick }) {
   const t = useT();
   const [idx, setIdx] = useState(0);
   const swipeStart = useRef(null);
+  const swipeMoved = useRef(false);
   const fav = favorites.includes(item.id);
   const imgs = item.images?.length
     ? item.images
@@ -25,7 +26,10 @@ export default function ItemCard({ item, onClick }) {
 
   return (
     <div
-      onClick={onClick}
+      onClick={(e) => {
+        if (swipeMoved.current) { swipeMoved.current = false; return; }
+        onClick?.(e);
+      }}
       className="group cursor-pointer rounded-2xl overflow-hidden bg-card border border-border/60 hover:shadow-xl hover:border-border transition-all duration-300 hover:-translate-y-0.5"
     >
       <div
@@ -37,6 +41,7 @@ export default function ItemCard({ item, onClick }) {
           const dy = e.clientY - swipeStart.current.y;
           swipeStart.current = null;
           if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+            swipeMoved.current = true;
             setIdx((i) => (dx < 0 ? (i + 1) % imgs.length : (i - 1 + imgs.length) % imgs.length));
           }
         }}
@@ -44,7 +49,8 @@ export default function ItemCard({ item, onClick }) {
         <img
           src={imgs[idx]}
           alt={item.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          draggable={false}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none select-none"
         />
 
         {/* Price tag — hanging from the top, tag with triangular corner + hole */}

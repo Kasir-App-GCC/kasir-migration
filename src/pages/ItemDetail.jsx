@@ -237,7 +237,8 @@ export default function ItemDetail() {
       >
         <img
           src={imgs[activeImg]}
-          className="w-full h-full object-cover transition-transform duration-200 ease-out"
+          draggable={false}
+          className="w-full h-full object-cover transition-transform duration-200 ease-out pointer-events-none select-none"
           style={{
             transform: zoom ? "scale(2.2)" : "scale(1)",
             transformOrigin: `${origin.x}% ${origin.y}%`,

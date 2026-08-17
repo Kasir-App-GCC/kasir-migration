@@ -15,6 +15,7 @@ export default function Sell() {
 
   const submit = async (data) => {
     const { boost_hours, boost_cross_country, boost_amount, ...itemData } = data;
+    const boosted = boost_hours > 0;
     await base44.entities.Item.create({
       ...itemData,
       seller_id: user?.id,
@@ -22,11 +23,16 @@ export default function Sell() {
       seller_avatar: user?.avatar || null,
       is_family: false,
       status: "available",
+      featured: boosted,
+      featured_until: boosted ? new Date(Date.now() + boost_hours * 3600000).toISOString() : null,
+      featured_cross_country: boosted ? !!boost_cross_country : false,
     });
-    if (boost_hours > 0) {
+    if (boosted) {
       toast({
-        title: ar ? "تم نشر إعلانك" : "Listing posted",
-        description: ar ? "تعزيز مدفوع قريباً — لم يُطبّق التعزيز بعد." : "Paid boost coming soon — boost not applied yet.",
+        title: ar ? "تم نشر إعلانك وتعزيزه" : "Listing posted & boosted",
+        description: ar
+          ? `يظهر في المميز لمدة ${boost_hours} ساعة`
+          : `Featured for ${boost_hours} hours`,
       });
     }
     nav("/");

@@ -344,7 +344,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
               <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">{ar ? "الإجمالي" : "Total"}</span>
               <span className="text-lg font-extrabold text-amber-700 dark:text-amber-300">{fmt(boostDisplay)} {ar ? cur.currencyAr : cur.currency}</span>
             </div>
-            <p className="text-[11px] text-muted-foreground text-center">{ar ? "الدفع قريباً — الميزة قيد التطوير" : "Payment coming soon — feature in development"}</p>
+            <p className="text-[11px] text-muted-foreground text-center">{ar ? "التعزيز مجاني حالياً — الدفع قريباً" : "Boost is free for now — payment coming soon"}</p>
           </>
         )}
       </div>

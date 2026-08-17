@@ -22,28 +22,19 @@ const SUGGESTIONS_EN = [
   "Find kids' toys from productive families",
 ];
 
-function extractItems(toolCalls) {
-  const items = [];
+function extractItemIds(toolCalls) {
+  const ids = new Set();
   (toolCalls || []).forEach((tc) => {
     if (!tc.results) return;
-    let res = tc.results;
-    if (typeof res === "string") {
-      try { res = JSON.parse(res); } catch { return; }
-    }
-    const arr = Array.isArray(res) ? res
-      : Array.isArray(res?.data) ? res.data
-      : Array.isArray(res?.items) ? res.items
-      : Array.isArray(res?.results) ? res.results
-      : (res && res.id && res.title ? [res] : []);
-    arr.forEach((c) => {
-      if (c && typeof c === "object" && c.id && (c.title || c.price != null)) items.push(c);
-    });
+    const str = typeof tc.results === "string" ? tc.results : JSON.stringify(tc.results);
+    const re = /['"]id['"]:\s*['"]([a-f0-9]{24})['"]/g;
+    let m;
+    while ((m = re.exec(str)) !== null) ids.add(m[1]);
   });
-  const seen = new Set();
-  return items.filter((it) => (seen.has(it.id) ? false : (seen.add(it.id), true)));
+  return Array.from(ids);
 }
 
-function MessageBubble({ message, onItemClick }) {
+function MessageBubble({ message, onItemClick, itemMap }) {
   const isUser = message.role === "user";
   if (isUser) {
     return (
@@ -54,7 +45,7 @@ function MessageBubble({ message, onItemClick }) {
       </div>
     );
   }
-  const items = extractItems(message.tool_calls);
+  const items = extractItemIds(message.tool_calls).map((id) => itemMap?.[id]).filter(Boolean);
   return (
     <div className="flex justify-start">
       <div className="max-w-[90%]">
@@ -118,6 +109,7 @@ export default function ShoppingAssistant() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [itemCache, setItemCache] = useState({});
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -152,6 +144,25 @@ export default function ShoppingAssistant() {
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages]);
+
+  // Fetch full item records (with images) for any items the assistant found in tool calls
+  useEffect(() => {
+    const ids = new Set();
+    messages.forEach((m) => extractItemIds(m.tool_calls).forEach((id) => ids.add(id)));
+    const missing = Array.from(ids).filter((id) => !itemCache[id]);
+    if (!missing.length) return;
+    let cancelled = false;
+    (async () => {
+      const results = await Promise.all(missing.map((id) => base44.entities.Item.get(id).catch(() => null)));
+      if (cancelled) return;
+      setItemCache((prev) => {
+        const next = { ...prev };
+        results.forEach((r) => { if (r && r.id) next[r.id] = r; });
+        return next;
+      });
+    })();
+    return () => { cancelled = true; };
   }, [messages]);
 
   const send = async (text) => {
@@ -248,7 +259,7 @@ export default function ShoppingAssistant() {
           </div>
         )}
         {messages.map((m, i) => (
-          <MessageBubble key={i} message={m} onItemClick={(id) => nav(`/item/${id}`)} />
+          <MessageBubble key={i} message={m} itemMap={itemCache} onItemClick={(id) => nav(`/item/${id}`)} />
         ))}
         {sending && (
           <div className="flex justify-start">

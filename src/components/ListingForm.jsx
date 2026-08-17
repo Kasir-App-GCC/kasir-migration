@@ -294,8 +294,8 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
 
       <div className="space-y-1">
         <label className="text-sm font-semibold">{t("description")}</label>
-        <textarea value={description} onChange={(e) => setDescription(e.target.value.slice(0, 300))} maxLength={300} placeholder={t("descriptionPlaceholder")} rows={4} className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30 resize-none" />
-        <div className="flex justify-end text-[11px] text-muted-foreground">{(description || "").length}/300</div>
+        <textarea value={description} onChange={(e) => setDescription(e.target.value.slice(0, 500))} maxLength={500} placeholder={t("descriptionPlaceholder")} rows={4} className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30 resize-none" />
+        <div className="flex justify-end text-[11px] text-muted-foreground">{(description || "").length}/500</div>
       </div>
 
       <div className="p-3.5 rounded-2xl border border-border bg-card space-y-3">

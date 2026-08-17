@@ -6,7 +6,6 @@ import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { timeAgo } from "@/lib/format";
 import Price from "@/components/Price";
-import SwipeToDelete from "@/components/SwipeToDelete";
 
 export default function Chats() {
   const { user, lang } = useStore();
@@ -209,10 +208,10 @@ export default function Chats() {
               </div>
             ))
           : sortedRooms.map((r) => (
-              <SwipeToDelete key={r.id} label={t("delete")} onDelete={() => setConfirmRoom(r)}>
+              <div key={r.id} className="flex items-center">
                 <button
                   onClick={() => nav(`/chat/${r.id}`)}
-                  className="w-full flex items-center gap-3 p-2.5 rounded-2xl hover:bg-muted transition text-start"
+                  className="flex-1 flex items-center gap-3 p-2.5 rounded-2xl hover:bg-muted transition text-start min-w-0"
                 >
                   <div className="relative w-14 h-14 shrink-0">
                     <div className="w-14 h-14 rounded-full overflow-hidden bg-primary/10 text-primary flex items-center justify-center font-bold">
@@ -243,7 +242,14 @@ export default function Chats() {
                     </span>
                   ) : null}
                   </button>
-              </SwipeToDelete>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setConfirmRoom(r); }}
+                  aria-label={t("delete")}
+                  className="shrink-0 p-2.5 text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-2xl transition"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
             ))}
       </div>
 

@@ -247,6 +247,11 @@ const en = {
   ticketSubmitted: "Your message has been sent. We'll get back to you soon.",
   myTickets: "My tickets",
   supportReply: "Reply from support",
+  supportFullName: "Full name",
+  supportFullNamePlaceholder: "Your full name",
+  supportPhone: "Phone number",
+  supportEmail: "Email",
+  ticketEmailSent: "A confirmation email has been sent to your address.",
   };
 
 const ar = {
@@ -496,6 +501,11 @@ const ar = {
   ticketSubmitted: "تم إرسال رسالتك. سنعود إليك قريباً.",
   myTickets: "تذاكي",
   supportReply: "رد الدعم",
+  supportFullName: "الاسم الكامل",
+  supportFullNamePlaceholder: "اسمك الكامل",
+  supportPhone: "رقم الجوال",
+  supportEmail: "البريد الإلكتروني",
+  ticketEmailSent: "تم إرسال رسالة تأكيد إلى بريدك الإلكتروني.",
   };
 
 export function useT() {

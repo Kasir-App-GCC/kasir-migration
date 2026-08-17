@@ -12,6 +12,9 @@
     "user_email": {
       "type": "string"
     },
+    "phone": {
+      "type": "string"
+    },
     "category": {
       "type": "string",
       "enum": [

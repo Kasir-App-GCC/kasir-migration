@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { Search as SearchIcon, SlidersHorizontal, X, MapPin } from "lucide-react";
+import { Search as SearchIcon, SlidersHorizontal, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import ItemCard from "@/components/ItemCard";
 import SearchLocationControl from "@/components/SearchLocationControl";
@@ -72,13 +72,6 @@ export default function Search() {
             className="w-full ps-10 pe-3 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30"
           />
         </div>
-        <button
-          onClick={() => nav("/map")}
-          className="px-3.5 rounded-2xl bg-muted hover:bg-muted/70 flex items-center gap-1.5 text-sm font-semibold"
-          title={t("mapView")}
-        >
-          <MapPin size={18} />
-        </button>
         <button
           onClick={() => setShowFilters(true)}
           className="px-3.5 rounded-2xl bg-muted hover:bg-muted/70 flex items-center gap-1.5 text-sm font-semibold"

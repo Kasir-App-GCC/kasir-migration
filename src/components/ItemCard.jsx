@@ -54,11 +54,9 @@ export default function ItemCard({ item, onClick }) {
         />
 
         {/* Price tag — hanging from the top by a string */}
-        <div className="absolute top-1.5 start-2.5 z-20">
-          <div className="w-1.5 h-1.5 rounded-full bg-amber-700 shadow-sm ms-2" />
-          <div className="w-1 h-2.5 bg-amber-600/80 ms-2 rounded-full" />
-          <div className="relative bg-gradient-to-br from-amber-300 to-amber-400 text-slate-900 pl-4 pr-3 py-1.5 rounded-md shadow-lg shadow-black/30 rotate-[-3deg] border border-amber-500/40">
-            <span className="absolute left-1.5 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-900/25 ring-2 ring-amber-200/80" />
+        <div className="absolute top-0 start-2.5 z-20 flex flex-col items-center">
+          <div className="w-1 h-3.5 bg-amber-600/80 rounded-full" />
+          <div className="relative bg-gradient-to-br from-amber-300 to-amber-400 text-slate-900 px-3 py-1.5 rounded-md shadow-lg shadow-black/30 rotate-[-3deg] border border-amber-500/40">
             <span className="text-[13px] font-extrabold whitespace-nowrap"><Price value={item.price} lang={lang} /></span>
           </div>
         </div>

@@ -8,17 +8,25 @@ export default function FeaturedCarousel({ items, onOpen }) {
   const ref = useRef(null);
   const [paused, setPaused] = useState(false);
 
+  // Continuous, smooth frame-by-frame auto-scroll. Loops back to the start
+  // when it reaches the end. Pauses on hover / touch so the user can swipe.
   useEffect(() => {
     if (!items.length || paused) return;
-    const id = setInterval(() => {
-      const el = ref.current;
-      if (!el) return;
+    const el = ref.current;
+    if (!el) return;
+    let raf;
+    const step = 0.5;
+    const tick = () => {
       const max = el.scrollWidth - el.clientWidth;
-      if (max <= 0) return;
-      const next = el.scrollLeft + 140 >= max - 4 ? 0 : el.scrollLeft + 140;
-      el.scrollTo({ left: next, behavior: "smooth" });
-    }, 3000);
-    return () => clearInterval(id);
+      if (max > 0) {
+        let next = el.scrollLeft + step;
+        if (next >= max) next = 0;
+        el.scrollLeft = next;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
   }, [items.length, paused]);
 
   if (!items.length) return null;
@@ -36,10 +44,10 @@ export default function FeaturedCarousel({ items, onOpen }) {
         onMouseLeave={() => setPaused(false)}
         onTouchStart={() => setPaused(true)}
         onTouchEnd={() => setTimeout(() => setPaused(false), 2500)}
-        className="flex gap-3 overflow-x-auto no-scrollbar px-1 pb-1 scroll-smooth snap-x"
+        className="flex gap-3 overflow-x-auto no-scrollbar px-1 pb-1"
       >
         {items.map((it) => (
-          <div key={it.id} className="snap-start shrink-0 w-40">
+          <div key={it.id} className="shrink-0 w-40">
             <ItemCard item={it} onClick={() => onOpen(it.id)} />
           </div>
         ))}

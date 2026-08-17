@@ -19,10 +19,11 @@ export default function FeaturedCarousel({ items, onOpen }) {
     let raf;
     const step = 1.1;
     const tick = () => {
-      const max = el.scrollWidth - el.clientWidth;
-      if (max > 0) {
+      // Items are rendered twice, so wrapping by one set's width is seamless.
+      const half = el.scrollWidth / 2;
+      if (half > 0) {
         let next = el.scrollLeft + step;
-        if (next >= max) next = 0;
+        if (next >= half) next -= half;
         el.scrollLeft = next;
       }
       raf = requestAnimationFrame(tick);
@@ -82,8 +83,8 @@ export default function FeaturedCarousel({ items, onOpen }) {
         onClickCapture={onClickCapture}
         className="flex gap-3 overflow-x-auto no-scrollbar px-1 pb-1 cursor-grab active:cursor-grabbing touch-pan-y"
       >
-        {items.map((it) => (
-          <div key={it.id} className="shrink-0 w-40 pointer-events-auto">
+        {items.concat(items).map((it, i) => (
+          <div key={`${it.id}-${i}`} className="shrink-0 w-40 pointer-events-auto">
             <ItemCard item={it} onClick={() => onOpen(it.id)} />
           </div>
         ))}

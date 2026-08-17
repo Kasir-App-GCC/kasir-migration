@@ -155,7 +155,6 @@ export default function ChatRoom() {
     const txt = lang === "ar"
       ? `تم الاتفاق على السعر ${formatPrice(offer.amount, lang)} ✅`
       : `Price agreed at ${formatPrice(offer.amount, lang)} ✅`;
-    await sysMsg(txt, offer.id);
     await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false });
   };
 

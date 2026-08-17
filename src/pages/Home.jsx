@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { Sparkles, ShoppingBag, Search } from "lucide-react";
+import { Sparkles, ShoppingBag } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { useToast } from "@/components/ui/use-toast";
 import ItemCard from "@/components/ItemCard";
 import FeaturedCarousel from "@/components/FeaturedCarousel";
 import { useStore } from "@/lib/store";
@@ -27,31 +26,8 @@ export default function Home() {
   const { locationFilter, lang, prefs, country } = useStore();
   const t = useT();
   const nav = useNavigate();
-  const { toast } = useToast();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [uname, setUname] = useState("");
-  const [searching, setSearching] = useState(false);
-
-  const searchUser = async () => {
-    const q = uname.toLowerCase().replace(/[^a-z0-9_]/g, "");
-    if (q.length < 3) return;
-    setSearching(true);
-    try {
-      const res = await base44.functions.invoke("findUserByUsername", { username: q });
-      const u = res?.data;
-      if (u?.id) {
-        nav(`/user/${u.id}`);
-        setUname("");
-      } else {
-        toast({ title: lang === "ar" ? "المستخدم غير موجود" : "User not found", variant: "destructive" });
-      }
-    } catch {
-      toast({ title: lang === "ar" ? "المستخدم غير موجود" : "User not found", variant: "destructive" });
-    } finally {
-      setSearching(false);
-    }
-  };
 
   useEffect(() => {
     (async () => {
@@ -105,26 +81,6 @@ export default function Home() {
         </div>
         <Sparkles size={18} className="shrink-0" />
       </button>
-
-      {/* Find a seller by username */}
-      <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-card border border-border/60">
-        <span className="text-muted-foreground font-bold">@</span>
-        <input
-          value={uname}
-          onChange={(e) => setUname(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") searchUser(); }}
-          placeholder={lang === "ar" ? "ابحث عن بائع عبر اسم المستخدم" : "Find a seller by @username"}
-          className="flex-1 bg-transparent outline-none text-sm"
-        />
-        <button
-          onClick={searchUser}
-          disabled={searching}
-          className="px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold flex items-center gap-1.5 disabled:opacity-50 shrink-0"
-        >
-          {searching ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Search size={15} />}
-          {lang === "ar" ? "بحث" : "Find"}
-        </button>
-      </div>
 
       {showFeatured && <FeaturedCarousel items={featured} onOpen={(iid) => nav(`/item/${iid}`)} />}
 

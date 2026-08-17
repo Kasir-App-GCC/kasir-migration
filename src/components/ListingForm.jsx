@@ -203,7 +203,8 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
 
       <div className="space-y-1">
         <label className="text-sm font-semibold">{t("title")}</label>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("titlePlaceholder")} className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30" />
+        <input value={title} onChange={(e) => setTitle(e.target.value.slice(0, 30))} maxLength={30} placeholder={t("titlePlaceholder")} className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30" />
+        <div className="flex justify-end text-[11px] text-muted-foreground mt-1">{(title || "").length}/30</div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">

@@ -22,16 +22,40 @@ const SUGGESTIONS_EN = [
   "Find kids' toys from productive families",
 ];
 
-function extractItemIds(toolCalls) {
-  const ids = new Set();
+function parseResultsItems(toolCalls) {
+  const items = [];
   (toolCalls || []).forEach((tc) => {
     if (!tc.results) return;
     const str = typeof tc.results === "string" ? tc.results : JSON.stringify(tc.results);
-    const re = /['"]id['"]:\s*['"]([a-f0-9]{24})['"]/g;
-    let m;
-    while ((m = re.exec(str)) !== null) ids.add(m[1]);
+    if (!str || str.trim() === "[]") return;
+    const dicts = str.replace(/^\[/, "").replace(/\]$/, "").split(/}\s*,\s*{/);
+    const fstr = (d, key) => {
+      const m = d.match(new RegExp("['\"]" + key + "['\"]:\\s*['\"]([^'\"]*)['\"]"));
+      return m ? m[1] : "";
+    };
+    const fnum = (d, key) => {
+      const m = d.match(new RegExp("['\"]" + key + "['\"]:\\s*([0-9.]+)"));
+      return m ? Number(m[1]) : 0;
+    };
+    dicts.forEach((d) => {
+      const id = (d.match(/['"]id['"]:\s*['"]([a-f0-9]{24})['"]/) || [])[1];
+      if (!id) return;
+      items.push({
+        id,
+        title: fstr(d, "title") || "",
+        price: fnum(d, "price"),
+        city: fstr(d, "city") || "",
+        condition: fstr(d, "condition") || "good",
+        category: fstr(d, "category") || "",
+        images: [],
+        status: "available",
+        is_family: false,
+        created_date: new Date().toISOString(),
+      });
+    });
   });
-  return Array.from(ids);
+  const seen = new Set();
+  return items.filter((it) => (seen.has(it.id) ? false : (seen.add(it.id), true)));
 }
 
 function MessageBubble({ message, onItemClick, itemMap, itemsByMsg }) {
@@ -45,8 +69,8 @@ function MessageBubble({ message, onItemClick, itemMap, itemsByMsg }) {
       </div>
     );
   }
-  const ids = (message.id && itemsByMsg?.[message.id]) || extractItemIds(message.tool_calls);
-  const items = ids.map((id) => itemMap?.[id]).filter(Boolean);
+  const parsed = (message.id && parsedByMsg?.[message.id]) || parseResultsItems(message.tool_calls);
+  const items = parsed.map((p) => itemMap?.[p.id] || p).filter(Boolean);
   return (
     <div className="flex justify-start">
       <div className="max-w-[90%]">
@@ -111,7 +135,7 @@ export default function ShoppingAssistant() {
   const [sending, setSending] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [itemCache, setItemCache] = useState({});
-  const [itemsByMsg, setItemsByMsg] = useState({});
+  const [parsedByMsg, setParsedByMsg] = useState({});
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -148,20 +172,19 @@ export default function ShoppingAssistant() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  // Persist found item IDs per message + fetch full records (with images).
-  // IDs are accumulated so cards survive real-time message updates that may drop tool-call results.
+  // Parse found items from tool-call results (immediate, clickable cards) and fetch full
+  // records to upgrade with real images. Parsed items persist across real-time updates.
   useEffect(() => {
     const byMsg = {};
     const allIds = new Set();
-    messages.forEach((m, i) => {
-      if (m.role !== "assistant" || !m.tool_calls?.length) return;
-      const ids = extractItemIds(m.tool_calls);
-      if (!ids.length) return;
-      const key = m.id || `idx-${i}`;
-      byMsg[key] = ids;
-      ids.forEach((id) => allIds.add(id));
+    messages.forEach((m) => {
+      if (m.role !== "assistant" || !m.tool_calls?.length || !m.id) return;
+      const parsed = parseResultsItems(m.tool_calls);
+      if (!parsed.length) return;
+      byMsg[m.id] = parsed;
+      parsed.forEach((p) => allIds.add(p.id));
     });
-    setItemsByMsg((prev) => {
+    setParsedByMsg((prev) => {
       const next = { ...prev };
       Object.keys(byMsg).forEach((k) => { if (!(k in next)) next[k] = byMsg[k]; });
       return next;
@@ -271,7 +294,7 @@ export default function ShoppingAssistant() {
           </div>
         )}
         {messages.map((m, i) => (
-          <MessageBubble key={i} message={m} itemMap={itemCache} itemsByMsg={itemsByMsg} onItemClick={(id) => nav(`/item/${id}`)} />
+          <MessageBubble key={i} message={m} itemMap={itemCache} parsedByMsg={parsedByMsg} onItemClick={(id) => nav(`/item/${id}`)} />
         ))}
         {sending && (
           <div className="flex justify-start">

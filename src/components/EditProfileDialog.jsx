@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, Camera, Loader2, User } from "lucide-react";
+import { X, Camera, Loader2, User, Lock } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -83,11 +83,6 @@ export default function EditProfileDialog({ open, onClose }) {
       setError(ar ? "اكتب اسمك الأول" : "Please enter your first name");
       return;
     }
-    const uname = cleanUsername(username);
-    if (uname.length < 3) {
-      setError(ar ? "اسم المستخدم لا يقل عن 3 أحرف" : "Username must be at least 3 characters");
-      return;
-    }
     setSaving(true);
     try {
       const localDigits = waNumber.replace(/\D/g, "");
@@ -100,7 +95,6 @@ export default function EditProfileDialog({ open, onClose }) {
       await base44.auth.updateMe({
         first_name: firstName.trim(),
         last_name: lastName.trim(),
-        username: uname,
         avatar,
         whatsapp_enabled: waEnabled,
         whatsapp_number: waEnabled && localDigits ? fullWa : (user?.whatsapp_number || ""),
@@ -149,12 +143,13 @@ export default function EditProfileDialog({ open, onClose }) {
             </div>
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold">{t("username")} *</label>
-            <div className="flex items-center px-4 py-3 rounded-2xl bg-muted">
+            <label className="text-sm font-semibold">{t("username")}</label>
+            <div className="flex items-center px-4 py-3 rounded-2xl bg-muted opacity-70">
               <span className="text-muted-foreground me-1">@</span>
-              <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder={t("usernamePlaceholder")} className="bg-transparent outline-none flex-1 lowercase" />
+              <span className="bg-transparent outline-none flex-1 lowercase select-none">{user?.username || ""}</span>
+              <Lock size={14} className="text-muted-foreground shrink-0" />
             </div>
-            <p className="text-xs text-muted-foreground">{t("usernameHint")}</p>
+            <p className="text-xs text-muted-foreground">{ar ? "اسم المستخدم يُختار عند التسجيل ولا يمكن تغييره" : "Username is chosen at signup and cannot be changed"}</p>
           </div>
 
           <div className="space-y-2 pt-1 border-t border-border/60">

@@ -49,7 +49,16 @@ export default function Home() {
     if (!prefs.showSold && it.status === "sold") return false;
     return matchLocation(it, locationFilter, country);
   });
-  const featured = items.filter((it) => it.featured && it.status !== "sold").slice(0, 30);
+  const now = Date.now();
+  const featured = items.filter((it) => {
+    if (!it.featured || it.status === "sold") return false;
+    if (it.featured_until && new Date(it.featured_until).getTime() < now) return false;
+    // Per-country: show only items featured in the browsing country,
+    // unless the seller paid for the cross-country option.
+    if (it.country === country) return true;
+    if (it.featured_cross_country) return true;
+    return false;
+  }).slice(0, 30);
   const showFeatured = categories.length === 0 && featured.length > 0;
 
   return (

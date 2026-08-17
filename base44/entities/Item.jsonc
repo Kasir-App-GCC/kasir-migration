@@ -82,6 +82,14 @@
       "type": "boolean",
       "default": false
     },
+    "featured_until": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "featured_cross_country": {
+      "type": "boolean",
+      "default": false
+    },
     "views": {
       "type": "number",
       "default": 0

@@ -45,7 +45,8 @@ export default function EditListing() {
   }
 
   const submit = async (data) => {
-    await base44.entities.Item.update(id, data);
+    const { boost_hours, boost_cross_country, boost_amount, ...itemData } = data;
+    await base44.entities.Item.update(id, itemData);
     nav(`/item/${id}`);
   };
 

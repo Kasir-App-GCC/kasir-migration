@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ImagePlus, X, Sparkles, LocateFixed, MapPin, GripVertical } from "lucide-react";
+import { ImagePlus, X, Sparkles, LocateFixed, MapPin, GripVertical, Globe } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -31,7 +31,9 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [subcats, setSubcats] = useState(
     Array.isArray(initial?.subcategory) ? initial.subcategory : (initial?.subcategory ? [initial.subcategory] : [])
   );
-  const [featured, setFeatured] = useState(!!initial?.featured);
+  const [boostHours, setBoostHours] = useState(0);
+  const [boostCross, setBoostCross] = useState(false);
+  const ar = lang === "ar";
   const [locating, setLocating] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [posting, setPosting] = useState(false);
@@ -108,7 +110,10 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         lat,
         lng,
         description,
-        featured,
+        featured: false,
+        boost_hours: boostHours,
+        boost_cross_country: boostCross,
+        boost_amount: boostAmount,
       });
     } catch (e) {
       setPosting(false);
@@ -116,6 +121,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   };
 
   const valid = title && price && category && city;
+  const boostAmount = boostHours > 0 ? boostHours * 10 + (boostCross ? boostHours * 7 : 0) : 0;
   const subs = category ? getSubcategories(category) : [];
 
   return (
@@ -261,22 +267,58 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("descriptionPlaceholder")} rows={4} className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30 resize-none" />
       </div>
 
-      <button
-        type="button"
-        onClick={() => setFeatured(!featured)}
-        className={`w-full flex items-center justify-between p-3.5 rounded-2xl border transition ${featured ? "border-amber-400 bg-amber-50 dark:bg-amber-950/30" : "border-border bg-card"}`}
-      >
-        <span className="flex items-center gap-2.5 text-start">
+      <div className="p-3.5 rounded-2xl border border-border bg-card space-y-3">
+        <div className="flex items-center gap-2.5">
           <Sparkles size={18} className="text-amber-500" />
-          <span>
-            <span className="text-sm font-semibold block">{t("promoteListing")}</span>
-            <span className="text-xs text-muted-foreground">{t("promoteDesc")} · {t("promoFee")}</span>
-          </span>
-        </span>
-        <span className={`w-11 h-6 rounded-full p-0.5 transition ${featured ? "bg-amber-500" : "bg-muted-foreground/30"}`}>
-          <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${featured ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
-        </span>
-      </button>
+          <div className="flex-1">
+            <p className="text-sm font-semibold block">{t("promoteListing")}</p>
+            <p className="text-xs text-muted-foreground">{ar ? "تعزيز الإعلان ليظهر في المميز" : "Boost your listing to appear in featured"}</p>
+          </div>
+        </div>
+        <div>
+          <div className="flex items-center justify-between text-sm mb-1.5">
+            <span className="font-semibold">{ar ? "المدة" : "Duration"}</span>
+            <span className="font-bold">{boostHours} {ar ? "ساعة" : "h"}{boostHours >= 72 ? ` · ${ar ? "٣ أيام" : "3 days"}` : ""}</span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={72}
+            step={1}
+            value={boostHours}
+            onChange={(e) => setBoostHours(Number(e.target.value))}
+            className="w-full accent-amber-500"
+          />
+          <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+            <span>0</span><span>24</span><span>48</span><span>72</span>
+          </div>
+        </div>
+        {boostHours > 0 && (
+          <>
+            <button
+              type="button"
+              onClick={() => setBoostCross(!boostCross)}
+              className="w-full flex items-center justify-between p-3 rounded-xl bg-muted"
+            >
+              <span className="flex items-center gap-2 text-start">
+                <Globe size={16} className="text-primary" />
+                <span>
+                  <span className="text-sm font-semibold block">{ar ? "عرض في كل الدول" : "Show across all countries"}</span>
+                  <span className="text-xs text-muted-foreground">+7 {ar ? "ر.س / ساعة" : "SAR / hour"}</span>
+                </span>
+              </span>
+              <span className={`w-11 h-6 rounded-full p-0.5 transition ${boostCross ? "bg-amber-500" : "bg-muted-foreground/30"}`}>
+                <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${boostCross ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
+              </span>
+            </button>
+            <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900">
+              <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">{ar ? "الإجمالي" : "Total"}</span>
+              <span className="text-lg font-extrabold text-amber-700 dark:text-amber-300">{boostAmount} {ar ? "ر.س" : "SAR"}</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground text-center">{ar ? "الدفع قريباً — الميزة قيد التطوير" : "Payment coming soon — feature in development"}</p>
+          </>
+        )}
+      </div>
 
       <button
         onClick={submit}

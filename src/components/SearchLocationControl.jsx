@@ -2,12 +2,12 @@ import React, { useState } from "react";
 import { Crosshair } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
-import { SAUDI_CITIES, nearestCity } from "@/lib/constants";
+import { getCities, nearestCityInCountry } from "@/lib/countries";
 
 // Compact inline location picker for the search filter panel.
 // "Near me" requires geolocation; otherwise the user falls back to picking a city.
 export default function SearchLocationControl() {
-  const { lang, locationFilter, setLocationFilter } = useStore();
+  const { lang, locationFilter, setLocationFilter, country } = useStore();
   const t = useT();
   const [locating, setLocating] = useState(false);
 
@@ -28,7 +28,7 @@ export default function SearchLocationControl() {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setLocating(false);
-        const c = nearestCity(pos.coords.latitude, pos.coords.longitude);
+        const c = nearestCityInCountry(pos.coords.latitude, pos.coords.longitude, country);
         setLocationFilter({ mode: "radius", radius, city: c?.en || null, lat: pos.coords.latitude, lng: pos.coords.longitude });
       },
       () => {
@@ -63,7 +63,7 @@ export default function SearchLocationControl() {
           className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none text-sm focus:ring-2 ring-primary/30"
         >
           <option value="">{t("allCities")}</option>
-          {SAUDI_CITIES.map((c) => (
+          {getCities(country).map((c) => (
             <option key={c.en} value={c.en}>{lang === "ar" ? c.ar : c.en}</option>
           ))}
         </select>

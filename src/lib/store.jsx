@@ -21,6 +21,7 @@ export function StoreProvider({ children }) {
   });
   const [lastChatsSeen, setLastChatsSeenState] = useState(() => localStorage.getItem("souqi_chats_seen") || null);
   const [notifsClearedAt, setNotifsClearedAtState] = useState(() => localStorage.getItem("souqi_notifs_cleared") || null);
+  const [country, setCountryState] = useState(() => localStorage.getItem("souqi_country") || "");
 
   // The signed-in user comes from the platform's built-in auth (Google / etc.)
   const user = auth.user
@@ -42,6 +43,7 @@ export function StoreProvider({ children }) {
         ratingsCount: 0,
         whatsapp_enabled: !!auth.user.whatsapp_enabled,
         whatsapp_number: auth.user.whatsapp_number || null,
+        country: auth.user.country || "SA",
       }
     : null;
 
@@ -78,6 +80,13 @@ export function StoreProvider({ children }) {
     else localStorage.removeItem("souqi_notifs_cleared");
   }, [notifsClearedAt]);
 
+  useEffect(() => {
+    if (!country && auth.user?.country) setCountryState(auth.user.country);
+  }, [auth.user, country]);
+  useEffect(() => {
+    if (country) localStorage.setItem("souqi_country", country);
+  }, [country]);
+
   const setTheme = (t) => setThemeState(t);
   const setLang = (l) => setLangState(l);
   const toggleFavorite = (id) =>
@@ -86,6 +95,10 @@ export function StoreProvider({ children }) {
   const clearFavorites = () => setFavorites([]);
   const setLastChatsSeen = (val) => setLastChatsSeenState(val);
   const setNotifsClearedAt = (val) => setNotifsClearedAtState(val);
+  const setCountry = (c) => {
+    setCountryState(c);
+    setLocationFilter({ mode: "city", city: null, radius: 25 });
+  };
   const logout = () => auth.logout(true);
 
   return (
@@ -107,6 +120,8 @@ export function StoreProvider({ children }) {
         setLastChatsSeen,
         notifsClearedAt,
         setNotifsClearedAt,
+        country: country || "SA",
+        setCountry,
         logout,
       }}
     >

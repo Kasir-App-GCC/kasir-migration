@@ -4,7 +4,8 @@ import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
-import { CATEGORIES, CONDITIONS, SAUDI_CITIES, getSubcategories, getCityName, nearestCity } from "@/lib/constants";
+import { CATEGORIES, CONDITIONS, getSubcategories, getCityName } from "@/lib/constants";
+import { getCities, nearestCityInCountry } from "@/lib/countries";
 
 // Convert Arabic-Indic (٠-٩) and Eastern Arabic (۰-۹) digits to ASCII 0-9
 function normalizeDigits(s) {
@@ -40,7 +41,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const c = nearestCity(pos.coords.latitude, pos.coords.longitude);
+        const c = nearestCityInCountry(pos.coords.latitude, pos.coords.longitude, user.country || "SA");
         if (c) setCity(c.en);
         setLat(pos.coords.latitude);
         setLng(pos.coords.longitude);
@@ -103,6 +104,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         subcategory: subcats.length ? subcats : undefined,
         condition,
         city,
+        country: user.country || "SA",
         lat,
         lng,
         description,
@@ -222,7 +224,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
           ) : (
             <select value={city} onChange={(e) => setCity(e.target.value)} className="flex-1 bg-transparent outline-none text-sm">
               <option value="">{t("selectCity")}</option>
-              {SAUDI_CITIES.map((c) => (
+              {getCities(user.country || "SA").map((c) => (
                 <option key={c.en} value={c.en}>{lang === "ar" ? c.ar : c.en}</option>
               ))}
             </select>

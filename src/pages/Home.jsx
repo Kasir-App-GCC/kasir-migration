@@ -23,7 +23,7 @@ function Skeleton() {
 
 export default function Home() {
   const { categories, subcategories } = useOutletContext();
-  const { locationFilter, lang, prefs } = useStore();
+  const { locationFilter, lang, prefs, country } = useStore();
   const t = useT();
   const nav = useNavigate();
   const [items, setItems] = useState([]);
@@ -47,7 +47,7 @@ export default function Home() {
     if (categories.length && !categories.includes(it.category)) return false;
     if (subcategories.length && !(Array.isArray(it.subcategory) ? it.subcategory.some((s) => subcategories.includes(s)) : subcategories.includes(it.subcategory))) return false;
     if (!prefs.showSold && it.status === "sold") return false;
-    return matchLocation(it, locationFilter);
+    return matchLocation(it, locationFilter, country);
   });
   const featured = items.filter((it) => it.featured && it.status !== "sold").slice(0, 30);
   const showFeatured = categories.length === 0 && featured.length > 0;

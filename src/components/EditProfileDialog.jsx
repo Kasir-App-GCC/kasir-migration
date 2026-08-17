@@ -5,6 +5,7 @@ import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { base44 } from "@/api/base44Client";
 import { syncAvatarToEntities } from "@/lib/syncAvatar";
+import { getCountry } from "@/lib/countries";
 
 const COUNTRY_CODES = [
   { code: "966", flag: "🇸🇦", en: "Saudi Arabia", ar: "السعودية" },
@@ -34,10 +35,10 @@ const COUNTRY_CODES = [
   { code: "33", flag: "🇫🇷", en: "France", ar: "فرنسا" },
 ];
 
-function parseWaNumber(existing) {
+function parseWaNumber(existing, defaultCode = "966") {
   const matched = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length).find((c) => existing.startsWith(c.code));
   if (matched) return { country: matched.code, number: existing.slice(matched.code.length) };
-  return { country: "966", number: existing };
+  return { country: defaultCode, number: existing };
 }
 
 export default function EditProfileDialog({ open, onClose }) {
@@ -50,7 +51,7 @@ export default function EditProfileDialog({ open, onClose }) {
   const [username, setUsername] = useState(user?.username || "");
   const [avatar, setAvatar] = useState(user?.avatar || null);
   const [waEnabled, setWaEnabled] = useState(!!user?.whatsapp_enabled);
-  const initialWa = parseWaNumber((user?.whatsapp_number || "").replace(/\D/g, ""));
+  const initialWa = parseWaNumber((user?.whatsapp_number || "").replace(/\D/g, ""), getCountry(user?.country)?.phoneCode || "966");
   const [waCountry, setWaCountry] = useState(initialWa.country);
   const [waNumber, setWaNumber] = useState(initialWa.number);
   const [uploading, setUploading] = useState(false);

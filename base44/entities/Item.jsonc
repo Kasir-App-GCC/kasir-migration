@@ -41,6 +41,10 @@
     "city": {
       "type": "string"
     },
+    "country": {
+      "type": "string",
+      "default": "SA"
+    },
     "lat": {
       "type": "number"
     },

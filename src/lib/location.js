@@ -1,9 +1,8 @@
-import { SAUDI_CITIES } from "@/lib/constants";
+import { ALL_CITIES, lookupCityCountry } from "./countries";
 
 export function cityCoords(name) {
   if (!name) return null;
-  const c = SAUDI_CITIES.find((x) => x.en === name || x.ar === name);
-  return c && c.lat ? c : null;
+  return ALL_CITIES.find((x) => (x.en === name || x.ar === name) && x.lat) || null;
 }
 
 export function distanceKm(lat1, lng1, lat2, lng2) {
@@ -17,7 +16,12 @@ export function distanceKm(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-export function matchLocation(it, loc) {
+export function matchLocation(it, loc, country) {
+  // Country filter: only items in the active browsing country
+  if (country) {
+    const itemCountry = it.country || lookupCityCountry(it.city) || "SA";
+    if (itemCountry !== country) return false;
+  }
   if (!loc) return true;
   if (loc.mode === "city") {
     if (!loc.city) return true;

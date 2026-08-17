@@ -2,11 +2,12 @@ import React, { useState, useEffect } from "react";
 import { MapPin, Search, X, Check, Crosshair } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
-import { SAUDI_CITIES, getCityName, nearestCity } from "@/lib/constants";
+import { getCityName } from "@/lib/constants";
+import { getCities, nearestCityInCountry } from "@/lib/countries";
 import MapPinPicker from "@/components/MapPinPicker";
 
 export default function LocationFilter({ open, onClose }) {
-  const { lang, locationFilter, setLocationFilter } = useStore();
+  const { lang, locationFilter, setLocationFilter, country } = useStore();
   const t = useT();
   const [tab, setTab] = useState(locationFilter.mode === "map" ? "map" : locationFilter.mode);
   const [radius, setRadius] = useState(locationFilter.radius);
@@ -26,7 +27,7 @@ export default function LocationFilter({ open, onClose }) {
       setCity(locationFilter.city);
       setQuery("");
       if (locationFilter.mode === "radius" && locationFilter.lat) {
-        setDetectedCity(nearestCity(locationFilter.lat, locationFilter.lng));
+        setDetectedCity(nearestCityInCountry(locationFilter.lat, locationFilter.lng, country));
         setDetectedCoords({ lat: locationFilter.lat, lng: locationFilter.lng });
         setMapPos(null);
       } else if (locationFilter.mode === "map" && locationFilter.lat) {
@@ -43,7 +44,7 @@ export default function LocationFilter({ open, onClose }) {
 
   if (!open) return null;
 
-  const filtered = SAUDI_CITIES.filter((c) =>
+  const filtered = getCities(country).filter((c) =>
     (lang === "ar" ? c.ar : c.en).toLowerCase().includes(query.toLowerCase()) ||
     c.en.toLowerCase().includes(query.toLowerCase()) ||
     c.ar.includes(query)
@@ -58,7 +59,7 @@ export default function LocationFilter({ open, onClose }) {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setLocating(false);
-        const c = nearestCity(pos.coords.latitude, pos.coords.longitude);
+        const c = nearestCityInCountry(pos.coords.latitude, pos.coords.longitude, country);
         setDetectedCity(c);
         setDetectedCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       },
@@ -78,7 +79,7 @@ export default function LocationFilter({ open, onClose }) {
     }
     if (tab === "map") {
       if (mapPos) {
-        const c = nearestCity(mapPos.lat, mapPos.lng);
+        const c = nearestCityInCountry(mapPos.lat, mapPos.lng, country);
         setLocationFilter({ mode: "map", radius, city: c?.en || null, lat: mapPos.lat, lng: mapPos.lng });
       }
       onClose();
@@ -187,14 +188,14 @@ export default function LocationFilter({ open, onClose }) {
             <div className="py-3">
               <p className="text-xs text-muted-foreground mb-2">{lang === "ar" ? "اضغط على الخريطة لوضع الدبوس" : "Tap the map to drop a pin"}</p>
               <MapPinPicker
-                center={mapPos || { lat: 24.7136, lng: 46.6753 }}
+                center={mapPos || (getCities(country)[0] || { lat: 24.7136, lng: 46.6753 })}
                 radius={radius}
                 onPick={(p) => setMapPos(p)}
               />
               {mapPos ? (
                 <p className="text-xs text-muted-foreground mt-2">
                   {lang === "ar" ? "الموقع" : "Location"}: {mapPos.lat.toFixed(4)}, {mapPos.lng.toFixed(4)}
-                  {(() => { const c = nearestCity(mapPos.lat, mapPos.lng); return c ? ` · ${lang === "ar" ? c.ar : c.en}` : ""; })()}
+                  {(() => { const c = nearestCityInCountry(mapPos.lat, mapPos.lng, country); return c ? ` · ${lang === "ar" ? c.ar : c.en}` : ""; })()}
                 </p>
               ) : (
                 <p className="text-xs text-muted-foreground mt-2">{lang === "ar" ? "لم يتم اختيار موقع بعد" : "No location selected yet"}</p>

@@ -5,10 +5,11 @@ import { useT } from "@/lib/i18n";
 import { base44 } from "@/api/base44Client";
 import { syncAvatarToEntities } from "@/lib/syncAvatar";
 import { Camera, Loader2, User } from "lucide-react";
+import { COUNTRIES, getCountry } from "@/lib/countries";
 
 export default function ProfileSetup() {
   const { user, checkUserAuth } = useAuth();
-  const { lang } = useStore();
+  const { lang, setCountry } = useStore();
   const t = useT();
   const ar = lang === "ar";
   const [firstName, setFirstName] = useState(user?.first_name || "");
@@ -18,6 +19,7 @@ export default function ProfileSetup() {
   const [countryCode, setCountryCode] = useState(user?.country_code || "+966");
   const [avatar, setAvatar] = useState(user?.avatar || null);
   const [intent, setIntent] = useState(user?.intent || "");
+  const [country, setCountryState] = useState(user?.country || "SA");
 
   const countryCodes = [
     { code: "+966", label: "🇸🇦 +966", name: ar ? "السعودية" : "Saudi Arabia" },
@@ -106,10 +108,12 @@ export default function ProfileSetup() {
         username: uname,
         phone: digits,
         country_code: countryCode,
+        country,
         avatar,
         intent,
       });
       await checkUserAuth();
+      setCountry(country);
       await syncAvatarToEntities(user.id, avatar);
     } catch (err) {
       setError(err.message || (ar ? "فشل الحفظ" : "Failed to save"));
@@ -152,6 +156,22 @@ export default function ProfileSetup() {
         )}
 
         <div className="space-y-4 mt-2">
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold">{ar ? "دولتك" : "Your country"} *</label>
+            <div className="grid grid-cols-3 gap-2">
+              {COUNTRIES.map((c) => (
+                <button
+                  key={c.code}
+                  type="button"
+                  onClick={() => { setCountryState(c.code); setCountryCode("+" + getCountry(c.code).phoneCode); }}
+                  className={`py-2.5 rounded-2xl text-sm font-semibold border transition flex items-center gap-1.5 justify-center ${country === c.code ? "bg-primary text-primary-foreground border-transparent" : "bg-muted border-border/60"}`}
+                >
+                  <span className="text-lg">{c.flag}</span>
+                  <span className="truncate">{ar ? c.ar : c.en}</span>
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-sm font-semibold">{t("firstName")} *</label>

@@ -11,7 +11,7 @@ import { matchLocation } from "@/lib/location";
 
 export default function Search() {
   const { categories, setCategories, subcategories, setSubcategories } = useOutletContext();
-  const { locationFilter, setLocationFilter, lang, prefs } = useStore();
+  const { locationFilter, setLocationFilter, lang, prefs, country } = useStore();
   const t = useT();
   const nav = useNavigate();
   const [q, setQ] = useState("");
@@ -42,7 +42,7 @@ export default function Search() {
       if (categories.length && !categories.includes(it.category)) return false;
       if (subcategories.length && !(Array.isArray(it.subcategory) ? it.subcategory.some((s) => subcategories.includes(s)) : subcategories.includes(it.subcategory))) return false;
       if (!prefs.showSold && it.status === "sold") return false;
-      if (!matchLocation(it, locationFilter)) return false;
+      if (!matchLocation(it, locationFilter, country)) return false;
       if (q && !(`${it.title} ${it.description}`.toLowerCase().includes(q.toLowerCase()))) return false;
       if (condition && it.condition !== condition) return false;
       if (minPrice && Number(it.price) < Number(minPrice)) return false;

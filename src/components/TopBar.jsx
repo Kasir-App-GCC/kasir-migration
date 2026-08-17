@@ -1,15 +1,18 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Tag, Sun, Moon, Monitor, Bell } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { getCityName } from "@/lib/constants";
+import { COUNTRIES, getCountry } from "@/lib/countries";
 import useUnreadChats from "@/hooks/useUnreadChats";
 
 export default function TopBar({ onOpenLocation }) {
-  const { lang, setLang, theme, setTheme, locationFilter } = useStore();
+  const { lang, setLang, theme, setTheme, locationFilter, country, setCountry } = useStore();
   const t = useT();
   const unread = useUnreadChats();
+  const [countryOpen, setCountryOpen] = useState(false);
+  const current = getCountry(country);
 
   const locLabel =
     locationFilter.mode === "radius" || locationFilter.mode === "map"
@@ -42,6 +45,32 @@ export default function TopBar({ onOpenLocation }) {
         </button>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          <div className="relative">
+            <button
+              onClick={() => setCountryOpen((v) => !v)}
+              className="w-9 h-9 rounded-xl bg-muted hover:bg-muted/70 flex items-center justify-center text-lg leading-none"
+              title={lang === "ar" ? current.ar : current.en}
+            >
+              {current.flag}
+            </button>
+            {countryOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setCountryOpen(false)} />
+                <div className="absolute end-0 mt-1 z-50 w-44 rounded-2xl bg-background border border-border shadow-xl py-1">
+                  {COUNTRIES.map((c) => (
+                    <button
+                      key={c.code}
+                      onClick={() => { setCountry(c.code); setCountryOpen(false); }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-start ${c.code === country ? "font-bold text-primary" : ""}`}
+                    >
+                      <span className="text-lg">{c.flag}</span>
+                      <span>{lang === "ar" ? c.ar : c.en}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
           <Link to="/notifications" className="relative w-9 h-9 rounded-xl bg-muted hover:bg-muted/70 flex items-center justify-center">
             <Bell size={18} />
             {unread > 0 && (

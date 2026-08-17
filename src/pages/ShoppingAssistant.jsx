@@ -138,6 +138,7 @@ export default function ShoppingAssistant() {
   const [itemCache, setItemCache] = useState({});
   const [parsedByMsg, setParsedByMsg] = useState({});
   const scrollRef = useRef(null);
+  const refetchTimer = useRef(null);
 
   useEffect(() => {
     (async () => {
@@ -184,21 +185,48 @@ export default function ShoppingAssistant() {
   }, [messages]);
 
   // Merge newly-parsed items from incoming messages (real-time subscription updates).
-  // Existing entries persist, so cards survive updates that strip tool-call results.
+  // The realtime subscription can deliver messages with stripped tool-call results,
+  // so when a completed tool call yields no items we refetch the full conversation
+  // from the API (whose messages include results) and parse from there.
   useEffect(() => {
     const byMsg = {};
+    const needsRefetch = [];
+    const pending = new Set(["pending", "running", "in_progress"]);
     messages.forEach((m) => {
       if (m.role !== "assistant" || !m.tool_calls?.length || !m.id) return;
       const parsed = parseResultsItems(m.tool_calls);
-      if (parsed.length) byMsg[m.id] = parsed;
+      if (parsed.length) {
+        byMsg[m.id] = parsed;
+      } else if (m.tool_calls.some((tc) => tc.status && !pending.has(tc.status))) {
+        needsRefetch.push(m.id);
+      }
     });
-    if (!Object.keys(byMsg).length) return;
-    setParsedByMsg((prev) => {
-      const next = { ...prev };
-      Object.keys(byMsg).forEach((k) => { if (!(k in next)) next[k] = byMsg[k]; });
-      return next;
-    });
-  }, [messages]);
+    if (Object.keys(byMsg).length) {
+      setParsedByMsg((prev) => {
+        const next = { ...prev };
+        Object.keys(byMsg).forEach((k) => { if (!(k in next)) next[k] = byMsg[k]; });
+        return next;
+      });
+    }
+    if (needsRefetch.length && conversation?.id) {
+      if (refetchTimer.current) clearTimeout(refetchTimer.current);
+      refetchTimer.current = setTimeout(async () => {
+        try {
+          const convos = await base44.agents.listConversations({ agent_name: AGENT_NAME });
+          const convo = (convos || []).find((c) => c.id === conversation.id);
+          if (!convo) return;
+          const fresh = {};
+          (convo.messages || []).forEach((m) => {
+            if (m.role !== "assistant" || !m.tool_calls?.length || !m.id) return;
+            const parsed = parseResultsItems(m.tool_calls);
+            if (parsed.length) fresh[m.id] = parsed;
+          });
+          if (Object.keys(fresh).length) setParsedByMsg((prev) => ({ ...prev, ...fresh }));
+        } catch {}
+      }, 700);
+    }
+    return () => { if (refetchTimer.current) clearTimeout(refetchTimer.current); };
+  }, [messages, conversation?.id]);
 
   // Fetch full item records (with real images) for every parsed item.
   useEffect(() => {

@@ -91,9 +91,9 @@ function MessageBubble({ message, onItemClick, itemMap, parsedByMsg }) {
           </div>
         )}
         {items.length > 0 && (
-          <div className="mt-2 flex gap-2 overflow-x-auto no-scrollbar pb-1">
+          <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
             {items.map((it) => (
-              <div key={it.id} className="w-40 shrink-0">
+              <div key={it.id}>
                 <ItemCard item={it} onClick={() => onItemClick?.(it.id)} />
               </div>
             ))}

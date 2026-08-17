@@ -8,10 +8,13 @@ import ItemCard from "@/components/ItemCard";
 import RatingStars from "@/components/RatingStars";
 import EditProfileDialog from "@/components/EditProfileDialog";
 import SellerDashboard from "@/components/SellerDashboard";
+import WhatsAppIcon from "@/components/WhatsAppIcon";
+import { useAuth } from "@/lib/AuthContext";
 import { formatPrice, timeAgo } from "@/lib/format";
 
 export default function Profile() {
   const { user, lang, setLang, theme, setTheme, logout, favorites, prefs, setPrefs, clearFavorites } = useStore();
+  const { checkUserAuth } = useAuth();
   const t = useT();
   const nav = useNavigate();
   const [tab, setTab] = useState("listings");
@@ -20,6 +23,17 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [waSaving, setWaSaving] = useState(false);
+
+  const toggleWa = async () => {
+    if (waSaving || !user) return;
+    setWaSaving(true);
+    try {
+      await base44.auth.updateMe({ whatsapp_enabled: !user.whatsapp_enabled });
+      await checkUserAuth();
+    } catch {}
+    setWaSaving(false);
+  };
 
   useEffect(() => {
     (async () => {
@@ -245,6 +259,21 @@ export default function Profile() {
               <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${prefs.showSold ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
             </button>
           </label>
+          <label className="flex items-center justify-between py-2">
+            <span className="text-sm flex items-center gap-2"><WhatsAppIcon size={16} className="text-emerald-600" /> {lang === "ar" ? "السماح بالتواصل عبر واتساب" : "Allow WhatsApp contact"}</span>
+            <button
+              onClick={toggleWa}
+              disabled={waSaving}
+              className={`w-11 h-6 rounded-full p-0.5 transition ${user.whatsapp_enabled ? "bg-emerald-500" : "bg-muted-foreground/30"}`}
+            >
+              <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${user.whatsapp_enabled ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
+            </button>
+          </label>
+          {user.whatsapp_enabled && !user.whatsapp_number && (
+            <button onClick={() => setEditOpen(true)} className="text-xs text-emerald-600 font-semibold mt-1 text-start">
+              {lang === "ar" ? "أضف رقم واتساب من تعديل الملف" : "Add your WhatsApp number in Edit Profile"}
+            </button>
+          )}
         </div>
         <button onClick={() => { if (window.confirm(t("clearFavsConfirm"))) clearFavorites(); }} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
           <span className="flex items-center gap-2 text-sm font-semibold"><Trash2 size={18} /> {t("clearFavorites")}</span>

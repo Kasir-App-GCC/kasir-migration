@@ -65,7 +65,7 @@ export default function EditProfileDialog({ open, onClose }) {
         username: uname,
         avatar,
         whatsapp_enabled: waEnabled,
-        whatsapp_number: waEnabled ? waDigits : "",
+        whatsapp_number: waEnabled && waDigits ? waDigits : (user?.whatsapp_number || ""),
       });
       await checkUserAuth();
       await syncAvatarToEntities(user.id, avatar);

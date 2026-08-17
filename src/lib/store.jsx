@@ -40,6 +40,8 @@ export function StoreProvider({ children }) {
         joinedAt: auth.user.created_date,
         rating: 5.0,
         ratingsCount: 0,
+        whatsapp_enabled: !!auth.user.whatsapp_enabled,
+        whatsapp_number: auth.user.whatsapp_number || null,
       }
     : null;
 

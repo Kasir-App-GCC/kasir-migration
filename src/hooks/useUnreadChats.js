@@ -106,14 +106,26 @@ export default function useUnreadChats() {
     const unsubM = base44.entities.Message.subscribe((event) => {
       const m = event && event.data;
       if (!m || m.sender_id === user.id) return;
-      if (event.type === "create" && roomIds.current.has(m.chatroom_id)) maybeBeep();
+      if (event.type === "create" && roomIds.current.has(m.chatroom_id)) {
+        maybeBeep();
+        // Bump the badge instantly when a message lands in one of my rooms
+        // and I'm not currently viewing that exact conversation.
+        if (!window.location.pathname.startsWith("/chat/" + m.chatroom_id)) {
+          setCount((c) => c + 1);
+        }
+      }
       schedule();
     });
 
     const unsubO = base44.entities.Offer.subscribe((event) => {
       const o = event && event.data;
       if (!o) return;
-      if (event.type === "create" && offerIsIncoming(o, user.id) && roomIds.current.has(o.chatroom_id)) maybeBeep();
+      if (event.type === "create" && offerIsIncoming(o, user.id) && roomIds.current.has(o.chatroom_id)) {
+        maybeBeep();
+        if (!window.location.pathname.startsWith("/chat/" + o.chatroom_id)) {
+          setCount((c) => c + 1);
+        }
+      }
       schedule();
     });
 

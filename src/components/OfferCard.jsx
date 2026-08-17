@@ -1,8 +1,10 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Check, X, Tag, Pencil, ArrowLeftRight, Clock } from "lucide-react";
 import Price from "@/components/Price";
 
 export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, itemTitle, country, onAccept, onReject, onCounter, onModify }) {
+  const nav = useNavigate();
   const mine = offer.direction === "buyer_offer" ? offer.buyer_id === user.id : offer.seller_id === user.id;
   const isRecipient = offer.direction === "buyer_offer" ? offer.seller_id === user.id : offer.buyer_id === user.id;
   const [counterOpen, setCounterOpen] = useState(false);
@@ -50,13 +52,17 @@ export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, 
         {statusBadge()}
       </div>
       {(itemImage || itemTitle) && (
-        <div className="flex items-center gap-2 mb-2 p-1.5 rounded-xl bg-muted/60">
+        <button
+          type="button"
+          onClick={() => offer.item_id && nav(`/item/${offer.item_id}`)}
+          className="flex items-center gap-2 mb-2 p-1.5 rounded-xl bg-muted/60 hover:bg-muted transition w-full text-start"
+        >
           {itemImage && <img src={itemImage} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />}
           <div className="min-w-0 flex-1">
             {itemTitle && <p className="text-xs font-semibold truncate">{itemTitle}</p>}
             {itemPrice != null && <p className="text-[11px] text-muted-foreground"><Price value={itemPrice} lang={lang} country={country} /></p>}
           </div>
-        </div>
+        </button>
       )}
       {itemPrice != null && Number(itemPrice) !== Number(offer.amount) && (
         <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground mb-1">

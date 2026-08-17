@@ -25,29 +25,24 @@ export default function ItemCard({ item, onClick }) {
   return (
     <div
       onClick={onClick}
-      className="group cursor-pointer rounded-2xl overflow-hidden bg-card border border-border/60 hover:shadow-xl hover:border-border transition-all duration-300 hover:-translate-y-0.5"
+      className="group cursor-pointer rounded-2xl bg-card border border-border/60 hover:shadow-xl hover:border-border transition-all duration-300 hover:-translate-y-0.5"
     >
-      <div className="relative aspect-square bg-muted overflow-hidden">
+      <div className="relative aspect-square bg-muted rounded-t-2xl overflow-hidden">
         <img
           src={imgs[idx]}
           alt={item.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
 
-        {/* Price tag — folded over the top-left corner of the card */}
-        <div className="absolute top-0 start-0 z-20">
-          <div className="relative bg-amber-300 text-slate-900 pl-5 pr-3.5 py-1.5 shadow-lg shadow-black/30 rounded-br-md">
-            {/* Folded-back corner (darker triangle) */}
-            <span
-              className="absolute top-0 start-0 bg-amber-600"
-              style={{ width: "18px", height: "18px", clipPath: "polygon(0 0, 100% 0, 0 100%)" }}
-            />
-            {/* Crease shadow */}
-            <span
-              className="absolute top-0 start-0 pointer-events-none"
-              style={{ width: "18px", height: "18px", boxShadow: "inset -2px -2px 3px rgba(0,0,0,0.18)" }}
-            />
-            <span className="relative text-[13px] font-extrabold whitespace-nowrap"><Price value={item.price} lang={lang} /></span>
+        {/* Price tag hanging by a string wrapped over the top-left corner */}
+        <div className="absolute start-2 top-0 z-30 pointer-events-none flex flex-col items-center">
+          {/* String loop over the corner (outside the card) */}
+          <div className="-mt-3 w-4 h-4 rounded-full border-[1.5px] border-amber-700/80 bg-amber-200/30" />
+          {/* String down to the tag */}
+          <div className="w-px h-2 bg-amber-700/80" />
+          {/* Tag inside the card */}
+          <div className="bg-amber-300 text-slate-900 px-3 py-1.5 shadow-lg shadow-black/30 rounded-md">
+            <span className="text-[13px] font-extrabold whitespace-nowrap"><Price value={item.price} lang={lang} /></span>
           </div>
         </div>
 

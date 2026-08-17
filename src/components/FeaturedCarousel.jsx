@@ -7,15 +7,17 @@ export default function FeaturedCarousel({ items, onOpen }) {
   const t = useT();
   const ref = useRef(null);
   const [paused, setPaused] = useState(false);
+  const drag = useRef({ active: false, startX: 0, startScroll: 0, moved: false });
+  const resumeTimer = useRef(null);
 
   // Continuous, smooth frame-by-frame auto-scroll. Loops back to the start
-  // when it reaches the end. Pauses on hover / touch so the user can swipe.
+  // when it reaches the end. Pauses only while the user is actively dragging.
   useEffect(() => {
     if (!items.length || paused) return;
     const el = ref.current;
     if (!el) return;
     let raf;
-    const step = 0.5;
+    const step = 1.1;
     const tick = () => {
       const max = el.scrollWidth - el.clientWidth;
       if (max > 0) {
@@ -29,6 +31,39 @@ export default function FeaturedCarousel({ items, onOpen }) {
     return () => cancelAnimationFrame(raf);
   }, [items.length, paused]);
 
+  const scheduleResume = () => {
+    if (resumeTimer.current) clearTimeout(resumeTimer.current);
+    resumeTimer.current = setTimeout(() => setPaused(false), 2200);
+  };
+
+  const onPointerDown = (e) => {
+    const el = ref.current;
+    if (!el) return;
+    drag.current = { active: true, startX: e.clientX, startScroll: el.scrollLeft, moved: false };
+    setPaused(true);
+    try { el.setPointerCapture(e.pointerId); } catch {}
+  };
+  const onPointerMove = (e) => {
+    const el = ref.current;
+    if (!el || !drag.current.active) return;
+    const dx = e.clientX - drag.current.startX;
+    if (Math.abs(dx) > 4) drag.current.moved = true;
+    el.scrollLeft = drag.current.startScroll - dx;
+  };
+  const onPointerUp = () => {
+    if (!drag.current.active) return;
+    drag.current.active = false;
+    scheduleResume();
+  };
+
+  // Suppress item click if the pointer interaction was a drag, not a tap.
+  const onClickCapture = (e) => {
+    if (drag.current.moved) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  };
+
   if (!items.length) return null;
   return (
     <section className="rounded-3xl bg-gradient-to-br from-slate-800 to-slate-600 dark:from-slate-700 dark:to-slate-900 text-white p-4 overflow-hidden">
@@ -40,14 +75,15 @@ export default function FeaturedCarousel({ items, onOpen }) {
       </div>
       <div
         ref={ref}
-        onMouseEnter={() => setPaused(true)}
-        onMouseLeave={() => setPaused(false)}
-        onTouchStart={() => setPaused(true)}
-        onTouchEnd={() => setTimeout(() => setPaused(false), 2500)}
-        className="flex gap-3 overflow-x-auto no-scrollbar px-1 pb-1"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerLeave={onPointerUp}
+        onClickCapture={onClickCapture}
+        className="flex gap-3 overflow-x-auto no-scrollbar px-1 pb-1 cursor-grab active:cursor-grabbing touch-pan-y"
       >
         {items.map((it) => (
-          <div key={it.id} className="shrink-0 w-40">
+          <div key={it.id} className="shrink-0 w-40 pointer-events-auto">
             <ItemCard item={it} onClick={() => onOpen(it.id)} />
           </div>
         ))}

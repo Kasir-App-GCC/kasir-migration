@@ -103,7 +103,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
     setSubcats((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
   };
 
-  const onPriceChange = (e) => setPrice(normalizeDigits(e.target.value).replace(/\D/g, ""));
+  const onPriceChange = (e) => setPrice(normalizeDigits(e.target.value).replace(/\D/g, "").slice(0, 8));
 
   const submit = async () => {
     if (!title || !price || !category || !city || images.length === 0) return;

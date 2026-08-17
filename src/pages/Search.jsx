@@ -21,7 +21,7 @@ export default function Search() {
   const [showFilters, setShowFilters] = useState(false);
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
-  const [condition, setCondition] = useState("");
+  const [condition, setCondition] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -44,7 +44,7 @@ export default function Search() {
       if (!prefs.showSold && it.status === "sold") return false;
       if (!matchLocation(it, locationFilter, country)) return false;
       if (q && !(`${it.title} ${it.description}`.toLowerCase().includes(q.toLowerCase()))) return false;
-      if (condition && it.condition !== condition) return false;
+      if (condition.length && !condition.includes(it.condition)) return false;
       if (minPrice && Number(it.price) < Number(minPrice)) return false;
       if (maxPrice && Number(it.price) > Number(maxPrice)) return false;
       return true;
@@ -55,7 +55,7 @@ export default function Search() {
   }, [items, categories, subcategories, locationFilter, q, condition, minPrice, maxPrice, sort, prefs.showSold]);
 
   const reset = () => {
-    setMinPrice(""); setMaxPrice(""); setCondition(""); setSort("newest");
+    setMinPrice(""); setMaxPrice(""); setCondition([]); setSort("newest");
     setCategories([]); setSubcategories([]);
     setLocationFilter({ mode: "city", city: null, radius: 25 });
   };
@@ -159,15 +159,18 @@ export default function Search() {
               <div>
                 <label className="text-sm font-medium text-muted-foreground block mb-1.5">{t("condition")}</label>
                 <div className="flex flex-wrap gap-2">
-                  {CONDITIONS.map((c) => (
-                    <button
-                      key={c.id}
-                      onClick={() => setCondition(condition === c.id ? "" : c.id)}
-                      className={`px-3 py-2 rounded-xl text-sm font-semibold ${condition === c.id ? "bg-primary text-primary-foreground" : "bg-muted"}`}
-                    >
-                      {lang === "ar" ? c.ar : c.en}
-                    </button>
-                  ))}
+                  {CONDITIONS.map((c) => {
+                    const active = condition.includes(c.id);
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => setCondition(active ? condition.filter((x) => x !== c.id) : [...condition, c.id])}
+                        className={`px-3 py-2 rounded-xl text-sm font-semibold ${active ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                      >
+                        {lang === "ar" ? c.ar : c.en}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>

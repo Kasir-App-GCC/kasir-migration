@@ -11,7 +11,7 @@ import OfferCard from "@/components/OfferCard";
 export default function ChatRoom() {
   const { id } = useParams();
   const nav = useNavigate();
-  const { user, lang, setLastChatsSeen } = useStore();
+  const { user, lang, country, setLastChatsSeen } = useStore();
   const t = useT();
   const [room, setRoom] = useState(null);
   const [itemCountry, setItemCountry] = useState("SA");
@@ -158,8 +158,8 @@ export default function ChatRoom() {
   const acceptOffer = async (offer) => {
     await base44.entities.Offer.update(offer.id, { status: "accepted" });
     const txt = lang === "ar"
-      ? `تم الاتفاق على السعر ${formatPrice(offer.amount, lang, itemCountry)} ✅`
-      : `Price agreed at ${formatPrice(offer.amount, lang, itemCountry)} ✅`;
+      ? `تم الاتفاق على السعر ${formatPrice(offer.amount, lang, itemCountry, country)} ✅`
+      : `Price agreed at ${formatPrice(offer.amount, lang, itemCountry, country)} ✅`;
     await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false });
   };
 
@@ -187,14 +187,14 @@ export default function ChatRoom() {
       previous_offer_id: offer.id,
     });
     const preview = (isSeller
-      ? (lang === "ar" ? `عارض البائع بسعر ${formatPrice(amount, lang, itemCountry)}` : `Seller counters at ${formatPrice(amount, lang, itemCountry)}`)
-      : (lang === "ar" ? `عرض جديد بسعر ${formatPrice(amount, lang, itemCountry)}` : `New offer at ${formatPrice(amount, lang, itemCountry)}`));
+      ? (lang === "ar" ? `عارض البائع بسعر ${formatPrice(amount, lang, itemCountry, country)}` : `Seller counters at ${formatPrice(amount, lang, itemCountry, country)}`)
+      : (lang === "ar" ? `عرض جديد بسعر ${formatPrice(amount, lang, itemCountry, country)}` : `New offer at ${formatPrice(amount, lang, itemCountry, country)}`));
     await base44.entities.ChatRoom.update(id, { last_message: preview, hidden_for_buyer: false, hidden_for_seller: false });
   };
 
   const modifyOffer = async (offer, amount) => {
     await base44.entities.Offer.update(offer.id, { amount });
-    const txt = lang === "ar" ? `تم تعديل العرض إلى ${formatPrice(amount, lang, itemCountry)}` : `Offer updated to ${formatPrice(amount, lang, itemCountry)}`;
+    const txt = lang === "ar" ? `تم تعديل العرض إلى ${formatPrice(amount, lang, itemCountry, country)}` : `Offer updated to ${formatPrice(amount, lang, itemCountry, country)}`;
     await sysMsg(txt, offer.id);
     await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false });
   };

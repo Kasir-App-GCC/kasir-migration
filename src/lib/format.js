@@ -1,8 +1,10 @@
-import { getCountry } from "@/lib/countries";
+import { getCountry, convertCurrency } from "@/lib/countries";
 
-export function formatPrice(n, lang = "en", country = "SA") {
-  const num = Number(n || 0).toLocaleString(lang === "ar" ? "ar-SA" : "en-US");
-  const c = getCountry(country);
+export function formatPrice(n, lang = "en", fromCountry = "SA", toCountry) {
+  const to = toCountry || fromCountry;
+  const converted = convertCurrency(n, fromCountry, to);
+  const c = getCountry(to);
+  const num = Number(converted).toLocaleString(lang === "ar" ? "ar-SA" : "en-US", { maximumFractionDigits: 2 });
   return lang === "ar" ? `${num} ${c.currencyAr}` : `${c.currency} ${num}`;
 }
 

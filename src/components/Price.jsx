@@ -1,14 +1,17 @@
 import CurrencySymbol from "@/components/CurrencySymbol";
 import { useStore } from "@/lib/store";
+import { convertCurrency } from "@/lib/countries";
 
 export default function Price({ value, lang, country, className = "" }) {
   const { lang: storeLang, country: storeCountry } = useStore();
   const lng = lang || storeLang;
-  const code = country || storeCountry || "SA";
-  const num = Number(value || 0).toLocaleString(lng === "ar" ? "ar-SA" : "en-US");
+  const toCode = storeCountry || "SA";
+  const fromCode = country || toCode;
+  const converted = convertCurrency(value, fromCode, toCode);
+  const num = Number(converted).toLocaleString(lng === "ar" ? "ar-SA" : "en-US", { maximumFractionDigits: 2 });
   return (
     <span dir="ltr" className={`inline-flex items-center gap-1 whitespace-nowrap ${className}`}>
-      <CurrencySymbol country={code} lang={lng} size={13} />
+      <CurrencySymbol country={toCode} lang={lng} size={13} />
       <span>{num}</span>
     </span>
   );

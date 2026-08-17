@@ -124,6 +124,23 @@ export function getCountry(code) {
   return COUNTRIES.find((c) => c.code === code) || COUNTRIES[0];
 }
 
+// Approximate static exchange rates: units of local currency per 1 SAR.
+// Derived from the GCC USD pegs (1 USD ≈ 3.75 SAR). For display only — not live.
+export const RATES_PER_SAR = {
+  SA: 1,
+  AE: 0.98,
+  OM: 0.1025,
+  BH: 0.1003,
+  KW: 0.0819,
+  QA: 0.9707,
+};
+
+export function convertCurrency(amount, fromCode, toCode) {
+  const f = RATES_PER_SAR[fromCode] ?? 1;
+  const t = RATES_PER_SAR[toCode] ?? 1;
+  return Number(amount || 0) * (t / f);
+}
+
 export function getCities(code) {
   return getCountry(code).cities;
 }

@@ -351,6 +351,7 @@ export default function ItemDetail() {
       {/* Seller card */}
       {seller && (
         <div className="mt-5 rounded-2xl bg-card border border-border/60 p-4">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">{t("theSeller")}</p>
           <div className="flex items-center gap-3">
             <button
               onClick={() => item.seller_id && nav(`/user/${item.seller_id}`)}

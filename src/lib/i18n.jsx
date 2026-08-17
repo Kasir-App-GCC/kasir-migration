@@ -235,6 +235,7 @@ const en = {
   buyAtOriginal: "Continue at original price",
   deleteAllChats: "Delete all",
   deleteAllChatsConfirm: "Delete all conversations? This only hides them for you.",
+  theSeller: "The seller",
   };
 
 const ar = {
@@ -472,6 +473,7 @@ const ar = {
   buyAtOriginal: "اشترِ بالسعر الأصلي",
   deleteAllChats: "حذف الكل",
   deleteAllChatsConfirm: "حذف كل المحادثات؟ يختفي من جانبك بس.",
+  theSeller: "البائع",
   };
 
 export function useT() {

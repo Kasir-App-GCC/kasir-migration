@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, MessageCircle, Star, Tag } from "lucide-react";
+import { Bell, MessageCircle, Star, Tag, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { timeAgo, toDate } from "@/lib/format";
 
 export default function Notifications() {
-  const { user, lang, lastChatsSeen } = useStore();
+  const { user, lang, lastChatsSeen, notifsClearedAt, setNotifsClearedAt } = useStore();
   const t = useT();
   const nav = useNavigate();
   const [items, setItems] = useState([]);
@@ -71,7 +71,10 @@ export default function Notifications() {
           }));
         } catch {}
 
-        const all = [...notifs, ...offerNotifs, ...ratings].sort((a, b) => toDate(b.date) - toDate(a.date));
+        const clearedAt = notifsClearedAt ? toDate(notifsClearedAt).getTime() : 0;
+        const all = [...notifs, ...offerNotifs, ...ratings]
+          .sort((a, b) => toDate(b.date) - toDate(a.date))
+          .filter((n) => toDate(n.date).getTime() > clearedAt);
         setItems(all);
       } catch {
         setItems([]);
@@ -79,11 +82,27 @@ export default function Notifications() {
         setLoading(false);
       }
     })();
-  }, [user, lastChatsSeen]);
+  }, [user, lastChatsSeen, notifsClearedAt]);
+
+  const clearAll = () => {
+    setNotifsClearedAt(new Date().toISOString());
+    setItems([]);
+  };
 
   return (
     <div className="pt-3">
-      <h1 className="text-2xl font-extrabold mb-3">{t("notifications")}</h1>
+      <div className="flex items-center justify-between mb-3">
+        <h1 className="text-2xl font-extrabold">{t("notifications")}</h1>
+        {items.length > 0 && (
+          <button
+            onClick={clearAll}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition"
+          >
+            <Trash2 size={15} />
+            {t("clearAllNotifs")}
+          </button>
+        )}
+      </div>
       {loading ? (
         <div className="text-center py-16">
           <div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin mx-auto" />

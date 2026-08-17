@@ -20,6 +20,7 @@ export function StoreProvider({ children }) {
     return s ? JSON.parse(s) : { showSold: true, defaultRadius: 25 };
   });
   const [lastChatsSeen, setLastChatsSeenState] = useState(() => localStorage.getItem("souqi_chats_seen") || null);
+  const [notifsClearedAt, setNotifsClearedAtState] = useState(() => localStorage.getItem("souqi_notifs_cleared") || null);
 
   // The signed-in user comes from the platform's built-in auth (Google / etc.)
   const user = auth.user
@@ -70,6 +71,10 @@ export function StoreProvider({ children }) {
   useEffect(() => localStorage.setItem("souqi_loc", JSON.stringify(locationFilter)), [locationFilter]);
   useEffect(() => localStorage.setItem("souqi_prefs", JSON.stringify(prefs)), [prefs]);
   useEffect(() => { if (lastChatsSeen) localStorage.setItem("souqi_chats_seen", lastChatsSeen); }, [lastChatsSeen]);
+  useEffect(() => {
+    if (notifsClearedAt) localStorage.setItem("souqi_notifs_cleared", notifsClearedAt);
+    else localStorage.removeItem("souqi_notifs_cleared");
+  }, [notifsClearedAt]);
 
   const setTheme = (t) => setThemeState(t);
   const setLang = (l) => setLangState(l);
@@ -78,6 +83,7 @@ export function StoreProvider({ children }) {
   const setPrefs = (patch) => setPrefsState((p) => ({ ...p, ...patch }));
   const clearFavorites = () => setFavorites([]);
   const setLastChatsSeen = (val) => setLastChatsSeenState(val);
+  const setNotifsClearedAt = (val) => setNotifsClearedAtState(val);
   const logout = () => auth.logout(true);
 
   return (
@@ -97,6 +103,8 @@ export function StoreProvider({ children }) {
         clearFavorites,
         lastChatsSeen,
         setLastChatsSeen,
+        notifsClearedAt,
+        setNotifsClearedAt,
         logout,
       }}
     >

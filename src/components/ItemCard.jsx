@@ -34,15 +34,20 @@ export default function ItemCard({ item, onClick }) {
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
 
-        {/* Price tag — hanging from the top, tag with triangular corner + hole */}
-        <div className="absolute top-2 start-2.5 z-20">
-          <div className="w-px h-2.5 bg-amber-600/70 ms-2" />
-          <div
-            className="relative bg-amber-300 text-slate-900 pl-4 pr-3 py-1.5 shadow-lg shadow-black/25"
-            style={{ clipPath: "polygon(7px 0, 100% 0, 100% 100%, 0 100%, 0 7px)" }}
-          >
-            <span className="absolute left-1.5 top-1.5 w-1.5 h-1.5 rounded-full bg-slate-900/30 ring-2 ring-amber-300" />
-            <span className="text-[13px] font-extrabold whitespace-nowrap"><Price value={item.price} lang={lang} /></span>
+        {/* Price tag — folded over the top-left corner of the card */}
+        <div className="absolute top-0 start-0 z-20">
+          <div className="relative bg-amber-300 text-slate-900 pl-5 pr-3.5 py-1.5 shadow-lg shadow-black/30 rounded-br-md">
+            {/* Folded-back corner (darker triangle) */}
+            <span
+              className="absolute top-0 start-0 bg-amber-600"
+              style={{ width: "18px", height: "18px", clipPath: "polygon(0 0, 100% 0, 0 100%)" }}
+            />
+            {/* Crease shadow */}
+            <span
+              className="absolute top-0 start-0 pointer-events-none"
+              style={{ width: "18px", height: "18px", boxShadow: "inset -2px -2px 3px rgba(0,0,0,0.18)" }}
+            />
+            <span className="relative text-[13px] font-extrabold whitespace-nowrap"><Price value={item.price} lang={lang} /></span>
           </div>
         </div>
 

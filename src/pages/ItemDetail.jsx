@@ -9,7 +9,22 @@ import Price from "@/components/Price";
 import ItemCard from "@/components/ItemCard";
 import { getCategory, getCityName, getCondition } from "@/lib/constants";
 import RatingStars from "@/components/RatingStars";
+import ReviewTagChips from "@/components/ReviewTagChips";
 import ReportDialog from "@/components/ReportDialog";
+
+const SELLER_TAG_OPTIONS = [
+  { en: "Fast replies", ar: "ردود سريعة" },
+  { en: "Honest", ar: "صادق" },
+  { en: "Item as described", ar: "السلعة مطابقة" },
+  { en: "Good quality", ar: "جودة ممتازة" },
+  { en: "Friendly", ar: "لطيف" },
+];
+const BUYER_TAG_OPTIONS = [
+  { en: "Fast payment", ar: "دفع سريع" },
+  { en: "Polite", ar: "مهذب" },
+  { en: "Punctual", ar: "ملتزم بالموعد" },
+  { en: "Easy to deal with", ar: "سهل التعامل" },
+];
 
 export default function ItemDetail() {
   const { id } = useParams();
@@ -23,6 +38,8 @@ export default function ItemDetail() {
   const [rateOpen, setRateOpen] = useState(false);
   const [myScore, setMyScore] = useState(5);
   const [myReview, setMyReview] = useState("");
+  const [sellerTags, setSellerTags] = useState([]);
+  const [buyerTags, setBuyerTags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [offerOpen, setOfferOpen] = useState(false);
   const [customOffer, setCustomOffer] = useState("");
@@ -88,16 +105,19 @@ export default function ItemDetail() {
 
   const submitRating = async () => {
     if (!(item.status === "sold" && item.sold_to === user.id)) return;
+    const tagText = sellerTags.map((k) => SELLER_TAG_OPTIONS.find((o) => o.en === k)).filter(Boolean).map((o) => (lang === "ar" ? o.ar : o.en)).join(" · ");
+    const review = [tagText, myReview].filter(Boolean).join(" · ");
     await base44.entities.Rating.create({
       rated_user_id: item.seller_id,
       rated_user_name: item.seller_name,
       rater_user_id: user.id,
       rater_name: user.name,
       score: myScore,
-      review: myReview,
+      review,
       role: "buyer",
     });
     setRateOpen(false);
+    setSellerTags([]);
     const rs = await base44.entities.Rating.filter({ rated_user_id: item.seller_id }, "-created_date", 20);
     setRatings(rs || []);
   };
@@ -158,16 +178,19 @@ export default function ItemDetail() {
   };
 
   const submitBuyerRating = async () => {
+    const tagText = buyerTags.map((k) => BUYER_TAG_OPTIONS.find((o) => o.en === k)).filter(Boolean).map((o) => (lang === "ar" ? o.ar : o.en)).join(" · ");
+    const review = [tagText, buyerReview].filter(Boolean).join(" · ");
     await base44.entities.Rating.create({
       rated_user_id: item.sold_to,
       rated_user_name: item.sold_to_name,
       rater_user_id: user.id,
       rater_name: user.name,
       score: buyerScore,
-      review: buyerReview,
+      review,
       role: "seller",
     });
     setRateBuyerOpen(false);
+    setBuyerTags([]);
   };
 
   const openSold = async () => {
@@ -477,7 +500,9 @@ export default function ItemDetail() {
             </div>
             <p className="text-sm text-muted-foreground mb-2">{t("yourRating")}</p>
             <RatingStars value={myScore} size={34} interactive onChange={setMyScore} />
-            <textarea value={myReview} onChange={(e) => setMyReview(e.target.value)} placeholder={t("reviewPlaceholder")} rows={3} className="mt-4 w-full px-3.5 py-3 rounded-xl bg-muted text-sm outline-none resize-none" />
+            <p className="text-xs text-muted-foreground mt-4 mb-2">{lang === "ar" ? "إضافة سريعة" : "Quick tags"}</p>
+            <ReviewTagChips options={SELLER_TAG_OPTIONS} selected={sellerTags} onToggle={(k) => setSellerTags((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k]))} lang={lang} />
+            <textarea value={myReview} onChange={(e) => setMyReview(e.target.value)} placeholder={t("reviewPlaceholder")} rows={3} className="mt-3 w-full px-3.5 py-3 rounded-xl bg-muted text-sm outline-none resize-none" />
             <button onClick={submitRating} className="mt-4 w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold">{t("submitRating")}</button>
           </div>
         </div>
@@ -492,7 +517,9 @@ export default function ItemDetail() {
             </div>
             <p className="text-sm text-muted-foreground mb-2">{t("yourRating")}</p>
             <RatingStars value={buyerScore} size={34} interactive onChange={setBuyerScore} />
-            <textarea value={buyerReview} onChange={(e) => setBuyerReview(e.target.value)} placeholder={t("reviewPlaceholder")} rows={3} className="mt-4 w-full px-3.5 py-3 rounded-xl bg-muted text-sm outline-none resize-none" />
+            <p className="text-xs text-muted-foreground mt-4 mb-2">{lang === "ar" ? "إضافة سريعة" : "Quick tags"}</p>
+            <ReviewTagChips options={BUYER_TAG_OPTIONS} selected={buyerTags} onToggle={(k) => setBuyerTags((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k]))} lang={lang} />
+            <textarea value={buyerReview} onChange={(e) => setBuyerReview(e.target.value)} placeholder={t("reviewPlaceholder")} rows={3} className="mt-3 w-full px-3.5 py-3 rounded-xl bg-muted text-sm outline-none resize-none" />
             <button onClick={submitBuyerRating} className="mt-4 w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold">{t("submitRating")}</button>
           </div>
         </div>

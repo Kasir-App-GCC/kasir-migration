@@ -4,9 +4,8 @@ import { ArrowLeft, Star } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
-import { timeAgo } from "@/lib/format";
 import ItemCard from "@/components/ItemCard";
-import RatingStars from "@/components/RatingStars";
+import ReviewCard from "@/components/ReviewCard";
 
 export default function UserProfile() {
   const { id } = useParams();
@@ -18,6 +17,7 @@ export default function UserProfile() {
   const [ratings, setRatings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
+  const [reviewItems, setReviewItems] = useState({});
 
   const name = params.get("name") || "—";
   const avatar = params.get("avatar");
@@ -33,6 +33,17 @@ export default function UserProfile() {
         setItems((all || []).filter((it) => it.seller_id === id));
         const rs = await base44.entities.Rating.filter({ rated_user_id: id }, "-created_date", 50);
         setRatings(rs || []);
+        const itemIds = [...new Set((rs || []).map((r) => r.item_id).filter(Boolean))];
+        const itemMap = {};
+        await Promise.all(
+          itemIds.map(async (iid) => {
+            try {
+              const it = await base44.entities.Item.get(iid);
+              if (it) itemMap[iid] = it;
+            } catch {}
+          })
+        );
+        setReviewItems(itemMap);
       } catch {
       } finally {
         setLoading(false);
@@ -80,14 +91,7 @@ export default function UserProfile() {
       {ratings.length ? (
         <div className="space-y-2.5">
           {ratings.map((r) => (
-            <div key={r.id} className="rounded-2xl bg-card border border-border/60 p-3.5">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-sm">{r.rater_name || "—"}</span>
-                <RatingStars value={r.score} size={14} />
-              </div>
-              {r.review && <p className="text-sm text-muted-foreground mt-1.5">{r.review}</p>}
-              <p className="text-[11px] text-muted-foreground mt-1">{timeAgo(r.created_date, lang)}</p>
-            </div>
+            <ReviewCard key={r.id} rating={r} item={reviewItems[r.item_id]} lang={lang} t={t} />
           ))}
         </div>
       ) : (

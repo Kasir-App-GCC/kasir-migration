@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, Sparkles, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Send, Sparkles, ShoppingBag, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -81,19 +81,22 @@ export default function ShoppingAssistant() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const scrollRef = useRef(null);
 
   useEffect(() => {
     (async () => {
       try {
         const convos = await base44.agents.listConversations({ agent_name: AGENT_NAME });
-        let convo = convos?.[0];
+        const storedId = localStorage.getItem("souqna_assistant_convo_id");
+        let convo = (convos || []).find((c) => c.id === storedId) || convos?.[0];
         if (!convo) {
           convo = await base44.agents.createConversation({
             agent_name: AGENT_NAME,
             metadata: { name: "Shopping Assistant", description: "Marketplace discovery helper" },
           });
         }
+        localStorage.setItem("souqna_assistant_convo_id", convo.id);
         setConversation(convo);
         setMessages(convo.messages || []);
       } catch {
@@ -128,6 +131,19 @@ export default function ShoppingAssistant() {
     }
   };
 
+  const deleteChat = async () => {
+    setConfirmDelete(false);
+    try {
+      const convo = await base44.agents.createConversation({
+        agent_name: AGENT_NAME,
+        metadata: { name: "Shopping Assistant", description: "Marketplace discovery helper" },
+      });
+      localStorage.setItem("souqna_assistant_convo_id", convo.id);
+      setConversation(convo);
+      setMessages([]);
+    } catch {}
+  };
+
   const suggestions = lang === "ar" ? SUGGESTIONS_AR : SUGGESTIONS_EN;
 
   if (loading) {
@@ -156,6 +172,14 @@ export default function ShoppingAssistant() {
             {lang === "ar" ? "يدور لك على اللي تبيه" : "Finds what you're looking for"}
           </p>
         </div>
+        <button
+          onClick={() => setConfirmDelete(true)}
+          disabled={!conversation || messages.length === 0}
+          className="p-2 rounded-full hover:bg-muted text-muted-foreground disabled:opacity-40"
+          title={lang === "ar" ? "حذف المحادثة" : "Delete chat"}
+        >
+          <Trash2 size={18} />
+        </button>
       </div>
 
       {/* Messages */}
@@ -222,6 +246,36 @@ export default function ShoppingAssistant() {
           </button>
         </div>
       </div>
+
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setConfirmDelete(false)} />
+          <div className="relative w-full max-w-xs mx-4 bg-background rounded-2xl shadow-2xl p-6">
+            <h3 className="font-bold text-lg mb-1">
+              {lang === "ar" ? "حذف المحادثة؟" : "Delete chat?"}
+            </h3>
+            <p className="text-sm text-muted-foreground mb-5">
+              {lang === "ar"
+                ? "بيتم مسح كل الرسائل وتبدأ محادثة جديدة."
+                : "All messages will be cleared and a new chat will start."}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="flex-1 py-3 rounded-2xl border border-border font-bold text-sm"
+              >
+                {lang === "ar" ? "إلغاء" : "Cancel"}
+              </button>
+              <button
+                onClick={deleteChat}
+                className="flex-1 py-3 rounded-2xl bg-rose-600 text-white font-bold text-sm"
+              >
+                {lang === "ar" ? "حذف" : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

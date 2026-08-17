@@ -5,27 +5,39 @@ import ItemCard from "@/components/ItemCard";
 
 export default function FeaturedCarousel({ items, onOpen }) {
   const t = useT();
-  const ref = useRef(null);
+  const containerRef = useRef(null);
+  const rowRef = useRef(null);
   const [paused, setPaused] = useState(false);
-  const drag = useRef({ active: false, startX: 0, startScroll: 0, moved: false });
+  const translate = useRef(0);
+  const dir = useRef(-1);
+  const drag = useRef({ active: false, startX: 0, startTranslate: 0, moved: false });
   const resumeTimer = useRef(null);
 
-  // Continuous, smooth frame-by-frame auto-scroll. Loops back to the start
-  // when it reaches the end. Pauses only while the user is actively dragging.
+  const bounds = () => {
+    const container = containerRef.current, row = rowRef.current;
+    if (!container || !row) return { lo: 0, hi: 0 };
+    const isRtl = window.getComputedStyle(container).direction === "rtl";
+    const overflow = row.scrollWidth - container.clientWidth;
+    if (overflow <= 0) return { lo: 0, hi: 0 };
+    return isRtl ? { lo: 0, hi: overflow } : { lo: -overflow, hi: 0 };
+  };
+
+  // Continuous, smooth frame-by-frame glide. Ping-pongs between the two edges
+  // so it loops without duplicating items and without any sudden jump.
   useEffect(() => {
     if (!items.length || paused) return;
-    const el = ref.current;
-    if (!el) return;
+    const container = containerRef.current, row = rowRef.current;
+    if (!container || !row) return;
     let raf;
     const step = 1.1;
-    let dir = 1;
     const tick = () => {
-      const max = el.scrollWidth - el.clientWidth;
-      if (max > 0) {
-        let next = el.scrollLeft + step * dir;
-        if (next >= max) { next = max; dir = -1; }
-        else if (next <= 0) { next = 0; dir = 1; }
-        el.scrollLeft = next;
+      const { lo, hi } = bounds();
+      if (hi !== lo) {
+        let next = translate.current + step * dir.current;
+        if (next <= lo) { next = lo; dir.current = 1; }
+        else if (next >= hi) { next = hi; dir.current = -1; }
+        translate.current = next;
+        row.style.transform = `translate3d(${next}px,0,0)`;
       }
       raf = requestAnimationFrame(tick);
     };
@@ -39,31 +51,30 @@ export default function FeaturedCarousel({ items, onOpen }) {
   };
 
   const onPointerDown = (e) => {
-    const el = ref.current;
-    if (!el) return;
-    drag.current = { active: true, startX: e.clientX, startScroll: el.scrollLeft, moved: false };
+    const container = containerRef.current;
+    if (!container) return;
+    drag.current = { active: true, startX: e.clientX, startTranslate: translate.current, moved: false };
     setPaused(true);
-    try { el.setPointerCapture(e.pointerId); } catch {}
+    try { container.setPointerCapture(e.pointerId); } catch {}
   };
   const onPointerMove = (e) => {
-    const el = ref.current;
-    if (!el || !drag.current.active) return;
+    const row = rowRef.current;
+    if (!row || !drag.current.active) return;
     const dx = e.clientX - drag.current.startX;
     if (Math.abs(dx) > 4) drag.current.moved = true;
-    el.scrollLeft = drag.current.startScroll - dx;
+    const { lo, hi } = bounds();
+    let next = drag.current.startTranslate + dx;
+    next = Math.max(lo, Math.min(hi, next));
+    translate.current = next;
+    row.style.transform = `translate3d(${next}px,0,0)`;
   };
   const onPointerUp = () => {
     if (!drag.current.active) return;
     drag.current.active = false;
     scheduleResume();
   };
-
-  // Suppress item click if the pointer interaction was a drag, not a tap.
   const onClickCapture = (e) => {
-    if (drag.current.moved) {
-      e.stopPropagation();
-      e.preventDefault();
-    }
+    if (drag.current.moved) { e.stopPropagation(); e.preventDefault(); }
   };
 
   if (!items.length) return null;
@@ -76,19 +87,21 @@ export default function FeaturedCarousel({ items, onOpen }) {
         <p className="text-white/70 text-xs">{t("featuredStripDesc")}</p>
       </div>
       <div
-        ref={ref}
+        ref={containerRef}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerLeave={onPointerUp}
         onClickCapture={onClickCapture}
-        className="flex gap-3 overflow-x-auto no-scrollbar px-1 pb-1 cursor-grab active:cursor-grabbing touch-pan-y"
+        className="relative overflow-hidden cursor-grab active:cursor-grabbing touch-pan-y"
       >
-        {items.map((it) => (
-          <div key={it.id} className="shrink-0 w-40 pointer-events-auto">
-            <ItemCard item={it} onClick={() => onOpen(it.id)} />
-          </div>
-        ))}
+        <div ref={rowRef} className="flex gap-3 w-max pb-1" style={{ willChange: "transform" }}>
+          {items.map((it) => (
+            <div key={it.id} className="shrink-0 w-40 pointer-events-auto">
+              <ItemCard item={it} onClick={() => onOpen(it.id)} />
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );

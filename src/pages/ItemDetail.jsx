@@ -296,7 +296,10 @@ export default function ItemDetail() {
         {item.is_family && (
           <span className="absolute top-3 start-3 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500 text-white">{t("featuredBadge")}</span>
         )}
-        <button onClick={shareItem} className="absolute top-3 end-3 w-9 h-9 rounded-full bg-white/85 dark:bg-slate-900/55 backdrop-blur flex items-center justify-center"><Share2 size={16} /></button>
+        <div className="absolute top-3 end-3 flex gap-2">
+          <button onClick={shareItem} className="w-9 h-9 rounded-full bg-white/85 dark:bg-slate-900/55 backdrop-blur flex items-center justify-center" title={t("share") || "Share"}><Share2 size={16} /></button>
+          <button onClick={() => setReportOpen(true)} className="w-9 h-9 rounded-full bg-white/85 dark:bg-slate-900/55 backdrop-blur flex items-center justify-center" title={t("report")}><Flag size={16} /></button>
+        </div>
         {imgs.length > 1 && (
           <div className="absolute bottom-3 inset-x-0 flex justify-center gap-1.5">
             {imgs.map((_, i) => (

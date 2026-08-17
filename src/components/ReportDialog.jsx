@@ -5,6 +5,18 @@ import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { REPORT_REASONS } from "@/lib/constants";
 import RatingStars from "./RatingStars";
+import ReviewTagChips from "./ReviewTagChips";
+
+const REPORT_TAGS = [
+  { en: "Scam", ar: "احتيال" },
+  { en: "Fake item", ar: "سلعة مزيفة" },
+  { en: "Misleading photos", ar: "صور غير مطابقة" },
+  { en: "Overpriced", ar: "سعر مبالغ" },
+  { en: "Spam", ar: "إعلان متكرر" },
+  { en: "Wrong category", ar: "تصنيف خاطئ" },
+  { en: "Prohibited item", ar: "سلعة ممنوعة" },
+  { en: "Duplicate listing", ar: "إعلان مكرر" },
+];
 
 export default function ReportDialog({ open, onClose, seller, item }) {
   const { user } = useStore();
@@ -12,6 +24,7 @@ export default function ReportDialog({ open, onClose, seller, item }) {
   const t = useT();
   const [reason, setReason] = useState(null);
   const [details, setDetails] = useState("");
+  const [tags, setTags] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -21,12 +34,14 @@ export default function ReportDialog({ open, onClose, seller, item }) {
     if (!reason) return;
     setSubmitting(true);
     try {
+      const tagText = tags.map((k) => REPORT_TAGS.find((o) => o.en === k)).filter(Boolean).map((o) => (lang === "ar" ? o.ar : o.en)).join(" · ");
+      const fullDetails = [tagText, details].filter(Boolean).join(" · ");
       await base44.entities.Report.create({
         reported_user_id: seller?.id,
         reported_user_name: seller?.name,
         reporter_user_id: user?.id,
         reason,
-        details,
+        details: fullDetails,
         item_id: item?.id,
       });
       setDone(true);
@@ -38,6 +53,7 @@ export default function ReportDialog({ open, onClose, seller, item }) {
   const close = () => {
     setReason(null);
     setDetails("");
+    setTags([]);
     setDone(false);
     onClose();
   };
@@ -82,6 +98,13 @@ export default function ReportDialog({ open, onClose, seller, item }) {
                   />
                 </button>
               ))}
+              <p className="text-xs text-muted-foreground mt-4 mb-2">{lang === "ar" ? "إضافة سريعة" : "Quick tags"}</p>
+              <ReviewTagChips
+                options={REPORT_TAGS}
+                selected={tags}
+                onToggle={(k) => setTags((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k]))}
+                lang={lang}
+              />
               <textarea
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}

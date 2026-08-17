@@ -19,6 +19,7 @@ export default function Profile() {
   const [ratings, setRatings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -46,6 +47,17 @@ export default function Profile() {
       await base44.entities.Item.delete(id);
       setAllItems(allItems.filter((x) => x.id !== id));
     } catch {}
+  };
+
+  const deleteAccount = async () => {
+    if (!window.confirm(t("deleteAccountConfirm"))) return;
+    setDeleting(true);
+    try {
+      await base44.functions.invoke("deleteAccount", {});
+      logout();
+    } catch {
+      setDeleting(false);
+    }
   };
   const avg = ratings.length
     ? (ratings.reduce((s, r) => s + r.score, 0) / ratings.length).toFixed(1)
@@ -233,21 +245,6 @@ export default function Profile() {
               <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${prefs.showSold ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
             </button>
           </label>
-          <div className="py-2">
-            <div className="flex items-center justify-between text-sm mb-1.5">
-              <span>{t("defaultRadius")}</span>
-              <span className="text-muted-foreground">{prefs.defaultRadius} {t("km")}</span>
-            </div>
-            <input
-              type="range"
-              min={5}
-              max={200}
-              step={5}
-              value={prefs.defaultRadius}
-              onChange={(e) => setPrefs({ defaultRadius: Number(e.target.value) })}
-              className="w-full accent-primary"
-            />
-          </div>
         </div>
         <button onClick={() => { if (window.confirm(t("clearFavsConfirm"))) clearFavorites(); }} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
           <span className="flex items-center gap-2 text-sm font-semibold"><Trash2 size={18} /> {t("clearFavorites")}</span>
@@ -255,6 +252,10 @@ export default function Profile() {
         </button>
         <button onClick={() => logout()} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
           <span className="flex items-center gap-2 text-rose-600 font-semibold text-sm"><LogOut size={18} /> {t("logout")}</span>
+          <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
+        </button>
+        <button onClick={deleteAccount} disabled={deleting} className="w-full p-4 flex items-center justify-between hover:bg-muted/50 disabled:opacity-50">
+          <span className="flex items-center gap-2 text-rose-600 font-semibold text-sm"><Trash2 size={18} /> {deleting ? t("deletingAccount") : t("deleteAccount")}</span>
           <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
         </button>
       </div>

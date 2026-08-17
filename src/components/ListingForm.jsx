@@ -1,9 +1,9 @@
-import React, { useState } from "react";
-import { ImagePlus, X, Sparkles, LocateFixed } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { ImagePlus, X, Sparkles, LocateFixed, MapPin } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
-import { CATEGORIES, CONDITIONS, SAUDI_CITIES, getSubcategories, nearestCity } from "@/lib/constants";
+import { CATEGORIES, CONDITIONS, SAUDI_CITIES, getSubcategories, getCityName, nearestCity } from "@/lib/constants";
 
 export default function ListingForm({ initial, submitLabel, submittingLabel, onSubmit }) {
   const { user, lang } = useStore();
@@ -37,7 +37,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
     }
   };
 
-  const useMyLocation = () => {
+  const detectLocation = () => {
     if (!navigator.geolocation) return;
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
@@ -52,6 +52,11 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
       { enableHighAccuracy: true, timeout: 8000 }
     );
   };
+
+  useEffect(() => {
+    if (!city && lat == null) detectLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const submit = async () => {
     if (!title || !price || !category || !city) return;
@@ -144,25 +149,16 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
           </select>
         </div>
         <div className="space-y-1">
-          <label className="text-sm font-semibold">{t("selectCityLabel")}</label>
-          <select
-            value={city}
-            onChange={(e) => {
-              const v = e.target.value;
-              setCity(v);
-              const sc = SAUDI_CITIES.find((x) => x.en === v);
-              if (sc && sc.lat) { setLat(sc.lat); setLng(sc.lng); }
-            }}
-            className="w-full px-4 py-3 rounded-2xl bg-muted outline-none"
-          >
-            <option value="">{t("selectCity")}</option>
-            {SAUDI_CITIES.map((c) => (
-              <option key={c.en} value={c.en}>{lang === "ar" ? c.ar : c.en}</option>
-            ))}
-          </select>
-          <button type="button" onClick={useMyLocation} className="text-xs font-semibold text-primary flex items-center gap-1 mt-1">
-            <LocateFixed size={13} /> {locating ? t("locating") : t("useMyLocation")}
-          </button>
+          <label className="text-sm font-semibold">{t("city")}</label>
+          <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-muted">
+            <MapPin size={16} className="text-muted-foreground shrink-0" />
+            <span className={`flex-1 text-sm truncate ${city ? "font-semibold" : "text-muted-foreground"}`}>
+              {city ? getCityName(city, lang) : (locating ? t("locating") : t("locationNeeded"))}
+            </span>
+            <button type="button" onClick={detectLocation} className="text-xs font-semibold text-primary flex items-center gap-1 shrink-0">
+              <LocateFixed size={13} /> {t("useMyLocation")}
+            </button>
+          </div>
         </div>
       </div>
 

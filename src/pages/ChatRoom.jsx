@@ -53,17 +53,39 @@ export default function ChatRoom() {
   useEffect(() => { setLastChatsSeen(new Date().toISOString()); }, []);
 
   useEffect(() => {
+    const upsertMsg = (m) => {
+      if (!m || m.chatroom_id !== id) return;
+      setMessages((prev) => {
+        const i = prev.findIndex((x) => x.id === m.id);
+        if (i === -1) return [...prev, m];
+        const copy = [...prev]; copy[i] = m; return copy;
+      });
+    };
+    const upsertOffer = (o) => {
+      if (!o || o.chatroom_id !== id) return;
+      setOffers((prev) => {
+        const i = prev.findIndex((x) => x.id === o.id);
+        if (i === -1) return [...prev, o];
+        const copy = [...prev]; copy[i] = o; return copy;
+      });
+    };
     const unsubM = base44.entities.Message.subscribe((event) => {
-      if (event?.data?.chatroom_id === id) loadAll();
+      if (event?.type === "delete") {
+        const m = event.data;
+        if (m?.chatroom_id === id) setMessages((prev) => prev.filter((x) => x.id !== m.id));
+      } else if (event?.data) upsertMsg(event.data);
     });
     const unsubO = base44.entities.Offer.subscribe((event) => {
-      if (event?.data?.chatroom_id === id) loadAll();
+      if (event?.type === "delete") {
+        const o = event.data;
+        if (o?.chatroom_id === id) setOffers((prev) => prev.filter((x) => x.id !== o.id));
+      } else if (event?.data) upsertOffer(event.data);
     });
     const unsubR = base44.entities.ChatRoom.subscribe((event) => {
-      if (event?.data?.id === id) { setRoom(event.data); loadAll(); }
+      if (event?.data?.id === id) setRoom(event.data);
     });
     return () => { unsubM?.(); unsubO?.(); unsubR?.(); };
-  }, [id, loadAll]);
+  }, [id]);
 
   const isSeller = room?.seller_id === user.id;
   const otherName = room ? (isSeller ? room.buyer_name : room.seller_name) : "";
@@ -105,7 +127,6 @@ export default function ChatRoom() {
     setText("");
     setSuggestions([]);
     lastSig.current = "";
-    setMessages((m) => [...m, msg]);
     try {
       await base44.entities.Message.create(msg);
       await base44.entities.ChatRoom.update(id, { last_message: msg.text });
@@ -118,17 +139,14 @@ export default function ChatRoom() {
   const acceptOffer = async (offer) => {
     await base44.entities.Offer.update(offer.id, { status: "accepted" });
     const txt = lang === "ar"
-      ? `تم الاتفاق على السعر ${formatPrice(offer.amount, lang)} ✅ وصلك المنتج؟`
-      : `Price agreed at ${formatPrice(offer.amount, lang)} ✅ Have you received the item?`;
-    await sysMsg(txt, offer.id);
+      ? `تم الاتفاق على السعر ${formatPrice(offer.amount, lang)} ✅`
+      : `Price agreed at ${formatPrice(offer.amount, lang)} ✅`;
     await base44.entities.ChatRoom.update(id, { last_message: txt });
-    await loadAll();
   };
 
   const rejectOffer = async (offer) => {
     await base44.entities.Offer.update(offer.id, { status: "rejected" });
     await base44.entities.ChatRoom.update(id, { last_message: lang === "ar" ? "تم رفض العرض" : "Offer rejected" });
-    await loadAll();
   };
 
   const counterOffer = async (offer, amount) => {
@@ -151,12 +169,10 @@ export default function ChatRoom() {
       ? (lang === "ar" ? `عارض البائع بسعر ${formatPrice(amount, lang)}` : `Seller counters at ${formatPrice(amount, lang)}`)
       : (lang === "ar" ? `عرض جديد بسعر ${formatPrice(amount, lang)}` : `New offer at ${formatPrice(amount, lang)}`));
     await base44.entities.ChatRoom.update(id, { last_message: preview });
-    await loadAll();
   };
 
   const modifyOffer = async (offer, amount) => {
     await base44.entities.Offer.update(offer.id, { amount });
-    await loadAll();
   };
 
   const confirmReceipt = async (offer) => {
@@ -164,7 +180,6 @@ export default function ChatRoom() {
     try {
       await base44.entities.Item.update(offer.item_id, { status: "sold", sold_to: offer.buyer_id, sold_to_name: offer.buyer_name });
     } catch {}
-    await loadAll();
   };
 
   const timeline = [
@@ -200,7 +215,7 @@ export default function ChatRoom() {
               const mine = o.direction === "buyer_offer" ? o.buyer_id === user.id : o.seller_id === user.id;
               return (
                 <div key={`o-${o.id}`} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                  <OfferCard offer={o} user={user} lang={lang} t={t}
+                  <OfferCard offer={o} user={user} lang={lang} t={t} itemPrice={room?.item_price}
                     onAccept={acceptOffer} onReject={rejectOffer} onCounter={counterOffer} onModify={modifyOffer} />
                 </div>
               );

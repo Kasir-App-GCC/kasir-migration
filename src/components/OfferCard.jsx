@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Check, X, Tag, Pencil, ArrowLeftRight, Clock } from "lucide-react";
 import Price from "@/components/Price";
 
-export default function OfferCard({ offer, user, lang, t, onAccept, onReject, onCounter, onModify }) {
+export default function OfferCard({ offer, user, lang, t, itemPrice, onAccept, onReject, onCounter, onModify }) {
   const mine = offer.direction === "buyer_offer" ? offer.buyer_id === user.id : offer.seller_id === user.id;
   const isRecipient = offer.direction === "buyer_offer" ? offer.seller_id === user.id : offer.buyer_id === user.id;
   const [counterOpen, setCounterOpen] = useState(false);
@@ -49,6 +49,12 @@ export default function OfferCard({ offer, user, lang, t, onAccept, onReject, on
         <span className="text-[11px] font-semibold text-muted-foreground truncate">{whoLabel}</span>
         {statusBadge()}
       </div>
+      {itemPrice != null && Number(itemPrice) !== Number(offer.amount) && (
+        <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground mb-1">
+          <span className="line-through"><Price value={itemPrice} lang={lang} /></span>
+          <span>· {t("originalPrice")}</span>
+        </div>
+      )}
       <div className="flex items-center justify-center gap-1.5 py-2 bg-amber-100/70 dark:bg-amber-950/40 rounded-xl">
         <Tag size={15} className="text-amber-600" />
         <span className="text-lg font-extrabold"><Price value={offer.amount} lang={lang} /></span>
@@ -107,7 +113,7 @@ export default function OfferCard({ offer, user, lang, t, onAccept, onReject, on
       )}
 
       {offer.status === "accepted" && (
-        <p className="text-[11px] text-center text-muted-foreground mt-2">{t("agreedWaitingReceipt")}</p>
+        <p className="text-[11px] text-center text-muted-foreground mt-2">{t("agreedArrange")}</p>
       )}
     </div>
   );

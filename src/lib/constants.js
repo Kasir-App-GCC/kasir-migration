@@ -1,6 +1,7 @@
 import {
   LayoutGrid, Home, Smartphone, Car, Armchair, Shirt, Building2,
-  Wrench, Gamepad2, Dumbbell, Book, Package,
+  Wrench, Gamepad2, Dumbbell, Book, Package, Cat, Briefcase,
+  GraduationCap, PartyPopper, Gem, Palette,
 } from "lucide-react";
 
 export const CATEGORIES = [
@@ -15,6 +16,12 @@ export const CATEGORIES = [
   { id: "toys", en: "Toys", ar: "ألعاب", icon: Gamepad2, color: "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300" },
   { id: "sports", en: "Sports", ar: "رياضة", icon: Dumbbell, color: "bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300" },
   { id: "books", en: "Books", ar: "كتب", icon: Book, color: "bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-200" },
+  { id: "animals", en: "Animals", ar: "حيوانات", icon: Cat, color: "bg-lime-100 text-lime-700 dark:bg-lime-950 dark:text-lime-300" },
+  { id: "jobs", en: "Jobs", ar: "وظائف", icon: Briefcase, color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300" },
+  { id: "education", en: "Education & Training", ar: "تدريب وتعليم", icon: GraduationCap, color: "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-950 dark:text-fuchsia-300" },
+  { id: "occasions", en: "Occasions", ar: "مناسبات", icon: PartyPopper, color: "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300" },
+  { id: "antiques", en: "Antiques & Rarities", ar: "نوادر وتراثيات", icon: Gem, color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300" },
+  { id: "arts", en: "Arts & Crafts", ar: "فنون وحرف", icon: Palette, color: "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300" },
   { id: "other", en: "Other", ar: "أخرى", icon: Package, color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200" },
 ];
 
@@ -95,6 +102,84 @@ export const SUBCATEGORIES = {
     { en: "Novels", ar: "روايات" },
     { en: "Religious", ar: "كتب دينية" },
     { en: "Children", ar: "أطفال" },
+    { en: "Other", ar: "أخرى" },
+  ],
+  animals: [
+    { en: "Livestock", ar: "مواشي" },
+    { en: "Pets", ar: "حيوانات أليفة" },
+    { en: "Birds", ar: "طيور" },
+    { en: "Fish", ar: "أسماك" },
+    { en: "Supplies", ar: "مستلزمات" },
+    { en: "Other", ar: "أخرى" },
+  ],
+  jobs: [
+    { en: "Full-time", ar: "دوام كامل" },
+    { en: "Part-time", ar: "دوام جزئي" },
+    { en: "Freelance", ar: "حر" },
+    { en: "Other", ar: "أخرى" },
+  ],
+  education: [
+    { en: "Tutoring", ar: "دروس خصوصية" },
+    { en: "Courses", ar: "دورات" },
+    { en: "Training", ar: "تدريب" },
+    { en: "Other", ar: "أخرى" },
+  ],
+  occasions: [
+    { en: "Weddings", ar: "أعراس" },
+    { en: "Parties", ar: "حفلات" },
+    { en: "Catering", ar: "تقديم طعام" },
+    { en: "Rentals", ar: "تأجير" },
+    { en: "Other", ar: "أخرى" },
+  ],
+  antiques: [
+    { en: "Coins", ar: "عملات" },
+    { en: "Heritage", ar: "تراثيات" },
+    { en: "Collectibles", ar: "مقتنيات" },
+    { en: "Other", ar: "أخرى" },
+  ],
+  arts: [
+    { en: "Paintings", ar: "لوحات" },
+    { en: "Handicrafts", ar: "حرف يدوية" },
+    { en: "Calligraphy", ar: "خط عربي" },
+    { en: "Other", ar: "أخرى" },
+  ],
+  animals: [
+    { en: "Livestock", ar: "مواشي" },
+    { en: "Pets", ar: "حيوانات أليفة" },
+    { en: "Birds", ar: "طيور" },
+    { en: "Fish", ar: "أسماك" },
+    { en: "Supplies", ar: "مستلزمات" },
+    { en: "Other", ar: "أخرى" },
+  ],
+  jobs: [
+    { en: "Full-time", ar: "دوام كامل" },
+    { en: "Part-time", ar: "دوام جزئي" },
+    { en: "Freelance", ar: "حر" },
+    { en: "Other", ar: "أخرى" },
+  ],
+  education: [
+    { en: "Tutoring", ar: "دروس خصوصية" },
+    { en: "Courses", ar: "دورات" },
+    { en: "Training", ar: "تدريب" },
+    { en: "Other", ar: "أخرى" },
+  ],
+  occasions: [
+    { en: "Weddings", ar: "أعراس" },
+    { en: "Parties", ar: "حفلات" },
+    { en: "Catering", ar: "تقديم طعام" },
+    { en: "Rentals", ar: "تأجير" },
+    { en: "Other", ar: "أخرى" },
+  ],
+  antiques: [
+    { en: "Coins", ar: "عملات" },
+    { en: "Heritage", ar: "تراثيات" },
+    { en: "Collectibles", ar: "مقتنيات" },
+    { en: "Other", ar: "أخرى" },
+  ],
+  arts: [
+    { en: "Paintings", ar: "لوحات" },
+    { en: "Handicrafts", ar: "حرف يدوية" },
+    { en: "Calligraphy", ar: "خط عربي" },
     { en: "Other", ar: "أخرى" },
   ],
   other: [{ en: "Other", ar: "أخرى" }],

@@ -222,6 +222,13 @@ const en = {
   adminName: "Souqna",
   confirmReceipt: "Yes, I received it",
   rateNow: "Rate",
+  deleteAccount: "Delete account",
+  deleteAccountConfirm: "Permanently delete your account and all your listings? This cannot be undone.",
+  deletingAccount: "Deleting…",
+  similarItems: "Similar items",
+  originalPrice: "Original",
+  agreedArrange: "Price agreed — arrange handover",
+  locationNeeded: "We need your location to list items",
   };
 
 const ar = {
@@ -446,6 +453,13 @@ const ar = {
   adminName: "سوقنا",
   confirmReceipt: "أيوة، وصلني",
   rateNow: "قيّم",
+  deleteAccount: "حذف الحساب",
+  deleteAccountConfirm: "حذف حسابك وكل إعلاناتك نهائياً؟ ما تقدر ترجع.",
+  deletingAccount: "نحذف…",
+  similarItems: "إعلانات مشابهة",
+  originalPrice: "الأصلي",
+  agreedArrange: "تم الاتفاق — رتبوا التسليم",
+  locationNeeded: "نحتاج موقعك لإضافة الإعلانات",
   };
 
 export function useT() {

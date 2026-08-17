@@ -6,6 +6,7 @@ import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { formatPrice, timeAgo } from "@/lib/format";
 import Price from "@/components/Price";
+import ItemCard from "@/components/ItemCard";
 import { getCategory, getCityName, getCondition } from "@/lib/constants";
 import RatingStars from "@/components/RatingStars";
 import ReportDialog from "@/components/ReportDialog";
@@ -39,6 +40,7 @@ export default function ItemDetail() {
   const [buyerScore, setBuyerScore] = useState(5);
   const [buyerReview, setBuyerReview] = useState("");
   const [zoom, setZoom] = useState(false);
+  const [similar, setSimilar] = useState([]);
   const [origin, setOrigin] = useState({ x: 50, y: 50 });
 
   useEffect(() => {
@@ -51,6 +53,12 @@ export default function ItemDetail() {
           try {
             const rs = await base44.entities.Rating.filter({ rated_user_id: it.seller_id }, "-created_date", 20);
             setRatings(rs || []);
+          } catch {}
+        }
+        if (it?.category) {
+          try {
+            const sim = await base44.entities.Item.filter({ category: it.category, status: "available" }, "-created_date", 30);
+            setSimilar((sim || []).filter((x) => x.id !== id).slice(0, 6));
           } catch {}
         }
         base44.entities.Item.update(id, { views: (Number(it.views) || 0) + 1 }).catch(() => {});
@@ -473,6 +481,14 @@ export default function ItemDetail() {
             <RatingStars value={buyerScore} size={34} interactive onChange={setBuyerScore} />
             <textarea value={buyerReview} onChange={(e) => setBuyerReview(e.target.value)} placeholder={t("reviewPlaceholder")} rows={3} className="mt-4 w-full px-3.5 py-3 rounded-xl bg-muted text-sm outline-none resize-none" />
             <button onClick={submitBuyerRating} className="mt-4 w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold">{t("submitRating")}</button>
+          </div>
+        </div>
+      )}
+      {similar.length > 0 && (
+        <div className="mt-6">
+          <h3 className="font-bold mb-3">{t("similarItems")}</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {similar.map((it) => <ItemCard key={it.id} item={it} onClick={() => nav(`/item/${it.id}`)} />)}
           </div>
         </div>
       )}

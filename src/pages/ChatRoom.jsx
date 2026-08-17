@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Send, Sparkles, ShieldCheck, Check, CheckCheck, Star } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -101,8 +101,7 @@ export default function ChatRoom() {
     const field = String(room.seller_id) === String(user.id) ? "seller_last_seen" : "buyer_last_seen";
     const update = () => base44.entities.ChatRoom.update(id, { [field]: new Date().toISOString() }).catch(() => {});
     update();
-    const iv = setInterval(update, 10000);
-    return () => { clearInterval(iv); update(); };
+    return () => { update(); };
   }, [id, room?.id, room?.seller_id, user?.id]);
 
   const isSeller = !!room && String(room.seller_id) === String(user?.id);
@@ -206,10 +205,13 @@ export default function ChatRoom() {
     } catch {}
   };
 
-  const timeline = [
-    ...messages.map((m) => ({ type: "message", ...m })),
-    ...offers.map((o) => ({ type: "offer", ...o })),
-  ].sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+  const timeline = useMemo(
+    () => [
+      ...messages.map((m) => ({ type: "message", ...m })),
+      ...offers.map((o) => ({ type: "offer", ...o })),
+    ].sort((a, b) => new Date(a.created_date) - new Date(b.created_date)),
+    [messages, offers]
+  );
 
   return (
     <div className="fixed inset-0 z-40 bg-background flex flex-col">

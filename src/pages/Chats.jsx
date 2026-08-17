@@ -97,8 +97,10 @@ export default function Chats() {
         try {
           await base44.entities.ChatRoom.update(r.id, isBuyer ? { hidden_for_buyer: false } : { hidden_for_seller: false });
         } catch {}
+        loadRooms();
+        return;
       }
-      // update last message immediately for responsiveness
+      // Optimistic update only — avoid a full refetch on every incoming message.
       setRooms((prev) => {
         const idx = prev.findIndex((rr) => rr.id === m.chatroom_id);
         if (idx === -1) return prev;
@@ -107,7 +109,6 @@ export default function Chats() {
         return copy;
       });
       setUnread((prev) => ({ ...prev, [m.chatroom_id]: (prev[m.chatroom_id] || 0) + 1 }));
-      scheduleLoad();
     };
     const onOffer = async (event) => {
       if (event?.type !== "create") { scheduleLoad(); return; }
@@ -115,21 +116,18 @@ export default function Chats() {
       if (!o || !offerIsIncoming(o, user.id)) { scheduleLoad(); return; }
       if (!roomsRef.current.some((rr) => rr.id === o.chatroom_id)) { loadRooms(); return; }
       setUnread((prev) => ({ ...prev, [o.chatroom_id]: (prev[o.chatroom_id] || 0) + 1 }));
-      scheduleLoad();
     };
     const unsubR = base44.entities.ChatRoom.subscribe(onRoom);
     const unsubM = base44.entities.Message.subscribe(onMsg);
     const unsubO = base44.entities.Offer.subscribe(onOffer);
-    // Safety net: refresh periodically and whenever the window regains focus,
-    // so reappearing chats and new messages surface even if a realtime event is missed.
-    const poll = setInterval(() => loadRooms(), 8000);
+    // Safety net: refresh whenever the window regains focus, so reappearing
+    // chats and new messages surface even if a realtime event is missed.
     const onFocus = () => loadRooms();
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onFocus);
     return () => {
       if (timer) clearTimeout(timer);
       unsubR?.(); unsubM?.(); unsubO?.();
-      clearInterval(poll);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onFocus);
     };

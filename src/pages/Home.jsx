@@ -59,13 +59,14 @@ export default function Home() {
       }
     });
     const onFocus = () => load();
+    const onVis = () => { if (!document.hidden) load(); };
     window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onFocus);
+    document.addEventListener("visibilitychange", onVis);
     return () => {
       cancelled = true;
       unsub?.();
       window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onFocus);
+      document.removeEventListener("visibilitychange", onVis);
     };
   }, []);
 

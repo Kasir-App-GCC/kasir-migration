@@ -135,16 +135,12 @@ export default function useUnreadChats() {
       if (event.type === "create" || event.type === "update") schedule();
     });
 
-    // Safety net: refresh periodically in case a realtime event is missed.
-    const poll = setInterval(() => { if (!cancelled) compute(); }, 10000);
-
     return () => {
       cancelled = true;
       if (timer) clearTimeout(timer);
       if (unsubM) unsubM();
       if (unsubO) unsubO();
       if (unsubR) unsubR();
-      clearInterval(poll);
     };
   }, [user]);
 

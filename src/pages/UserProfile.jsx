@@ -17,6 +17,7 @@ export default function UserProfile() {
   const [items, setItems] = useState([]);
   const [ratings, setRatings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState(null);
 
   const name = params.get("name") || "—";
   const avatar = params.get("avatar");
@@ -24,6 +25,10 @@ export default function UserProfile() {
   useEffect(() => {
     (async () => {
       try {
+        try {
+          const p = await base44.functions.invoke("getPublicProfile", { user_id: id });
+          setProfile(p?.data || null);
+        } catch {}
         const all = await base44.entities.Item.list("-created_date", 200);
         setItems((all || []).filter((it) => it.seller_id === id));
         const rs = await base44.entities.Rating.filter({ rated_user_id: id }, "-created_date", 50);
@@ -49,7 +54,8 @@ export default function UserProfile() {
             {avatar ? <img src={avatar} className="w-full h-full object-cover" /> : <span className="w-full h-full flex items-center justify-center text-2xl font-bold">{name?.[0]}</span>}
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-extrabold truncate">{name}</h1>
+            <h1 className="text-xl font-extrabold truncate">{profile?.full_name || name}</h1>
+            {profile?.username && <p className="text-sm opacity-80 -mt-0.5 truncate">@{profile.username}</p>}
             <div className="flex items-center gap-1.5 text-sm mt-0.5">
               <Star size={14} className="fill-amber-300 text-amber-300" />
               <span className="font-bold">{avg}</span>

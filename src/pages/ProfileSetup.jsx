@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -38,6 +38,7 @@ export default function ProfileSetup() {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [usernameStatus, setUsernameStatus] = useState("idle");
 
   const onPick = async (e) => {
     const file = e.target.files?.[0];
@@ -55,6 +56,21 @@ export default function ProfileSetup() {
   };
 
   const cleanUsername = (v) => v.toLowerCase().replace(/[^a-z0-9_]/g, "");
+
+  useEffect(() => {
+    const uname = cleanUsername(username);
+    if (uname.length < 3) { setUsernameStatus("idle"); return; }
+    setUsernameStatus("checking");
+    const handle = setTimeout(async () => {
+      try {
+        const res = await base44.functions.invoke("checkUsername", { username: uname });
+        setUsernameStatus(res?.data?.available ? "available" : "taken");
+      } catch {
+        setUsernameStatus("idle");
+      }
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [username]);
 
   const submit = async () => {
     setError("");
@@ -78,6 +94,12 @@ export default function ProfileSetup() {
     }
     setSaving(true);
     try {
+      const check = await base44.functions.invoke("checkUsername", { username: uname });
+      if (!check?.data?.available) {
+        setError(ar ? "اسم المستخدم محجوز، جرّب غيره" : "This username is taken, try another");
+        setSaving(false);
+        return;
+      }
       await base44.auth.updateMe({
         first_name: firstName.trim(),
         last_name: lastName.trim(),
@@ -160,6 +182,9 @@ export default function ProfileSetup() {
               />
             </div>
             <p className="text-xs text-muted-foreground">{t("usernameHint")}</p>
+            {usernameStatus === "checking" && <p className="text-xs text-muted-foreground">{ar ? "نتأكد من التوفر…" : "Checking availability…"}</p>}
+            {usernameStatus === "available" && <p className="text-xs text-emerald-600 font-medium">{ar ? "متاح ✓" : "Available ✓"}</p>}
+            {usernameStatus === "taken" && <p className="text-xs text-rose-600 font-medium">{ar ? "محجوز، جرّب غيره" : "Taken, try another"}</p>}
           </div>
 
           <div className="space-y-1.5">
@@ -207,7 +232,7 @@ export default function ProfileSetup() {
 
           <button
             onClick={submit}
-            disabled={saving}
+            disabled={saving || usernameStatus === "taken" || usernameStatus === "checking"}
             className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-lg disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {saving && <Loader2 className="w-5 h-5 animate-spin" />}

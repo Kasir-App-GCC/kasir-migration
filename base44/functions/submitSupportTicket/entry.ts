@@ -36,7 +36,7 @@ export default async function(req) {
     // Generate a human-friendly ticket number
     const ticketNumber = 'TKT-' + ticket.id.slice(-8).toUpperCase();
 
-    // Email the support team
+    // Email the support team (best-effort — may fail if recipient is not a registered user)
     const supportBody = [
       'New support ticket received.',
       '',
@@ -51,13 +51,18 @@ export default async function(req) {
       message,
     ].join('\n');
 
-    await base44.asServiceRole.integrations.Core.SendEmail({
-      to: SUPPORT_EMAIL,
-      subject: '[' + ticketNumber + '] ' + subject,
-      body: supportBody,
-    });
+    let supportEmailOk = true;
+    try {
+      await base44.asServiceRole.integrations.Core.SendEmail({
+        to: SUPPORT_EMAIL,
+        subject: '[' + ticketNumber + '] ' + subject,
+        body: supportBody,
+      });
+    } catch (e) {
+      supportEmailOk = false;
+    }
 
-    // Send confirmation email to the user
+    // Send confirmation email to the user (best-effort)
     const userBody = [
       'Dear ' + fullName + ',',
       '',
@@ -73,14 +78,19 @@ export default async function(req) {
       'Thank you for reaching out to Souqna Support.',
     ].join('\n');
 
-    await base44.asServiceRole.integrations.Core.SendEmail({
-      to: email,
-      from_name: FROM_NAME,
-      subject: 'Support Ticket ' + ticketNumber + " — We've received your message",
-      body: userBody,
-    });
+    let userEmailOk = true;
+    try {
+      await base44.asServiceRole.integrations.Core.SendEmail({
+        to: email,
+        from_name: FROM_NAME,
+        subject: 'Support Ticket ' + ticketNumber + " — We've received your message",
+        body: userBody,
+      });
+    } catch (e) {
+      userEmailOk = false;
+    }
 
-    return Response.json({ ticketNumber, ticketId: ticket.id });
+    return Response.json({ ticketNumber, ticketId: ticket.id, supportEmailOk, userEmailOk });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

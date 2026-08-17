@@ -3,6 +3,7 @@ import { X, Send, LifeBuoy, CheckCircle2, Hash, Mail } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
+import { useToast } from "@/components/ui/use-toast";
 
 const CATEGORIES = [
   { id: "general", en: "General question", ar: "استفسار عام" },
@@ -15,6 +16,7 @@ const CATEGORIES = [
 export default function ContactSupportDialog({ open, onClose }) {
   const { user, lang } = useStore();
   const t = useT();
+  const { toast } = useToast();
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -57,7 +59,12 @@ export default function ContactSupportDialog({ open, onClose }) {
       setMessage("");
       setCategory("general");
       setPhone("");
-    } catch {
+    } catch (e) {
+      toast({
+        title: lang === "ar" ? "تعذّر إرسال التذكرة" : "Couldn't submit ticket",
+        description: lang === "ar" ? "جرّب مرة أخرى لاحقاً" : "Please try again later",
+        variant: "destructive",
+      });
     } finally {
       setSubmitting(false);
     }

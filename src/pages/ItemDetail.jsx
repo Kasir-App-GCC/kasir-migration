@@ -8,6 +8,7 @@ import { formatPrice, timeAgo } from "@/lib/format";
 import Price from "@/components/Price";
 import ItemCard from "@/components/ItemCard";
 import { getCategory, getCityName, getCondition } from "@/lib/constants";
+import { getCountry } from "@/lib/countries";
 import RatingStars from "@/components/RatingStars";
 import ReviewTagChips from "@/components/ReviewTagChips";
 import ReportDialog from "@/components/ReportDialog";
@@ -327,7 +328,7 @@ export default function ItemDetail() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
-          <span className="flex items-center gap-1"><MapPin size={14} /> {getCityName(item.city, lang)}</span>
+          <span className="flex items-center gap-1"><MapPin size={14} /> {getCityName(item.city, lang)} <span className="text-base leading-none">{getCountry(item.country).flag}</span></span>
           <span>· {lang === "ar" ? getCondition(item.condition).ar : getCondition(item.condition).en}</span>
           <span>· {lang === "ar" ? cat?.ar : cat?.en}</span>
           <span>· {timeAgo(item.created_date, lang)}</span>

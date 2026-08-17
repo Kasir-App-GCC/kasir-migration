@@ -21,7 +21,11 @@ export default function Notifications() {
       }
       try {
         const rooms = await base44.entities.ChatRoom.list("-updated_date", 100);
-        const mine = (rooms || []).filter((r) => r.buyer_id === user.id || r.seller_id === user.id);
+        const mine = (rooms || []).filter((r) => {
+          if (r.buyer_id !== user.id && r.seller_id !== user.id) return false;
+          // Exclude chats the user has deleted (hidden on their side).
+          return r.buyer_id === user.id ? !r.hidden_for_buyer : !r.hidden_for_seller;
+        });
         const roomMap = new Map(mine.map((r) => [r.id, r]));
         const [msgs, offers] = await Promise.all([
           base44.entities.Message.list("-created_date", 100),

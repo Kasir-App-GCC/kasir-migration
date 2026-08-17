@@ -370,17 +370,24 @@ export default function ItemDetail() {
                 </div>
               </div>
             </button>
-            {sellerProfile?.whatsapp_enabled && sellerProfile?.whatsapp_number && (
-              <a
-                href={`https://wa.me/${sellerProfile.whatsapp_number.replace(/\D/g, "")}?text=${encodeURIComponent((lang === "ar" ? "مرحباً، أنا مهتم بسلعتك «" : "Hi, I'm interested in your item \"") + item.title + (lang === "ar" ? "» على سوقنا" : "\" on Souqna"))}`}
-                target="_blank"
-                rel="noreferrer"
-                className="p-2 rounded-full bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 shrink-0 transition"
-                title={lang === "ar" ? "تواصل عبر واتساب" : "Contact on WhatsApp"}
-              >
-                <WhatsAppIcon size={18} />
-              </a>
-            )}
+            {sellerProfile?.whatsapp_enabled && sellerProfile?.whatsapp_number && (() => {
+              const price = Number(item.price || 0).toLocaleString(lang === "ar" ? "ar-SA" : "en-US");
+              const img = item.images?.[0];
+              const msg = lang === "ar"
+                ? `مرحباً، أنا مهتم بسلعتك على سوقنا:\n\n• ${item.title}\n• السعر: ${price} ر.س\n${img ? `• صورة: ${img}\n` : ""}• الرابط: ${window.location.href}`
+                : `Hi, I'm interested in your item on Souqna:\n\n• ${item.title}\n• Price: ${price} SAR\n${img ? `• Image: ${img}\n` : ""}• Link: ${window.location.href}`;
+              return (
+                <a
+                  href={`https://wa.me/${sellerProfile.whatsapp_number.replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-2 rounded-full bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 shrink-0 transition"
+                  title={lang === "ar" ? "تواصل عبر واتساب" : "Contact on WhatsApp"}
+                >
+                  <WhatsAppIcon size={18} />
+                </a>
+              );
+            })()}
             <button onClick={() => setReportOpen(true)} className="p-2 rounded-full hover:bg-muted text-muted-foreground shrink-0" title={t("report")}>
               <Flag size={18} />
             </button>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { Sparkles, ShoppingBag } from "lucide-react";
+import { Sparkles, ShoppingBag, Map as MapIcon } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import ItemCard from "@/components/ItemCard";
 import FeaturedCarousel from "@/components/FeaturedCarousel";
@@ -90,9 +90,15 @@ export default function Home() {
             ? (lang === "ar" ? getCategory(categories[0]).ar : getCategory(categories[0]).en)
             : t("newArrivals")}
         </h2>
-        <span className="text-xs text-muted-foreground">
-          {filtered.length} {t("items")}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground">{filtered.length} {t("items")}</span>
+          <button
+            onClick={() => nav("/map")}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted hover:bg-muted/70 text-sm font-semibold transition"
+          >
+            <MapIcon size={16} /> {lang === "ar" ? "الخريطة" : "Map"}
+          </button>
+        </div>
       </div>
 
       {loading ? (

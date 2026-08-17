@@ -9,7 +9,11 @@
     "type": {
       "type": "string",
       "enum": [
-        "sold"
+        "sold",
+        "offer_accepted",
+        "offer_rejected",
+        "offer_countered",
+        "offer_modified"
       ],
       "default": "sold"
     },
@@ -23,6 +27,15 @@
       "type": "string"
     },
     "text": {
+      "type": "string"
+    },
+    "chatroom_id": {
+      "type": "string"
+    },
+    "offer_amount": {
+      "type": "number"
+    },
+    "actor_name": {
       "type": "string"
     },
     "read": {

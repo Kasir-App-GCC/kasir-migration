@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, MessageCircle, Star, Tag, Trash2, CheckCircle } from "lucide-react";
+import { Bell, MessageCircle, Star, Tag, Trash2, CheckCircle, Check, X, ArrowLeftRight, Pencil } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Image } from "@/components/ui/image";
 import { useStore } from "@/lib/store";
@@ -80,23 +80,25 @@ export default function Notifications() {
           }));
         } catch {}
 
-        let soldNotifs = [];
+        let systemNotifs = [];
         try {
           const ns = await base44.entities.Notification.filter({ user_id: user.id }, "-created_date", 30);
-          soldNotifs = (ns || []).map((n) => ({
-            id: n.id,
-            type: "sold",
-            text: n.text,
-            name: n.item_title,
-            image: n.item_image,
-            itemId: n.item_id,
-            date: n.created_date,
-            unread: !n.read,
-          }));
+          systemNotifs = (ns || []).map((n) => {
+            if (n.type === "sold") {
+              return {
+                id: n.id, type: "sold", text: n.text, name: n.item_title,
+                image: n.item_image, itemId: n.item_id, date: n.created_date, unread: !n.read,
+              };
+            }
+            return {
+              id: n.id, type: n.type, text: n.text, name: n.actor_name,
+              roomId: n.chatroom_id, amount: n.offer_amount, date: n.created_date, unread: !n.read,
+            };
+          });
         } catch {}
 
         const clearedAt = notifsClearedAt ? toDate(notifsClearedAt).getTime() : 0;
-        const all = [...notifs, ...offerNotifs, ...ratings, ...soldNotifs]
+        const all = [...notifs, ...offerNotifs, ...ratings, ...systemNotifs]
           .sort((a, b) => toDate(b.date) - toDate(a.date))
           .filter((n) => toDate(n.date).getTime() > clearedAt);
         setItems(all);
@@ -113,7 +115,7 @@ export default function Notifications() {
     setItems([]);
   };
 
-  const markSoldRead = (n) => {
+  const markNotifRead = (n) => {
     if (!n.unread) return;
     try { base44.entities.Notification.update(n.id, { read: true }).catch(() => {}); } catch {}
     setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, unread: false } : x)));
@@ -148,8 +150,9 @@ export default function Notifications() {
             <button
               key={n.id}
               onClick={() => {
-                if (n.type === "sold") { markSoldRead(n); if (n.itemId) nav(`/item/${n.itemId}`); }
+                if (n.type === "sold") { markNotifRead(n); if (n.itemId) nav(`/item/${n.itemId}`); }
                 else if (n.type === "message" || n.type === "offer") nav(`/chat/${n.roomId}`);
+                else if (n.roomId) { markNotifRead(n); nav(`/chat/${n.roomId}`); }
               }}
               className={`w-full flex items-start gap-3 p-3 rounded-2xl bg-card border border-border/60 hover:bg-muted/50 transition text-start ${n.unread ? "ring-1 ring-primary/30" : ""}`}
             >
@@ -161,6 +164,22 @@ export default function Notifications() {
                     <CheckCircle size={18} />
                   </div>
                 )
+              ) : n.type === "offer_accepted" ? (
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300">
+                  <Check size={18} />
+                </div>
+              ) : n.type === "offer_rejected" ? (
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-300">
+                  <X size={18} />
+                </div>
+              ) : n.type === "offer_countered" ? (
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-300">
+                  <ArrowLeftRight size={18} />
+                </div>
+              ) : n.type === "offer_modified" ? (
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-primary/10 text-primary">
+                  <Pencil size={18} />
+                </div>
               ) : (
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${n.type === "message" ? "bg-primary/10 text-primary" : n.type === "offer" ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300" : "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-300"}`}>
                   {n.type === "message" ? <MessageCircle size={18} /> : n.type === "offer" ? <Tag size={18} /> : <Star size={18} className="fill-amber-400 text-amber-400" />}

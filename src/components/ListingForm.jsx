@@ -95,7 +95,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const onPriceChange = (e) => setPrice(normalizeDigits(e.target.value).replace(/\D/g, ""));
 
   const submit = async () => {
-    if (!title || !price || !category || !city) return;
+    if (!title || !price || !category || !city || images.length === 0) return;
     setPosting(true);
     try {
       await onSubmit({
@@ -120,7 +120,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
     }
   };
 
-  const valid = title && price && category && city;
+  const valid = title && price && category && city && images.length > 0;
   const boostAmount = boostHours > 0 ? boostHours * 10 + (boostCross ? boostHours * 7 : 0) : 0;
   const cur = getCountry(country || "SA");
   const boostDisplay = convertCurrency(boostAmount, "SA", country || "SA");
@@ -185,6 +185,9 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
           </Droppable>
         </DragDropContext>
         <p className="text-[11px] text-muted-foreground mt-1.5">{t("dragToReorder")}</p>
+        {images.length === 0 && (
+          <p className="text-[11px] text-rose-500 font-semibold mt-1">{ar ? "صورة واحدة على الأقل مطلوبة" : "At least one photo is required"}</p>
+        )}
       </div>
 
       <div className="space-y-1">

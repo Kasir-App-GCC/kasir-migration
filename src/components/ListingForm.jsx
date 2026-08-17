@@ -17,7 +17,7 @@ function normalizeDigits(s) {
 }
 
 export default function ListingForm({ initial, submitLabel, submittingLabel, onSubmit }) {
-  const { user, lang } = useStore();
+  const { user, lang, country } = useStore();
   const t = useT();
   const [images, setImages] = useState(initial?.images || []);
   const [title, setTitle] = useState(initial?.title || "");
@@ -43,7 +43,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const c = nearestCityInCountry(pos.coords.latitude, pos.coords.longitude, user.country || "SA");
+        const c = nearestCityInCountry(pos.coords.latitude, pos.coords.longitude, country || "SA");
         if (c) setCity(c.en);
         setLat(pos.coords.latitude);
         setLng(pos.coords.longitude);
@@ -106,7 +106,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         subcategory: subcats.length ? subcats : undefined,
         condition,
         city,
-        country: user.country || "SA",
+        country: country || "SA",
         lat,
         lng,
         description,
@@ -230,7 +230,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
           ) : (
             <select value={city} onChange={(e) => setCity(e.target.value)} className="flex-1 bg-transparent outline-none text-sm">
               <option value="">{t("selectCity")}</option>
-              {getCities(user.country || "SA").map((c) => (
+              {getCities(country || "SA").map((c) => (
                 <option key={c.en} value={c.en}>{lang === "ar" ? c.ar : c.en}</option>
               ))}
             </select>

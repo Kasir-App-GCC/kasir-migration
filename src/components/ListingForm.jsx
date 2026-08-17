@@ -7,6 +7,7 @@ import { useT } from "@/lib/i18n";
 import { CATEGORIES, CONDITIONS, getSubcategories, getCityName } from "@/lib/constants";
 import { getCities, nearestCityInCountry, getCountry, convertCurrency } from "@/lib/countries";
 import MapPinPicker from "@/components/MapPinPicker";
+import QuickTags from "@/components/QuickTags";
 import { useToast } from "@/components/ui/use-toast";
 
 // Convert Arabic-Indic (٠-٩) and Eastern Arabic (۰-۹) digits to ASCII 0-9
@@ -291,8 +292,9 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         </div>
       )}
 
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         <label className="text-sm font-semibold">{t("description")}</label>
+        <QuickTags category={category} lang={lang} description={description} setDescription={setDescription} />
         <textarea value={description} onChange={(e) => setDescription(e.target.value.slice(0, 300))} maxLength={300} placeholder={t("descriptionPlaceholder")} rows={4} className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30 resize-none" />
         <div className="flex justify-end text-[11px] text-muted-foreground">{(description || "").length}/300</div>
       </div>

@@ -15,6 +15,8 @@ export default function EditProfileDialog({ open, onClose }) {
   const [lastName, setLastName] = useState(user?.last_name || "");
   const [username, setUsername] = useState(user?.username || "");
   const [avatar, setAvatar] = useState(user?.avatar || null);
+  const [waEnabled, setWaEnabled] = useState(!!user?.whatsapp_enabled);
+  const [waNumber, setWaNumber] = useState(user?.whatsapp_number || "");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -51,11 +53,19 @@ export default function EditProfileDialog({ open, onClose }) {
     }
     setSaving(true);
     try {
+      const waDigits = waNumber.replace(/\D/g, "");
+      if (waEnabled && waDigits.length < 8) {
+        setError(ar ? "أدخل رقم واتساب صحيح مع رمز الدولة" : "Enter a valid WhatsApp number with country code");
+        setSaving(false);
+        return;
+      }
       await base44.auth.updateMe({
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         username: uname,
         avatar,
+        whatsapp_enabled: waEnabled,
+        whatsapp_number: waEnabled ? waDigits : "",
       });
       await checkUserAuth();
       await syncAvatarToEntities(user.id, avatar);
@@ -107,6 +117,33 @@ export default function EditProfileDialog({ open, onClose }) {
               <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder={t("usernamePlaceholder")} className="bg-transparent outline-none flex-1 lowercase" />
             </div>
             <p className="text-xs text-muted-foreground">{t("usernameHint")}</p>
+          </div>
+
+          <div className="space-y-2 pt-1 border-t border-border/60">
+            <label className="flex items-center justify-between py-1">
+              <span className="text-sm font-semibold">{ar ? "السماح بالتواصل عبر واتساب" : "Allow WhatsApp contact"}</span>
+              <button
+                type="button"
+                onClick={() => setWaEnabled((v) => !v)}
+                className={`w-11 h-6 rounded-full p-0.5 transition ${waEnabled ? "bg-emerald-500" : "bg-muted-foreground/30"}`}
+              >
+                <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${waEnabled ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
+              </button>
+            </label>
+            {waEnabled && (
+              <div className="space-y-1.5">
+                <input
+                  value={waNumber}
+                  onChange={(e) => setWaNumber(e.target.value)}
+                  placeholder={ar ? "مثال: 9665XXXXXXXX" : "e.g. 9665XXXXXXXX"}
+                  inputMode="tel"
+                  dir="ltr"
+                  className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30 text-start"
+                />
+                <p className="text-xs text-muted-foreground">{ar ? "أدخل الرقم مع رمز الدولة بدون + أو مسافات" : "Enter number with country code, no + or spaces"}</p>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">{ar ? "عند التفعيل سيظهر زر واتساب لسلعتك للمشترين" : "When enabled, a WhatsApp button shows on your listings for buyers"}</p>
           </div>
 
           <button onClick={submit} disabled={saving} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold disabled:opacity-50 flex items-center justify-center gap-2">

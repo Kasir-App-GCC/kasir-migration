@@ -19,6 +19,8 @@ export default async function (req) {
       last_name: u.last_name || "",
       full_name: u.full_name || [u.first_name, u.last_name].filter(Boolean).join(" "),
       avatar: u.avatar || "",
+      whatsapp_enabled: !!u.whatsapp_enabled,
+      whatsapp_number: u.whatsapp_number || "",
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

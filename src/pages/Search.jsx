@@ -4,6 +4,7 @@ import { Search as SearchIcon, SlidersHorizontal, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import ItemCard from "@/components/ItemCard";
 import SearchLocationControl from "@/components/SearchLocationControl";
+import UserSearchDropdown from "@/components/UserSearchDropdown";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { CATEGORIES, CONDITIONS, SAUDI_CITIES } from "@/lib/constants";
@@ -70,6 +71,11 @@ export default function Search() {
             onChange={(e) => setQ(e.target.value)}
             placeholder={t("searchPlaceholder")}
             className="w-full ps-10 pe-3 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30"
+          />
+          <UserSearchDropdown
+            query={q}
+            lang={lang}
+            onPick={(u) => nav(`/user/${u.id}?name=${encodeURIComponent(u.full_name || "")}&avatar=${encodeURIComponent(u.avatar || "")}`)}
           />
         </div>
         <button

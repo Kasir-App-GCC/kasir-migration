@@ -136,7 +136,7 @@ export default function useUnreadChats() {
     });
 
     // Safety net: refresh periodically in case a realtime event is missed.
-    const poll = setInterval(() => { if (!cancelled) compute(); }, 20000);
+    const poll = setInterval(() => { if (!cancelled) compute(); }, 10000);
 
     return () => {
       cancelled = true;

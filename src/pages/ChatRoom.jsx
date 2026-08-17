@@ -93,14 +93,14 @@ export default function ChatRoom() {
   // Mark this chat as seen by the current user so the other party gets read receipts
   useEffect(() => {
     if (!room || !user) return;
-    const field = room.seller_id === user.id ? "seller_last_seen" : "buyer_last_seen";
+    const field = String(room.seller_id) === String(user.id) ? "seller_last_seen" : "buyer_last_seen";
     const update = () => base44.entities.ChatRoom.update(id, { [field]: new Date().toISOString() }).catch(() => {});
     update();
     const iv = setInterval(update, 10000);
     return () => { clearInterval(iv); update(); };
   }, [id, room?.id, room?.seller_id, user?.id]);
 
-  const isSeller = room?.seller_id === user.id;
+  const isSeller = !!room && String(room.seller_id) === String(user?.id);
   const otherName = room ? (isSeller ? room.buyer_name : room.seller_name) : "";
   const otherAvatar = room ? (isSeller ? room.buyer_avatar : room.seller_avatar) : null;
   const otherLastSeen = room ? (isSeller ? room.buyer_last_seen : room.seller_last_seen) : null;
@@ -286,7 +286,7 @@ export default function ChatRoom() {
                     {mine && (() => {
                       const msgDate = new Date(m.created_date);
                       const otherSeen = otherLastSeen ? new Date(otherLastSeen) : null;
-                      if (otherSeen && otherSeen >= msgDate) return <CheckCheck size={13} className="text-sky-300" />;
+                      if (otherSeen && otherSeen > msgDate) return <CheckCheck size={13} className="text-sky-300" />;
                       if (otherSeen) return <CheckCheck size={13} className="opacity-60" />;
                       return <Check size={13} className="opacity-60" />;
                     })()}

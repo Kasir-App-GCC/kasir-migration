@@ -78,30 +78,45 @@ export default function Chats() {
     const onMsg = async (event) => {
       if (event?.type !== "create") { scheduleLoad(); return; }
       const m = event?.data;
-      if (!m) return;
-      if (m.sender_id === user.id) return;
+      if (!m || m.sender_id === user.id) return;
       const r = roomsRef.current.find((rr) => rr.id === m.chatroom_id);
-      if (r) {
-        const isBuyer = r.buyer_id === user.id;
-        if ((isBuyer && r.hidden_for_buyer) || (!isBuyer && r.hidden_for_seller)) {
-          try {
-            await base44.entities.ChatRoom.update(r.id, isBuyer ? { hidden_for_buyer: false } : { hidden_for_seller: false });
-          } catch {}
-        }
-        // update last message immediately for responsiveness
-        setRooms((prev) => {
-          const idx = prev.findIndex((rr) => rr.id === m.chatroom_id);
-          if (idx === -1) return prev;
-          const copy = [...prev];
-          copy[idx] = { ...copy[idx], last_message: m.text, updated_date: m.created_date };
-          return copy;
-        });
+      if (!r) {
+        // Message landed in a room not currently visible (deleted/hidden on my side).
+        // The sender un-hides it server-side; refetch immediately so the chat reappears.
+        loadRooms();
+        return;
       }
+      const isBuyer = String(r.buyer_id) === String(user.id);
+      if ((isBuyer && r.hidden_for_buyer) || (!isBuyer && r.hidden_for_seller)) {
+        try {
+          await base44.entities.ChatRoom.update(r.id, isBuyer ? { hidden_for_buyer: false } : { hidden_for_seller: false });
+        } catch {}
+      }
+      // update last message immediately for responsiveness
+      setRooms((prev) => {
+        const idx = prev.findIndex((rr) => rr.id === m.chatroom_id);
+        if (idx === -1) return prev;
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], last_message: m.text, updated_date: m.created_date };
+        return copy;
+      });
       scheduleLoad();
     };
     const unsubR = base44.entities.ChatRoom.subscribe(onRoom);
     const unsubM = base44.entities.Message.subscribe(onMsg);
-    return () => { if (timer) clearTimeout(timer); unsubR?.(); unsubM?.(); };
+    // Safety net: refresh periodically and whenever the window regains focus,
+    // so reappearing chats and new messages surface even if a realtime event is missed.
+    const poll = setInterval(() => loadRooms(), 8000);
+    const onFocus = () => loadRooms();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      if (timer) clearTimeout(timer);
+      unsubR?.(); unsubM?.();
+      clearInterval(poll);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
   }, [user, loadRooms]);
 
   const deleteRoom = async (room) => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { Sparkles, ShoppingBag, Map as MapIcon } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -26,25 +26,54 @@ export default function Home() {
   const { locationFilter, lang, prefs, country } = useStore();
   const t = useT();
   const nav = useNavigate();
+  const PAGE_SIZE = 100;
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const skipRef = useRef(0);
+  const sentinelRef = useRef(null);
+
+  const loadInitial = useCallback(async () => {
+    setLoading(true);
+    skipRef.current = 0;
+    setHasMore(true);
+    try {
+      const first = await base44.entities.Item.list("-created_date", PAGE_SIZE, 0);
+      const list = first || [];
+      setItems(list);
+      setHasMore(list.length === PAGE_SIZE);
+    } catch {
+      setItems([]);
+      setHasMore(false);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const skip = skipRef.current + PAGE_SIZE;
+    try {
+      const next = await base44.entities.Item.list("-created_date", PAGE_SIZE, skip);
+      const list = next || [];
+      skipRef.current = skip;
+      setItems((prev) => {
+        const seen = new Set(prev.map((x) => x.id));
+        return [...prev, ...list.filter((x) => !seen.has(x.id))];
+      });
+      setHasMore(list.length === PAGE_SIZE);
+    } catch {
+      setHasMore(false);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore]);
 
   useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      setLoading(true);
-      try {
-        const all = await base44.entities.Item.list("-created_date", 100);
-        if (!cancelled) setItems(all || []);
-      } catch {
-        if (!cancelled) setItems([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    load();
-    // Keep the feed live and self-healing: update on any item change,
-    // and refetch when the tab regains focus so a missed mount fetch recovers.
+    loadInitial();
+    // Keep the feed live: apply any item change in-place as it happens.
     const unsub = base44.entities.Item.subscribe((event) => {
       if (!event) return;
       const it = event.data;
@@ -58,17 +87,28 @@ export default function Home() {
         });
       }
     });
-    const onFocus = () => load();
-    const onVis = () => { if (!document.hidden) load(); };
+    // Self-heal only while still on the first page, so deep pagination isn't wiped.
+    const onFocus = () => { if (skipRef.current === 0) loadInitial(); };
+    const onVis = () => { if (!document.hidden && skipRef.current === 0) loadInitial(); };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVis);
     return () => {
-      cancelled = true;
       unsub?.();
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, []);
+  }, [loadInitial]);
+
+  // Infinite scroll: fetch the next page when the sentinel nears the viewport.
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) loadMore();
+    }, { rootMargin: "600px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [loadMore]);
 
   const filtered = items.filter((it) => {
     if (categories.length && !categories.includes(it.category)) return false;
@@ -138,10 +178,19 @@ export default function Home() {
           <p className="text-sm mt-1">{t("emptyFeedDesc")}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {filtered.map((it) => (
-            <ItemCard key={it.id} item={it} onClick={() => nav(`/item/${it.id}`)} />
-          ))}
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {filtered.map((it) => (
+              <ItemCard key={it.id} item={it} onClick={() => nav(`/item/${it.id}`)} />
+            ))}
+          </div>
+          <div ref={sentinelRef} className="flex items-center justify-center py-6">
+            {loadingMore ? (
+              <div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+            ) : !hasMore ? (
+              <span className="text-xs text-muted-foreground">{t("endOfFeed") || (lang === "ar" ? "لا مزيد من الإعلانات" : "No more listings")}</span>
+            ) : null}
+          </div>
         </div>
       )}
     </div>

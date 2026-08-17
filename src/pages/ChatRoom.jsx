@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, Sparkles, ShieldCheck, Check, Star } from "lucide-react";
+import { ArrowLeft, Send, Sparkles, ShieldCheck, Check, CheckCheck, Star } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -90,9 +90,20 @@ export default function ChatRoom() {
     return () => { unsubM?.(); unsubO?.(); unsubR?.(); };
   }, [id]);
 
+  // Mark this chat as seen by the current user so the other party gets read receipts
+  useEffect(() => {
+    if (!room || !user) return;
+    const field = room.seller_id === user.id ? "seller_last_seen" : "buyer_last_seen";
+    const update = () => base44.entities.ChatRoom.update(id, { [field]: new Date().toISOString() }).catch(() => {});
+    update();
+    const iv = setInterval(update, 10000);
+    return () => { clearInterval(iv); update(); };
+  }, [id, room?.id, room?.seller_id, user?.id]);
+
   const isSeller = room?.seller_id === user.id;
   const otherName = room ? (isSeller ? room.buyer_name : room.seller_name) : "";
   const otherAvatar = room ? (isSeller ? room.buyer_avatar : room.seller_avatar) : null;
+  const otherLastSeen = room ? (isSeller ? room.buyer_last_seen : room.seller_last_seen) : null;
 
   const fetchSuggestions = useCallback(async (msgs) => {
     if (!room || !user) return;
@@ -268,7 +279,19 @@ export default function ChatRoom() {
                   </div>
                 )}
                 <div className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm ${mine ? "bg-primary text-primary-foreground rounded-br-md" : "bg-muted rounded-bl-md"}`}>
-                  {m.text}
+                  <p className="whitespace-pre-line break-words">{m.text}</p>
+                  <div className={`flex items-center gap-1 justify-end mt-1 ${mine ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                    <span className="text-[10px] leading-none">
+                      {new Date(m.created_date).toLocaleTimeString(lang === "ar" ? "ar-SA" : "en-US", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                    {mine && (() => {
+                      const msgDate = new Date(m.created_date);
+                      const otherSeen = otherLastSeen ? new Date(otherLastSeen) : null;
+                      if (otherSeen && otherSeen >= msgDate) return <CheckCheck size={13} className="text-sky-300" />;
+                      if (otherSeen) return <CheckCheck size={13} className="opacity-60" />;
+                      return <Check size={13} className="opacity-60" />;
+                    })()}
+                  </div>
                 </div>
               </div>
             );

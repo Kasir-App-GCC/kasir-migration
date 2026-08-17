@@ -35,6 +35,14 @@
     "last_message": {
       "type": "string"
     },
+    "buyer_last_seen": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "seller_last_seen": {
+      "type": "string",
+      "format": "date-time"
+    },
     "hidden_for_buyer": {
       "type": "boolean",
       "default": false

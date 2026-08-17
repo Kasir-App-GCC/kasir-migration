@@ -110,14 +110,18 @@ export default function ItemDetail() {
   const seller = item ? { id: item.seller_id, name: item.seller_name, rating: ratings.length ? (ratings.reduce((s, r) => s + r.score, 0) / ratings.length).toFixed(1) : "5.0" } : null;
   const cat = item ? getCategory(item.category) : null;
 
-  const messageSeller = async () => {
-    if (!user || !item) return;
-    if (item.seller_id === user.id) { nav("/chats"); return; }
-    const room = await base44.entities.ChatRoom.create({
+  const getOrCreateRoom = async (offerPrice) => {
+    const existing = await base44.entities.ChatRoom.filter(
+      { item_id: item.id, buyer_id: user.id, seller_id: item.seller_id },
+      "-created_date",
+      5
+    );
+    if (existing && existing.length) return existing[0];
+    return await base44.entities.ChatRoom.create({
       item_id: item.id,
       item_title: item.title,
       item_image: item.images?.[0],
-      item_price: item.price,
+      item_price: offerPrice ?? item.price,
       seller_id: item.seller_id,
       seller_name: item.seller_name,
       seller_avatar: item.seller_avatar || null,
@@ -126,6 +130,12 @@ export default function ItemDetail() {
       buyer_avatar: user?.avatar || null,
       last_message: "",
     });
+  };
+
+  const messageSeller = async () => {
+    if (!user || !item) return;
+    if (item.seller_id === user.id) { nav("/chats"); return; }
+    const room = await getOrCreateRoom();
     nav(`/chat/${room.id}`);
   };
 
@@ -156,19 +166,7 @@ export default function ItemDetail() {
     const offerPrice = Math.round(item.price * (1 - pct / 100));
     setSending(true);
     try {
-      const room = await base44.entities.ChatRoom.create({
-        item_id: item.id,
-        item_title: item.title,
-        item_image: item.images?.[0],
-        item_price: offerPrice,
-        seller_id: item.seller_id,
-        seller_name: item.seller_name,
-        seller_avatar: item.seller_avatar || null,
-        buyer_id: user.id,
-        buyer_name: user.name,
-        buyer_avatar: user?.avatar || null,
-        last_message: "",
-      });
+      const room = await getOrCreateRoom(offerPrice);
       await base44.entities.Offer.create({
         chatroom_id: room.id,
         item_id: item.id,

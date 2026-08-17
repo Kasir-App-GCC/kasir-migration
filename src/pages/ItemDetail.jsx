@@ -18,12 +18,32 @@ const SELLER_TAG_OPTIONS = [
   { en: "Item as described", ar: "السلعة مطابقة" },
   { en: "Good quality", ar: "جودة ممتازة" },
   { en: "Friendly", ar: "لطيف" },
+  { en: "Fair price", ar: "سعر عادل" },
+  { en: "Helpful", ar: "متعاون" },
+  { en: "Quick meetup", ar: "استلام سريع" },
+  { en: "Well packaged", ar: "تغليف ممتاز" },
+  { en: "Slow replies", ar: "ردود بطيئة" },
+  { en: "Item not as described", ar: "السلعة غير مطابقة" },
+  { en: "Poor quality", ar: "جودة ضعيفة" },
+  { en: "Rude", ar: "فظ" },
+  { en: "Overpriced", ar: "سعر مرتفع" },
+  { en: "No-show", ar: "لم يحضر" },
 ];
 const BUYER_TAG_OPTIONS = [
   { en: "Fast payment", ar: "دفع سريع" },
   { en: "Polite", ar: "مهذب" },
   { en: "Punctual", ar: "ملتزم بالموعد" },
   { en: "Easy to deal with", ar: "سهل التعامل" },
+  { en: "Responsive", ar: "يتجاوب بسرعة" },
+  { en: "Serious buyer", ar: "مشتري جاد" },
+  { en: "Friendly", ar: "لطيف" },
+  { en: "Honest", ar: "صادق" },
+  { en: "Slow replies", ar: "ردود بطيئة" },
+  { en: "Lowball offer", ar: "سعر متدنٍ" },
+  { en: "No-show", ar: "لم يحضر" },
+  { en: "Rude", ar: "فظ" },
+  { en: "Late payment", ar: "تأخر الدفع" },
+  { en: "Flaky", ar: "غير جاد" },
 ];
 
 export default function ItemDetail() {

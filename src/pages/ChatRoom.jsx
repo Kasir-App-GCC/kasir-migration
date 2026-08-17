@@ -14,6 +14,7 @@ export default function ChatRoom() {
   const { user, lang, setLastChatsSeen } = useStore();
   const t = useT();
   const [room, setRoom] = useState(null);
+  const [itemCountry, setItemCountry] = useState("SA");
   const [messages, setMessages] = useState([]);
   const [offers, setOffers] = useState([]);
   const [text, setText] = useState("");
@@ -38,6 +39,10 @@ export default function ChatRoom() {
       try {
         const r = await base44.entities.ChatRoom.get(id);
         setRoom(r);
+        try {
+          const it = await base44.entities.Item.get(r.item_id);
+          if (it?.country) setItemCountry(it.country);
+        } catch {}
         await loadAll();
       } catch {
       } finally {
@@ -153,8 +158,8 @@ export default function ChatRoom() {
   const acceptOffer = async (offer) => {
     await base44.entities.Offer.update(offer.id, { status: "accepted" });
     const txt = lang === "ar"
-      ? `تم الاتفاق على السعر ${formatPrice(offer.amount, lang)} ✅`
-      : `Price agreed at ${formatPrice(offer.amount, lang)} ✅`;
+      ? `تم الاتفاق على السعر ${formatPrice(offer.amount, lang, itemCountry)} ✅`
+      : `Price agreed at ${formatPrice(offer.amount, lang, itemCountry)} ✅`;
     await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false });
   };
 
@@ -182,14 +187,14 @@ export default function ChatRoom() {
       previous_offer_id: offer.id,
     });
     const preview = (isSeller
-      ? (lang === "ar" ? `عارض البائع بسعر ${formatPrice(amount, lang)}` : `Seller counters at ${formatPrice(amount, lang)}`)
-      : (lang === "ar" ? `عرض جديد بسعر ${formatPrice(amount, lang)}` : `New offer at ${formatPrice(amount, lang)}`));
+      ? (lang === "ar" ? `عارض البائع بسعر ${formatPrice(amount, lang, itemCountry)}` : `Seller counters at ${formatPrice(amount, lang, itemCountry)}`)
+      : (lang === "ar" ? `عرض جديد بسعر ${formatPrice(amount, lang, itemCountry)}` : `New offer at ${formatPrice(amount, lang, itemCountry)}`));
     await base44.entities.ChatRoom.update(id, { last_message: preview, hidden_for_buyer: false, hidden_for_seller: false });
   };
 
   const modifyOffer = async (offer, amount) => {
     await base44.entities.Offer.update(offer.id, { amount });
-    const txt = lang === "ar" ? `تم تعديل العرض إلى ${formatPrice(amount, lang)}` : `Offer updated to ${formatPrice(amount, lang)}`;
+    const txt = lang === "ar" ? `تم تعديل العرض إلى ${formatPrice(amount, lang, itemCountry)}` : `Offer updated to ${formatPrice(amount, lang, itemCountry)}`;
     await sysMsg(txt, offer.id);
     await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false });
   };
@@ -218,7 +223,7 @@ export default function ChatRoom() {
           className="flex-1 min-w-0 text-start"
         >
           <p className="font-bold text-sm truncate">{otherName}</p>
-          {room?.item_title && <p className="text-xs text-muted-foreground truncate">{room.item_title} · <Price value={room.item_price} lang={lang} /></p>}
+          {room?.item_title && <p className="text-xs text-muted-foreground truncate">{room.item_title} · <Price value={room.item_price} lang={lang} country={itemCountry} /></p>}
         </button>
       </header>
 
@@ -234,7 +239,7 @@ export default function ChatRoom() {
               const mine = o.direction === "buyer_offer" ? o.buyer_id === user.id : o.seller_id === user.id;
               return (
                 <div key={`o-${o.id}`} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                  <OfferCard offer={o} user={user} lang={lang} t={t} itemPrice={room?.item_price}
+                  <OfferCard offer={o} user={user} lang={lang} t={t} itemPrice={room?.item_price} country={itemCountry}
                     onAccept={acceptOffer} onReject={rejectOffer} onCounter={counterOffer} onModify={modifyOffer} />
                 </div>
               );

@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { CATEGORIES, CONDITIONS, getSubcategories, getCityName } from "@/lib/constants";
-import { getCities, nearestCityInCountry } from "@/lib/countries";
+import { getCities, nearestCityInCountry, getCountry } from "@/lib/countries";
 
 // Convert Arabic-Indic (٠-٩) and Eastern Arabic (۰-۹) digits to ASCII 0-9
 function normalizeDigits(s) {
@@ -122,6 +122,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
 
   const valid = title && price && category && city;
   const boostAmount = boostHours > 0 ? boostHours * 10 + (boostCross ? boostHours * 7 : 0) : 0;
+  const cur = getCountry(country || "SA");
   const subs = category ? getSubcategories(category) : [];
 
   return (
@@ -193,7 +194,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
           <label className="text-sm font-semibold">{t("price")}</label>
           <div className="flex items-center px-4 py-3 rounded-2xl bg-muted">
             <input value={price} onChange={onPriceChange} placeholder={t("pricePlaceholder")} className="bg-transparent outline-none flex-1" inputMode="numeric" />
-            <span className="text-muted-foreground text-sm font-bold">{lang === "ar" ? "ر.س" : "SAR"}</span>
+            <span className="text-muted-foreground text-sm font-bold">{ar ? cur.currencyAr : cur.currency}</span>
           </div>
         </div>
         <div className="space-y-1">
@@ -304,7 +305,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
                 <Globe size={16} className="text-primary" />
                 <span>
                   <span className="text-sm font-semibold block">{ar ? "عرض في كل الدول" : "Show across all countries"}</span>
-                  <span className="text-xs text-muted-foreground">+7 {ar ? "ر.س / ساعة" : "SAR / hour"}</span>
+                  <span className="text-xs text-muted-foreground">+7 {ar ? `${cur.currencyAr} / ساعة` : `${cur.currency} / hour`}</span>
                 </span>
               </span>
               <span className={`w-11 h-6 rounded-full p-0.5 transition ${boostCross ? "bg-amber-500" : "bg-muted-foreground/30"}`}>
@@ -313,7 +314,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             </button>
             <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900">
               <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">{ar ? "الإجمالي" : "Total"}</span>
-              <span className="text-lg font-extrabold text-amber-700 dark:text-amber-300">{boostAmount} {ar ? "ر.س" : "SAR"}</span>
+              <span className="text-lg font-extrabold text-amber-700 dark:text-amber-300">{boostAmount} {ar ? cur.currencyAr : cur.currency}</span>
             </div>
             <p className="text-[11px] text-muted-foreground text-center">{ar ? "الدفع قريباً — الميزة قيد التطوير" : "Payment coming soon — feature in development"}</p>
           </>

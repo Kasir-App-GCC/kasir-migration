@@ -179,7 +179,7 @@ export default function ItemDetail() {
         status: "pending",
         direction: "buyer_offer",
       });
-      const text = (lang === "ar" ? "أبي أعرض عليك بسعر " : "I'd like to offer ") + formatPrice(offerPrice, lang);
+      const text = (lang === "ar" ? "أبي أعرض عليك بسعر " : "I'd like to offer ") + formatPrice(offerPrice, lang, item.country);
       await base44.entities.ChatRoom.update(room.id, { last_message: text });
       nav(`/chat/${room.id}`);
     } catch {
@@ -323,7 +323,7 @@ export default function ItemDetail() {
         <div className="flex items-start justify-between gap-3">
           <h1 className="text-2xl font-extrabold leading-tight">{item.title}</h1>
           <div className="bg-amber-300 text-slate-900 px-3 py-1.5 rounded-xl font-extrabold whitespace-nowrap rotate-[-3deg] shadow">
-            <Price value={item.price} lang={lang} />
+            <Price value={item.price} lang={lang} country={item.country} />
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
@@ -372,11 +372,11 @@ export default function ItemDetail() {
               </div>
             </button>
             {sellerProfile?.whatsapp_enabled && sellerProfile?.whatsapp_number && (() => {
-              const price = Number(item.price || 0).toLocaleString(lang === "ar" ? "ar-SA" : "en-US");
               const img = item.images?.[0];
+              const priceLine = formatPrice(item.price, lang, item.country);
               const msg = lang === "ar"
-                ? `مرحباً، أنا مهتم بسلعتك على سوقنا:\n\n• ${item.title}\n• السعر: ${price} ر.س\n${img ? `• صورة: ${img}\n` : ""}• الرابط: ${window.location.href}`
-                : `Hi, I'm interested in your item on Souqna:\n\n• ${item.title}\n• Price: ${price} SAR\n${img ? `• Image: ${img}\n` : ""}• Link: ${window.location.href}`;
+                ? `مرحباً، أنا مهتم بسلعتك على سوقنا:\n\n• ${item.title}\n• السعر: ${priceLine}\n${img ? `• صورة: ${img}\n` : ""}• الرابط: ${window.location.href}`
+                : `Hi, I'm interested in your item on Souqna:\n\n• ${item.title}\n• Price: ${priceLine}\n${img ? `• Image: ${img}\n` : ""}• Link: ${window.location.href}`;
               return (
                 <a
                   href={`https://wa.me/${sellerProfile.whatsapp_number.replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`}
@@ -443,7 +443,7 @@ export default function ItemDetail() {
             <>
               <div className="flex-1">
                 <p className="text-xs text-muted-foreground">{t("price")}</p>
-                <p className="font-extrabold text-lg"><Price value={item.price} lang={lang} /></p>
+                <p className="font-extrabold text-lg"><Price value={item.price} lang={lang} country={item.country} /></p>
               </div>
               <button onClick={() => setOfferOpen(true)} className="px-4 py-3.5 rounded-2xl border-2 border-primary text-primary font-bold flex items-center justify-center gap-2">
                 <Tag size={18} /> {t("makeOffer")}
@@ -470,7 +470,7 @@ export default function ItemDetail() {
               disabled={sending}
               className="w-full py-3 rounded-2xl bg-emerald-600 text-white font-bold text-sm mb-3 flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              <CheckCircle size={16} /> {t("buyAtOriginal")} <Price value={item.price} lang={lang} />
+              <CheckCircle size={16} /> {t("buyAtOriginal")} <Price value={item.price} lang={lang} country={item.country} />
             </button>
             <div className="grid grid-cols-2 gap-2 mb-3">
               {[5, 10, 15, 20].map((pct) => (
@@ -481,7 +481,7 @@ export default function ItemDetail() {
                   className="py-3 rounded-2xl bg-primary text-primary-foreground font-bold text-sm leading-tight disabled:opacity-50"
                 >
                   {t("haggleFor")} {pct}% {t("lessWord")}
-                  <span className="block text-xs font-semibold opacity-90 mt-0.5"><Price value={Math.round(item.price * (1 - pct / 100))} lang={lang} /></span>
+                  <span className="block text-xs font-semibold opacity-90 mt-0.5"><Price value={Math.round(item.price * (1 - pct / 100))} lang={lang} country={item.country} /></span>
                 </button>
               ))}
             </div>

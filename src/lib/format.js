@@ -1,6 +1,9 @@
-export function formatPrice(n, lang = "en") {
+import { getCountry } from "@/lib/countries";
+
+export function formatPrice(n, lang = "en", country = "SA") {
   const num = Number(n || 0).toLocaleString(lang === "ar" ? "ar-SA" : "en-US");
-  return lang === "ar" ? `${num} ر.س` : `SAR ${num}`;
+  const c = getCountry(country);
+  return lang === "ar" ? `${num} ${c.currencyAr}` : `${c.currency} ${num}`;
 }
 
 export function formatCompact(n, lang = "en") {

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, MessageCircle, Star, Tag, Trash2 } from "lucide-react";
+import { Bell, MessageCircle, Star, Tag, Trash2, CheckCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { Image } from "@/components/ui/image";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { timeAgo, toDate } from "@/lib/format";
@@ -79,8 +80,23 @@ export default function Notifications() {
           }));
         } catch {}
 
+        let soldNotifs = [];
+        try {
+          const ns = await base44.entities.Notification.filter({ user_id: user.id }, "-created_date", 30);
+          soldNotifs = (ns || []).map((n) => ({
+            id: n.id,
+            type: "sold",
+            text: n.text,
+            name: n.item_title,
+            image: n.item_image,
+            itemId: n.item_id,
+            date: n.created_date,
+            unread: !n.read,
+          }));
+        } catch {}
+
         const clearedAt = notifsClearedAt ? toDate(notifsClearedAt).getTime() : 0;
-        const all = [...notifs, ...offerNotifs, ...ratings]
+        const all = [...notifs, ...offerNotifs, ...ratings, ...soldNotifs]
           .sort((a, b) => toDate(b.date) - toDate(a.date))
           .filter((n) => toDate(n.date).getTime() > clearedAt);
         setItems(all);
@@ -95,6 +111,12 @@ export default function Notifications() {
   const clearAll = () => {
     setNotifsClearedAt(new Date().toISOString());
     setItems([]);
+  };
+
+  const markSoldRead = (n) => {
+    if (!n.unread) return;
+    try { base44.entities.Notification.update(n.id, { read: true }).catch(() => {}); } catch {}
+    setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, unread: false } : x)));
   };
 
   return (
@@ -125,12 +147,25 @@ export default function Notifications() {
           {items.map((n) => (
             <button
               key={n.id}
-              onClick={() => (n.type === "message" || n.type === "offer") && nav(`/chat/${n.roomId}`)}
+              onClick={() => {
+                if (n.type === "sold") { markSoldRead(n); if (n.itemId) nav(`/item/${n.itemId}`); }
+                else if (n.type === "message" || n.type === "offer") nav(`/chat/${n.roomId}`);
+              }}
               className={`w-full flex items-start gap-3 p-3 rounded-2xl bg-card border border-border/60 hover:bg-muted/50 transition text-start ${n.unread ? "ring-1 ring-primary/30" : ""}`}
             >
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${n.type === "message" ? "bg-primary/10 text-primary" : n.type === "offer" ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300" : "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-300"}`}>
-                {n.type === "message" ? <MessageCircle size={18} /> : n.type === "offer" ? <Tag size={18} /> : <Star size={18} className="fill-amber-400 text-amber-400" />}
-              </div>
+              {n.type === "sold" ? (
+                n.image ? (
+                  <Image src={n.image} alt={n.name} fittingType="fill" className="w-10 h-10 rounded-xl shrink-0" />
+                ) : (
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300 shrink-0 flex items-center justify-center">
+                    <CheckCircle size={18} />
+                  </div>
+                )
+              ) : (
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${n.type === "message" ? "bg-primary/10 text-primary" : n.type === "offer" ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300" : "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-300"}`}>
+                  {n.type === "message" ? <MessageCircle size={18} /> : n.type === "offer" ? <Tag size={18} /> : <Star size={18} className="fill-amber-400 text-amber-400" />}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-semibold text-sm truncate">{n.name || "—"}</span>

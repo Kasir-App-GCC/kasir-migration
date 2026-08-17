@@ -245,13 +245,15 @@ export default function ItemDetail() {
       setItem({ ...item, status: "sold", sold_to: buyer?.id || null, sold_to_name: buyer?.name || null });
       if (buyer?.id) {
         try {
-          const rooms = await base44.entities.ChatRoom.filter({ item_id: item.id, buyer_id: buyer.id }, "-created_date", 5);
-          const room = rooms?.[0];
-          if (room) {
-            const text = lang === "ar" ? `تم بيع «${item.title}» إليك 🎉` : `"${item.title}" has been sold to you 🎉`;
-            await base44.entities.Message.create({ chatroom_id: room.id, sender_id: user.id, sender_name: user.name, text });
-            await base44.entities.ChatRoom.update(room.id, { last_message: text });
-          }
+          const text = lang === "ar" ? `تم بيع «${item.title}» إليك 🎉` : `"${item.title}" has been sold to you 🎉`;
+          await base44.entities.Notification.create({
+            user_id: buyer.id,
+            type: "sold",
+            item_id: item.id,
+            item_title: item.title,
+            item_image: item.images?.[0] || null,
+            text,
+          });
         } catch {}
       }
     } catch {}

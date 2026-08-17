@@ -103,6 +103,13 @@ export default function Notifications() {
           .sort((a, b) => toDate(b.date) - toDate(a.date))
           .filter((n) => toDate(n.date).getTime() > clearedAt);
         setItems(all);
+        // Acknowledge system notifications so the badge clears for the user.
+        try {
+          await base44.entities.Notification.updateMany(
+            { user_id: user.id, read: false },
+            { $set: { read: true } }
+          );
+        } catch {}
       } catch {
         setItems([]);
       } finally {

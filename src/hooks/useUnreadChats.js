@@ -91,6 +91,10 @@ export default function useUnreadChats() {
             (o) => o.chatroom_id === r.id && offerIsIncoming(o, user.id) && new Date(o.created_date).getTime() > since
           ).length;
         });
+        try {
+          const notifs = await base44.entities.Notification.filter({ user_id: user.id }, "-created_date", 50);
+          total += (notifs || []).filter((n) => !n.read).length;
+        } catch {}
         if (!cancelled) setCount(total);
       } catch {} finally {
         inFlight = false;
@@ -140,12 +144,27 @@ export default function useUnreadChats() {
       if (event.type === "create" || event.type === "update") schedule();
     });
 
+    // Offer accept/reject/counter/modify and "sold" alerts arrive as Notification records.
+    const unsubN = base44.entities.Notification.subscribe((event) => {
+      const n = event && event.data;
+      if (!n || n.user_id !== user.id) return;
+      if (event.type === "create") {
+        const onNotifs = window.location.pathname.startsWith("/notifications");
+        if (!onNotifs) {
+          maybeBeep();
+          setCount((c) => c + 1);
+        }
+      }
+      schedule();
+    });
+
     return () => {
       cancelled = true;
       if (timer) clearTimeout(timer);
       if (unsubM) unsubM();
       if (unsubO) unsubO();
       if (unsubR) unsubR();
+      if (unsubN) unsubN();
     };
   }, [user]);
 

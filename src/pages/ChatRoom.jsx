@@ -156,28 +156,25 @@ export default function ChatRoom() {
 
   const acceptOffer = async (offer) => {
     setOffers((prev) => prev.map((o) => (o.id === offer.id ? { ...o, status: "accepted" } : o)));
-    await base44.entities.Offer.update(offer.id, { status: "accepted" });
-    const txt = lang === "ar"
-      ? `تم الاتفاق على السعر ${formatPrice(offer.amount, lang, itemCountry, country)} ✅`
-      : `Price agreed at ${formatPrice(offer.amount, lang, itemCountry, country)} ✅`;
-    await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false });
     const otherId = offer.direction === "buyer_offer" ? offer.buyer_id : offer.seller_id;
     const ntxt = lang === "ar"
       ? `تم قبول عرضك (${formatPrice(offer.amount, lang, itemCountry, country)})`
       : `Your offer was accepted (${formatPrice(offer.amount, lang, itemCountry, country)})`;
+    // Fire the alert immediately so the other user is notified without waiting on the status/room updates.
     base44.entities.Notification.create({
       user_id: otherId, type: "offer_accepted", text: ntxt,
       item_id: offer.item_id, item_title: offer.item_title, chatroom_id: id,
       offer_amount: offer.amount, actor_name: user.name,
     }).catch(() => {});
+    await base44.entities.Offer.update(offer.id, { status: "accepted" });
+    const txt = lang === "ar"
+      ? `تم الاتفاق على السعر ${formatPrice(offer.amount, lang, itemCountry, country)} ✅`
+      : `Price agreed at ${formatPrice(offer.amount, lang, itemCountry, country)} ✅`;
+    await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false });
   };
 
   const rejectOffer = async (offer) => {
     setOffers((prev) => prev.map((o) => (o.id === offer.id ? { ...o, status: "rejected" } : o)));
-    await base44.entities.Offer.update(offer.id, { status: "rejected" });
-    const txt = lang === "ar" ? "تم رفض العرض" : "Offer rejected";
-    await sysMsg(txt, offer.id);
-    await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false });
     const otherId = offer.direction === "buyer_offer" ? offer.buyer_id : offer.seller_id;
     const ntxt = lang === "ar" ? "تم رفض عرضك" : "Your offer was rejected";
     base44.entities.Notification.create({
@@ -185,10 +182,23 @@ export default function ChatRoom() {
       item_id: offer.item_id, item_title: offer.item_title, chatroom_id: id,
       offer_amount: offer.amount, actor_name: user.name,
     }).catch(() => {});
+    await base44.entities.Offer.update(offer.id, { status: "rejected" });
+    const txt = lang === "ar" ? "تم رفض العرض" : "Offer rejected";
+    await sysMsg(txt, offer.id);
+    await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false });
   };
 
   const counterOffer = async (offer, amount) => {
     setOffers((prev) => prev.map((o) => (o.id === offer.id ? { ...o, status: "countered" } : o)));
+    const otherId = isSeller ? offer.buyer_id : offer.seller_id;
+    const ntxt = lang === "ar"
+      ? `تمت معارضة عرضك بسعر ${formatPrice(amount, lang, itemCountry, country)}`
+      : `Your offer was countered at ${formatPrice(amount, lang, itemCountry, country)}`;
+    base44.entities.Notification.create({
+      user_id: otherId, type: "offer_countered", text: ntxt,
+      item_id: offer.item_id, item_title: offer.item_title, chatroom_id: id,
+      offer_amount: amount, actor_name: user.name,
+    }).catch(() => {});
     await base44.entities.Offer.update(offer.id, { status: "countered" });
     const direction = isSeller ? "seller_counter" : "buyer_offer";
     await base44.entities.Offer.create({
@@ -208,23 +218,10 @@ export default function ChatRoom() {
       ? (lang === "ar" ? `عارض البائع بسعر ${formatPrice(amount, lang, itemCountry, country)}` : `Seller counters at ${formatPrice(amount, lang, itemCountry, country)}`)
       : (lang === "ar" ? `عرض جديد بسعر ${formatPrice(amount, lang, itemCountry, country)}` : `New offer at ${formatPrice(amount, lang, itemCountry, country)}`));
     await base44.entities.ChatRoom.update(id, { last_message: preview, hidden_for_buyer: false, hidden_for_seller: false });
-    const otherId = isSeller ? offer.buyer_id : offer.seller_id;
-    const ntxt = lang === "ar"
-      ? `تمت معارضة عرضك بسعر ${formatPrice(amount, lang, itemCountry, country)}`
-      : `Your offer was countered at ${formatPrice(amount, lang, itemCountry, country)}`;
-    base44.entities.Notification.create({
-      user_id: otherId, type: "offer_countered", text: ntxt,
-      item_id: offer.item_id, item_title: offer.item_title, chatroom_id: id,
-      offer_amount: amount, actor_name: user.name,
-    }).catch(() => {});
   };
 
   const modifyOffer = async (offer, amount) => {
     setOffers((prev) => prev.map((o) => (o.id === offer.id ? { ...o, amount } : o)));
-    await base44.entities.Offer.update(offer.id, { amount });
-    const txt = lang === "ar" ? `تم تعديل العرض إلى ${formatPrice(amount, lang, itemCountry, country)}` : `Offer updated to ${formatPrice(amount, lang, itemCountry, country)}`;
-    await sysMsg(txt, offer.id);
-    await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false });
     const otherId = offer.direction === "buyer_offer" ? offer.seller_id : offer.buyer_id;
     const ntxt = lang === "ar"
       ? `تم تعديل العرض إلى ${formatPrice(amount, lang, itemCountry, country)}`
@@ -234,6 +231,10 @@ export default function ChatRoom() {
       item_id: offer.item_id, item_title: offer.item_title, chatroom_id: id,
       offer_amount: amount, actor_name: user.name,
     }).catch(() => {});
+    await base44.entities.Offer.update(offer.id, { amount });
+    const txt = lang === "ar" ? `تم تعديل العرض إلى ${formatPrice(amount, lang, itemCountry, country)}` : `Offer updated to ${formatPrice(amount, lang, itemCountry, country)}`;
+    await sysMsg(txt, offer.id);
+    await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false });
   };
 
   const confirmReceipt = async (offer) => {

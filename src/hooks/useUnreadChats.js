@@ -51,7 +51,7 @@ function offerIsIncoming(o, userId) {
 }
 
 export default function useUnreadChats() {
-  const { user, lastChatsSeen } = useStore();
+  const { user } = useStore();
   const [count, setCount] = useState(0);
   const roomIds = useRef(new Set());
 
@@ -73,14 +73,18 @@ export default function useUnreadChats() {
           base44.entities.Message.list("-created_date", 200),
           base44.entities.Offer.list("-created_date", 200),
         ]);
-        const since = lastChatsSeen ? new Date(lastChatsSeen).getTime() : 0;
-        const unreadMsgs = (msgs || []).filter(
-          (m) => roomIds.current.has(m.chatroom_id) && m.sender_id !== user.id && new Date(m.created_date).getTime() > since
-        ).length;
-        const unreadOffers = (offers || []).filter(
-          (o) => roomIds.current.has(o.chatroom_id) && offerIsIncoming(o, user.id) && new Date(o.created_date).getTime() > since
-        ).length;
-        if (!cancelled) setCount(unreadMsgs + unreadOffers);
+        let total = 0;
+        mine.forEach((r) => {
+          const myLastSeen = r.seller_id === user.id ? r.seller_last_seen : r.buyer_last_seen;
+          const since = myLastSeen ? new Date(myLastSeen).getTime() : 0;
+          total += (msgs || []).filter(
+            (m) => m.chatroom_id === r.id && m.sender_id !== user.id && new Date(m.created_date).getTime() > since
+          ).length;
+          total += (offers || []).filter(
+            (o) => o.chatroom_id === r.id && offerIsIncoming(o, user.id) && new Date(o.created_date).getTime() > since
+          ).length;
+        });
+        if (!cancelled) setCount(total);
       } catch {}
     };
     compute();
@@ -109,6 +113,12 @@ export default function useUnreadChats() {
       schedule();
     });
 
+    // Recompute when rooms change (new chat created, or last-seen updated by the other party).
+    const unsubR = base44.entities.ChatRoom.subscribe((event) => {
+      if (!event || !event.data) return;
+      if (event.type === "create" || event.type === "update") schedule();
+    });
+
     // Safety net: refresh periodically in case a realtime event is missed.
     const poll = setInterval(() => { if (!cancelled) compute(); }, 20000);
 
@@ -117,9 +127,10 @@ export default function useUnreadChats() {
       if (timer) clearTimeout(timer);
       if (unsubM) unsubM();
       if (unsubO) unsubO();
+      if (unsubR) unsubR();
       clearInterval(poll);
     };
-  }, [user, lastChatsSeen]);
+  }, [user]);
 
   return count;
 }

@@ -282,7 +282,7 @@ export default function ChatRoom() {
                   <p className="whitespace-pre-line break-words">{m.text}</p>
                   <div className={`flex items-center gap-1 justify-end mt-1 ${mine ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
                     <span className="text-[10px] leading-none">
-                      {new Date(m.created_date).toLocaleTimeString(lang === "ar" ? "ar-SA" : "en-US", { hour: "2-digit", minute: "2-digit" })}
+                      {new Date(m.created_date).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
                     </span>
                     {mine && (() => {
                       const msgDate = new Date(m.created_date);

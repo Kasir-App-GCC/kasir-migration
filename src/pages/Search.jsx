@@ -3,14 +3,15 @@ import { useNavigate, useOutletContext } from "react-router-dom";
 import { Search as SearchIcon, SlidersHorizontal, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import ItemCard from "@/components/ItemCard";
+import SearchLocationControl from "@/components/SearchLocationControl";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { CATEGORIES, CONDITIONS, SAUDI_CITIES } from "@/lib/constants";
 import { matchLocation } from "@/lib/location";
 
 export default function Search() {
-  const { categories, subcategories } = useOutletContext();
-  const { locationFilter, lang, prefs } = useStore();
+  const { categories, setCategories, subcategories, setSubcategories } = useOutletContext();
+  const { locationFilter, setLocationFilter, lang, prefs } = useStore();
   const t = useT();
   const nav = useNavigate();
   const [q, setQ] = useState("");
@@ -55,6 +56,8 @@ export default function Search() {
 
   const reset = () => {
     setMinPrice(""); setMaxPrice(""); setCondition(""); setSort("newest");
+    setCategories([]); setSubcategories([]);
+    setLocationFilter({ mode: "city", city: null, radius: 25 });
   };
 
   return (
@@ -121,6 +124,31 @@ export default function Search() {
               <button onClick={() => setShowFilters(false)} className="p-1.5 rounded-full hover:bg-muted"><X size={20} /></button>
             </div>
             <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground block mb-1.5">{t("category")}</label>
+                <div className="flex flex-wrap gap-2">
+                  {CATEGORIES.filter((c) => c.id !== "all").map((c) => {
+                    const active = categories.includes(c.id);
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => {
+                          const next = active ? categories.filter((x) => x !== c.id) : [...categories, c.id];
+                          setCategories(next);
+                        }}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold border transition ${active ? "bg-primary text-primary-foreground border-transparent" : "bg-card border-border/70 hover:bg-muted"}`}
+                      >
+                        <c.icon size={15} />
+                        {lang === "ar" ? c.ar : c.en}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground block mb-1.5">{t("locationFilter")}</label>
+                <SearchLocationControl />
+              </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground block mb-1.5">{t("price")}</label>
                 <div className="flex gap-2">

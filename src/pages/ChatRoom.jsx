@@ -50,7 +50,10 @@ export default function ChatRoom() {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, offers]);
 
-  useEffect(() => { setLastChatsSeen(new Date().toISOString()); }, []);
+  useEffect(() => {
+    setLastChatsSeen(new Date().toISOString());
+    return () => setLastChatsSeen(new Date().toISOString());
+  }, []);
 
   useEffect(() => {
     const upsertMsg = (m) => {
@@ -141,12 +144,15 @@ export default function ChatRoom() {
     const txt = lang === "ar"
       ? `تم الاتفاق على السعر ${formatPrice(offer.amount, lang)} ✅`
       : `Price agreed at ${formatPrice(offer.amount, lang)} ✅`;
+    await sysMsg(txt, offer.id);
     await base44.entities.ChatRoom.update(id, { last_message: txt });
   };
 
   const rejectOffer = async (offer) => {
     await base44.entities.Offer.update(offer.id, { status: "rejected" });
-    await base44.entities.ChatRoom.update(id, { last_message: lang === "ar" ? "تم رفض العرض" : "Offer rejected" });
+    const txt = lang === "ar" ? "تم رفض العرض" : "Offer rejected";
+    await sysMsg(txt, offer.id);
+    await base44.entities.ChatRoom.update(id, { last_message: txt });
   };
 
   const counterOffer = async (offer, amount) => {
@@ -173,6 +179,9 @@ export default function ChatRoom() {
 
   const modifyOffer = async (offer, amount) => {
     await base44.entities.Offer.update(offer.id, { amount });
+    const txt = lang === "ar" ? `تم تعديل العرض إلى ${formatPrice(amount, lang)}` : `Offer updated to ${formatPrice(amount, lang)}`;
+    await sysMsg(txt, offer.id);
+    await base44.entities.ChatRoom.update(id, { last_message: txt });
   };
 
   const confirmReceipt = async (offer) => {

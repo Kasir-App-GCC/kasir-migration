@@ -1,13 +1,33 @@
 import { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
-import { toDate } from "@/lib/format";
+
+// Lazily create a single AudioContext and resume it on the first user gesture
+// (browsers block audio until the page has been interacted with).
+let audioCtx = null;
+function getCtx() {
+  if (typeof window === "undefined") return null;
+  if (!audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    audioCtx = new AC();
+  }
+  return audioCtx;
+}
+if (typeof window !== "undefined") {
+  const resume = () => {
+    const c = getCtx();
+    if (c && c.state === "suspended") c.resume().catch(() => {});
+  };
+  window.addEventListener("pointerdown", resume, { once: true });
+  window.addEventListener("keydown", resume, { once: true });
+}
 
 function playBeep() {
   try {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
-    const ctx = new AC();
+    const ctx = getCtx();
+    if (!ctx) return;
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
     const o = ctx.createOscillator();
     const g = ctx.createGain();
     o.connect(g);
@@ -19,7 +39,6 @@ function playBeep() {
     g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.45);
     o.start();
     o.stop(ctx.currentTime + 0.47);
-    setTimeout(() => ctx.close(), 700);
   } catch {}
 }
 
@@ -43,7 +62,7 @@ export default function useUnreadChats() {
       return;
     }
     let cancelled = false;
-    const since = lastChatsSeen ? new Date(lastChatsSeen).getTime() : 0;
+    let timer = null;
 
     const compute = async () => {
       try {
@@ -54,41 +73,51 @@ export default function useUnreadChats() {
           base44.entities.Message.list("-created_date", 200),
           base44.entities.Offer.list("-created_date", 200),
         ]);
+        const since = lastChatsSeen ? new Date(lastChatsSeen).getTime() : 0;
         const unreadMsgs = (msgs || []).filter(
-          (m) => roomIds.current.has(m.chatroom_id) && m.sender_id !== user.id && toDate(m.created_date).getTime() > since
+          (m) => roomIds.current.has(m.chatroom_id) && m.sender_id !== user.id && new Date(m.created_date).getTime() > since
         ).length;
         const unreadOffers = (offers || []).filter(
-          (o) => roomIds.current.has(o.chatroom_id) && offerIsIncoming(o, user.id) && toDate(o.created_date).getTime() > since
+          (o) => roomIds.current.has(o.chatroom_id) && offerIsIncoming(o, user.id) && new Date(o.created_date).getTime() > since
         ).length;
         if (!cancelled) setCount(unreadMsgs + unreadOffers);
       } catch {}
     };
     compute();
 
-    const onIncoming = () => {
+    const schedule = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { if (!cancelled) compute(); }, 400);
+    };
+
+    const maybeBeep = () => {
       if (window.location.pathname.startsWith("/chat/")) return;
       playBeep();
-      setCount((c) => c + 1);
     };
 
     const unsubM = base44.entities.Message.subscribe((event) => {
       const m = event && event.data;
       if (!m || m.sender_id === user.id) return;
-      if (!roomIds.current.has(m.chatroom_id)) return;
-      onIncoming();
+      if (event.type === "create" && roomIds.current.has(m.chatroom_id)) maybeBeep();
+      schedule();
     });
 
     const unsubO = base44.entities.Offer.subscribe((event) => {
       const o = event && event.data;
-      if (!offerIsIncoming(o, user.id)) return;
-      if (!roomIds.current.has(o.chatroom_id)) return;
-      onIncoming();
+      if (!o) return;
+      if (event.type === "create" && offerIsIncoming(o, user.id) && roomIds.current.has(o.chatroom_id)) maybeBeep();
+      schedule();
     });
+
+    // Safety net: refresh periodically in case a realtime event is missed.
+    const poll = setInterval(() => { if (!cancelled) compute(); }, 20000);
 
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
       if (unsubM) unsubM();
       if (unsubO) unsubO();
+      clearInterval(poll);
     };
   }, [user, lastChatsSeen]);
 

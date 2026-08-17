@@ -26,8 +26,14 @@ export default function Chats() {
     return false;
   };
 
+  const loadingRef = useRef(false);
   const loadRooms = useCallback(async () => {
     if (!user) { setLoading(false); return; }
+    // Guard against overlapping fetches racing and overwriting with stale/empty results.
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    // Only show skeletons on the very first load; later refetches update silently.
+    if (!roomsRef.current.length) setLoading(true);
     try {
       const all = await base44.entities.ChatRoom.list("-updated_date", 100);
       const mine = (all || []).filter((r) => {
@@ -61,9 +67,9 @@ export default function Chats() {
         setUnread(map);
       } catch {}
     } catch {
-      // keep existing rooms on transient fetch errors to avoid flicker to "no chats"
-      if (!roomsRef.current.length) setRooms([]);
+      // Never clear existing rooms on a transient fetch error — keep what we have.
     } finally {
+      loadingRef.current = false;
       setLoading(false);
     }
   }, [user]);
@@ -80,7 +86,16 @@ export default function Chats() {
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => loadRooms(), 250);
     };
-    const onRoom = () => scheduleLoad();
+    const onRoom = (event) => {
+      // Only react to structural changes. Update events (last-seen pings, last_message
+      // bumps) would otherwise trigger a refetch storm and can overlap/clear the list.
+      if (event?.type === "create") { loadRooms(); return; }
+      if (event?.type === "delete") {
+        const id = event?.data?.id;
+        if (id) setRooms((prev) => prev.filter((r) => r.id !== id));
+        return;
+      }
+    };
     const onMsg = async (event) => {
       if (event?.type !== "create") { scheduleLoad(); return; }
       const m = event?.data;
@@ -123,13 +138,14 @@ export default function Chats() {
     // Safety net: refresh whenever the window regains focus, so reappearing
     // chats and new messages surface even if a realtime event is missed.
     const onFocus = () => loadRooms();
+    const onVis = () => { if (!document.hidden) loadRooms(); };
     window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onFocus);
+    document.addEventListener("visibilitychange", onVis);
     return () => {
       if (timer) clearTimeout(timer);
       unsubR?.(); unsubM?.(); unsubO?.();
       window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onFocus);
+      document.removeEventListener("visibilitychange", onVis);
     };
   }, [user, loadRooms]);
 

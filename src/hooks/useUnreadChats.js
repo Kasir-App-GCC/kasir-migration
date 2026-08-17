@@ -63,8 +63,11 @@ export default function useUnreadChats() {
     }
     let cancelled = false;
     let timer = null;
+    let inFlight = false;
 
     const compute = async () => {
+      if (inFlight) return;
+      inFlight = true;
       try {
         const rooms = await base44.entities.ChatRoom.list("-updated_date", 100);
         const mine = (rooms || []).filter((r) => {
@@ -89,7 +92,9 @@ export default function useUnreadChats() {
           ).length;
         });
         if (!cancelled) setCount(total);
-      } catch {}
+      } catch {} finally {
+        inFlight = false;
+      }
     };
     compute();
 

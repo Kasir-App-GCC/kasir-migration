@@ -3,30 +3,40 @@ import { MapPin, Search, X, Check, Crosshair } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { SAUDI_CITIES, getCityName, nearestCity } from "@/lib/constants";
+import MapPinPicker from "@/components/MapPinPicker";
 
 export default function LocationFilter({ open, onClose }) {
   const { lang, locationFilter, setLocationFilter } = useStore();
   const t = useT();
-  const [tab, setTab] = useState(locationFilter.mode);
+  const [tab, setTab] = useState(locationFilter.mode === "map" ? "map" : locationFilter.mode);
   const [radius, setRadius] = useState(locationFilter.radius);
   const [city, setCity] = useState(locationFilter.city);
   const [query, setQuery] = useState("");
   const [locating, setLocating] = useState(false);
   const [detectedCity, setDetectedCity] = useState(null);
   const [detectedCoords, setDetectedCoords] = useState(null);
+  const [mapPos, setMapPos] = useState(
+    locationFilter.mode === "map" && locationFilter.lat ? { lat: locationFilter.lat, lng: locationFilter.lng } : null
+  );
 
   useEffect(() => {
     if (open) {
-      setTab(locationFilter.mode);
+      setTab(locationFilter.mode === "map" ? "map" : locationFilter.mode);
       setRadius(locationFilter.radius);
       setCity(locationFilter.city);
       setQuery("");
       if (locationFilter.mode === "radius" && locationFilter.lat) {
         setDetectedCity(nearestCity(locationFilter.lat, locationFilter.lng));
         setDetectedCoords({ lat: locationFilter.lat, lng: locationFilter.lng });
+        setMapPos(null);
+      } else if (locationFilter.mode === "map" && locationFilter.lat) {
+        setMapPos({ lat: locationFilter.lat, lng: locationFilter.lng });
+        setDetectedCity(null);
+        setDetectedCoords(null);
       } else {
         setDetectedCity(null);
         setDetectedCoords(null);
+        setMapPos(null);
       }
     }
   }, [open]);
@@ -63,6 +73,14 @@ export default function LocationFilter({ open, onClose }) {
   const apply = () => {
     if (tab === "city") {
       setLocationFilter({ mode: "city", city, radius: 25 });
+      onClose();
+      return;
+    }
+    if (tab === "map") {
+      if (mapPos) {
+        const c = nearestCity(mapPos.lat, mapPos.lng);
+        setLocationFilter({ mode: "map", radius, city: c?.en || null, lat: mapPos.lat, lng: mapPos.lng });
+      }
       onClose();
       return;
     }
@@ -115,6 +133,16 @@ export default function LocationFilter({ open, onClose }) {
           >
             {t("nearMe")}
           </button>
+          <button
+            onClick={() => setTab("map")}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition ${
+              tab === "map"
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {lang === "ar" ? "الخريطة" : "Map"}
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 pb-2">
@@ -151,6 +179,45 @@ export default function LocationFilter({ open, onClose }) {
                   >
                     <span>{lang === "ar" ? c.ar : c.en}</span>
                     {city === c.en && <Check size={16} />}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : tab === "map" ? (
+            <div className="py-3">
+              <p className="text-xs text-muted-foreground mb-2">{lang === "ar" ? "اضغط على الخريطة لوضع الدبوس" : "Tap the map to drop a pin"}</p>
+              <MapPinPicker
+                center={mapPos || { lat: 24.7136, lng: 46.6753 }}
+                radius={radius}
+                onPick={(p) => setMapPos(p)}
+              />
+              {mapPos ? (
+                <p className="text-xs text-muted-foreground mt-2">
+                  {lang === "ar" ? "الموقع" : "Location"}: {mapPos.lat.toFixed(4)}, {mapPos.lng.toFixed(4)}
+                  {(() => { const c = nearestCity(mapPos.lat, mapPos.lng); return c ? ` · ${lang === "ar" ? c.ar : c.en}` : ""; })()}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-2">{lang === "ar" ? "لم يتم اختيار موقع بعد" : "No location selected yet"}</p>
+              )}
+              <div className="flex items-baseline justify-between mb-2 mt-4">
+                <span className="text-sm text-muted-foreground">{t("radius")}</span>
+                <span className="text-2xl font-extrabold">{radius} <span className="text-sm font-medium text-muted-foreground">{t("km")}</span></span>
+              </div>
+              <input type="range" min={1} max={200} value={radius} onChange={(e) => setRadius(Number(e.target.value))} className="w-full accent-primary" />
+              <div className="flex justify-between text-[11px] text-muted-foreground mt-1">
+                <span>1 {t("km")}</span>
+                <span>200 {t("km")}</span>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-4">
+                {[1, 5, 10, 15, 20, 50, 100].map((km) => (
+                  <button
+                    key={km}
+                    onClick={() => setRadius(km)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition ${
+                      radius === km ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"
+                    }`}
+                  >
+                    {km} {t("km")}
                   </button>
                 ))}
               </div>
@@ -227,7 +294,7 @@ export default function LocationFilter({ open, onClose }) {
           </button>
           <button
             onClick={apply}
-            disabled={locating}
+            disabled={locating || (tab === "map" && !mapPos)}
             className="flex-1 py-3 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
           >
             {locating ? t("locating") : t("apply")}

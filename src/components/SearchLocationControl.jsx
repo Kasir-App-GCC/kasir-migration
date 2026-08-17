@@ -14,7 +14,7 @@ export default function SearchLocationControl() {
   const mode = locationFilter.mode || "city";
   const radius = locationFilter.radius || 25;
   const city = locationFilter.city || "";
-  const hasCoords = mode === "radius" && locationFilter.lat;
+  const hasCoords = (mode === "radius" || mode === "map") && locationFilter.lat;
 
   const switchToCity = () => setLocationFilter({ mode: "city", city: city || null, radius: 25 });
   const switchToRadius = () => setLocationFilter({ mode: "radius", radius, city: null, ...(hasCoords ? { lat: locationFilter.lat, lng: locationFilter.lng } : {}) });
@@ -50,7 +50,7 @@ export default function SearchLocationControl() {
         </button>
         <button
           onClick={switchToRadius}
-          className={`flex-1 py-2 rounded-xl text-xs font-semibold transition ${mode === "radius" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+          className={`flex-1 py-2 rounded-xl text-xs font-semibold transition ${mode === "radius" || mode === "map" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
         >
           {t("nearMe")}
         </button>

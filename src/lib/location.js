@@ -23,7 +23,7 @@ export function matchLocation(it, loc) {
     if (!loc.city) return true;
     return it.city === loc.city;
   }
-  if (loc.mode === "radius") {
+  if (loc.mode === "radius" || loc.mode === "map") {
     if (!loc.lat || !loc.lng) return true;
     // Use the item's exact GPS pin if present; otherwise fall back to city center
     const c = (it.lat && it.lng) ? { lat: it.lat, lng: it.lng } : cityCoords(it.city);

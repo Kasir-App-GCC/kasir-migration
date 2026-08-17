@@ -12,7 +12,7 @@ export default function TopBar({ onOpenLocation }) {
   const unread = useUnreadChats();
 
   const locLabel =
-    locationFilter.mode === "radius"
+    locationFilter.mode === "radius" || locationFilter.mode === "map"
       ? locationFilter.city
         ? `${getCityName(locationFilter.city, lang)} · ${locationFilter.radius} ${t("km")}`
         : `${t("within")} ${locationFilter.radius} ${t("km")}`

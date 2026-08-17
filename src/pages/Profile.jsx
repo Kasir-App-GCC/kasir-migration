@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil } from "lucide-react";
+import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import ItemCard from "@/components/ItemCard";
 import RatingStars from "@/components/RatingStars";
 import EditProfileDialog from "@/components/EditProfileDialog";
+import ContactSupportDialog from "@/components/ContactSupportDialog";
 import SellerDashboard from "@/components/SellerDashboard";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { useAuth } from "@/lib/AuthContext";
@@ -22,6 +23,7 @@ export default function Profile() {
   const [ratings, setRatings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [waSaving, setWaSaving] = useState(false);
 
@@ -279,6 +281,10 @@ export default function Profile() {
           <span className="flex items-center gap-2 text-sm font-semibold"><Trash2 size={18} /> {t("clearFavorites")}</span>
           <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
         </button>
+        <button onClick={() => setSupportOpen(true)} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
+          <span className="flex items-center gap-2 text-sm font-semibold"><LifeBuoy size={18} /> {t("contactSupport")}</span>
+          <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
+        </button>
         <button onClick={() => logout()} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
           <span className="flex items-center gap-2 text-rose-600 font-semibold text-sm"><LogOut size={18} /> {t("logout")}</span>
           <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
@@ -290,6 +296,7 @@ export default function Profile() {
       </div>
 
       <EditProfileDialog open={editOpen} onClose={() => setEditOpen(false)} />
+      <ContactSupportDialog open={supportOpen} onClose={() => setSupportOpen(false)} />
     </div>
   );
 }

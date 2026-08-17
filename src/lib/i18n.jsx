@@ -236,6 +236,17 @@ const en = {
   deleteAllChats: "Delete all",
   deleteAllChatsConfirm: "Delete all conversations? This only hides them for you.",
   theSeller: "The seller",
+  contactSupport: "Contact Support",
+  supportDesc: "Get help or report an issue",
+  supportCategory: "Issue type",
+  supportSubject: "Subject",
+  supportMessage: "Message",
+  supportSubjectPlaceholder: "Briefly describe your issue",
+  supportMessagePlaceholder: "Tell us more about your issue…",
+  submitTicket: "Submit ticket",
+  ticketSubmitted: "Your message has been sent. We'll get back to you soon.",
+  myTickets: "My tickets",
+  supportReply: "Reply from support",
   };
 
 const ar = {
@@ -474,6 +485,17 @@ const ar = {
   deleteAllChats: "حذف الكل",
   deleteAllChatsConfirm: "حذف كل المحادثات؟ يختفي من جانبك بس.",
   theSeller: "البائع",
+  contactSupport: "تواصل مع الدعم",
+  supportDesc: "احصل على مساعدة أو أبلغ عن مشكلة",
+  supportCategory: "نوع المشكلة",
+  supportSubject: "الموضوع",
+  supportMessage: "الرسالة",
+  supportSubjectPlaceholder: "صف مشكلتك باختصار",
+  supportMessagePlaceholder: "أخبرنا أكثر عن مشكلتك…",
+  submitTicket: "إرسال التذكرة",
+  ticketSubmitted: "تم إرسال رسالتك. سنعود إليك قريباً.",
+  myTickets: "تذاكي",
+  supportReply: "رد الدعم",
   };
 
 export function useT() {

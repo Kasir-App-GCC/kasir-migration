@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import ReactMarkdown from "react-markdown";
+import ItemCard from "@/components/ItemCard";
 
 const AGENT_NAME = "shopping_assistant";
 
@@ -21,6 +22,27 @@ const SUGGESTIONS_EN = [
   "Find kids' toys from productive families",
 ];
 
+function extractItems(toolCalls) {
+  const items = [];
+  (toolCalls || []).forEach((tc) => {
+    if (!tc.results) return;
+    let res = tc.results;
+    if (typeof res === "string") {
+      try { res = JSON.parse(res); } catch { return; }
+    }
+    const arr = Array.isArray(res) ? res
+      : Array.isArray(res?.data) ? res.data
+      : Array.isArray(res?.items) ? res.items
+      : Array.isArray(res?.results) ? res.results
+      : (res && res.id && res.title ? [res] : []);
+    arr.forEach((c) => {
+      if (c && typeof c === "object" && c.id && (c.title || c.price != null)) items.push(c);
+    });
+  });
+  const seen = new Set();
+  return items.filter((it) => (seen.has(it.id) ? false : (seen.add(it.id), true)));
+}
+
 function MessageBubble({ message, onItemClick }) {
   const isUser = message.role === "user";
   if (isUser) {
@@ -32,20 +54,34 @@ function MessageBubble({ message, onItemClick }) {
       </div>
     );
   }
+  const items = extractItems(message.tool_calls);
   return (
     <div className="flex justify-start">
-      <div className="max-w-[90%] rounded-2xl rounded-bl-md bg-card border border-border/60 px-4 py-3 text-sm">
-        <ReactMarkdown
-          className="prose prose-sm max-w-none dark:prose-invert [&_p]:my-1 [&_ul]:my-1.5 [&_li]:my-0.5"
-          components={{
-            a: ({ node, ...props }) => <a {...props} target="_blank" rel="noreferrer" />,
-          }}
-        >
-          {message.content || ""}
-        </ReactMarkdown>
-        {message.tool_calls?.map((tc, i) => (
-          <ToolCallBadge key={i} toolCall={tc} />
-        ))}
+      <div className="max-w-[90%]">
+        {message.content && (
+          <div className="rounded-2xl rounded-bl-md bg-card border border-border/60 px-4 py-3 text-sm">
+            <ReactMarkdown
+              className="prose prose-sm max-w-none dark:prose-invert [&_p]:my-1 [&_ul]:my-1.5 [&_li]:my-0.5"
+              components={{
+                a: ({ node, ...props }) => <a {...props} target="_blank" rel="noreferrer" />,
+              }}
+            >
+              {message.content || ""}
+            </ReactMarkdown>
+            {message.tool_calls?.map((tc, i) => (
+              <ToolCallBadge key={i} toolCall={tc} />
+            ))}
+          </div>
+        )}
+        {items.length > 0 && (
+          <div className="mt-2 flex gap-2 overflow-x-auto no-scrollbar pb-1">
+            {items.map((it) => (
+              <div key={it.id} className="w-40 shrink-0">
+                <ItemCard item={it} onClick={() => onItemClick?.(it.id)} />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -212,7 +248,7 @@ export default function ShoppingAssistant() {
           </div>
         )}
         {messages.map((m, i) => (
-          <MessageBubble key={i} message={m} />
+          <MessageBubble key={i} message={m} onItemClick={(id) => nav(`/item/${id}`)} />
         ))}
         {sending && (
           <div className="flex justify-start">

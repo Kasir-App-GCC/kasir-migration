@@ -13,6 +13,7 @@ export default function Notifications() {
   const nav = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -108,7 +109,16 @@ export default function Notifications() {
         setLoading(false);
       }
     })();
-  }, [user, notifsClearedAt]);
+  }, [user, notifsClearedAt, tick]);
+
+  useEffect(() => {
+    const unsub = base44.entities.Notification.subscribe((event) => {
+      if (event?.type === "create") setTick((t) => t + 1);
+    });
+    const onFocus = () => setTick((t) => t + 1);
+    window.addEventListener("focus", onFocus);
+    return () => { unsub?.(); window.removeEventListener("focus", onFocus); };
+  }, []);
 
   const clearAll = () => {
     setNotifsClearedAt(new Date().toISOString());

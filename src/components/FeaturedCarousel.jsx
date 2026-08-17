@@ -1,11 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
-import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
-import Price from "@/components/Price";
+import ItemCard from "@/components/ItemCard";
 
 export default function FeaturedCarousel({ items, onOpen }) {
-  const { lang } = useStore();
   const t = useT();
   const ref = useRef(null);
   const [paused, setPaused] = useState(false);
@@ -41,12 +39,8 @@ export default function FeaturedCarousel({ items, onOpen }) {
         className="flex gap-3 overflow-x-auto no-scrollbar px-1 pb-1 scroll-smooth snap-x"
       >
         {items.map((it) => (
-          <div key={it.id} onClick={() => onOpen(it.id)} className="snap-start shrink-0 w-32 cursor-pointer">
-            <div className="aspect-square rounded-2xl overflow-hidden bg-white/10">
-              <img src={it.images?.[0]} alt={it.title} className="w-full h-full object-cover" />
-            </div>
-            <p className="text-xs font-semibold mt-1.5 line-clamp-1">{it.title}</p>
-            <p className="text-[11px] font-bold text-amber-300"><Price value={it.price} lang={lang} /></p>
+          <div key={it.id} className="snap-start shrink-0 w-40">
+            <ItemCard item={it} onClick={() => onOpen(it.id)} />
           </div>
         ))}
       </div>

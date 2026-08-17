@@ -1,9 +1,22 @@
 import React, { useEffect, useState } from "react";
-import { X, Send, LifeBuoy, CheckCircle2, Hash, Mail } from "lucide-react";
+import { X, Send, LifeBuoy, CheckCircle2, Hash, Mail, Phone } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { useToast } from "@/components/ui/use-toast";
+import { COUNTRIES, getCountry } from "@/lib/countries";
+
+// Convert Arabic-Indic (٠-٩) and Eastern Arabic (۰-۹) digits to ASCII 0-9
+function normalizeDigits(s) {
+  return s.replace(/[\u0660-\u0669\u06F0-\u06F9]/g, (d) => {
+    const code = d.charCodeAt(0);
+    const n = code - 0x0660 < 10 ? code - 0x0660 : code - 0x06f0;
+    return String(n);
+  });
+}
+
+const MIN_PHONE = 8;
+const MAX_PHONE = 12;
 
 const CATEGORIES = [
   { id: "general", en: "General question", ar: "استفسار عام" },
@@ -14,10 +27,11 @@ const CATEGORIES = [
 ];
 
 export default function ContactSupportDialog({ open, onClose }) {
-  const { user, lang } = useStore();
+  const { user, lang, country } = useStore();
   const t = useT();
   const { toast } = useToast();
   const [fullName, setFullName] = useState("");
+  const [phoneCode, setPhoneCode] = useState("966");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [category, setCategory] = useState("general");
@@ -35,6 +49,8 @@ export default function ContactSupportDialog({ open, onClose }) {
       setFullName(user?.name || "");
       setEmail(user?.email || "");
       setPhone("");
+      const c = getCountry(country || "SA");
+      setPhoneCode(c?.phoneCode || "966");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -42,12 +58,12 @@ export default function ContactSupportDialog({ open, onClose }) {
   if (!open) return null;
 
   const submit = async () => {
-    if (!fullName.trim() || !phone.trim() || !email.trim() || !subject.trim() || !message.trim() || submitting) return;
+    if (!fullName.trim() || !phoneValid || !email.trim() || !subject.trim() || !message.trim() || submitting) return;
     setSubmitting(true);
     try {
       const res = await base44.functions.invoke("submitSupportTicket", {
         fullName: fullName.trim(),
-        phone: phone.trim(),
+        phone: `+${phoneCode} ${phone}`,
         email: email.trim(),
         category,
         subject: subject.trim(),
@@ -70,7 +86,11 @@ export default function ContactSupportDialog({ open, onClose }) {
     }
   };
 
-  const valid = fullName.trim() && phone.trim() && email.trim() && subject.trim() && message.trim();
+  const digitsOnly = (s) => normalizeDigits(s).replace(/\D/g, "");
+  const onPhoneChange = (e) => setPhone(digitsOnly(e.target.value).slice(0, MAX_PHONE));
+  const phoneLen = digitsOnly(phone).length;
+  const phoneValid = phoneLen >= MIN_PHONE && phoneLen <= MAX_PHONE;
+  const valid = fullName.trim() && phoneValid && email.trim() && subject.trim() && message.trim();
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -115,14 +135,35 @@ export default function ContactSupportDialog({ open, onClose }) {
             </div>
             <div>
               <label className="text-sm font-semibold mb-1.5 block">{t("supportPhone")}</label>
-              <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value.slice(0, 20))}
-                maxLength={20}
-                placeholder="+966 5X XXX XXXX"
-                inputMode="tel"
-                className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30"
-              />
+              <div className="flex gap-2">
+                <div className="relative shrink-0">
+                  <select
+                    value={phoneCode}
+                    onChange={(e) => setPhoneCode(e.target.value)}
+                    className="appearance-none h-full ps-9 pe-7 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm font-semibold"
+                  >
+                    {COUNTRIES.map((c) => (
+                      <option key={c.code} value={c.phoneCode}>
+                        {c.flag} +{c.phoneCode}
+                      </option>
+                    ))}
+                  </select>
+                  <Phone size={14} className="absolute top-1/2 -translate-y-1/2 start-3 text-muted-foreground pointer-events-none" />
+                </div>
+                <input
+                  value={phone}
+                  onChange={onPhoneChange}
+                  maxLength={MAX_PHONE}
+                  placeholder="5X XXX XXXX"
+                  inputMode="tel"
+                  className="flex-1 px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30"
+                />
+              </div>
+              <p className={`text-[11px] mt-1 ps-1 ${phone && !phoneValid ? "text-rose-500 font-semibold" : "text-muted-foreground"}`}>
+                {phone && !phoneValid
+                  ? (lang === "ar" ? `الرقم يجب أن يكون بين ${MIN_PHONE} و ${MAX_PHONE} أرقام` : `Must be ${MIN_PHONE}–${MAX_PHONE} digits`)
+                  : (lang === "ar" ? `بدون مفتاح الدولة — بين ${MIN_PHONE} و ${MAX_PHONE} أرقام` : `Without country code — ${MIN_PHONE}–${MAX_PHONE} digits`)}
+              </p>
             </div>
           </div>
 

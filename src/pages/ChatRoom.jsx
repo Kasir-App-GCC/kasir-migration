@@ -143,7 +143,7 @@ export default function ChatRoom() {
     lastSig.current = "";
     try {
       await base44.entities.Message.create(msg);
-      await base44.entities.ChatRoom.update(id, { last_message: msg.text });
+      await base44.entities.ChatRoom.update(id, { last_message: msg.text, hidden_for_buyer: false, hidden_for_seller: false });
     } catch {}
   };
 
@@ -156,14 +156,14 @@ export default function ChatRoom() {
       ? `تم الاتفاق على السعر ${formatPrice(offer.amount, lang)} ✅`
       : `Price agreed at ${formatPrice(offer.amount, lang)} ✅`;
     await sysMsg(txt, offer.id);
-    await base44.entities.ChatRoom.update(id, { last_message: txt });
+    await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false });
   };
 
   const rejectOffer = async (offer) => {
     await base44.entities.Offer.update(offer.id, { status: "rejected" });
     const txt = lang === "ar" ? "تم رفض العرض" : "Offer rejected";
     await sysMsg(txt, offer.id);
-    await base44.entities.ChatRoom.update(id, { last_message: txt });
+    await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false });
   };
 
   const counterOffer = async (offer, amount) => {
@@ -185,14 +185,14 @@ export default function ChatRoom() {
     const preview = (isSeller
       ? (lang === "ar" ? `عارض البائع بسعر ${formatPrice(amount, lang)}` : `Seller counters at ${formatPrice(amount, lang)}`)
       : (lang === "ar" ? `عرض جديد بسعر ${formatPrice(amount, lang)}` : `New offer at ${formatPrice(amount, lang)}`));
-    await base44.entities.ChatRoom.update(id, { last_message: preview });
+    await base44.entities.ChatRoom.update(id, { last_message: preview, hidden_for_buyer: false, hidden_for_seller: false });
   };
 
   const modifyOffer = async (offer, amount) => {
     await base44.entities.Offer.update(offer.id, { amount });
     const txt = lang === "ar" ? `تم تعديل العرض إلى ${formatPrice(amount, lang)}` : `Offer updated to ${formatPrice(amount, lang)}`;
     await sysMsg(txt, offer.id);
-    await base44.entities.ChatRoom.update(id, { last_message: txt });
+    await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false });
   };
 
   const confirmReceipt = async (offer) => {

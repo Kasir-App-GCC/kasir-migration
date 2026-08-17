@@ -29,7 +29,7 @@ export default function FeaturedCarousel({ items, onOpen }) {
     const container = containerRef.current, row = rowRef.current;
     if (!container || !row) return;
     let raf;
-    const step = 1.1;
+    const step = 0.55;
     const tick = () => {
       const { lo, hi } = bounds();
       if (hi !== lo) {

@@ -39,7 +39,7 @@ export default function Search() {
   const results = useMemo(() => {
     let r = items.filter((it) => {
       if (categories.length && !categories.includes(it.category)) return false;
-      if (subcategories.length && !subcategories.includes(it.subcategory)) return false;
+      if (subcategories.length && !(Array.isArray(it.subcategory) ? it.subcategory.some((s) => subcategories.includes(s)) : subcategories.includes(it.subcategory))) return false;
       if (!prefs.showSold && it.status === "sold") return false;
       if (!matchLocation(it, locationFilter)) return false;
       if (q && !(`${it.title} ${it.description}`.toLowerCase().includes(q.toLowerCase()))) return false;

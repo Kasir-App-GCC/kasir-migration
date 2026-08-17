@@ -45,7 +45,7 @@ export default function Home() {
 
   const filtered = items.filter((it) => {
     if (categories.length && !categories.includes(it.category)) return false;
-    if (subcategories.length && !subcategories.includes(it.subcategory)) return false;
+    if (subcategories.length && !(Array.isArray(it.subcategory) ? it.subcategory.some((s) => subcategories.includes(s)) : subcategories.includes(it.subcategory))) return false;
     if (!prefs.showSold && it.status === "sold") return false;
     return matchLocation(it, locationFilter);
   });

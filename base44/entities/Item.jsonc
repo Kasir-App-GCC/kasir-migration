@@ -21,7 +21,10 @@
       "type": "string"
     },
     "subcategory": {
-      "type": "string"
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     },
     "condition": {
       "type": "string",

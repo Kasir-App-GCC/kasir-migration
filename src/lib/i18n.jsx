@@ -230,6 +230,7 @@ const en = {
   agreedArrange: "Price agreed — arrange handover",
   locationNeeded: "We need your location to list items",
   cover: "Cover",
+  dragToReorder: "Hold and drag a photo to reorder — the first one is the cover",
   deleteAllChats: "Delete all",
   deleteAllChatsConfirm: "Delete all conversations? This only hides them for you.",
   };
@@ -464,6 +465,7 @@ const ar = {
   agreedArrange: "تم الاتفاق — رتبوا التسليم",
   locationNeeded: "نحتاج موقعك لإضافة الإعلانات",
   cover: "الغلاف",
+  dragToReorder: "اسحب الصورة لإعادة الترتيب — الأولى هي الغلاف",
   deleteAllChats: "حذف الكل",
   deleteAllChatsConfirm: "حذف كل المحادثات؟ يختفي من جانبك بس.",
   };

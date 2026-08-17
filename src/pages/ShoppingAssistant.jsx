@@ -34,7 +34,7 @@ function extractItemIds(toolCalls) {
   return Array.from(ids);
 }
 
-function MessageBubble({ message, onItemClick, itemMap }) {
+function MessageBubble({ message, onItemClick, itemMap, itemsByMsg }) {
   const isUser = message.role === "user";
   if (isUser) {
     return (
@@ -45,7 +45,8 @@ function MessageBubble({ message, onItemClick, itemMap }) {
       </div>
     );
   }
-  const items = extractItemIds(message.tool_calls).map((id) => itemMap?.[id]).filter(Boolean);
+  const ids = (message.id && itemsByMsg?.[message.id]) || extractItemIds(message.tool_calls);
+  const items = ids.map((id) => itemMap?.[id]).filter(Boolean);
   return (
     <div className="flex justify-start">
       <div className="max-w-[90%]">
@@ -110,6 +111,7 @@ export default function ShoppingAssistant() {
   const [sending, setSending] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [itemCache, setItemCache] = useState({});
+  const [itemsByMsg, setItemsByMsg] = useState({});
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -146,23 +148,33 @@ export default function ShoppingAssistant() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  // Fetch full item records (with images) for any items the assistant found in tool calls
+  // Persist found item IDs per message + fetch full records (with images).
+  // IDs are accumulated so cards survive real-time message updates that may drop tool-call results.
   useEffect(() => {
-    const ids = new Set();
-    messages.forEach((m) => extractItemIds(m.tool_calls).forEach((id) => ids.add(id)));
-    const missing = Array.from(ids).filter((id) => !itemCache[id]);
+    const byMsg = {};
+    const allIds = new Set();
+    messages.forEach((m, i) => {
+      if (m.role !== "assistant" || !m.tool_calls?.length) return;
+      const ids = extractItemIds(m.tool_calls);
+      if (!ids.length) return;
+      const key = m.id || `idx-${i}`;
+      byMsg[key] = ids;
+      ids.forEach((id) => allIds.add(id));
+    });
+    setItemsByMsg((prev) => {
+      const next = { ...prev };
+      Object.keys(byMsg).forEach((k) => { if (!(k in next)) next[k] = byMsg[k]; });
+      return next;
+    });
+    const missing = Array.from(allIds).filter((id) => !itemCache[id]);
     if (!missing.length) return;
-    let cancelled = false;
-    (async () => {
-      const results = await Promise.all(missing.map((id) => base44.entities.Item.get(id).catch(() => null)));
-      if (cancelled) return;
+    Promise.all(missing.map((id) => base44.entities.Item.get(id).catch(() => null))).then((results) => {
       setItemCache((prev) => {
         const next = { ...prev };
         results.forEach((r) => { if (r && r.id) next[r.id] = r; });
         return next;
       });
-    })();
-    return () => { cancelled = true; };
+    });
   }, [messages]);
 
   const send = async (text) => {
@@ -259,7 +271,7 @@ export default function ShoppingAssistant() {
           </div>
         )}
         {messages.map((m, i) => (
-          <MessageBubble key={i} message={m} itemMap={itemCache} onItemClick={(id) => nav(`/item/${id}`)} />
+          <MessageBubble key={i} message={m} itemMap={itemCache} itemsByMsg={itemsByMsg} onItemClick={(id) => nav(`/item/${id}`)} />
         ))}
         {sending && (
           <div className="flex justify-start">

@@ -55,7 +55,6 @@ export default function FeaturedCarousel({ items, onOpen }) {
     if (!container) return;
     drag.current = { active: true, startX: e.clientX, startTranslate: translate.current, moved: false };
     setPaused(true);
-    try { container.setPointerCapture(e.pointerId); } catch {}
   };
   const onPointerMove = (e) => {
     const row = rowRef.current;

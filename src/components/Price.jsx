@@ -8,7 +8,7 @@ export default function Price({ value, lang, country, className = "" }) {
   const toCode = storeCountry || "SA";
   const fromCode = country || toCode;
   const converted = convertCurrency(value, fromCode, toCode);
-  const num = Number(converted).toLocaleString(lng === "ar" ? "ar-SA" : "en-US", { maximumFractionDigits: 2 });
+  const num = Math.round(converted).toLocaleString(lng === "ar" ? "ar-SA" : "en-US");
   return (
     <span dir="ltr" className={`inline-flex items-center gap-1 whitespace-nowrap ${className}`}>
       <CurrencySymbol country={toCode} lang={lng} size={13} />

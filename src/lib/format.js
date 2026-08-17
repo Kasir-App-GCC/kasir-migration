@@ -4,7 +4,7 @@ export function formatPrice(n, lang = "en", fromCountry = "SA", toCountry) {
   const to = toCountry || fromCountry;
   const converted = convertCurrency(n, fromCountry, to);
   const c = getCountry(to);
-  const num = Number(converted).toLocaleString(lang === "ar" ? "ar-SA" : "en-US", { maximumFractionDigits: 2 });
+  const num = Math.round(converted).toLocaleString(lang === "ar" ? "ar-SA" : "en-US");
   return lang === "ar" ? `${num} ${c.currencyAr}` : `${c.currency} ${num}`;
 }
 

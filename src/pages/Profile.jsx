@@ -146,7 +146,7 @@ export default function Profile() {
                 <ItemCard item={it} onClick={() => nav(`/item/${it.id}`)} />
                 <button
                   onClick={() => deleteListing(it.id)}
-                  className="absolute top-2 end-2 z-30 w-8 h-8 rounded-full bg-rose-600 text-white shadow flex items-center justify-center hover:scale-110 transition"
+                  className="absolute top-2 end-2 z-20 w-8 h-8 rounded-full bg-rose-600 text-white shadow flex items-center justify-center hover:scale-110 transition"
                   title={t("deleteListing")}
                 >
                   <Trash2 size={15} />

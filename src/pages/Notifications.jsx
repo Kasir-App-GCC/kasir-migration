@@ -119,12 +119,27 @@ export default function Notifications() {
   }, [user, notifsClearedAt, tick]);
 
   useEffect(() => {
+    let timer = null;
+    const bump = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => setTick((t) => t + 1), 500);
+    };
     const unsub = base44.entities.Notification.subscribe((event) => {
-      if (event?.type === "create") setTick((t) => t + 1);
+      if (event?.type === "create") bump();
     });
-    const onFocus = () => setTick((t) => t + 1);
+    const unsubM = base44.entities.Message.subscribe((event) => {
+      if (event?.type === "create") bump();
+    });
+    const unsubO = base44.entities.Offer.subscribe((event) => {
+      if (event?.type === "create") bump();
+    });
+    const onFocus = () => bump();
     window.addEventListener("focus", onFocus);
-    return () => { unsub?.(); window.removeEventListener("focus", onFocus); };
+    return () => {
+      if (timer) clearTimeout(timer);
+      unsub?.(); unsubM?.(); unsubO?.();
+      window.removeEventListener("focus", onFocus);
+    };
   }, []);
 
   const clearAll = () => {

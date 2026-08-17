@@ -122,7 +122,9 @@ export default function useUnreadChats() {
         if (!window.location.pathname.startsWith("/chat/" + m.chatroom_id)) {
           setCount((c) => c + 1);
         }
+        return; // Optimistic bump is sufficient — skip the expensive recompute.
       }
+      // Message may be in a new room we haven't loaded yet — recompute to pick it up.
       schedule();
     });
 
@@ -134,14 +136,17 @@ export default function useUnreadChats() {
         if (!window.location.pathname.startsWith("/chat/" + o.chatroom_id)) {
           setCount((c) => c + 1);
         }
+        return; // Optimistic bump is sufficient.
       }
+      // Might be in a new room — recompute.
       schedule();
     });
 
-    // Recompute when rooms change (new chat created, or last-seen updated by the other party).
+    // Only recompute on new chats — room updates (last_message bumps, last-seen
+    // pings) don't change the unread count and would trigger an expensive full refetch.
     const unsubR = base44.entities.ChatRoom.subscribe((event) => {
       if (!event || !event.data) return;
-      if (event.type === "create" || event.type === "update") schedule();
+      if (event.type === "create") schedule();
     });
 
     // Offer accept/reject/counter/modify and "sold" alerts arrive as Notification records.
@@ -154,7 +159,9 @@ export default function useUnreadChats() {
           maybeBeep();
           setCount((c) => c + 1);
         }
+        return; // Optimistic bump is sufficient.
       }
+      // Updates (mark as read) and deletes need a recompute to adjust the count.
       schedule();
     });
 

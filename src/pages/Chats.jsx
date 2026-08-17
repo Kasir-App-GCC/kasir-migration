@@ -17,6 +17,7 @@ export default function Chats() {
   const [confirmAll, setConfirmAll] = useState(false);
   const [unread, setUnread] = useState({});
   const roomsRef = useRef([]);
+  const lastFocusRef = useRef(0);
 
   const offerIsIncoming = (o, userId) => {
     if (!o || !userId) return false;
@@ -80,11 +81,6 @@ export default function Chats() {
 
   useEffect(() => {
     if (!user) return;
-    let timer = null;
-    const scheduleLoad = () => {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => loadRooms(), 250);
-    };
     const onRoom = (event) => {
       // Only react to structural changes. Update events (last-seen pings, last_message
       // bumps) would otherwise trigger a refetch storm and can overlap/clear the list.
@@ -96,7 +92,7 @@ export default function Chats() {
       }
     };
     const onMsg = async (event) => {
-      if (event?.type !== "create") { scheduleLoad(); return; }
+      if (event?.type !== "create") return;
       const m = event?.data;
       if (!m || m.sender_id === user.id) return;
       const r = roomsRef.current.find((rr) => rr.id === m.chatroom_id);
@@ -124,10 +120,10 @@ export default function Chats() {
       });
       setUnread((prev) => ({ ...prev, [m.chatroom_id]: (prev[m.chatroom_id] || 0) + 1 }));
     };
-    const onOffer = async (event) => {
-      if (event?.type !== "create") { scheduleLoad(); return; }
+    const onOffer = (event) => {
+      if (event?.type !== "create") return;
       const o = event?.data;
-      if (!o || !offerIsIncoming(o, user.id)) { scheduleLoad(); return; }
+      if (!o || !offerIsIncoming(o, user.id)) return;
       if (!roomsRef.current.some((rr) => rr.id === o.chatroom_id)) { loadRooms(); return; }
       setUnread((prev) => ({ ...prev, [o.chatroom_id]: (prev[o.chatroom_id] || 0) + 1 }));
     };
@@ -136,12 +132,17 @@ export default function Chats() {
     const unsubO = base44.entities.Offer.subscribe(onOffer);
     // Safety net: refresh whenever the window regains focus, so reappearing
     // chats and new messages surface even if a realtime event is missed.
-    const onFocus = () => loadRooms();
-    const onVis = () => { if (!document.hidden) loadRooms(); };
+    const onFocus = () => {
+      const now = Date.now();
+      if (now - lastFocusRef.current > 5000) {
+        lastFocusRef.current = now;
+        loadRooms();
+      }
+    };
+    const onVis = () => { if (!document.hidden) onFocus(); };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVis);
     return () => {
-      if (timer) clearTimeout(timer);
       unsubR?.(); unsubM?.(); unsubO?.();
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVis);

@@ -51,6 +51,7 @@ export default function ItemDetail() {
   const [buyerReview, setBuyerReview] = useState("");
   const [zoom, setZoom] = useState(false);
   const [similar, setSimilar] = useState([]);
+  const [sellerProfile, setSellerProfile] = useState(null);
   const [origin, setOrigin] = useState({ x: 50, y: 50 });
   const swipeStart = useRef(null);
 
@@ -64,6 +65,10 @@ export default function ItemDetail() {
           try {
             const rs = await base44.entities.Rating.filter({ rated_user_id: it.seller_id }, "-created_date", 20);
             setRatings(rs || []);
+          } catch {}
+          try {
+            const p = await base44.functions.invoke("getPublicProfile", { user_id: it.seller_id });
+            setSellerProfile(p?.data || null);
           } catch {}
         }
         if (it?.category) {
@@ -334,6 +339,7 @@ export default function ItemDetail() {
                   {seller.name}
                   <ChevronRight size={15} className="text-muted-foreground rtl:rotate-180 shrink-0" />
                 </p>
+                {sellerProfile?.username && <p className="text-xs text-muted-foreground -mt-0.5 truncate">@{sellerProfile.username}</p>}
                 <div className="flex items-center gap-1.5 text-sm">
                   <Star size={13} className="fill-amber-400 text-amber-400" />
                   <span className="font-semibold">{seller.rating}</span>

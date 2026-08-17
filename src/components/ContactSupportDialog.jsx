@@ -122,49 +122,48 @@ export default function ContactSupportDialog({ open, onClose }) {
         )}
 
         <div className="space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm font-semibold mb-1.5 block">{t("supportFullName")}</label>
+          <div>
+            <label className="text-sm font-semibold mb-1.5 block">{t("supportFullName")}</label>
+            <input
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value.slice(0, 80))}
+              maxLength={80}
+              placeholder={t("supportFullNamePlaceholder")}
+              className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-semibold mb-1.5 block">{t("supportPhone")}</label>
+            <div className="flex gap-2">
+              <div className="relative shrink-0">
+                <select
+                  value={phoneCode}
+                  onChange={(e) => setPhoneCode(e.target.value)}
+                  className="appearance-none h-full ps-9 pe-7 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm font-semibold"
+                >
+                  {COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.phoneCode}>
+                      {c.flag} +{c.phoneCode}
+                    </option>
+                  ))}
+                </select>
+                <Phone size={14} className="absolute top-1/2 -translate-y-1/2 start-3 text-muted-foreground pointer-events-none" />
+              </div>
               <input
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value.slice(0, 80))}
-                maxLength={80}
-                placeholder={t("supportFullNamePlaceholder")}
-                className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30"
+                value={phone}
+                onChange={onPhoneChange}
+                maxLength={MAX_PHONE}
+                placeholder="5X XXX XXXX"
+                inputMode="tel"
+                className="flex-1 min-w-0 px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30"
               />
             </div>
-            <div>
-              <label className="text-sm font-semibold mb-1.5 block">{t("supportPhone")}</label>
-              <div className="flex gap-2">
-                <div className="relative shrink-0">
-                  <select
-                    value={phoneCode}
-                    onChange={(e) => setPhoneCode(e.target.value)}
-                    className="appearance-none h-full ps-9 pe-7 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm font-semibold"
-                  >
-                    {COUNTRIES.map((c) => (
-                      <option key={c.code} value={c.phoneCode}>
-                        {c.flag} +{c.phoneCode}
-                      </option>
-                    ))}
-                  </select>
-                  <Phone size={14} className="absolute top-1/2 -translate-y-1/2 start-3 text-muted-foreground pointer-events-none" />
-                </div>
-                <input
-                  value={phone}
-                  onChange={onPhoneChange}
-                  maxLength={MAX_PHONE}
-                  placeholder="5X XXX XXXX"
-                  inputMode="tel"
-                  className="flex-1 px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30"
-                />
-              </div>
-              <p className={`text-[11px] mt-1 ps-1 ${phone && !phoneValid ? "text-rose-500 font-semibold" : "text-muted-foreground"}`}>
-                {phone && !phoneValid
-                  ? (lang === "ar" ? `الرقم يجب أن يكون بين ${MIN_PHONE} و ${MAX_PHONE} أرقام` : `Must be ${MIN_PHONE}–${MAX_PHONE} digits`)
-                  : (lang === "ar" ? `بدون مفتاح الدولة — بين ${MIN_PHONE} و ${MAX_PHONE} أرقام` : `Without country code — ${MIN_PHONE}–${MAX_PHONE} digits`)}
-              </p>
-            </div>
+            <p className={`text-[11px] mt-1 ps-1 ${phone && !phoneValid ? "text-rose-500 font-semibold" : "text-muted-foreground"}`}>
+              {phone && !phoneValid
+                ? (lang === "ar" ? `الرقم يجب أن يكون بين ${MIN_PHONE} و ${MAX_PHONE} أرقام` : `Must be ${MIN_PHONE}–${MAX_PHONE} digits`)
+                : (lang === "ar" ? `بدون مفتاح الدولة — بين ${MIN_PHONE} و ${MAX_PHONE} أرقام` : `Without country code — ${MIN_PHONE}–${MAX_PHONE} digits`)}
+            </p>
           </div>
 
           <div>

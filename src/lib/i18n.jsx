@@ -236,6 +236,8 @@ const en = {
   deleteAllChats: "Delete all",
   deleteAllChatsConfirm: "Delete all conversations? This only hides them for you.",
   theSeller: "The seller",
+  mapView: "Map view",
+  viewItem: "View",
   };
 
 const ar = {
@@ -474,6 +476,8 @@ const ar = {
   deleteAllChats: "حذف الكل",
   deleteAllChatsConfirm: "حذف كل المحادثات؟ يختفي من جانبك بس.",
   theSeller: "البائع",
+  mapView: "عرض الخريطة",
+  viewItem: "عرض",
   };
 
 export function useT() {

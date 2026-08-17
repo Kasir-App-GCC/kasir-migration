@@ -58,7 +58,7 @@ function parseResultsItems(toolCalls) {
   return items.filter((it) => (seen.has(it.id) ? false : (seen.add(it.id), true)));
 }
 
-function MessageBubble({ message, onItemClick, itemMap, itemsByMsg }) {
+function MessageBubble({ message, onItemClick, itemMap, parsedByMsg }) {
   const isUser = message.role === "user";
   if (isUser) {
     return (

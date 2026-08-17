@@ -30,17 +30,43 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    (async () => {
+    let cancelled = false;
+    const load = async () => {
       setLoading(true);
       try {
         const all = await base44.entities.Item.list("-created_date", 100);
-        setItems(all || []);
+        if (!cancelled) setItems(all || []);
       } catch {
-        setItems([]);
+        if (!cancelled) setItems([]);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
-    })();
+    };
+    load();
+    // Keep the feed live and self-healing: update on any item change,
+    // and refetch when the tab regains focus so a missed mount fetch recovers.
+    const unsub = base44.entities.Item.subscribe((event) => {
+      if (!event) return;
+      const it = event.data;
+      if (event.type === "delete") {
+        setItems((prev) => prev.filter((x) => x.id !== it?.id));
+      } else if (it) {
+        setItems((prev) => {
+          const idx = prev.findIndex((x) => x.id === it.id);
+          if (idx === -1) return [it, ...prev];
+          const copy = [...prev]; copy[idx] = it; return copy;
+        });
+      }
+    });
+    const onFocus = () => load();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      cancelled = true;
+      unsub?.();
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
   }, []);
 
   const filtered = items.filter((it) => {

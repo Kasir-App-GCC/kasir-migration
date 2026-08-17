@@ -40,7 +40,7 @@ async function geocodeNominatim(query, cc, lang) {
     (cc ? "&countrycodes=" + cc.toLowerCase() : "") +
     "&accept-language=" + lang;
   const r = await fetch(url, {
-    headers: { "User-Agent": "Souqna/1.0 (local marketplace app)", "Accept": "application/json" },
+    headers: { "User-Agent": "Kasir/1.0 (local marketplace app)", "Accept": "application/json" },
   });
   if (!r.ok) return [];
   const data = await r.json();

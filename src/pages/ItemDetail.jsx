@@ -439,8 +439,8 @@ export default function ItemDetail() {
               const img = item.images?.[0];
               const priceLine = formatPrice(item.price, lang, item.country);
               const msg = lang === "ar"
-                ? `مرحباً، أنا مهتم بسلعتك على سوقنا:\n\n• ${item.title}\n• السعر: ${priceLine}\n${img ? `• صورة: ${img}\n` : ""}• الرابط: ${window.location.href}`
-                : `Hi, I'm interested in your item on Souqna:\n\n• ${item.title}\n• Price: ${priceLine}\n${img ? `• Image: ${img}\n` : ""}• Link: ${window.location.href}`;
+                ? `مرحباً، أنا مهتم بسلعتك على كاسر:\n\n• ${item.title}\n• السعر: ${priceLine}\n${img ? `• صورة: ${img}\n` : ""}• الرابط: ${window.location.href}`
+                      : `Hi, I'm interested in your item on Kasir:\n\n• ${item.title}\n• Price: ${priceLine}\n${img ? `• Image: ${img}\n` : ""}• Link: ${window.location.href}`;
               return (
                 <a
                   href={`https://wa.me/${sellerProfile.whatsapp_number.replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`}

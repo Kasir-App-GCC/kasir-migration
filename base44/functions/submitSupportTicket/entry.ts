@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 
 const SUPPORT_EMAIL = "support@kasir-app.com";
-const FROM_NAME = "Souqna Support";
+const FROM_NAME = "Kasir Support";
 
 export default async function(req) {
   try {
@@ -75,7 +75,7 @@ export default async function(req) {
       'Your message:',
       message,
       '',
-      'Thank you for reaching out to Souqna Support.',
+      'Thank you for reaching out to Kasir Support.',
     ].join('\n');
 
     let userEmailOk = true;

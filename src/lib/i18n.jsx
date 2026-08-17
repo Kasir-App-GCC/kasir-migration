@@ -1,8 +1,8 @@
 import { useStore } from "./store";
 
 const en = {
-  appName: "Souqna",
-  tagline: "Buy & sell near you",
+  appName: "Kasir",
+  tagline: "Haggle & buy near you",
   home: "Home",
   search: "Search",
   sell: "Sell",
@@ -171,7 +171,7 @@ const en = {
   noBuyersYet: "No buyers have messaged about this item yet.",
   onlyBuyerCanRate: "Only the buyer of this item can rate the seller.",
   setupProfile: "Complete your profile",
-  setupProfileDesc: "This is how others will see you on Souqna",
+  setupProfileDesc: "This is how others will see you on Kasir",
   firstName: "First name",
   lastName: "Last name",
   username: "Username",
@@ -220,7 +220,7 @@ const en = {
   enterCounter: "Enter your price",
   waitingResponse: "Waiting for response",
   agreedWaitingReceipt: "Agreed — waiting for buyer to confirm receipt",
-  adminName: "Souqna",
+  adminName: "Kasir",
   confirmReceipt: "Yes, I received it",
   rateNow: "Rate",
   deleteAccount: "Delete account",
@@ -257,8 +257,8 @@ const en = {
   };
 
 const ar = {
-  appName: "سوقنا",
-  tagline: "اشترِ وبِع حوالك",
+  appName: "كاسر",
+  tagline: "كاسر واشترِ حوالك",
   home: "الرئيسية",
   search: "بحث",
   sell: "بيع",
@@ -427,7 +427,7 @@ const ar = {
   noBuyersYet: "ما فيه أحد راسل عن هالإعلان بعد.",
   onlyBuyerCanRate: "بس مشتري هالمنتج يقدر يقيّم البائع.",
   setupProfile: "كمّل حسابك",
-  setupProfileDesc: "كذا بيشوفونك الناس في سوقنا",
+  setupProfileDesc: "كذا بيشوفونك الناس في كاسر",
   firstName: "الاسم الأول",
   lastName: "اسم العائلة",
   username: "اسم المستخدم",
@@ -476,7 +476,7 @@ const ar = {
   enterCounter: "اكتب سعرك",
   waitingResponse: "ينتظر الرد",
   agreedWaitingReceipt: "تم الاتفاق — ننتظر تأكيد المشتري للاستلام",
-  adminName: "سوقنا",
+  adminName: "كاسر",
   confirmReceipt: "أيوة، وصلني",
   rateNow: "قيّم",
   deleteAccount: "حذف الحساب",

@@ -6,6 +6,8 @@ import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { CATEGORIES, CONDITIONS, getSubcategories, getCityName } from "@/lib/constants";
 import { getCities, nearestCityInCountry, getCountry, convertCurrency } from "@/lib/countries";
+import MapPinPicker from "@/components/MapPinPicker";
+import { useToast } from "@/components/ui/use-toast";
 
 // Convert Arabic-Indic (٠-٩) and Eastern Arabic (۰-۹) digits to ASCII 0-9
 function normalizeDigits(s) {
@@ -19,6 +21,7 @@ function normalizeDigits(s) {
 export default function ListingForm({ initial, submitLabel, submittingLabel, onSubmit }) {
   const { user, lang, country } = useStore();
   const t = useT();
+  const { toast } = useToast();
   const [images, setImages] = useState(initial?.images || []);
   const [title, setTitle] = useState(initial?.title || "");
   const [price, setPrice] = useState(initial?.price != null ? String(initial.price) : "");
@@ -35,11 +38,16 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [boostCross, setBoostCross] = useState(false);
   const ar = lang === "ar";
   const [locating, setLocating] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
+  const [mapPos, setMapPos] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [posting, setPosting] = useState(false);
 
   const detectLocation = () => {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) {
+      toast({ title: ar ? "المتصفح لا يدعم تحديد الموقع" : "Geolocation not supported", variant: "destructive" });
+      return;
+    }
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -49,8 +57,11 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         setLng(pos.coords.longitude);
         setLocating(false);
       },
-      () => setLocating(false),
-      { enableHighAccuracy: true, timeout: 8000 }
+      () => {
+        setLocating(false);
+        toast({ title: ar ? "تعذّر تحديد موقعك" : "Couldn't get your location", description: ar ? "جرّب اختيار الموقع على الخريطة" : "Try selecting on the map", variant: "destructive" });
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
 
@@ -225,26 +236,37 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
 
       <div className="space-y-1">
         <label className="text-sm font-semibold">{t("location")}</label>
-        <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-muted">
-          <MapPin size={16} className="text-muted-foreground shrink-0" />
-          {locating ? (
-            <span className="flex-1 text-sm text-muted-foreground flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
-              {t("locating")}
-            </span>
-          ) : city ? (
-            <span className="flex-1 text-sm font-semibold truncate">{getCityName(city, lang)}</span>
-          ) : (
-            <select value={city} onChange={(e) => setCity(e.target.value)} className="flex-1 bg-transparent outline-none text-sm">
+        <div className="rounded-2xl bg-muted p-3 space-y-2.5">
+          <div className="flex items-center gap-2">
+            <MapPin size={16} className="text-muted-foreground shrink-0" />
+            <select
+              value={city}
+              onChange={(e) => {
+                setCity(e.target.value);
+                const c = getCities(country || "SA").find((x) => x.en === e.target.value);
+                if (c) { setLat(c.lat); setLng(c.lng); }
+              }}
+              className="flex-1 bg-transparent outline-none text-sm font-semibold"
+            >
               <option value="">{t("selectCity")}</option>
               {getCities(country || "SA").map((c) => (
                 <option key={c.en} value={c.en}>{lang === "ar" ? c.ar : c.en}</option>
               ))}
             </select>
+          </div>
+          {lat != null && lng != null && (
+            <p className="text-[11px] text-muted-foreground ps-6">
+              {ar ? "الإحداثيات" : "Coordinates"}: {Number(lat).toFixed(4)}, {Number(lng).toFixed(4)}
+            </p>
           )}
-          <button type="button" onClick={detectLocation} className="text-xs font-semibold text-primary flex items-center gap-1 shrink-0">
-            <LocateFixed size={13} /> {t("useMyLocation")}
-          </button>
+          <div className="flex gap-2">
+            <button type="button" onClick={detectLocation} disabled={locating} className="flex-1 py-2.5 rounded-xl bg-card border border-border/60 text-xs font-semibold flex items-center justify-center gap-1.5 disabled:opacity-50">
+              {locating ? <div className="w-3.5 h-3.5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" /> : <LocateFixed size={14} />} {t("useMyLocation")}
+            </button>
+            <button type="button" onClick={() => { setMapPos(lat != null && lng != null ? { lat, lng } : null); setMapOpen(true); }} className="flex-1 py-2.5 rounded-xl bg-card border border-border/60 text-xs font-semibold flex items-center justify-center gap-1.5">
+              <Globe size={14} /> {ar ? "اختر على الخريطة" : "Select on map"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -334,6 +356,43 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
       >
         {posting ? submittingLabel : submitLabel}
       </button>
+
+      {mapOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMapOpen(false)} />
+          <div className="relative w-full sm:max-w-md bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl p-5 animate-in fade-in slide-in-from-bottom-[100%] duration-300">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold text-lg">{ar ? "اختر موقع الإعلان" : "Pick listing location"}</h3>
+              <button onClick={() => setMapOpen(false)} className="p-1.5 rounded-full hover:bg-muted"><X size={20} /></button>
+            </div>
+            <MapPinPicker
+              center={mapPos || (getCities(country || "SA")[0] || { lat: 24.7136, lng: 46.6753 })}
+              radius={0}
+              onPick={(p) => setMapPos(p)}
+            />
+            {mapPos && (
+              <p className="text-xs text-muted-foreground mt-2">
+                {ar ? "الموقع" : "Location"}: {mapPos.lat.toFixed(4)}, {mapPos.lng.toFixed(4)}
+                {(() => { const c = nearestCityInCountry(mapPos.lat, mapPos.lng, country || "SA"); return c ? ` · ${ar ? c.ar : c.en}` : ""; })()}
+              </p>
+            )}
+            <button
+              onClick={() => {
+                if (!mapPos) return;
+                const c = nearestCityInCountry(mapPos.lat, mapPos.lng, country || "SA");
+                if (c) setCity(c.en);
+                setLat(mapPos.lat);
+                setLng(mapPos.lng);
+                setMapOpen(false);
+              }}
+              disabled={!mapPos}
+              className="mt-4 w-full py-3 rounded-2xl bg-primary text-primary-foreground font-bold disabled:opacity-50"
+            >
+              {t("apply")}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

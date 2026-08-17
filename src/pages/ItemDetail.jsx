@@ -68,6 +68,7 @@ export default function ItemDetail() {
   const [sending, setSending] = useState(false);
   const [soldOpen, setSoldOpen] = useState(false);
   const [buyers, setBuyers] = useState([]);
+  const [manualBuyer, setManualBuyer] = useState("");
   const [rateBuyerOpen, setRateBuyerOpen] = useState(false);
   const [buyerScore, setBuyerScore] = useState(5);
   const [buyerReview, setBuyerReview] = useState("");
@@ -75,7 +76,13 @@ export default function ItemDetail() {
   const [similar, setSimilar] = useState([]);
   const [sellerProfile, setSellerProfile] = useState(null);
   const [origin, setOrigin] = useState({ x: 50, y: 50 });
+  const [pinchScale, setPinchScale] = useState(1);
+  const [pinchOrigin, setPinchOrigin] = useState({ x: 50, y: 50 });
+  const pointers = useRef(new Map());
+  const pinchStart = useRef(null);
   const swipeStart = useRef(null);
+
+  useEffect(() => { setPinchScale(1); setPinchOrigin({ x: 50, y: 50 }); }, [activeImg]);
 
   useEffect(() => {
     (async () => {
@@ -234,19 +241,22 @@ export default function ItemDetail() {
 
   const markSold = async (buyer) => {
     try {
-      await base44.entities.Item.update(item.id, { status: "sold", sold_to: buyer.id, sold_to_name: buyer.name });
-      setItem({ ...item, status: "sold", sold_to: buyer.id, sold_to_name: buyer.name });
-      try {
-        const rooms = await base44.entities.ChatRoom.filter({ item_id: item.id, buyer_id: buyer.id }, "-created_date", 5);
-        const room = rooms?.[0];
-        if (room) {
-          const text = lang === "ar" ? `تم بيع «${item.title}» إليك 🎉` : `"${item.title}" has been sold to you 🎉`;
-          await base44.entities.Message.create({ chatroom_id: room.id, sender_id: user.id, sender_name: user.name, text });
-          await base44.entities.ChatRoom.update(room.id, { last_message: text });
-        }
-      } catch {}
+      await base44.entities.Item.update(item.id, { status: "sold", sold_to: buyer?.id || null, sold_to_name: buyer?.name || null });
+      setItem({ ...item, status: "sold", sold_to: buyer?.id || null, sold_to_name: buyer?.name || null });
+      if (buyer?.id) {
+        try {
+          const rooms = await base44.entities.ChatRoom.filter({ item_id: item.id, buyer_id: buyer.id }, "-created_date", 5);
+          const room = rooms?.[0];
+          if (room) {
+            const text = lang === "ar" ? `تم بيع «${item.title}» إليك 🎉` : `"${item.title}" has been sold to you 🎉`;
+            await base44.entities.Message.create({ chatroom_id: room.id, sender_id: user.id, sender_name: user.name, text });
+            await base44.entities.ChatRoom.update(room.id, { last_message: text });
+          }
+        } catch {}
+      }
     } catch {}
     setSoldOpen(false);
+    setManualBuyer("");
   };
 
   if (loading) {
@@ -266,32 +276,82 @@ export default function ItemDetail() {
 
       {/* Gallery */}
       <div
-        className="relative aspect-[4/3] rounded-3xl overflow-hidden bg-muted cursor-zoom-in touch-pan-y"
+        className="relative aspect-[4/3] rounded-3xl overflow-hidden bg-muted cursor-zoom-in"
+        style={{ touchAction: pinchScale > 1 ? "none" : "pan-y" }}
         onMouseEnter={() => setZoom(true)}
         onMouseLeave={() => setZoom(false)}
         onMouseMove={(e) => {
+          if (pinchScale > 1) return;
           const r = e.currentTarget.getBoundingClientRect();
           setOrigin({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 });
         }}
-        onPointerDown={(e) => { swipeStart.current = { x: e.clientX, y: e.clientY }; }}
-        onPointerUp={(e) => {
-          if (!swipeStart.current) return;
-          const dx = e.clientX - swipeStart.current.x;
-          const dy = e.clientY - swipeStart.current.y;
-          swipeStart.current = null;
-          if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
-            if (dx < 0) setActiveImg((i) => Math.min(i + 1, imgs.length - 1));
-            else setActiveImg((i) => Math.max(i - 1, 0));
+        onPointerDown={(e) => {
+          if (e.pointerType === "mouse") { swipeStart.current = { x: e.clientX, y: e.clientY }; return; }
+          pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+          if (pointers.current.size === 2) {
+            const [p1, p2] = [...pointers.current.values()];
+            const r = e.currentTarget.getBoundingClientRect();
+            const mx = ((p1.x + p2.x) / 2 - r.left) / r.width * 100;
+            const my = ((p1.y + p2.y) / 2 - r.top) / r.height * 100;
+            pinchStart.current = { dist: Math.hypot(p1.x - p2.x, p1.y - p2.y), scale: pinchScale };
+            setPinchOrigin({ x: mx, y: my });
+          } else if (pointers.current.size === 1) {
+            swipeStart.current = { x: e.clientX, y: e.clientY };
           }
         }}
+        onPointerMove={(e) => {
+          if (e.pointerType === "mouse") return;
+          if (!pointers.current.has(e.pointerId)) return;
+          pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+          if (pointers.current.size === 2 && pinchStart.current) {
+            const [p1, p2] = [...pointers.current.values()];
+            const d = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+            const ns = Math.min(Math.max(pinchStart.current.scale * (d / pinchStart.current.dist), 1), 5);
+            setPinchScale(ns);
+            if (ns <= 1.01) setPinchOrigin({ x: 50, y: 50 });
+          }
+        }}
+        onPointerUp={(e) => {
+          if (e.pointerType === "mouse") {
+            if (!swipeStart.current) return;
+            const dx = e.clientX - swipeStart.current.x;
+            const dy = e.clientY - swipeStart.current.y;
+            swipeStart.current = null;
+            if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+              if (dx < 0) setActiveImg((i) => Math.min(i + 1, imgs.length - 1));
+              else setActiveImg((i) => Math.max(i - 1, 0));
+            }
+            return;
+          }
+          pointers.current.delete(e.pointerId);
+          if (pointers.current.size < 2) pinchStart.current = null;
+          if (pointers.current.size === 0) {
+            const start = swipeStart.current;
+            swipeStart.current = null;
+            if (pinchScale <= 1.01 && start) {
+              const dx = e.clientX - start.x;
+              const dy = e.clientY - start.y;
+              if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+                if (dx < 0) setActiveImg((i) => Math.min(i + 1, imgs.length - 1));
+                else setActiveImg((i) => Math.max(i - 1, 0));
+              }
+              setPinchScale(1);
+            }
+          } else if (pointers.current.size === 1) {
+            const [p] = [...pointers.current.values()];
+            swipeStart.current = { x: p.x, y: p.y };
+          }
+        }}
+        onPointerCancel={() => { pointers.current.clear(); pinchStart.current = null; swipeStart.current = null; setPinchScale(1); setPinchOrigin({ x: 50, y: 50 }); }}
       >
         <img
           src={imgs[activeImg]}
           draggable={false}
-          className="w-full h-full object-cover transition-transform duration-200 ease-out pointer-events-none select-none"
+          className="w-full h-full object-cover pointer-events-none select-none"
           style={{
-            transform: zoom ? "scale(2.2)" : "scale(1)",
-            transformOrigin: `${origin.x}% ${origin.y}%`,
+            transform: pinchScale > 1 ? `scale(${pinchScale})` : zoom ? "scale(2.2)" : "scale(1)",
+            transformOrigin: `${(pinchScale > 1 ? pinchOrigin : origin).x}% ${(pinchScale > 1 ? pinchOrigin : origin).y}%`,
+            transition: pinchScale > 1 ? "none" : "transform 0.2s ease-out",
           }}
         />
         {item.is_family && (
@@ -425,7 +485,7 @@ export default function ItemDetail() {
       )}
 
       {/* Action bar */}
-      <div className="fixed bottom-16 inset-x-0 z-20 bg-background/90 backdrop-blur-xl border-t border-border/60">
+      <div className="fixed bottom-16 inset-x-0 z-40 bg-background/90 backdrop-blur-xl border-t border-border/60">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
           {isOwner ? (
             <>
@@ -521,19 +581,41 @@ export default function ItemDetail() {
               <h3 className="font-bold text-lg">{t("markAsSold")}</h3>
               <button onClick={() => setSoldOpen(false)} className="p-1.5 rounded-full hover:bg-muted"><X size={20} /></button>
             </div>
-            <p className="text-sm text-muted-foreground mb-3">{t("chooseBuyer")}</p>
-            {buyers.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6">{t("noBuyersYet")}</p>
-            ) : (
-              <div className="space-y-2">
-                {buyers.map((b) => (
-                  <button key={b.id} onClick={() => markSold(b)} className="w-full flex items-center gap-3 p-3 rounded-2xl bg-card border border-border/60 hover:bg-muted transition text-start">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">{b.name?.[0] || "?"}</div>
-                    <span className="font-semibold text-sm">{b.name}</span>
-                  </button>
-                ))}
-              </div>
+            {buyers.length > 0 && (
+              <>
+                <p className="text-sm text-muted-foreground mb-3">{t("chooseBuyer")}</p>
+                <div className="space-y-2">
+                  {buyers.map((b) => (
+                    <button key={b.id} onClick={() => markSold(b)} className="w-full flex items-center gap-3 p-3 rounded-2xl bg-card border border-border/60 hover:bg-muted transition text-start">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">{b.name?.[0] || "?"}</div>
+                      <span className="font-semibold text-sm">{b.name}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-3 my-4">
+                  <div className="h-px bg-border flex-1" />
+                  <span className="text-xs text-muted-foreground">{lang === "ar" ? "أو" : "or"}</span>
+                  <div className="h-px bg-border flex-1" />
+                </div>
+              </>
             )}
+            {buyers.length === 0 && (
+              <p className="text-sm text-muted-foreground mb-3">{lang === "ar" ? "أدخل اسم المشتري (اختياري)" : "Enter buyer name (optional)"}</p>
+            )}
+            <div className="flex gap-2">
+              <input
+                value={manualBuyer}
+                onChange={(e) => setManualBuyer(e.target.value)}
+                placeholder={lang === "ar" ? "اسم المشتري (اختياري)" : "Buyer name (optional)"}
+                className="flex-1 px-4 py-3 rounded-2xl bg-muted outline-none text-sm"
+              />
+              <button
+                onClick={() => markSold({ id: null, name: manualBuyer.trim() })}
+                className="px-5 rounded-2xl bg-emerald-600 text-white font-bold text-sm whitespace-nowrap"
+              >
+                {t("markAsSold")}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -239,7 +239,7 @@ export default function ChatRoom() {
               const mine = o.direction === "buyer_offer" ? o.buyer_id === user.id : o.seller_id === user.id;
               return (
                 <div key={`o-${o.id}`} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                  <OfferCard offer={o} user={user} lang={lang} t={t} itemPrice={room?.item_price} country={itemCountry}
+                  <OfferCard offer={o} user={user} lang={lang} t={t} itemPrice={room?.item_price} itemImage={room?.item_image} itemTitle={room?.item_title} country={itemCountry}
                     onAccept={acceptOffer} onReject={rejectOffer} onCounter={counterOffer} onModify={modifyOffer} />
                 </div>
               );

@@ -10,6 +10,7 @@ import { useT } from "@/lib/i18n";
 import { formatPrice } from "@/lib/format";
 import { matchLocation } from "@/lib/location";
 import { getCities } from "@/lib/countries";
+import MapSearchBar from "@/components/MapSearchBar";
 
 function MapReady() {
   const map = useMap();
@@ -17,6 +18,14 @@ function MapReady() {
     const t = setTimeout(() => map.invalidateSize(), 250);
     return () => clearTimeout(t);
   }, [map]);
+  return null;
+}
+
+function FlyTo({ target }) {
+  const map = useMap();
+  useEffect(() => {
+    if (target) map.flyTo([target.lat, target.lng], 13, { duration: 0.8 });
+  }, [target]);
   return null;
 }
 
@@ -44,6 +53,7 @@ export default function MapView() {
   const nav = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [flyTarget, setFlyTarget] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -105,6 +115,9 @@ export default function MapView() {
         <h2 className="font-bold text-lg">{lang === "ar" ? "عرض الخريطة" : "Map view"}</h2>
         <span className="text-xs text-muted-foreground">{withCoords.length} {t("items")}</span>
       </div>
+      <div className="mb-2">
+        <MapSearchBar country={country} onSelect={(r) => setFlyTarget(r)} />
+      </div>
 
       {loading ? (
         <div className="flex items-center justify-center h-[70vh]">
@@ -125,6 +138,7 @@ export default function MapView() {
             className="relative z-0"
           >
             <MapReady />
+            <FlyTo target={flyTarget} />
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution="&copy; OpenStreetMap"

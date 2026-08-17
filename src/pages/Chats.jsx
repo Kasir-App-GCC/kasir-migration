@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, X } from "lucide-react";
+import { MessageCircle, X, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -15,6 +15,7 @@ export default function Chats() {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [confirmRoom, setConfirmRoom] = useState(null);
+  const [confirmAll, setConfirmAll] = useState(false);
   const [unread, setUnread] = useState({});
   const roomsRef = useRef([]);
   const seenRef = useRef(lastChatsSeen);
@@ -45,7 +46,8 @@ export default function Chats() {
         setUnread(map);
       } catch {}
     } catch {
-      setRooms([]);
+      // keep existing rooms on transient fetch errors to avoid flicker to "no chats"
+      if (!roomsRef.current.length) setRooms([]);
     } finally {
       setLoading(false);
     }
@@ -56,20 +58,25 @@ export default function Chats() {
   }, [lastChatsSeen]);
 
   useEffect(() => {
-    (async () => {
-      const ts = new Date().toISOString();
-      seenRef.current = ts;
-      setLastChatsSeen(ts);
-      setUnread({});
-      await loadRooms();
-    })();
-  }, [loadRooms, setLastChatsSeen]);
+    loadRooms();
+    // Mark chats as seen only when leaving the list (not on mount),
+    // so unread dots persist while viewing the list.
+    return () => {
+      setLastChatsSeen(new Date().toISOString());
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadRooms]);
 
   useEffect(() => {
     if (!user) return;
-    const onRoom = () => loadRooms();
+    let timer = null;
+    const scheduleLoad = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => loadRooms(), 250);
+    };
+    const onRoom = () => scheduleLoad();
     const onMsg = async (event) => {
-      if (event?.type !== "create") { loadRooms(); return; }
+      if (event?.type !== "create") { scheduleLoad(); return; }
       const m = event?.data;
       if (!m) return;
       if (m.sender_id === user.id) return;
@@ -81,12 +88,20 @@ export default function Chats() {
             await base44.entities.ChatRoom.update(r.id, isBuyer ? { hidden_for_buyer: false } : { hidden_for_seller: false });
           } catch {}
         }
+        // update last message immediately for responsiveness
+        setRooms((prev) => {
+          const idx = prev.findIndex((rr) => rr.id === m.chatroom_id);
+          if (idx === -1) return prev;
+          const copy = [...prev];
+          copy[idx] = { ...copy[idx], last_message: m.text, updated_date: m.created_date };
+          return copy;
+        });
       }
-      loadRooms();
+      scheduleLoad();
     };
     const unsubR = base44.entities.ChatRoom.subscribe(onRoom);
     const unsubM = base44.entities.Message.subscribe(onMsg);
-    return () => { unsubR?.(); unsubM?.(); };
+    return () => { if (timer) clearTimeout(timer); unsubR?.(); unsubM?.(); };
   }, [user, loadRooms]);
 
   const deleteRoom = async (room) => {
@@ -96,6 +111,18 @@ export default function Chats() {
     } catch {}
     setRooms((prev) => prev.filter((r) => r.id !== room.id));
     setConfirmRoom(null);
+  };
+
+  const deleteAll = async () => {
+    await Promise.all(
+      rooms.map((r) => {
+        const isBuyer = r.buyer_id === user.id;
+        return base44.entities.ChatRoom.update(r.id, isBuyer ? { hidden_for_buyer: true } : { hidden_for_seller: true }).catch(() => {});
+      })
+    );
+    setRooms([]);
+    setUnread({});
+    setConfirmAll(false);
   };
 
   const otherName = (r) => (r.seller_id === user.id ? r.buyer_name : r.seller_name);
@@ -117,7 +144,14 @@ export default function Chats() {
 
   return (
     <div className="pt-3">
-      <h1 className="text-2xl font-extrabold mb-3">{t("chats")}</h1>
+      <div className="flex items-center justify-between mb-3">
+        <h1 className="text-2xl font-extrabold">{t("chats")}</h1>
+        {rooms.length > 0 && (
+          <button onClick={() => setConfirmAll(true)} className="flex items-center gap-1.5 text-sm font-semibold text-rose-600">
+            <Trash2 size={16} /> {t("deleteAllChats")}
+          </button>
+        )}
+      </div>
       <div className="space-y-1.5">
         {loading
           ? Array.from({ length: 4 }).map((_, i) => (
@@ -180,6 +214,23 @@ export default function Chats() {
             <div className="flex gap-2">
               <button onClick={() => setConfirmRoom(null)} className="flex-1 py-3 rounded-2xl bg-muted text-muted-foreground font-semibold">{t("cancel")}</button>
               <button onClick={() => deleteRoom(confirmRoom)} className="flex-1 py-3 rounded-2xl bg-rose-600 text-white font-bold">{t("delete")}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmAll && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setConfirmAll(false)} />
+          <div className="relative w-full sm:max-w-sm bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 animate-in fade-in slide-in-from-bottom-[100%] duration-300">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold text-lg">{t("deleteAllChats")}</h3>
+              <button onClick={() => setConfirmAll(false)} className="p-1.5 rounded-full hover:bg-muted"><X size={20} /></button>
+            </div>
+            <p className="text-sm text-muted-foreground mb-5">{t("deleteAllChatsConfirm")}</p>
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmAll(false)} className="flex-1 py-3 rounded-2xl bg-muted text-muted-foreground font-semibold">{t("cancel")}</button>
+              <button onClick={deleteAll} className="flex-1 py-3 rounded-2xl bg-rose-600 text-white font-bold">{t("delete")}</button>
             </div>
           </div>
         </div>

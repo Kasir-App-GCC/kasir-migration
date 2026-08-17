@@ -24,14 +24,21 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [posting, setPosting] = useState(false);
 
   const onPick = async (e) => {
-    const files = Array.from(e.target.files || []);
+    const files = Array.from(e.target.files || []).slice(0, 5 - images.length);
+    e.target.value = "";
     if (!files.length) return;
     setUploading(true);
+    // Upload each file independently and append as soon as it finishes,
+    // so pictures appear one-by-one instead of all at once at the end.
     try {
-      const urls = await Promise.all(
-        files.map((f) => base44.integrations.Core.UploadFile({ file: f }).then((r) => r.file_url))
+      await Promise.all(
+        files.map(async (f) => {
+          try {
+            const r = await base44.integrations.Core.UploadFile({ file: f });
+            setImages((prev) => [...prev, r.file_url].slice(0, 5));
+          } catch {}
+        })
       );
-      setImages((prev) => [...prev, ...urls].slice(0, 8));
     } finally {
       setUploading(false);
     }
@@ -86,32 +93,38 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
     <div className="space-y-5">
       <div>
         <label className="text-sm font-semibold mb-2 block">{t("photos")}</label>
-        <div className="grid grid-cols-4 gap-2">
-          {images.map((url, i) => (
-            <div key={i} className="relative aspect-square rounded-xl overflow-hidden">
-              <img src={url} className="w-full h-full object-cover" />
-              <button
-                onClick={() => setImages(images.filter((_, idx) => idx !== i))}
-                className="absolute top-1 end-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center"
-              >
-                <X size={14} />
-              </button>
-              {i === 0 && <span className="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[10px] text-center py-0.5">Cover</span>}
-            </div>
-          ))}
-          {images.length < 8 && (
-            <label className="aspect-square rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:bg-muted cursor-pointer gap-1">
-              {uploading ? (
-                <div className="w-5 h-5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <>
-                  <ImagePlus size={22} />
-                  <span className="text-[11px] font-medium">{t("addPhotos")}</span>
-                </>
-              )}
-              <input type="file" accept="image/*" multiple className="hidden" onChange={onPick} />
-            </label>
-          )}
+        <div className="grid grid-cols-5 gap-2">
+          {Array.from({ length: 5 }).map((_, i) => {
+            const url = images[i];
+            if (url) {
+              return (
+                <div key={i} className="relative aspect-square rounded-xl overflow-hidden">
+                  <img src={url} className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => setImages(images.filter((_, idx) => idx !== i))}
+                    className="absolute top-1 end-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center"
+                  >
+                    <X size={14} />
+                  </button>
+                  {i === 0 && <span className="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[10px] text-center py-0.5">{t("cover")}</span>}
+                </div>
+              );
+            }
+            const isUploading = uploading && i === images.length;
+            return (
+              <label key={i} className="aspect-square rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:bg-muted cursor-pointer gap-1">
+                {isUploading ? (
+                  <div className="w-5 h-5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <ImagePlus size={20} />
+                    <span className="text-[10px] font-medium">{t("addPhotos")}</span>
+                  </>
+                )}
+                <input type="file" accept="image/*" multiple className="hidden" onChange={onPick} />
+              </label>
+            );
+          })}
         </div>
       </div>
 

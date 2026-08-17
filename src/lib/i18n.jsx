@@ -229,6 +229,9 @@ const en = {
   originalPrice: "Original",
   agreedArrange: "Price agreed — arrange handover",
   locationNeeded: "We need your location to list items",
+  cover: "Cover",
+  deleteAllChats: "Delete all",
+  deleteAllChatsConfirm: "Delete all conversations? This only hides them for you.",
   };
 
 const ar = {
@@ -460,6 +463,9 @@ const ar = {
   originalPrice: "الأصلي",
   agreedArrange: "تم الاتفاق — رتبوا التسليم",
   locationNeeded: "نحتاج موقعك لإضافة الإعلانات",
+  cover: "الغلاف",
+  deleteAllChats: "حذف الكل",
+  deleteAllChatsConfirm: "حذف كل المحادثات؟ يختفي من جانبك بس.",
   };
 
 export function useT() {

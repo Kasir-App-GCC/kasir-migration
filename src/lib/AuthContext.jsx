@@ -20,6 +20,22 @@ export const AuthProvider = ({ children }) => {
     checkAppState();
   }, []);
 
+  // Periodically re-check blacklist status so a ban applied mid-session kicks the user out
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const interval = setInterval(() => {
+      checkBlacklistStatus();
+    }, 30000); // every 30s
+    const onFocus = () => { checkBlacklistStatus(); };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [isAuthenticated]);
+
   const checkAppState = async () => {
     try {
       setIsLoadingPublicSettings(true);
@@ -91,6 +107,25 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const checkBlacklistStatus = async () => {
+    try {
+      const res = await base44.functions.invoke("checkBlacklist", {});
+      if (res?.data?.blocked) {
+        setBlocked(true);
+        setBlockedReason(res.data.reason || null);
+        // Auto-terminate session: force logout so the banned user can't keep navigating
+        logout(false);
+        return true;
+      } else {
+        setBlocked(false);
+        setBlockedReason(null);
+      }
+    } catch {
+      setBlocked(false);
+    }
+    return false;
+  };
+
   const checkUserAuth = async () => {
     try {
       // Now check if the user is authenticated
@@ -101,18 +136,7 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(false);
       setAuthChecked(true);
       // Check if this user is blacklisted
-      try {
-        const res = await base44.functions.invoke("checkBlacklist", {});
-        if (res?.data?.blocked) {
-          setBlocked(true);
-          setBlockedReason(res.data.reason || null);
-        } else {
-          setBlocked(false);
-          setBlockedReason(null);
-        }
-      } catch {
-        setBlocked(false);
-      }
+      await checkBlacklistStatus();
     } catch (error) {
       console.error('User auth check failed:', error);
       setIsLoadingAuth(false);

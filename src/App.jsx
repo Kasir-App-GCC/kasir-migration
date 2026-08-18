@@ -26,17 +26,26 @@ import MapView from "@/pages/MapView";
 import Admin from "@/pages/Admin";
 import About from "@/pages/About";
 import Contact from "@/pages/Contact";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user, blocked, blockedReason } = useAuth();
   const location = useLocation();
 
-  // Public pages bypass auth checks entirely
-  if (location.pathname === '/about' || location.pathname === '/contact') {
+  // Public & auth pages bypass auth checks entirely
+  const publicPaths = ['/about', '/contact', '/login', '/register', '/forgot-password', '/reset-password'];
+  if (publicPaths.includes(location.pathname)) {
     return (
       <Routes>
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>
     );
   }

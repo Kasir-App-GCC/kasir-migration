@@ -6,6 +6,7 @@ import { useT } from "@/lib/i18n";
 import { base44 } from "@/api/base44Client";
 import { syncAvatarToEntities } from "@/lib/syncAvatar";
 import { getCountry } from "@/lib/countries";
+import SheetSelect from "@/components/SheetSelect";
 
 const COUNTRY_CODES = [
   { code: "966", flag: "🇸🇦", en: "Saudi Arabia", ar: "السعودية" },
@@ -166,16 +167,13 @@ export default function EditProfileDialog({ open, onClose }) {
             {waEnabled && (
               <div className="space-y-1.5">
                 <div className="flex gap-2">
-                  <select
+                  <SheetSelect
                     value={waCountry}
-                    onChange={(e) => setWaCountry(e.target.value)}
-                    dir="ltr"
-                    className="px-3 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30 text-start appearance-none"
-                  >
-                    {COUNTRY_CODES.map((c) => (
-                      <option key={c.code} value={c.code}>{c.flag} +{c.code}</option>
-                    ))}
-                  </select>
+                    onChange={setWaCountry}
+                    label={ar ? "رمز الدولة" : "Country code"}
+                    buttonClassName="px-3 py-3 text-start"
+                    options={COUNTRY_CODES.map((c) => ({ value: c.code, label: `${c.flag} +${c.code}` }))}
+                  />
                   <input
                     value={waNumber}
                     maxLength={15}

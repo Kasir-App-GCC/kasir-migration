@@ -6,6 +6,7 @@ import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
 import RatingStars from "@/components/RatingStars";
 import { findOrCreateOfficialChat } from "@/lib/officialChat";
+import SheetSelect from "@/components/SheetSelect";
 
 export default function AdminUsers() {
   const { lang, user: adminUser } = useStore();
@@ -403,15 +404,12 @@ export default function AdminUsers() {
                       <div className="flex items-center justify-between">
                         <span className="font-semibold">{r.rater_name || "—"}</span>
                         <div className="flex items-center gap-1.5">
-                          <select
-                            value={r.score}
-                            onChange={(e) => editRating(r, Number(e.target.value))}
-                            className="text-xs rounded-lg bg-card border border-border/60 px-1.5 py-0.5 outline-none"
-                          >
-                            {[1, 2, 3, 4, 5].map((n) => (
-                              <option key={n} value={n}>{n} ★</option>
-                            ))}
-                          </select>
+                          <SheetSelect
+                            value={String(r.score)}
+                            onChange={(v) => editRating(r, Number(v))}
+                            buttonClassName="text-xs px-2 py-1 font-semibold w-auto min-w-[3.5rem] rounded-lg bg-card border border-border/60"
+                            options={[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: `${n} ★` }))}
+                          />
                           <button onClick={() => deleteRating(r)} className="w-6 h-6 rounded-lg bg-rose-100 text-rose-600 dark:bg-rose-950/40 flex items-center justify-center shrink-0">
                             <Trash2 size={12} />
                           </button>

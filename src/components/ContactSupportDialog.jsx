@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { X, Send, LifeBuoy, CheckCircle2, Hash, Mail, Phone } from "lucide-react";
+import { X, Send, LifeBuoy, CheckCircle2, Hash, Mail } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { useToast } from "@/components/ui/use-toast";
 import { COUNTRIES, getCountry } from "@/lib/countries";
+import SheetSelect from "@/components/SheetSelect";
 
 // Convert Arabic-Indic (٠-٩) and Eastern Arabic (۰-۹) digits to ASCII 0-9
 function normalizeDigits(s) {
@@ -136,19 +137,14 @@ export default function ContactSupportDialog({ open, onClose }) {
           <div>
             <label className="text-sm font-semibold mb-1.5 block">{t("supportPhone")}</label>
             <div className="flex gap-2">
-              <div className="relative shrink-0">
-                <select
+              <div className="shrink-0">
+                <SheetSelect
                   value={phoneCode}
-                  onChange={(e) => setPhoneCode(e.target.value)}
-                  className="appearance-none h-full ps-9 pe-7 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm font-semibold"
-                >
-                  {COUNTRIES.map((c) => (
-                    <option key={c.code} value={c.phoneCode}>
-                      {c.flag} +{c.phoneCode}
-                    </option>
-                  ))}
-                </select>
-                <Phone size={14} className="absolute top-1/2 -translate-y-1/2 start-3 text-muted-foreground pointer-events-none" />
+                  onChange={setPhoneCode}
+                  label={t("supportPhone")}
+                  buttonClassName="px-3 py-3 text-sm font-semibold"
+                  options={COUNTRIES.map((c) => ({ value: c.phoneCode, label: `${c.flag} +${c.phoneCode}` }))}
+                />
               </div>
               <input
                 value={phone}

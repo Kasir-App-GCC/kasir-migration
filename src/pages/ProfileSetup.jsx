@@ -6,6 +6,7 @@ import { base44 } from "@/api/base44Client";
 import { syncAvatarToEntities } from "@/lib/syncAvatar";
 import { Camera, Loader2, User } from "lucide-react";
 import { COUNTRIES, getCountry } from "@/lib/countries";
+import SheetSelect from "@/components/SheetSelect";
 
 export default function ProfileSetup() {
   const { user, checkUserAuth } = useAuth();
@@ -213,15 +214,13 @@ export default function ProfileSetup() {
           <div className="space-y-1.5">
             <label className="text-sm font-semibold">{ar ? "رقم الجوال" : "Phone number"} *</label>
             <div className="flex gap-2">
-              <select
+              <SheetSelect
                 value={countryCode}
-                onChange={(e) => setCountryCode(e.target.value)}
-                className="px-3 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm font-semibold min-w-[110px]"
-              >
-                {countryCodes.map((c) => (
-                  <option key={c.code} value={c.code}>{c.label}</option>
-                ))}
-              </select>
+                onChange={setCountryCode}
+                label={ar ? "رمز الدولة" : "Country code"}
+                buttonClassName="px-3 py-3 text-sm font-semibold min-w-[110px]"
+                options={countryCodes.map((c) => ({ value: c.code, label: c.label }))}
+              />
               <input
                 value={phone}
                 maxLength={15}

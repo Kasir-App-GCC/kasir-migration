@@ -1,7 +1,9 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import { useRef } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -29,8 +31,34 @@ import EditListing from "@/pages/EditListing";
 import MapView from "@/pages/MapView";
 import Admin from "@/pages/Admin";
 
+function routeDepth(pathname) {
+  if (pathname === "/") return 0;
+  if (/^\/(item|chat|edit|user)\//.test(pathname)) return 3;
+  if (/^\/(notifications|assistant|map|admin)$/.test(pathname)) return 2;
+  return 1;
+}
+
+const pageVariants = {
+  enter: (dir) => ({
+    x: dir === 0 ? 0 : dir > 0 ? "100%" : "-100%",
+    opacity: dir === 0 ? 0 : 1,
+    transition: dir === 0 ? { duration: 0.18 } : { duration: 0.3, ease: [0.32, 0.72, 0, 1] },
+  }),
+  center: { x: 0, opacity: 1, transition: { duration: 0.3, ease: [0.32, 0.72, 0, 1] } },
+  exit: (dir) => ({
+    x: dir === 0 ? 0 : dir > 0 ? "-100%" : "100%",
+    opacity: dir === 0 ? 0 : 1,
+    transition: dir === 0 ? { duration: 0.18 } : { duration: 0.3, ease: [0.32, 0.72, 0, 1] },
+  }),
+};
+
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user, blocked, blockedReason } = useAuth();
+  const location = useLocation();
+  const depth = routeDepth(location.pathname);
+  const depthRef = useRef(depth);
+  const direction = depth > depthRef.current ? 1 : depth < depthRef.current ? -1 : 0;
+  depthRef.current = depth;
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -64,7 +92,9 @@ const AuthenticatedApp = () => {
 
   // Render the main app
   return (
-    <Routes>
+    <AnimatePresence mode="wait" initial={false} custom={direction}>
+      <motion.div key={location.pathname} custom={direction} variants={pageVariants} initial="enter" animate="center" exit="exit">
+      <Routes location={location}>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -85,7 +115,9 @@ const AuthenticatedApp = () => {
         <Route path="/admin" element={<Admin />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
-    </Routes>
+      </Routes>
+      </motion.div>
+    </AnimatePresence>
   );
 };
 

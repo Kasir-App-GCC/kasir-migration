@@ -53,7 +53,7 @@ export default function EditListing() {
   };
 
   return (
-    <div className="pt-3 max-w-2xl mx-auto">
+    <div className="pt-[calc(env(safe-area-inset-top)+0.75rem)] max-w-2xl mx-auto">
       <button onClick={() => nav(-1)} className="flex items-center gap-1 text-sm text-muted-foreground mb-3">
         <ArrowLeft size={16} className="rtl:rotate-180" /> {t("back")}
       </button>

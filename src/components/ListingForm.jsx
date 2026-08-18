@@ -10,6 +10,7 @@ import MapPinPicker from "@/components/MapPinPicker";
 import { Image } from "@/components/ui/image";
 import { compressImage } from "@/lib/compressImage";
 import { useToast } from "@/components/ui/use-toast";
+import SheetSelect from "@/components/SheetSelect";
 
 // Convert Arabic-Indic (٠-٩) and Eastern Arabic (۰-۹) digits to ASCII 0-9
 function normalizeDigits(s) {
@@ -234,22 +235,24 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         </div>
         <div className="space-y-1">
           <label className="text-sm font-semibold">{t("selectCondition")}</label>
-          <select value={condition} onChange={(e) => setCondition(e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-muted outline-none">
-            {CONDITIONS.map((c) => (
-              <option key={c.id} value={c.id}>{lang === "ar" ? c.ar : c.en}</option>
-            ))}
-          </select>
+          <SheetSelect
+            value={condition}
+            onChange={setCondition}
+            label={t("selectCondition")}
+            options={CONDITIONS.map((c) => ({ value: c.id, label: lang === "ar" ? c.ar : c.en }))}
+          />
         </div>
       </div>
 
       <div className="space-y-1">
         <label className="text-sm font-semibold">{t("category")}</label>
-        <select value={category} onChange={(e) => { setCategory(e.target.value); setSubcats([]); }} className="w-full px-4 py-3 rounded-2xl bg-muted outline-none">
-          <option value="">{t("selectCategory")}</option>
-          {CATEGORIES.filter((c) => c.id !== "all").map((c) => (
-            <option key={c.id} value={c.id}>{lang === "ar" ? c.ar : c.en}</option>
-          ))}
-        </select>
+        <SheetSelect
+          value={category}
+          onChange={(v) => { setCategory(v); setSubcats([]); }}
+          placeholder={t("selectCategory")}
+          label={t("category")}
+          options={CATEGORIES.filter((c) => c.id !== "all").map((c) => ({ value: c.id, label: lang === "ar" ? c.ar : c.en }))}
+        />
       </div>
 
       <div className="space-y-1">
@@ -257,21 +260,19 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         <div className="rounded-2xl bg-muted p-3 space-y-2.5">
           <div className="flex items-center gap-2">
             <MapPin size={16} className="text-muted-foreground shrink-0" />
-            <select
+            <SheetSelect
               value={city}
-              onChange={(e) => {
-                setCity(e.target.value);
+              onChange={(v) => {
+                setCity(v);
                 setLocationName("");
-                const c = getCities(country || "SA").find((x) => x.en === e.target.value);
+                const c = getCities(country || "SA").find((x) => x.en === v);
                 if (c) { setLat(c.lat); setLng(c.lng); }
               }}
-              className="flex-1 bg-transparent outline-none text-sm font-semibold"
-            >
-              <option value="">{t("selectCity")}</option>
-              {getCities(country || "SA").map((c) => (
-                <option key={c.en} value={c.en}>{lang === "ar" ? c.ar : c.en}</option>
-              ))}
-            </select>
+              placeholder={t("selectCity")}
+              label={t("location")}
+              buttonClassName="bg-transparent px-0 py-1.5 text-sm font-semibold flex-1"
+              options={getCities(country || "SA").map((c) => ({ value: c.en, label: lang === "ar" ? c.ar : c.en }))}
+            />
           </div>
           {lat != null && lng != null && (
             <p className="text-[11px] text-muted-foreground ps-6">

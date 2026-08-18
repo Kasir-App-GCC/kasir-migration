@@ -8,6 +8,7 @@ import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { getCategory, getCityName } from "@/lib/constants";
 import { matchLocation } from "@/lib/location";
+import PullToRefresh from "@/components/PullToRefresh";
 
 function Skeleton() {
   return (
@@ -130,6 +131,7 @@ export default function Home() {
   const showFeatured = categories.length === 0 && featured.length > 0;
 
   return (
+    <PullToRefresh onRefresh={loadInitial}>
     <div className="space-y-5 pt-2">
       {/* AI Shopping Assistant button */}
       <button
@@ -200,5 +202,6 @@ export default function Home() {
         </div>
       )}
     </div>
+    </PullToRefresh>
   );
 }

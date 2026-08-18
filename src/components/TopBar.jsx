@@ -27,7 +27,7 @@ export default function TopBar({ onOpenLocation }) {
   const cycle = () => setTheme(theme === "dark" ? "light" : theme === "light" ? "system" : "dark");
 
   return (
-    <header className="sticky top-0 z-30 bg-background/85 backdrop-blur-xl border-b border-border/60">
+    <header className="sticky top-0 z-30 bg-background/85 backdrop-blur-xl border-b border-border/60 pt-[env(safe-area-inset-top)]">
       <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
         <div className="flex items-center gap-2 shrink-0">
           <div className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-sm">

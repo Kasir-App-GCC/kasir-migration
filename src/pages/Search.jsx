@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { Search as SearchIcon, SlidersHorizontal, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -9,6 +9,7 @@ import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { CATEGORIES, CONDITIONS, SAUDI_CITIES } from "@/lib/constants";
 import { matchLocation } from "@/lib/location";
+import PullToRefresh from "@/components/PullToRefresh";
 
 export default function Search() {
   const { categories, setCategories, subcategories, setSubcategories } = useOutletContext();
@@ -24,19 +25,19 @@ export default function Search() {
   const [maxPrice, setMaxPrice] = useState("");
   const [condition, setCondition] = useState([]);
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const all = await base44.entities.Item.list("-created_date", 100);
-        setItems(all || []);
-      } catch {
-        setItems([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
+  const reload = useCallback(async () => {
+    setLoading(true);
+    try {
+      const all = await base44.entities.Item.list("-created_date", 100);
+      setItems(all || []);
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => { reload(); }, [reload]);
 
   const results = useMemo(() => {
     let r = items.filter((it) => {
@@ -62,6 +63,7 @@ export default function Search() {
   };
 
   return (
+    <PullToRefresh onRefresh={reload}>
     <div className="pt-2 space-y-3">
       <div className="flex gap-2">
         <div className="relative flex-1">
@@ -188,5 +190,6 @@ export default function Search() {
         </div>
       )}
     </div>
+    </PullToRefresh>
   );
 }

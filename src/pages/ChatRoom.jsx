@@ -279,7 +279,8 @@ export default function ChatRoom() {
 
   return (
     <div className="fixed inset-0 z-40 bg-background flex flex-col">
-      <header className="h-14 border-b border-border/60 flex items-center gap-3 px-4 bg-background/90 backdrop-blur shrink-0">
+      <header className="pt-[env(safe-area-inset-top)] border-b border-border/60 bg-background/90 backdrop-blur shrink-0">
+        <div className="h-14 flex items-center gap-3 px-4">
         <button onClick={() => nav("/chats")} className="p-1.5 rounded-full hover:bg-muted"><ArrowLeft size={20} className="rtl:rotate-180" /></button>
         <button
           onClick={goToProfile}
@@ -301,6 +302,7 @@ export default function ChatRoom() {
             ) : null}
           </div>
         </button>
+        </div>
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">

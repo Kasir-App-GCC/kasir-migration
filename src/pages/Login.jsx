@@ -112,6 +112,7 @@ export default function Login() {
             <Label htmlFor="password">Password</Label>
             <Link
               to={"/forgot-password" + (safeReturnTo() !== "/" ? "?returnTo=" + encodeURIComponent(safeReturnTo()) : "")}
+              dir="ltr"
               className="text-xs text-primary font-medium hover:underline"
             >
               Forgot password?

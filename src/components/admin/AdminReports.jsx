@@ -68,7 +68,8 @@ export default function AdminReports() {
     if (!window.confirm(ar ? `حذف ${u.username || u.email}؟ لا يمكن التراجع.` : `Delete ${u.username || u.email}? This cannot be undone.`)) return;
     setActing(u.id);
     try {
-      await base44.asServiceRole.entities.User.delete(u.id);
+      const res = await base44.functions.invoke("deleteUser", { userId: u.id });
+      if (!res.data?.success) throw new Error(res.data?.error || "Delete failed");
       toast({ title: ar ? "تم حذف المستخدم" : "User deleted" });
     } catch {
       toast({ title: ar ? "فشل الحذف" : "Delete failed", variant: "destructive" });
@@ -119,7 +120,8 @@ export default function AdminReports() {
         reason: reason || "—",
         original_username: u.username || u.email,
       });
-      await base44.asServiceRole.entities.User.delete(u.id);
+      const res = await base44.functions.invoke("deleteUser", { userId: u.id });
+      if (!res.data?.success) throw new Error(res.data?.error || "Delete failed");
       toast({ title: ar ? "تم حظر وحذف المستخدم نهائياً" : "User blacklisted & deleted permanently" });
     } catch {
       toast({ title: ar ? "فشل الحظر" : "Blacklist failed", variant: "destructive" });

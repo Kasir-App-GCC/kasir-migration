@@ -503,7 +503,7 @@ export default function ItemDetail() {
       )}
 
       {/* Action bar */}
-      <div className="fixed bottom-0 inset-x-0 z-40 bg-background/90 backdrop-blur-xl border-t border-border/60 pb-[env(safe-area-inset-bottom)]">
+      <div className="fixed inset-x-0 z-40 bg-background/90 backdrop-blur-xl border-t border-border/60" style={{ bottom: "calc(64px + env(safe-area-inset-bottom))" }}>
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
           {isOwner ? (
             <>

@@ -150,9 +150,9 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   };
 
   const valid = title && price && category && city && images.length > 0;
-  // Tiered boost pricing: longer commitments get a discounted hourly rate.
-  // 24h+ → 9 SAR/hr, 48h+ → 8 SAR/hr, otherwise 10 SAR/hr.
-  const boostRate = boostHours >= 48 ? 8 : boostHours >= 24 ? 9 : 10;
+  // Tiered boost pricing: short boosts are cheapest per hour, longer boosts cost more.
+  // 1-9h → 5 SAR/hr, 10-23h → 8 SAR/hr, 24-47h → 10 SAR/hr, 48-72h → 12 SAR/hr.
+  const boostRate = boostHours >= 48 ? 12 : boostHours >= 24 ? 10 : boostHours >= 10 ? 8 : 5;
   const boostAmount = boostHours > 0 ? boostHours * boostRate + (boostCross ? boostHours * 7 : 0) : 0;
   const cur = getCountry(country || "SA");
   const boostDisplay = convertCurrency(boostAmount, "SA", country || "SA");
@@ -344,25 +344,27 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             className="w-full accent-amber-500"
           />
           <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-            <span>0</span><span>24</span><span>48</span><span>72</span>
+            <span>0</span><span>10</span><span>24</span><span>48</span><span>72</span>
           </div>
           {boostHours > 0 && (
             <div className="flex items-center justify-between mt-2 text-xs">
               <span className="text-muted-foreground">{ar ? "السعر/ساعة" : "Rate / hour"}</span>
               <span className="font-bold text-amber-600 dark:text-amber-400">
                 {fmt(convertCurrency(boostRate, "SA", country || "SA"))} {ar ? cur.currencyAr : cur.currency}
-                {boostRate < 10 && <span className="ms-1.5 text-[10px] line-through opacity-60">10</span>}
               </span>
             </div>
           )}
-          {boostHours > 0 && boostRate === 10 && (
-            <p className="text-[10px] text-muted-foreground mt-1">{ar ? "اختر ٢٤ ساعة أو أكثر للحصول على خصم" : "Choose 24h+ for a discount"}</p>
-          )}
-          {boostHours > 0 && boostRate === 9 && (
-            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1">{ar ? "خصم ١٠٪ — اختر ٤٨ ساعة لخصم أكبر" : "10% off — choose 48h for more"}</p>
+          {boostHours > 0 && boostRate === 5 && (
+            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1">{ar ? "أقل سعر — تعزيز سريع" : "Lowest rate — quick boost"}</p>
           )}
           {boostHours > 0 && boostRate === 8 && (
-            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1">{ar ? "خصم ٢٠٪ — أفضل سعر!" : "20% off — best rate!"}</p>
+            <p className="text-[10px] text-muted-foreground mt-1">{ar ? "تعزيز متوسط" : "Mid tier"}</p>
+          )}
+          {boostHours > 0 && boostRate === 10 && (
+            <p className="text-[10px] text-muted-foreground mt-1">{ar ? "تعزيز ليوم كامل" : "Full-day boost"}</p>
+          )}
+          {boostHours > 0 && boostRate === 12 && (
+            <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">{ar ? "تعزيز ممتد — أعلى سعر" : "Extended boost — premium rate"}</p>
           )}
         </div>
         {boostHours > 0 && (

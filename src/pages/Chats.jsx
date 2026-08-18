@@ -19,6 +19,7 @@ export default function Chats() {
   const [unread, setUnread] = useState({});
   const [trusted, setTrusted] = useState({});
   const [avatars, setAvatars] = useState({});
+  const [lastMsgTime, setLastMsgTime] = useState({});
   const roomsRef = useRef([]);
   const lastFocusRef = useRef(0);
 
@@ -68,6 +69,16 @@ export default function Chats() {
           if (c > 0) map[r.id] = c;
         });
         setUnread(map);
+        // Last activity per room = newest message or offer timestamp, so the list
+        // shows real conversation time instead of the room's updated_date (which
+        // bumps on read-receipt pings and would show "now" just from opening a chat).
+        const timeMap = {};
+        [...(msgs || []), ...(offers || [])].forEach((x) => {
+          if (!x.chatroom_id) return;
+          const ts = new Date(x.created_date).getTime();
+          if (!timeMap[x.chatroom_id] || ts > new Date(timeMap[x.chatroom_id]).getTime()) timeMap[x.chatroom_id] = x.created_date;
+        });
+        setLastMsgTime(timeMap);
         // Fetch trusted status for each distinct other party.
         const otherIds = [];
         mine.forEach((r) => {
@@ -137,6 +148,10 @@ export default function Chats() {
         copy[idx] = { ...copy[idx], last_message: m.text, updated_date: m.created_date };
         return copy;
       });
+      setLastMsgTime((prev) => {
+        const existing = prev[m.chatroom_id] ? new Date(prev[m.chatroom_id]).getTime() : 0;
+        return new Date(m.created_date).getTime() > existing ? { ...prev, [m.chatroom_id]: m.created_date } : prev;
+      });
       setUnread((prev) => ({ ...prev, [m.chatroom_id]: (prev[m.chatroom_id] || 0) + 1 }));
     };
     const onOffer = (event) => {
@@ -194,9 +209,11 @@ export default function Chats() {
   const otherId = (r) => (r.seller_id === user.id ? r.buyer_id : r.seller_id);
   const isOfficialForMe = (r) => r.is_official && r.seller_id !== user.id;
 
-  const sortedRooms = [...rooms].sort(
-    (a, b) => (Number(!!unread[b.id]) - Number(!!unread[a.id])) || (new Date(b.updated_date) - new Date(a.updated_date))
-  );
+  const sortedRooms = [...rooms].sort((a, b) => {
+    const ta = lastMsgTime[a.id] ? new Date(lastMsgTime[a.id]).getTime() : new Date(a.created_date).getTime();
+    const tb = lastMsgTime[b.id] ? new Date(lastMsgTime[b.id]).getTime() : new Date(b.created_date).getTime();
+    return (Number(!!unread[b.id]) - Number(!!unread[a.id])) || (tb - ta);
+  });
 
   if (!loading && rooms.length === 0) {
     return (
@@ -255,7 +272,7 @@ export default function Chats() {
                       {trusted[otherId(r)] && <TrustedBadge size={14} />}
                       {isOfficialForMe(r) && !trusted[otherId(r)] && <BadgeCheck size={14} className="text-primary shrink-0" />}
                     </span>
-                    <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(r.updated_date, lang)}</span>
+                    <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(lastMsgTime[r.id] || r.created_date, lang)}</span>
                   </div>
                   <p className={`text-sm truncate ${unread[r.id] ? "text-foreground font-medium" : "text-muted-foreground"}`}>{r.last_message || (r.is_official ? (lang === "ar" ? "محادثة رسمية" : "Official chat") : r.item_title)}</p>
                   </div>

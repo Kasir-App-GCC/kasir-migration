@@ -167,8 +167,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const navigateToLogin = () => {
-    // Use the SDK's redirectToLogin method
-    base44.auth.redirectToLogin(window.location.href);
+    // Redirect to the in-app login page, preserving the current path via returnTo
+    const current = window.location.pathname + window.location.search;
+    const returnTo = current && current !== "/" ? encodeURIComponent(current) : "";
+    window.location.href = "/login" + (returnTo ? `?returnTo=${returnTo}` : "");
   };
 
   return (

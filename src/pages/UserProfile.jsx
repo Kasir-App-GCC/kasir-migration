@@ -20,7 +20,7 @@ export default function UserProfile() {
   const [reviewItems, setReviewItems] = useState({});
 
   const name = params.get("name") || "—";
-  const avatar = params.get("avatar");
+  const [avatarParam] = useState(params.get("avatar"));
 
   useEffect(() => {
     (async () => {
@@ -62,7 +62,7 @@ export default function UserProfile() {
       <div className="rounded-3xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground p-5">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full overflow-hidden bg-white/20 ring-2 ring-white/30 shrink-0">
-            {avatar ? <img src={avatar} className="w-full h-full object-cover" /> : <span className="w-full h-full flex items-center justify-center text-2xl font-bold">{name?.[0]}</span>}
+            {(profile?.avatar || avatarParam) ? <img src={profile?.avatar || avatarParam} className="w-full h-full object-cover" /> : <span className="w-full h-full flex items-center justify-center text-2xl font-bold">{name?.[0]}</span>}
           </div>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-extrabold truncate flex items-center gap-1.5">

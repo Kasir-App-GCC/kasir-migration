@@ -275,23 +275,25 @@ export default function ChatRoom() {
     <div className="fixed inset-0 z-40 bg-background flex flex-col">
       <header className="h-14 border-b border-border/60 flex items-center gap-3 px-4 bg-background/90 backdrop-blur shrink-0">
         <button onClick={() => nav("/chats")} className="p-1.5 rounded-full hover:bg-muted"><ArrowLeft size={20} className="rtl:rotate-180" /></button>
-        <div className="w-9 h-9 rounded-full overflow-hidden bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0">
-          {avatar ? <img src={avatar} alt={otherName} className="w-full h-full object-cover" /> : (otherName?.[0] || "?")}
-        </div>
         <button
-          onClick={() => !isOfficial && nav(`/user/${isSeller ? room.buyer_id : room.seller_id}?name=${encodeURIComponent(otherName || "")}&avatar=${encodeURIComponent(avatar || "")}`)}
-          className="flex-1 min-w-0 text-start"
+          onClick={() => { if (!isOfficial && room) nav(`/user/${isSeller ? room.buyer_id : room.seller_id}?name=${encodeURIComponent(otherName || "")}&avatar=${encodeURIComponent(avatar || "")}`); }}
+          className="flex-1 flex items-center gap-3 min-w-0 text-start"
         >
-          <p className="font-bold text-sm truncate flex items-center gap-1">
-            {otherName}
-            {otherTrusted && <TrustedBadge size={15} />}
-            {isOfficial && !isSeller && !otherTrusted && <BadgeCheck size={15} className="text-primary shrink-0" />}
-          </p>
-          {isOfficial ? (
-            <p className="text-xs text-muted-foreground truncate">{officialLabel} · {ar ? "محادثة رسمية" : "Official chat"}</p>
-          ) : room?.item_title ? (
-            <p className="text-xs text-muted-foreground truncate">{room.item_title} · <Price value={room.item_price} lang={lang} country={itemCountry} /></p>
-          ) : null}
+          <div className="w-9 h-9 rounded-full overflow-hidden bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0">
+            {avatar ? <img src={avatar} alt={otherName} className="w-full h-full object-cover" /> : (otherName?.[0] || "?")}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-sm truncate flex items-center gap-1">
+              {otherName}
+              {otherTrusted && <TrustedBadge size={15} />}
+              {isOfficial && !isSeller && !otherTrusted && <BadgeCheck size={15} className="text-primary shrink-0" />}
+            </p>
+            {isOfficial ? (
+              <p className="text-xs text-muted-foreground truncate">{officialLabel} · {ar ? "محادثة رسمية" : "Official chat"}</p>
+            ) : room?.item_title ? (
+              <p className="text-xs text-muted-foreground truncate">{room.item_title} · <Price value={room.item_price} lang={lang} country={itemCountry} /></p>
+            ) : null}
+          </div>
         </button>
       </header>
 

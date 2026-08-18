@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 
-const ALLOWED_FIELDS = ["is_trusted", "is_banned", "banned_reason", "role", "username", "phone", "country_code"];
+const ALLOWED_FIELDS = ["is_trusted", "is_banned", "banned_reason", "role", "username", "phone", "country_code", "avatar"];
 
 export default async function(req) {
   try {

@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useMemo } from "react";
-import { Search, ShieldCheck, Ban, Trash2, Star, Eye, X, ShieldX, MessageSquare, Pencil, LifeBuoy, KeyRound, Save } from "lucide-react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
+import { Search, ShieldCheck, Ban, Trash2, Star, Eye, X, ShieldX, Pencil, LifeBuoy, KeyRound, Save, ImagePlus, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -18,15 +18,45 @@ export default function AdminUsers() {
   const [filter, setFilter] = useState("all");
   const [ratings, setRatings] = useState({});
   const [selected, setSelected] = useState(null);
-  const [editForm, setEditForm] = useState({ username: "", phone: "", country_code: "+966" });
+  const [editForm, setEditForm] = useState({ username: "", phone: "", country_code: "+966", avatar: "" });
   const [saving, setSaving] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const fileRef = useRef(null);
 
   const startEdit = (u) => {
     setEditForm({
       username: u.username || "",
       phone: u.phone || "",
       country_code: u.country_code || "+966",
+      avatar: u.avatar || "",
     });
+  };
+
+  const onPickAvatar = () => fileRef.current?.click();
+
+  const onAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: ar ? "الصورة كبيرة جداً (حد 5MB)" : "Image too large (max 5MB)", variant: "destructive" });
+      e.target.value = "";
+      return;
+    }
+    setAvatarUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setEditForm((f) => ({ ...f, avatar: file_url }));
+      const updated = { ...selected, avatar: file_url };
+      setSelected(updated);
+      setUsers((prev) => prev.map((x) => (x.id === selected.id ? { ...x, avatar: file_url } : x)));
+      await base44.functions.invoke("updateUser", { userId: selected.id, avatar: file_url });
+      toast({ title: ar ? "تم تحديث الصورة" : "Avatar updated" });
+    } catch {
+      toast({ title: ar ? "فشل رفع الصورة" : "Upload failed", variant: "destructive" });
+    } finally {
+      setAvatarUploading(false);
+      e.target.value = "";
+    }
   };
 
   const saveProfile = async () => {
@@ -270,9 +300,13 @@ export default function AdminUsers() {
               <button onClick={() => setSelected(null)} className="p-1.5 rounded-full hover:bg-muted"><X size={20} /></button>
             </div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-16 h-16 rounded-full overflow-hidden bg-muted shrink-0">
+              <button onClick={onPickAvatar} disabled={avatarUploading} className="relative w-16 h-16 rounded-full overflow-hidden bg-muted shrink-0 group disabled:opacity-60">
                 {selected.avatar ? <img src={selected.avatar} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-muted-foreground">{(selected.first_name || selected.email || "?")[0]?.toUpperCase()}</div>}
-              </div>
+                <span className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                  {avatarUploading ? <Loader2 size={18} className="text-white animate-spin" /> : <ImagePlus size={18} className="text-white" />}
+                </span>
+              </button>
+              <input ref={fileRef} type="file" accept="image/*" onChange={onAvatarChange} className="hidden" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <p className="font-bold truncate">{selected.first_name ? `${selected.first_name} ${selected.last_name || ""}`.trim() : selected.email}</p>
@@ -350,11 +384,8 @@ export default function AdminUsers() {
               </button>
             </div>
             <div className="flex gap-2 mb-3">
-              <button onClick={() => startOfficialChat(selected, "Management")} className="flex-1 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5 bg-primary text-primary-foreground">
-                <MessageSquare size={16} /> {ar ? "إدارة" : "Mgmt"}
-              </button>
               <button onClick={() => startOfficialChat(selected, "Support")} className="flex-1 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5 bg-amber-500 text-white">
-                <LifeBuoy size={16} /> {ar ? "دعم" : "Support"}
+                <LifeBuoy size={16} /> {ar ? "محادثة دعم" : "Support Chat"}
               </button>
             </div>
             <button onClick={() => blacklistUser(selected)} className="w-full py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5 bg-rose-600 text-white mb-4">

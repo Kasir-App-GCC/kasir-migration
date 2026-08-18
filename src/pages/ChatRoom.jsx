@@ -120,6 +120,12 @@ export default function ChatRoom() {
   const roomAvatar = room ? (isSeller ? room.buyer_avatar : room.seller_avatar) : null;
   const avatar = otherAvatar || roomAvatar;
   const otherLastSeen = room ? (isSeller ? room.buyer_last_seen : room.seller_last_seen) : null;
+  const otherId = room ? (isSeller ? room.buyer_id : room.seller_id) : null;
+
+  const goToProfile = () => {
+    if (!otherId || isOfficial) return;
+    nav(`/user/${otherId}?name=${encodeURIComponent(otherName || "")}&avatar=${encodeURIComponent(avatar || "")}`);
+  };
 
   const fetchSuggestions = useCallback(async (msgs) => {
     if (!room || !user) return;
@@ -276,7 +282,7 @@ export default function ChatRoom() {
       <header className="h-14 border-b border-border/60 flex items-center gap-3 px-4 bg-background/90 backdrop-blur shrink-0">
         <button onClick={() => nav("/chats")} className="p-1.5 rounded-full hover:bg-muted"><ArrowLeft size={20} className="rtl:rotate-180" /></button>
         <button
-          onClick={() => { if (!isOfficial && room) nav(`/user/${isSeller ? room.buyer_id : room.seller_id}?name=${encodeURIComponent(otherName || "")}&avatar=${encodeURIComponent(avatar || "")}`); }}
+          onClick={goToProfile}
           className="flex-1 flex items-center gap-3 min-w-0 text-start"
         >
           <div className="w-9 h-9 rounded-full overflow-hidden bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0">

@@ -13,23 +13,33 @@ export default function AdminDashboard() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await base44.functions.invoke("getAdminStats");
-        const s = res?.data;
-        if (!s || s.error) throw new Error(s.error || "Failed");
+        const [users, items, reports, tickets, ratings] = await Promise.all([
+          base44.entities.User.list("-created_date", 500),
+          base44.entities.Item.list("-created_date", 500),
+          base44.entities.Report.list("-created_date", 200),
+          base44.entities.SupportTicket.list("-created_date", 200),
+          base44.entities.Rating.list("-created_date", 500),
+        ]);
+        const soldItems = (items || []).filter((i) => i.status === "sold");
+        const revenue = soldItems.reduce((s, i) => s + (i.price || 0), 0);
+        const trusted = (users || []).filter((u) => u.is_trusted).length;
+        const banned = (users || []).filter((u) => u.is_banned).length;
+        const openTickets = (tickets || []).filter((t) => t.status === "open").length;
+        const openReports = (reports || []).filter((r) => !r.resolved).length;
+        const avgRating = ratings?.length
+          ? (ratings.reduce((s, r) => s + r.score, 0) / ratings.length).toFixed(1)
+          : "—";
         setStats({
-          users: s.users,
-          usersTruncated: s.usersTruncated,
-          items: s.items,
-          itemsTruncated: s.itemsTruncated,
-          sold: s.sold,
-          soldTruncated: s.soldTruncated,
-          revenue: s.revenue,
-          trusted: s.trusted,
-          banned: s.banned,
-          reports: s.reports,
-          tickets: s.tickets,
-          avgRating: s.avgRating,
-          ratings: s.ratings,
+          users: users?.length || 0,
+          items: items?.length || 0,
+          sold: soldItems.length,
+          revenue,
+          trusted,
+          banned,
+          reports: openReports,
+          tickets: openTickets,
+          avgRating,
+          ratings: ratings?.length || 0,
         });
       } catch {
       } finally {
@@ -42,9 +52,9 @@ export default function AdminDashboard() {
   if (!stats) return null;
 
   const cards = [
-    { icon: Users, label: ar ? "المستخدمين" : "Users", value: stats.usersTruncated ? `${stats.users}+` : stats.users, color: "text-blue-500 bg-blue-50 dark:bg-blue-950/30" },
-    { icon: ShoppingBag, label: ar ? "الإعلانات" : "Listings", value: stats.itemsTruncated ? `${stats.items}+` : stats.items, color: "text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30" },
-    { icon: Tag, label: ar ? "المباع" : "Sold", value: stats.soldTruncated ? `${stats.sold}+` : stats.sold, color: "text-amber-500 bg-amber-50 dark:bg-amber-950/30" },
+    { icon: Users, label: ar ? "المستخدمين" : "Users", value: stats.users, color: "text-blue-500 bg-blue-50 dark:bg-blue-950/30" },
+    { icon: ShoppingBag, label: ar ? "الإعلانات" : "Listings", value: stats.items, color: "text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30" },
+    { icon: Tag, label: ar ? "المباع" : "Sold", value: stats.sold, color: "text-amber-500 bg-amber-50 dark:bg-amber-950/30" },
     { icon: DollarSign, label: ar ? "الإيرادات" : "Revenue", value: formatPrice(stats.revenue, country), color: "text-green-500 bg-green-50 dark:bg-green-950/30" },
     { icon: TrendingUp, label: ar ? "متوسط التقييم" : "Avg Rating", value: `${stats.avgRating} ★`, color: "text-purple-500 bg-purple-50 dark:bg-purple-950/30" },
     { icon: AlertTriangle, label: ar ? "موثوقون" : "Trusted", value: stats.trusted, color: "text-cyan-500 bg-cyan-50 dark:bg-cyan-950/30" },

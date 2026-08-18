@@ -63,10 +63,6 @@
     "official_admin_id": {
       "type": "string",
       "description": "The admin user ID who initiated this official chat"
-    },
-    "description": {
-      "type": "string",
-      "maxLength": 1000
     }
   },
   "required": [

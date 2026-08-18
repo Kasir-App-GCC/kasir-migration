@@ -43,11 +43,8 @@
       "default": "open"
     },
     "reply": {
-      "type": "string"
-    },
-    "description": {
       "type": "string",
-      "maxLength": 1000
+      "description": "Admin's response to the ticket"
     }
   },
   "required": [

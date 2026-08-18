@@ -16,10 +16,6 @@
     "original_username": {
       "type": "string",
       "description": "The username of the blocked user at time of blacklisting"
-    },
-    "description": {
-      "type": "string",
-      "maxLength": 1000
     }
   },
   "required": [

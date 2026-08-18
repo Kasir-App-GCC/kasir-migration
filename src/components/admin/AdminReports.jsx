@@ -22,16 +22,11 @@ export default function AdminReports() {
       try {
         const list = await base44.entities.Report.list("-created_date", 200);
         setReports(list || []);
-        // Fetch only the users referenced in these reports — not all 500 latest users.
-        const userIds = [...new Set(
-          (list || []).flatMap((r) => [r.reported_user_id, r.reporter_user_id]).filter(Boolean)
-        )];
-        if (userIds.length) {
-          try {
-            const res = await base44.functions.invoke("getUsersByIds", { ids: userIds });
-            setUsers(res?.data?.users || {});
-          } catch {}
-        }
+        // fetch all users to resolve names/usernames
+        const ulist = await base44.entities.User.list("-created_date", 500);
+        const map = {};
+        (ulist || []).forEach((u) => { map[u.id] = u; });
+        setUsers(map);
         // fetch related items
         const itemIds = [...new Set((list || []).map((r) => r.item_id).filter(Boolean))];
         if (itemIds.length) {

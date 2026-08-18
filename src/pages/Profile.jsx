@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, Info, Mail } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -293,14 +292,6 @@ export default function Profile() {
           <span className="flex items-center gap-2 text-sm font-semibold"><LifeBuoy size={18} /> {t("contactSupport")}</span>
           <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
         </button>
-        <Link to="/about" className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
-          <span className="flex items-center gap-2 text-sm font-semibold"><Info size={18} /> {lang === "ar" ? "من نحن" : "About"}</span>
-          <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
-        </Link>
-        <Link to="/contact" className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
-          <span className="flex items-center gap-2 text-sm font-semibold"><Mail size={18} /> {lang === "ar" ? "تواصل معنا" : "Contact"}</span>
-          <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
-        </Link>
         <button onClick={() => logout()} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
           <span className="flex items-center gap-2 text-rose-600 font-semibold text-sm"><LogOut size={18} /> {t("logout")}</span>
           <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />

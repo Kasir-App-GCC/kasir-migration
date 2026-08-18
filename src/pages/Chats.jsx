@@ -18,6 +18,7 @@ export default function Chats() {
   const [confirmAll, setConfirmAll] = useState(false);
   const [unread, setUnread] = useState({});
   const [trusted, setTrusted] = useState({});
+  const [avatars, setAvatars] = useState({});
   const roomsRef = useRef([]);
   const lastFocusRef = useRef(0);
 
@@ -74,13 +75,16 @@ export default function Chats() {
           if (oid && !otherIds.includes(oid)) otherIds.push(oid);
         });
         const tMap = {};
+        const aMap = {};
         await Promise.all(otherIds.map(async (oid) => {
           try {
             const p = await base44.functions.invoke("getPublicProfile", { user_id: oid });
             if (p?.data?.is_trusted) tMap[oid] = true;
+            if (p?.data?.avatar) aMap[oid] = p.data.avatar;
           } catch {}
         }));
         setTrusted(tMap);
+        setAvatars(aMap);
       } catch {}
       // Never clear existing rooms on a transient fetch error — keep what we have.
     } finally {
@@ -186,7 +190,7 @@ export default function Chats() {
   };
 
   const otherName = (r) => (r.seller_id === user.id ? r.buyer_name : r.seller_name);
-  const otherAvatar = (r) => (r.seller_id === user.id ? r.buyer_avatar : r.seller_avatar);
+  const otherAvatar = (r) => avatars[otherId(r)] || (r.seller_id === user.id ? r.buyer_avatar : r.seller_avatar);
   const otherId = (r) => (r.seller_id === user.id ? r.buyer_id : r.seller_id);
   const isOfficialForMe = (r) => r.is_official && r.seller_id !== user.id;
 

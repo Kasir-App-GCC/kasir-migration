@@ -25,6 +25,7 @@ export default function ChatRoom() {
   const [suggestions, setSuggestions] = useState([]);
   const [suggLoading, setSuggLoading] = useState(false);
   const [otherTrusted, setOtherTrusted] = useState(false);
+  const [otherAvatar, setOtherAvatar] = useState(null);
   const endRef = useRef(null);
   const suggTimer = useRef(null);
   const lastSig = useRef("");
@@ -48,6 +49,7 @@ export default function ChatRoom() {
           try {
             const p = await base44.functions.invoke("getPublicProfile", { user_id: otherId });
             setOtherTrusted(!!p?.data?.is_trusted);
+            if (p?.data?.avatar) setOtherAvatar(p.data.avatar);
           } catch {}
         }
         await loadAll();
@@ -115,7 +117,8 @@ export default function ChatRoom() {
   const isOfficial = !!room?.is_official;
   const officialLabel = room?.official_label || "";
   const otherName = room ? (isSeller ? room.buyer_name : room.seller_name) : "";
-  const otherAvatar = room ? (isSeller ? room.buyer_avatar : room.seller_avatar) : null;
+  const roomAvatar = room ? (isSeller ? room.buyer_avatar : room.seller_avatar) : null;
+  const avatar = otherAvatar || roomAvatar;
   const otherLastSeen = room ? (isSeller ? room.buyer_last_seen : room.seller_last_seen) : null;
 
   const fetchSuggestions = useCallback(async (msgs) => {
@@ -273,10 +276,10 @@ export default function ChatRoom() {
       <header className="h-14 border-b border-border/60 flex items-center gap-3 px-4 bg-background/90 backdrop-blur shrink-0">
         <button onClick={() => nav("/chats")} className="p-1.5 rounded-full hover:bg-muted"><ArrowLeft size={20} className="rtl:rotate-180" /></button>
         <div className="w-9 h-9 rounded-full overflow-hidden bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0">
-          {otherAvatar ? <img src={otherAvatar} alt={otherName} className="w-full h-full object-cover" /> : (otherName?.[0] || "?")}
+          {avatar ? <img src={avatar} alt={otherName} className="w-full h-full object-cover" /> : (otherName?.[0] || "?")}
         </div>
         <button
-          onClick={() => !isOfficial && nav(`/user/${isSeller ? room.buyer_id : room.seller_id}?name=${encodeURIComponent(otherName || "")}&avatar=${encodeURIComponent(otherAvatar || "")}`)}
+          onClick={() => !isOfficial && nav(`/user/${isSeller ? room.buyer_id : room.seller_id}?name=${encodeURIComponent(otherName || "")}&avatar=${encodeURIComponent(avatar || "")}`)}
           className="flex-1 min-w-0 text-start"
         >
           <p className="font-bold text-sm truncate flex items-center gap-1">
@@ -340,12 +343,12 @@ export default function ChatRoom() {
             }
             const mine = m.sender_id === user.id;
             const showName = !mine && (i === 0 || timeline[i - 1].sender_id !== m.sender_id);
-            const showAvatar = showName && otherAvatar;
+            const showAvatar = showName && avatar;
             return (
               <div key={`m-${i}`} className={`flex items-end gap-2 ${mine ? "justify-end" : "justify-start"}`}>
                 {!mine && (
                   <div className="w-6 h-6 rounded-full overflow-hidden bg-primary/10 shrink-0">
-                    {showAvatar ? <img src={otherAvatar} className="w-full h-full object-cover" /> : <div className="w-full h-full" />}
+                    {showAvatar ? <img src={avatar} className="w-full h-full object-cover" /> : <div className="w-full h-full" />}
                   </div>
                 )}
                 <div className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm ${mine ? "bg-primary text-primary-foreground rounded-br-md" : "bg-muted rounded-bl-md"}`}>

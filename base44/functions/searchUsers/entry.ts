@@ -10,15 +10,16 @@ export default async function (req) {
     const query = String(body?.query || "").trim().toLowerCase().replace(/^@/, "");
     if (query.length < 1) return Response.json({ users: [] });
 
-    const all = await base44.asServiceRole.entities.User.list("-created_date", 200);
+    const all = await base44.asServiceRole.entities.User.list("-created_date", 5000);
     const matches = (all || [])
       .filter((u) => u.id !== user.id)
       .filter((u) => {
         const uname = (u.username || "").toLowerCase();
         const full = (u.full_name || [u.first_name, u.last_name].filter(Boolean).join(" ") || "").toLowerCase();
-        return uname.includes(query) || full.includes(query);
+        const email = (u.email || "").toLowerCase();
+        return uname.includes(query) || full.includes(query) || email.includes(query);
       })
-      .slice(0, 8)
+      .slice(0, 10)
       .map((u) => ({
         id: u.id,
         username: u.username || "",

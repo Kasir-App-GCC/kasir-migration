@@ -22,16 +22,23 @@ export default function Notifications() {
         return;
       }
       try {
-        const rooms = await base44.entities.ChatRoom.list("-updated_date", 100);
+        const rooms = await base44.entities.ChatRoom.list("-updated_date", 200);
         const mine = (rooms || []).filter((r) => {
           if (r.buyer_id !== user.id && r.seller_id !== user.id) return false;
           // Exclude chats the user has deleted (hidden on their side).
           return r.buyer_id === user.id ? !r.hidden_for_buyer : !r.hidden_for_seller;
         });
         const roomMap = new Map(mine.map((r) => [r.id, r]));
+        const roomIds = mine.map((r) => r.id);
+        // Filter messages and offers by the user's chat room IDs — not globally.
+        // At scale, loading the latest 100 messages globally would miss the user's chats entirely.
         const [msgs, offers] = await Promise.all([
-          base44.entities.Message.list("-created_date", 100),
-          base44.entities.Offer.list("-created_date", 100),
+          roomIds.length
+            ? base44.entities.Message.filter({ chatroom_id: { $in: roomIds } }, "-created_date", 200)
+            : Promise.resolve([]),
+          roomIds.length
+            ? base44.entities.Offer.filter({ chatroom_id: { $in: roomIds } }, "-created_date", 200)
+            : Promise.resolve([]),
         ]);
         const isIncoming = (o) =>
           o && ((o.direction === "buyer_offer" && o.seller_id === user.id) || (o.direction === "seller_counter" && o.buyer_id === user.id));

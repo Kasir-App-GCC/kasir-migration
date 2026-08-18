@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Search, MessageSquare, ShieldCheck, LifeBuoy, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
@@ -13,31 +13,29 @@ export default function AdminMessages() {
   const nav = useNavigate();
   const [users, setUsers] = useState([]);
   const [q, setQ] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [starting, setStarting] = useState(null);
+  const searchTimer = useRef(null);
 
+  // Server-side user search via searchUsers backend function — no more loading 500 users upfront.
   useEffect(() => {
-    (async () => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (!q.trim()) { setUsers([]); return; }
+    setLoading(true);
+    searchTimer.current = setTimeout(async () => {
       try {
-        const list = await base44.entities.User.list("-created_date", 500);
-        setUsers((list || []).filter((u) => u.id !== user.id));
+        const res = await base44.functions.invoke("searchUsers", { query: q.trim() });
+        setUsers(res?.data?.users || []);
       } catch {
+        setUsers([]);
       } finally {
         setLoading(false);
       }
-    })();
-  }, [user]);
+    }, 250);
+    return () => clearTimeout(searchTimer.current);
+  }, [q]);
 
-  const filtered = useMemo(() => {
-    if (!q.trim()) return [];
-    const s = q.trim().toLowerCase();
-    return users.filter((u) =>
-      (u.username || "").toLowerCase().includes(s) ||
-      (u.email || "").toLowerCase().includes(s) ||
-      (u.first_name || "").toLowerCase().includes(s) ||
-      (u.last_name || "").toLowerCase().includes(s)
-    );
-  }, [users, q]);
+  const filtered = users;
 
   const startChat = async (target, label) => {
     setStarting(target.id + label);
@@ -67,6 +65,12 @@ export default function AdminMessages() {
         <div className="text-center py-10 text-muted-foreground">
           <MessageSquare size={32} className="mx-auto mb-2 opacity-40" />
           <p className="font-semibold text-sm">{ar ? "ابحث عن مستخدم لبدء محادثة" : "Search for a user to start a chat"}</p>
+        </div>
+      )}
+
+      {loading && q.trim() && (
+        <div className="text-center py-10 text-muted-foreground">
+          <div className="w-5 h-5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin mx-auto" />
         </div>
       )}
 

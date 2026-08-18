@@ -94,7 +94,7 @@ export default function AdminUsers() {
   useEffect(() => {
     (async () => {
       try {
-        const list = await base44.entities.User.list("-created_date", 500);
+        const list = await base44.entities.User.list("-created_date", 1000);
         // Filter out soft-deleted (disabled) users so they don't reappear after deletion
         setUsers((list || []).filter((u) => !u.disabled));
       } catch {

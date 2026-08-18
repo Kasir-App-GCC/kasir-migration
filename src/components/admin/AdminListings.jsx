@@ -23,7 +23,7 @@ export default function AdminListings() {
   useEffect(() => {
     (async () => {
       try {
-        const list = await base44.entities.Item.list("-created_date", 500);
+        const list = await base44.entities.Item.list("-created_date", 1000);
         setItems(list || []);
       } catch {
       } finally {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Search, ShieldCheck, Ban, Trash2, Star, Eye, X, ShieldX, MessageSquare, Pencil, LifeBuoy } from "lucide-react";
+import { Search, ShieldCheck, Ban, Trash2, Star, Eye, X, ShieldX, MessageSquare, Pencil, LifeBuoy, KeyRound, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -18,6 +18,48 @@ export default function AdminUsers() {
   const [filter, setFilter] = useState("all");
   const [ratings, setRatings] = useState({});
   const [selected, setSelected] = useState(null);
+  const [editForm, setEditForm] = useState({ username: "", phone: "", country_code: "+966" });
+  const [saving, setSaving] = useState(false);
+
+  const startEdit = (u) => {
+    setEditForm({
+      username: u.username || "",
+      phone: u.phone || "",
+      country_code: u.country_code || "+966",
+    });
+  };
+
+  const saveProfile = async () => {
+    setSaving(true);
+    try {
+      const res = await base44.functions.invoke("updateUser", {
+        userId: selected.id,
+        username: editForm.username.trim(),
+        phone: editForm.phone.replace(/\D/g, ""),
+        country_code: editForm.country_code.trim(),
+      });
+      if (!res.data?.success) throw new Error(res.data?.error || "Update failed");
+      const updated = { ...selected, ...editForm };
+      setSelected(updated);
+      setUsers((prev) => prev.map((x) => (x.id === selected.id ? { ...x, ...editForm } : x)));
+      toast({ title: ar ? "تم حفظ التعديلات" : "Profile updated" });
+    } catch (e) {
+      toast({ title: ar ? "فشل التحديث" : "Update failed", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const sendPasswordReset = async () => {
+    if (!selected?.email) return;
+    if (!window.confirm(ar ? `إرسال رابط إعادة تعيين كلمة المرور إلى ${selected.email}؟` : `Send password reset link to ${selected.email}?`)) return;
+    try {
+      await base44.auth.resetPasswordRequest(selected.email);
+      toast({ title: ar ? "تم إرسال رابط إعادة التعيين" : "Reset link sent" });
+    } catch {
+      toast({ title: ar ? "فشل الإرسال" : "Failed to send", variant: "destructive" });
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -57,6 +99,7 @@ export default function AdminUsers() {
 
   const openUser = (u) => {
     setSelected(u);
+    startEdit(u);
     if (!ratings[u.id]) loadRatings(u.id);
   };
 
@@ -241,10 +284,62 @@ export default function AdminUsers() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm mb-4">
-              <div className="rounded-xl bg-muted p-2.5"><p className="text-xs text-muted-foreground">{ar ? "الهاتف" : "Phone"}</p><p className="font-semibold">{selected.country_code} {selected.phone || "—"}</p></div>
               <div className="rounded-xl bg-muted p-2.5"><p className="text-xs text-muted-foreground">{ar ? "النية" : "Intent"}</p><p className="font-semibold capitalize">{selected.intent || "—"}</p></div>
               <div className="rounded-xl bg-muted p-2.5"><p className="text-xs text-muted-foreground">{ar ? "الدور" : "Role"}</p><p className="font-semibold capitalize">{selected.role}</p></div>
               <div className="rounded-xl bg-muted p-2.5"><p className="text-xs text-muted-foreground">{ar ? "انضم" : "Joined"}</p><p className="font-semibold">{new Date(selected.created_date).toLocaleDateString()}</p></div>
+              <div className="rounded-xl bg-muted p-2.5"><p className="text-xs text-muted-foreground">{ar ? "البريد" : "Email"}</p><p className="font-semibold truncate" title={selected.email}>{selected.email}</p></div>
+            </div>
+
+            {/* Editable profile fields */}
+            <div className="rounded-2xl border border-border/60 p-3 mb-3 space-y-2.5">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Pencil size={12} /> {ar ? "تعديل الحساب" : "Edit Account"}</p>
+              <div>
+                <label className="text-xs text-muted-foreground">{ar ? "اسم المستخدم" : "Username"}</label>
+                <input
+                  value={editForm.username}
+                  onChange={(e) => setEditForm((f) => ({ ...f, username: e.target.value.slice(0, 15) }))}
+                  className="w-full mt-1 px-3 py-2 rounded-lg bg-muted outline-none focus:ring-2 ring-primary/30 text-sm"
+                  placeholder="@username"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="text-xs text-muted-foreground">{ar ? "رمز" : "Code"}</label>
+                  <input
+                    value={editForm.country_code}
+                    onChange={(e) => setEditForm((f) => ({ ...f, country_code: e.target.value }))}
+                    className="w-full mt-1 px-2 py-2 rounded-lg bg-muted outline-none focus:ring-2 ring-primary/30 text-sm"
+                    placeholder="+966"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-xs text-muted-foreground">{ar ? "الهاتف" : "Phone"}</label>
+                  <input
+                    value={editForm.phone}
+                    onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value.replace(/\D/g, "").slice(0, 15) }))}
+                    className="w-full mt-1 px-3 py-2 rounded-lg bg-muted outline-none focus:ring-2 ring-primary/30 text-sm"
+                    placeholder="5xxxxxxxx"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={saveProfile}
+                disabled={saving}
+                className="w-full py-2 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5 bg-primary text-primary-foreground disabled:opacity-50"
+              >
+                <Save size={15} /> {saving ? (ar ? "جارٍ الحفظ…" : "Saving…") : (ar ? "حفظ" : "Save")}
+              </button>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                {ar
+                  ? "ملاحظة: البريد الإلكتروني لا يمكن تغييره. لإنهاء الجلسة أو تغيير كلمة المرور، استخدم الأزرار أدناه."
+                  : "Note: Email cannot be changed. To end a session or change password, use the buttons below."}
+              </p>
+            </div>
+
+            <div className="flex gap-2 mb-3">
+              <button onClick={sendPasswordReset} className="flex-1 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5 bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                <KeyRound size={16} /> {ar ? "إعادة تعيين كلمة المرور" : "Reset Password"}
+              </button>
             </div>
             <div className="flex gap-2 mb-3">
               <button onClick={() => toggleTrusted(selected)} className={`flex-1 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5 ${selected.is_trusted ? "bg-cyan-500 text-white" : "bg-muted"}`}>

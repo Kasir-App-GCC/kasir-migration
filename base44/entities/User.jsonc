@@ -49,6 +49,20 @@
     "whatsapp_number": {
       "type": "string",
       "description": "WhatsApp number in international format (digits only, e.g. 9665XXXXXXXX)"
+    },
+    "is_trusted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Admin-granted trusted badge \u2014 shown as a verified checkmark to other users"
+    },
+    "is_banned": {
+      "type": "boolean",
+      "default": false,
+      "description": "When true, the user is blocked from the app (cannot create listings, chat, or make offers)"
+    },
+    "banned_reason": {
+      "type": "string",
+      "description": "Optional reason recorded when a user is banned"
     }
   },
   "required": [

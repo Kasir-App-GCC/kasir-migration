@@ -1,0 +1,131 @@
+import React, { useEffect, useState, useMemo } from "react";
+import { Search, Trash2, Eye, Star, Tag } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { base44 } from "@/api/base44Client";
+import { useStore } from "@/lib/store";
+import { useToast } from "@/components/ui/use-toast";
+import { getCategory } from "@/lib/constants";
+import Price from "@/components/Price";
+
+export default function AdminListings() {
+  const { lang, country } = useStore();
+  const ar = lang === "ar";
+  const { toast } = useToast();
+  const nav = useNavigate();
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+  const [filter, setFilter] = useState("all");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const list = await base44.entities.Item.list("-created_date", 500);
+        setItems(list || []);
+      } catch {
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const filtered = useMemo(() => {
+    let r = items;
+    if (filter === "sold") r = r.filter((i) => i.status === "sold");
+    else if (filter === "available") r = r.filter((i) => i.status === "available");
+    else if (filter === "featured") r = r.filter((i) => i.featured);
+    if (q.trim()) {
+      const s = q.trim().toLowerCase();
+      r = r.filter((i) => (i.title || "").toLowerCase().includes(s) || (i.seller_name || "").toLowerCase().includes(s));
+    }
+    return r;
+  }, [items, q, filter]);
+
+  const deleteItem = async (it) => {
+    if (!window.confirm(ar ? `حذف "${it.title}"؟` : `Delete "${it.title}"?`)) return;
+    try {
+      await base44.entities.Item.delete(it.id);
+      setItems((prev) => prev.filter((x) => x.id !== it.id));
+      toast({ title: ar ? "تم حذف الإعلان" : "Listing deleted" });
+    } catch {
+      toast({ title: ar ? "فشل الحذف" : "Delete failed", variant: "destructive" });
+    }
+  };
+
+  const toggleFeatured = async (it) => {
+    try {
+      await base44.entities.Item.update(it.id, { featured: !it.featured });
+      setItems((prev) => prev.map((x) => (x.id === it.id ? { ...x, featured: !x.featured } : x)));
+      toast({ title: !it.featured ? (ar ? "تم التمييز" : "Featured") : (ar ? "تم إزالة التمييز" : "Unfeatured") });
+    } catch {
+      toast({ title: ar ? "فشل" : "Failed", variant: "destructive" });
+    }
+  };
+
+  const markSold = async (it) => {
+    try {
+      await base44.entities.Item.update(it.id, { status: it.status === "sold" ? "available" : "sold" });
+      setItems((prev) => prev.map((x) => (x.id === it.id ? { ...x, status: x.status === "sold" ? "available" : "sold" } : x)));
+    } catch {
+      toast({ title: ar ? "فشل" : "Failed", variant: "destructive" });
+    }
+  };
+
+  if (loading) return <div className="py-10 text-center text-muted-foreground">Loading…</div>;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1">
+          <Search size={16} className="absolute top-1/2 -translate-y-1/2 start-3 text-muted-foreground" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={ar ? "بحث بالعنوان أو البائع…" : "Search title or seller…"}
+            className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm"
+          />
+        </div>
+        <div className="flex gap-1 p-1 bg-muted rounded-xl text-sm">
+          {[
+            { id: "all", label: ar ? "الكل" : "All" },
+            { id: "available", label: ar ? "متاح" : "Available" },
+            { id: "sold", label: ar ? "مباع" : "Sold" },
+            { id: "featured", label: ar ? "مميز" : "Featured" },
+          ].map((f) => (
+            <button key={f.id} onClick={() => setFilter(f.id)} className={`px-3 py-1.5 rounded-lg font-semibold transition ${filter === f.id ? "bg-card shadow-sm" : "text-muted-foreground"}`}>{f.label}</button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {filtered.length === 0 ? (
+          <div className="text-center py-10 text-muted-foreground text-sm">{ar ? "لا توجد إعلانات" : "No listings found"}</div>
+        ) : filtered.map((it) => (
+          <div key={it.id} className="rounded-2xl bg-card border border-border/60 p-3 flex items-center gap-3">
+            <div className="w-14 h-14 rounded-xl overflow-hidden bg-muted shrink-0">
+              {it.images?.[0] ? <img src={it.images[0]} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Tag size={20} className="text-muted-foreground" /></div>}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <p className="font-semibold text-sm truncate">{it.title}</p>
+                {it.featured && <Star size={12} className="text-amber-500 fill-amber-500 shrink-0" />}
+              </div>
+              <p className="text-xs text-muted-foreground truncate">
+                <Price value={it.price} lang={lang} country={it.country} /> · {it.seller_name || "—"} · {getCategory(it.category)?.[ar ? "ar" : "en"] || it.category}
+              </p>
+              <span className={`inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${it.status === "sold" ? "bg-muted text-muted-foreground" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"}`}>
+                {it.status === "sold" ? (ar ? "مباع" : "Sold") : (ar ? "متاح" : "Available")}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button onClick={() => nav(`/item/${it.id}`)} title={ar ? "عرض" : "View"} className="w-8 h-8 rounded-lg bg-muted hover:bg-muted/70 flex items-center justify-center"><Eye size={16} /></button>
+              <button onClick={() => toggleFeatured(it)} title={ar ? "تمييز" : "Feature"} className={`w-8 h-8 rounded-lg flex items-center justify-center transition ${it.featured ? "bg-amber-100 text-amber-600 dark:bg-amber-950/40" : "bg-muted hover:bg-muted/70"}`}><Star size={16} /></button>
+              <button onClick={() => markSold(it)} title={ar ? "تبديل الحالة" : "Toggle sold"} className="w-8 h-8 rounded-lg bg-muted hover:bg-muted/70 flex items-center justify-center"><Tag size={16} /></button>
+              <button onClick={() => deleteItem(it)} title={ar ? "حذف" : "Delete"} className="w-8 h-8 rounded-lg bg-muted hover:bg-rose-100 hover:text-rose-600 dark:hover:bg-rose-950/40 flex items-center justify-center transition"><Trash2 size={16} /></button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

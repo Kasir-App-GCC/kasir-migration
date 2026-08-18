@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy } from "lucide-react";
+import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -221,6 +221,13 @@ export default function Profile() {
             </div>
           )}
         </div>
+      )}
+
+      {user.role === "admin" && (
+        <button onClick={() => nav("/admin")} className="w-full p-4 rounded-2xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground flex items-center justify-between hover:opacity-90 transition">
+          <span className="flex items-center gap-2 font-bold text-sm"><Shield size={20} /> {lang === "ar" ? "لوحة الإدارة" : "Admin Panel"}</span>
+          <ChevronRight size={20} className="rtl:rotate-180" />
+        </button>
       )}
 
       {/* Settings */}

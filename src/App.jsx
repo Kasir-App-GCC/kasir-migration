@@ -22,6 +22,7 @@ import UserProfile from "@/pages/UserProfile";
 import ShoppingAssistant from "@/pages/ShoppingAssistant";
 import EditListing from "@/pages/EditListing";
 import MapView from "@/pages/MapView";
+import Admin from "@/pages/Admin";
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user } = useAuth();
@@ -67,6 +68,7 @@ const AuthenticatedApp = () => {
         <Route path="/assistant" element={<ShoppingAssistant />} />
         <Route path="/edit/:id" element={<EditListing />} />
         <Route path="/map" element={<MapView />} />
+        <Route path="/admin" element={<Admin />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

@@ -108,7 +108,7 @@ export default function Profile() {
             <p className="text-[11px] opacity-80">{t("myListings")}</p>
           </div>
           <div className="rounded-2xl bg-white/15 py-2.5">
-            <p className="font-extrabold text-lg">{favorites.length}</p>
+            <p className="font-extrabold text-lg">{saved.length}</p>
             <p className="text-[11px] opacity-80">{t("savedItems")}</p>
           </div>
           <div className="rounded-2xl bg-white/15 py-2.5">

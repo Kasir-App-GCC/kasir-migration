@@ -9,19 +9,21 @@ import ScrollToTop from './components/ScrollToTop';
 import { StoreProvider } from "@/lib/store";
 import AppLayout from "@/components/AppLayout";
 import RequireAuth from "@/components/RequireAuth";
-import Home from "@/pages/Home";
-import Search from "@/pages/Search";
-import Sell from "@/pages/Sell";
-import Chats from "@/pages/Chats";
-import Profile from "@/pages/Profile";
-import ItemDetail from "@/pages/ItemDetail";
-import ChatRoom from "@/pages/ChatRoom";
-import Notifications from "@/pages/Notifications";
+import { lazy, Suspense } from "react";
 import ProfileSetup from "@/pages/ProfileSetup";
-import UserProfile from "@/pages/UserProfile";
-import ShoppingAssistant from "@/pages/ShoppingAssistant";
-import EditListing from "@/pages/EditListing";
-import MapView from "@/pages/MapView";
+
+const Home = lazy(() => import("@/pages/Home"));
+const Search = lazy(() => import("@/pages/Search"));
+const Sell = lazy(() => import("@/pages/Sell"));
+const Chats = lazy(() => import("@/pages/Chats"));
+const Profile = lazy(() => import("@/pages/Profile"));
+const ItemDetail = lazy(() => import("@/pages/ItemDetail"));
+const ChatRoom = lazy(() => import("@/pages/ChatRoom"));
+const Notifications = lazy(() => import("@/pages/Notifications"));
+const UserProfile = lazy(() => import("@/pages/UserProfile"));
+const ShoppingAssistant = lazy(() => import("@/pages/ShoppingAssistant"));
+const EditListing = lazy(() => import("@/pages/EditListing"));
+const MapView = lazy(() => import("@/pages/MapView"));
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user } = useAuth();
@@ -53,6 +55,7 @@ const AuthenticatedApp = () => {
 
   // Render the main app
   return (
+    <Suspense fallback={<div className="fixed inset-0 flex items-center justify-center"><div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div></div>}>
     <Routes>
       <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
         <Route path="/" element={<Home />} />
@@ -70,6 +73,7 @@ const AuthenticatedApp = () => {
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
+    </Suspense>
   );
 };
 

@@ -25,8 +25,28 @@ export default async function (req) {
     // Don't push to yourself.
     if (userId === user.id) return Response.json({ ok: true, skipped: true });
 
+    // Authorization: the caller must share an active chatroom (or item
+    // transaction) with the target user — i.e. they are buyer/seller in the
+    // same room. This prevents pushing arbitrary/phishing notifications to
+    // users the caller has no relationship with.
+    const rooms = await base44.asServiceRole.entities.ChatRoom.filter({
+      $or: [
+        { seller_id: user.id, buyer_id: userId },
+        { buyer_id: user.id, seller_id: userId },
+      ],
+    });
+    if (!rooms || rooms.length === 0) {
+      return Response.json({ error: "Not allowed" }, { status: 403 });
+    }
+
+    // Restrict action_url to relative in-app routes only (no external/phishing links).
+    let safeActionUrl = null;
+    if (actionUrl && actionUrl.startsWith("/") && !actionUrl.startsWith("//")) {
+      safeActionUrl = actionUrl;
+    }
+
     const payload = { user_id: userId, title, content };
-    if (actionUrl) payload.action_url = actionUrl;
+    if (safeActionUrl) payload.action_url = safeActionUrl;
     if (actionLabel) payload.action_label = actionLabel;
 
     try {

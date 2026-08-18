@@ -80,8 +80,11 @@ export default async function(req) {
 
     let userEmailOk = true;
     try {
+      // Send the confirmation only to the authenticated user's verified email
+      // (from base44.auth.me()), never to an unverified address from the request
+      // body, to prevent sending spoofed content to arbitrary users.
       await base44.asServiceRole.integrations.Core.SendEmail({
-        to: email,
+        to: user.email,
         from_name: FROM_NAME,
         subject: 'Support Ticket ' + ticketNumber + " — We've received your message",
         body: userBody,

@@ -5,6 +5,8 @@ import { useT } from "@/lib/i18n";
 import { timeAgo } from "@/lib/format";
 import Price from "@/components/Price";
 import { getCategory, getCityName, getCondition } from "@/lib/constants";
+import { useTrusted } from "@/lib/useTrusted";
+import TrustedBadge from "@/components/TrustedBadge";
 
 export default function ItemCard({ item, onClick }) {
   const { lang, favorites, toggleFavorite } = useStore();
@@ -18,6 +20,7 @@ export default function ItemCard({ item, onClick }) {
     : ["https://picsum.photos/seed/" + encodeURIComponent(item.title || item.id) + "/600/600"];
   const cond = getCondition(item.condition);
   const multi = imgs.length > 1;
+  const sellerTrusted = useTrusted(item.seller_id);
 
   const step = (d, e) => {
     e.stopPropagation();
@@ -131,6 +134,12 @@ export default function ItemCard({ item, onClick }) {
           {multi && <span className="text-[10px] text-muted-foreground">{imgs.length} {t("photos")}</span>}
         </div>
         <h3 className="text-sm font-semibold line-clamp-1 leading-snug">{item.title}</h3>
+        {item.seller_name && (
+          <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">
+            <span className="truncate">{item.seller_name}</span>
+            {sellerTrusted && <TrustedBadge size={12} />}
+          </div>
+        )}
         <div className="flex items-center justify-between mt-1.5 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1 line-clamp-1">
             <MapPin size={12} className="shrink-0" />

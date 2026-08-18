@@ -55,16 +55,17 @@ export default function Home() {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
     const skip = skipRef.current + PAGE_SIZE;
+    skipRef.current = skip; // reserve the page synchronously so self-heal can't wipe it
     try {
       const next = await base44.entities.Item.filter({ country }, "-created_date", PAGE_SIZE, skip);
       const list = next || [];
-      skipRef.current = skip;
       setItems((prev) => {
         const seen = new Set(prev.map((x) => x.id));
         return [...prev, ...list.filter((x) => !seen.has(x.id))];
       });
       setHasMore(list.length === PAGE_SIZE);
     } catch {
+      skipRef.current = skip - PAGE_SIZE; // roll back on failure
       setHasMore(false);
     } finally {
       setLoadingMore(false);
@@ -87,9 +88,9 @@ export default function Home() {
         });
       }
     });
-    // Self-heal only while still on the first page, so deep pagination isn't wiped.
-    const onFocus = () => { if (skipRef.current === 0) loadInitial(); };
-    const onVis = () => { if (!document.hidden && skipRef.current === 0) loadInitial(); };
+    // Self-heal only while idle on the first page, so deep pagination isn't wiped.
+    const onFocus = () => { if (skipRef.current === 0 && !loadingMore) loadInitial(); };
+    const onVis = () => { if (!document.hidden && skipRef.current === 0 && !loadingMore) loadInitial(); };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVis);
     return () => {

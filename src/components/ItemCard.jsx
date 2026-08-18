@@ -134,7 +134,7 @@ export default function ItemCard({ item, onClick }) {
         <div className="flex items-center justify-between mt-1.5 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1 line-clamp-1">
             <MapPin size={12} className="shrink-0" />
-            {getCityName(item.city, lang)}
+            {item.location_name || getCityName(item.city, lang)}
           </span>
           <span className="inline-flex items-center gap-1 shrink-0">
             <Clock size={12} />

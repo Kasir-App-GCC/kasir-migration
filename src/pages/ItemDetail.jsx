@@ -390,7 +390,7 @@ export default function ItemDetail() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
-          <span className="flex items-center gap-1"><MapPin size={14} /> {getCityName(item.city, lang)} <span className="text-base leading-none">{getCountry(item.country).flag}</span></span>
+          <span className="flex items-center gap-1"><MapPin size={14} /> {item.location_name || getCityName(item.city, lang)} <span className="text-base leading-none">{getCountry(item.country).flag}</span></span>
           <span>· {lang === "ar" ? getCondition(item.condition).ar : getCondition(item.condition).en}</span>
           <span>· {lang === "ar" ? cat?.ar : cat?.en}</span>
           <span>· {timeAgo(item.created_date, lang)}</span>

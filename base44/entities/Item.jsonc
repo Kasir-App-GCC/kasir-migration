@@ -41,6 +41,10 @@
     "city": {
       "type": "string"
     },
+    "location_name": {
+      "type": "string",
+      "description": "Accurate reverse-geocoded place name for display"
+    },
     "country": {
       "type": "string",
       "default": "SA"

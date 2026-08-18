@@ -28,6 +28,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [category, setCategory] = useState(initial?.category || "");
   const [condition, setCondition] = useState(initial?.condition || "good");
   const [city, setCity] = useState(initial?.city || "");
+  const [locationName, setLocationName] = useState(initial?.location_name || "");
   const [lat, setLat] = useState(initial?.lat ?? null);
   const [lng, setLng] = useState(initial?.lng ?? null);
   const [description, setDescription] = useState(initial?.description || "");
@@ -43,6 +44,17 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [uploading, setUploading] = useState(false);
   const [posting, setPosting] = useState(false);
 
+  // Reverse-geocode coordinates to an accurate place name for display.
+  const reverseGeocode = async (la, ln) => {
+    try {
+      const res = await base44.functions.invoke("geocodeLocation", {
+        lat: la, lng: ln, country: country || "SA", lang,
+      });
+      const name = res?.data?.name;
+      if (name) setLocationName(String(name).slice(0, 120));
+    } catch {}
+  };
+
   const detectLocation = () => {
     if (!navigator.geolocation) {
       toast({ title: ar ? "المتصفح لا يدعم تحديد الموقع" : "Geolocation not supported", variant: "destructive" });
@@ -55,6 +67,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         if (c) setCity(c.en);
         setLat(pos.coords.latitude);
         setLng(pos.coords.longitude);
+        reverseGeocode(pos.coords.latitude, pos.coords.longitude);
         setLocating(false);
       },
       () => {
@@ -117,6 +130,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         subcategory: subcats.length ? subcats : undefined,
         condition,
         city,
+        location_name: locationName || undefined,
         country: country || "SA",
         lat,
         lng,
@@ -244,6 +258,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
               value={city}
               onChange={(e) => {
                 setCity(e.target.value);
+                setLocationName("");
                 const c = getCities(country || "SA").find((x) => x.en === e.target.value);
                 if (c) { setLat(c.lat); setLng(c.lng); }
               }}
@@ -257,7 +272,8 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
           </div>
           {lat != null && lng != null && (
             <p className="text-[11px] text-muted-foreground ps-6">
-              {ar ? "الإحداثيات" : "Coordinates"}: {Number(lat).toFixed(4)}, {Number(lng).toFixed(4)}
+              {locationName ? <span className="font-semibold text-foreground">{locationName}</span> : (ar ? "الإحداثيات" : "Coordinates") + ": "}
+              {(!locationName ? `${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}` : "")}
             </p>
           )}
           <div className="flex gap-2">
@@ -385,6 +401,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
                 if (c) setCity(c.en);
                 setLat(mapPos.lat);
                 setLng(mapPos.lng);
+                reverseGeocode(mapPos.lat, mapPos.lng);
                 setMapOpen(false);
               }}
               disabled={!mapPos}

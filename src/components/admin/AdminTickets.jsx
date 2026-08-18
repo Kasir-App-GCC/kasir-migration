@@ -35,27 +35,10 @@ export default function AdminTickets() {
 
   const filtered = filter === "all" ? tickets : tickets.filter((t) => t.status === filter);
 
-  const STATUS_LABEL = {
-    open: { en: "Open", ar: "مفتوحة" },
-    in_progress: { en: "In Progress", ar: "قيد المعالجة" },
-    resolved: { en: "Resolved", ar: "محلولة" },
-    closed: { en: "Closed", ar: "مغلقة" },
-  };
-
   const updateStatus = async (t, status) => {
     try {
       await base44.entities.SupportTicket.update(t.id, { status });
       setTickets((prev) => prev.map((x) => (x.id === t.id ? { ...x, status } : x)));
-      const label = STATUS_LABEL[status]?.[ar ? "ar" : "en"] || status;
-      const body = ar
-        ? `مرحباً،\n\nتم تحديث حالة تذكرتك "${t.subject}" إلى: ${label}.\n\n— فريق دعم Kasir`
-        : `Hello,\n\nThe status of your ticket "${t.subject}" has been updated to: ${label}.\n\n— Kasir Support`;
-      base44.functions.invoke("notifyUser", {
-        user_id: t.user_id,
-        subject: `[Kasir] ${ar ? "تحديث حالة التذكرة" : "Ticket status update"} — ${label}`,
-        body,
-      }).catch(() => {});
-      toast({ title: ar ? "تم تحديث الحالة" : "Status updated" });
     } catch {
       toast({ title: ar ? "فشل" : "Failed", variant: "destructive" });
     }
@@ -66,14 +49,15 @@ export default function AdminTickets() {
     if (!text) return;
     try {
       await base44.entities.SupportTicket.update(t.id, { reply: text, status: "resolved" });
-      const body = ar
-        ? `مرحباً،\n\nرد فريق دعم Kasir على تذكرتك "${t.subject}":\n\n${text}\n\n— فريق دعم Kasir`
-        : `Hello,\n\nKasir Support replied to your ticket "${t.subject}":\n\n${text}\n\n— Kasir Support`;
-      base44.functions.invoke("notifyUser", {
-        user_id: t.user_id,
-        subject: `Re: ${t.subject} — Kasir Support`,
-        body,
-      }).catch(() => {});
+      if (t.user_email) {
+        try {
+          await base44.integrations.Core.SendEmail({
+            to: t.user_email,
+            subject: `Re: ${t.subject} — Kasir Support`,
+            body: text,
+          });
+        } catch {}
+      }
       setTickets((prev) => prev.map((x) => (x.id === t.id ? { ...x, reply: text, status: "resolved" } : x)));
       setReply((prev) => ({ ...prev, [t.id]: "" }));
       toast({ title: ar ? "تم إرسال الرد" : "Reply sent" });

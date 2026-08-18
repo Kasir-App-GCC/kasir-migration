@@ -30,14 +30,6 @@ export default function AdminReports() {
     try {
       await base44.entities.Report.update(r.id, { resolved: true });
       setReports((prev) => prev.map((x) => (x.id === r.id ? { ...x, resolved: true } : x)));
-      const body = ar
-        ? `مرحباً،\n\nتمت مراجعة بلاغك (${r.reason}) وتم اتخاذ الإجراء المناسب. شكراً لمساعدتك في الحفاظ على أمان مجتمع Kasir.\n\n— فريق Kasir`
-        : `Hello,\n\nYour report (${r.reason}) has been reviewed and appropriate action has been taken. Thank you for helping keep the Kasir community safe.\n\n— Kasir Team`;
-      base44.functions.invoke("notifyUser", {
-        user_id: r.reporter_user_id,
-        subject: ar ? "[Kasir] تم حل بلاغك" : "[Kasir] Your report has been resolved",
-        body,
-      }).catch(() => {});
       toast({ title: ar ? "تم حل البلاغ" : "Report resolved" });
     } catch {
       toast({ title: ar ? "فشل" : "Failed", variant: "destructive" });

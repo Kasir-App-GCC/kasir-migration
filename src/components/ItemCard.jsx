@@ -138,12 +138,10 @@ export default function ItemCard({ item, onClick }) {
           <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">
             <span className="truncate">{item.seller_name}</span>
             {sellerInfo.trusted && <TrustedBadge size={12} />}
-            {sellerInfo.rating != null && (
-              <span className="inline-flex items-center gap-0.5 shrink-0">
-                <Star size={11} className="fill-amber-400 text-amber-400" />
-                <span className="font-semibold text-foreground/80">{sellerInfo.rating.toFixed(1)}</span>
-              </span>
-            )}
+            <span className="inline-flex items-center gap-0.5 shrink-0">
+              <Star size={11} className="fill-amber-400 text-amber-400" />
+              <span className="font-semibold text-foreground/80">{(sellerInfo.rating ?? 5).toFixed(1)}</span>
+            </span>
           </div>
         )}
         <div className="flex items-center justify-between mt-1.5 text-xs text-muted-foreground">

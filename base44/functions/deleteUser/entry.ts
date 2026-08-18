@@ -17,11 +17,16 @@ export default async function(req) {
     try { await base44.asServiceRole.entities.ChatRoom.deleteMany({ $or: [{ seller_id: userId }, { buyer_id: userId }] }); } catch {}
     try { await base44.asServiceRole.entities.Message.deleteMany({ sender_id: userId }); } catch {}
 
-    // Soft-delete the user account
-    await base44.asServiceRole.entities.User.update(userId, {
-      disabled: true,
-      disabled_reason: "admin_deleted",
-    });
+    // Hard-delete the user account so it disappears from the admin user list
+    try {
+      await base44.asServiceRole.entities.User.delete(userId);
+    } catch (e) {
+      // Fallback: soft-delete if hard delete is blocked by the platform
+      await base44.asServiceRole.entities.User.update(userId, {
+        disabled: true,
+        disabled_reason: "admin_deleted",
+      });
+    }
 
     return Response.json({ success: true });
   } catch (error) {

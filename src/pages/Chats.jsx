@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { MessageCircle, X, Trash2, BadgeCheck } from "lucide-react";
+import TrustedBadge from "@/components/TrustedBadge";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -66,10 +67,9 @@ export default function Chats() {
           if (c > 0) map[r.id] = c;
         });
         setUnread(map);
-        // Fetch trusted status for each distinct other party (skip official chats).
+        // Fetch trusted status for each distinct other party.
         const otherIds = [];
         mine.forEach((r) => {
-          if (r.is_official) return;
           const oid = r.seller_id === user.id ? r.buyer_id : r.seller_id;
           if (oid && !otherIds.includes(oid)) otherIds.push(oid);
         });
@@ -248,8 +248,8 @@ export default function Chats() {
                   <div className="flex items-center justify-between">
                     <span className={`truncate flex items-center gap-1 ${unread[r.id] ? "font-bold" : "font-semibold"}`}>
                       {otherName(r)}
-                      {isOfficialForMe(r) && <BadgeCheck size={14} className="text-primary shrink-0" />}
-                      {!r.is_official && trusted[otherId(r)] && <BadgeCheck size={14} className="text-sky-500 shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]" />}
+                      {trusted[otherId(r)] && <TrustedBadge size={14} />}
+                      {isOfficialForMe(r) && !trusted[otherId(r)] && <BadgeCheck size={14} className="text-primary shrink-0" />}
                     </span>
                     <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(r.updated_date, lang)}</span>
                   </div>

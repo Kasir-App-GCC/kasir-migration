@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, Sparkles, ShieldCheck, Check, CheckCheck, Star } from "lucide-react";
+import { ArrowLeft, Send, Sparkles, ShieldCheck, Check, CheckCheck, Star, BadgeCheck } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -14,6 +14,7 @@ export default function ChatRoom() {
   const nav = useNavigate();
   const { user, lang, country, setLastChatsSeen } = useStore();
   const t = useT();
+  const ar = lang === "ar";
   const [room, setRoom] = useState(null);
   const [itemCountry, setItemCountry] = useState("SA");
   const [messages, setMessages] = useState([]);
@@ -40,10 +41,12 @@ export default function ChatRoom() {
       try {
         const r = await base44.entities.ChatRoom.get(id);
         setRoom(r);
-        try {
-          const it = await base44.entities.Item.get(r.item_id);
-          if (it?.country) setItemCountry(it.country);
-        } catch {}
+        if (!r.is_official) {
+          try {
+            const it = await base44.entities.Item.get(r.item_id);
+            if (it?.country) setItemCountry(it.country);
+          } catch {}
+        }
         await loadAll();
       } catch {
       } finally {
@@ -106,6 +109,8 @@ export default function ChatRoom() {
   }, [id, room?.id, room?.seller_id, user?.id]);
 
   const isSeller = !!room && String(room.seller_id) === String(user?.id);
+  const isOfficial = !!room?.is_official;
+  const officialLabel = room?.official_label || "";
   const otherName = room ? (isSeller ? room.buyer_name : room.seller_name) : "";
   const otherAvatar = room ? (isSeller ? room.buyer_avatar : room.seller_avatar) : null;
   const otherLastSeen = room ? (isSeller ? room.buyer_last_seen : room.seller_last_seen) : null;
@@ -142,7 +147,8 @@ export default function ChatRoom() {
   const sendText = async (value) => {
     const body = (value ?? text).trim();
     if (!body) return;
-    const msg = { chatroom_id: id, sender_id: user.id, sender_name: user.name, text: body };
+    const senderName = isOfficial && isSeller ? officialLabel : user.name;
+    const msg = { chatroom_id: id, sender_id: user.id, sender_name: senderName, text: body };
     setText("");
     setSuggestions([]);
     lastSig.current = "";
@@ -150,7 +156,7 @@ export default function ChatRoom() {
       await base44.entities.Message.create(msg);
       await base44.entities.ChatRoom.update(id, { last_message: msg.text, hidden_for_buyer: false, hidden_for_seller: false });
       const otherId = isSeller ? room?.buyer_id : room?.seller_id;
-      if (otherId) sendPush({ user_id: otherId, title: user?.name || t("appName"), content: body, action_url: `/chat/${id}` });
+      if (otherId) sendPush({ user_id: otherId, title: isOfficial ? officialLabel : (user?.name || t("appName")), content: body, action_url: `/chat/${id}` });
     } catch {}
   };
 
@@ -267,11 +273,18 @@ export default function ChatRoom() {
           {otherAvatar ? <img src={otherAvatar} alt={otherName} className="w-full h-full object-cover" /> : (otherName?.[0] || "?")}
         </div>
         <button
-          onClick={() => nav(`/user/${isSeller ? room.buyer_id : room.seller_id}?name=${encodeURIComponent(otherName || "")}&avatar=${encodeURIComponent(otherAvatar || "")}`)}
+          onClick={() => !isOfficial && nav(`/user/${isSeller ? room.buyer_id : room.seller_id}?name=${encodeURIComponent(otherName || "")}&avatar=${encodeURIComponent(otherAvatar || "")}`)}
           className="flex-1 min-w-0 text-start"
         >
-          <p className="font-bold text-sm truncate">{otherName}</p>
-          {room?.item_title && <p className="text-xs text-muted-foreground truncate">{room.item_title} · <Price value={room.item_price} lang={lang} country={itemCountry} /></p>}
+          <p className="font-bold text-sm truncate flex items-center gap-1">
+            {otherName}
+            {isOfficial && !isSeller && <BadgeCheck size={15} className="text-primary shrink-0" />}
+          </p>
+          {isOfficial ? (
+            <p className="text-xs text-muted-foreground truncate">{officialLabel} · {ar ? "محادثة رسمية" : "Official chat"}</p>
+          ) : room?.item_title ? (
+            <p className="text-xs text-muted-foreground truncate">{room.item_title} · <Price value={room.item_price} lang={lang} country={itemCountry} /></p>
+          ) : null}
         </button>
       </header>
 
@@ -353,7 +366,7 @@ export default function ChatRoom() {
       </div>
 
       <div className="px-3 pt-2 pb-1.5 overflow-x-auto no-scrollbar shrink-0 min-h-[44px]">
-        {suggLoading ? (
+        {isOfficial ? null : suggLoading ? (
           <div className="flex gap-2 min-w-max">
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="h-8 w-24 rounded-full bg-muted animate-pulse" />

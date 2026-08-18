@@ -1,0 +1,46 @@
+{
+  "name": "Blacklist",
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "description": "Blocked email address (lowercase)"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Blocked phone number (digits only, with country code)"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "original_username": {
+      "type": "string",
+      "description": "The username of the blocked user at time of blacklisting"
+    }
+  },
+  "required": [
+    "email"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

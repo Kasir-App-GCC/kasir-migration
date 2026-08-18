@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, X, Trash2 } from "lucide-react";
+import { MessageCircle, X, Trash2, BadgeCheck } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -172,6 +172,7 @@ export default function Chats() {
 
   const otherName = (r) => (r.seller_id === user.id ? r.buyer_name : r.seller_name);
   const otherAvatar = (r) => (r.seller_id === user.id ? r.buyer_avatar : r.seller_avatar);
+  const isOfficialForMe = (r) => r.is_official && r.seller_id !== user.id;
 
   const sortedRooms = [...rooms].sort(
     (a, b) => (Number(!!unread[b.id]) - Number(!!unread[a.id])) || (new Date(b.updated_date) - new Date(a.updated_date))
@@ -229,12 +230,15 @@ export default function Chats() {
                   </div>
                   <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className={`truncate ${unread[r.id] ? "font-bold" : "font-semibold"}`}>{otherName(r)}</span>
+                    <span className={`truncate flex items-center gap-1 ${unread[r.id] ? "font-bold" : "font-semibold"}`}>
+                      {otherName(r)}
+                      {isOfficialForMe(r) && <BadgeCheck size={14} className="text-primary shrink-0" />}
+                    </span>
                     <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(r.updated_date, lang)}</span>
                   </div>
-                  <p className={`text-sm truncate ${unread[r.id] ? "text-foreground font-medium" : "text-muted-foreground"}`}>{r.last_message || r.item_title}</p>
+                  <p className={`text-sm truncate ${unread[r.id] ? "text-foreground font-medium" : "text-muted-foreground"}`}>{r.last_message || (r.is_official ? (lang === "ar" ? "محادثة رسمية" : "Official chat") : r.item_title)}</p>
                   </div>
-                  {r.item_price != null && (
+                  {r.item_price != null && !r.is_official && (
                     <span className="text-xs font-bold text-primary whitespace-nowrap"><Price value={r.item_price} lang={lang} /></span>
                   )}
                   {unread[r.id] ? (

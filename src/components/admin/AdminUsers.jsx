@@ -1,14 +1,17 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Search, ShieldCheck, Ban, Trash2, Star, Eye, X } from "lucide-react";
+import { Search, ShieldCheck, Ban, Trash2, Star, Eye, X, ShieldX, MessageSquare, Pencil, LifeBuoy } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
 import RatingStars from "@/components/RatingStars";
+import { findOrCreateOfficialChat } from "@/lib/officialChat";
 
 export default function AdminUsers() {
-  const { lang } = useStore();
+  const { lang, user: adminUser } = useStore();
   const ar = lang === "ar";
   const { toast } = useToast();
+  const nav = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
@@ -88,6 +91,63 @@ export default function AdminUsers() {
       toast({ title: ar ? "تم حذف المستخدم" : "User deleted" });
     } catch {
       toast({ title: ar ? "فشل الحذف" : "Delete failed", variant: "destructive" });
+    }
+  };
+
+  const blacklistUser = async (u) => {
+    const reason = window.prompt(ar ? "سبب الحظر والحظر النهائي؟" : "Reason for permanent blacklist?", ar ? "مخالفه لشروط الاستخدام" : "Terms of service violation");
+    if (reason === null) return;
+    try {
+      await base44.entities.Blacklist.create({
+        email: (u.email || "").toLowerCase(),
+        phone: (u.phone || "").replace(/\D/g, ""),
+        reason: reason || "—",
+        original_username: u.username || u.email,
+      });
+      await base44.asServiceRole.entities.User.delete(u.id);
+      setUsers((prev) => prev.filter((x) => x.id !== u.id));
+      if (selected?.id === u.id) setSelected(null);
+      toast({ title: ar ? "تم حظر وحذف المستخدم نهائياً" : "User blacklisted & deleted permanently" });
+    } catch {
+      toast({ title: ar ? "فشل الحظر" : "Blacklist failed", variant: "destructive" });
+    }
+  };
+
+  const deleteRating = async (r) => {
+    if (!window.confirm(ar ? "حذف هذا التقييم؟" : "Delete this rating?")) return;
+    try {
+      await base44.entities.Rating.delete(r.id);
+      setRatings((prev) => {
+        const updated = { ...prev };
+        if (updated[selected.id]) updated[selected.id] = updated[selected.id].filter((x) => x.id !== r.id);
+        return updated;
+      });
+      toast({ title: ar ? "تم حذف التقييم" : "Rating deleted" });
+    } catch {
+      toast({ title: ar ? "فشل" : "Failed", variant: "destructive" });
+    }
+  };
+
+  const editRating = async (r, newScore) => {
+    try {
+      await base44.entities.Rating.update(r.id, { score: newScore });
+      setRatings((prev) => {
+        const updated = { ...prev };
+        if (updated[selected.id]) updated[selected.id] = updated[selected.id].map((x) => (x.id === r.id ? { ...x, score: newScore } : x));
+        return updated;
+      });
+      toast({ title: ar ? "تم تعديل التقييم" : "Rating updated" });
+    } catch {
+      toast({ title: ar ? "فشل" : "Failed", variant: "destructive" });
+    }
+  };
+
+  const startOfficialChat = async (target, label) => {
+    try {
+      const roomId = await findOrCreateOfficialChat(adminUser, target, label);
+      nav(`/chat/${roomId}`);
+    } catch {
+      toast({ title: ar ? "فشل إنشاء المحادثة" : "Failed to start chat", variant: "destructive" });
     }
   };
 
@@ -184,7 +244,7 @@ export default function AdminUsers() {
               <div className="rounded-xl bg-muted p-2.5"><p className="text-xs text-muted-foreground">{ar ? "الدور" : "Role"}</p><p className="font-semibold capitalize">{selected.role}</p></div>
               <div className="rounded-xl bg-muted p-2.5"><p className="text-xs text-muted-foreground">{ar ? "انضم" : "Joined"}</p><p className="font-semibold">{new Date(selected.created_date).toLocaleDateString()}</p></div>
             </div>
-            <div className="flex gap-2 mb-4">
+            <div className="flex gap-2 mb-3">
               <button onClick={() => toggleTrusted(selected)} className={`flex-1 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5 ${selected.is_trusted ? "bg-cyan-500 text-white" : "bg-muted"}`}>
                 <ShieldCheck size={16} /> {selected.is_trusted ? (ar ? "إزالة الثقة" : "Remove Trust") : (ar ? "منح الثقة" : "Grant Trust")}
               </button>
@@ -192,6 +252,17 @@ export default function AdminUsers() {
                 <Ban size={16} /> {selected.is_banned ? (ar ? "رفع الحظر" : "Unban") : (ar ? "حظر" : "Ban")}
               </button>
             </div>
+            <div className="flex gap-2 mb-3">
+              <button onClick={() => startOfficialChat(selected, "Management")} className="flex-1 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5 bg-primary text-primary-foreground">
+                <MessageSquare size={16} /> {ar ? "إدارة" : "Mgmt"}
+              </button>
+              <button onClick={() => startOfficialChat(selected, "Support")} className="flex-1 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5 bg-amber-500 text-white">
+                <LifeBuoy size={16} /> {ar ? "دعم" : "Support"}
+              </button>
+            </div>
+            <button onClick={() => blacklistUser(selected)} className="w-full py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5 bg-rose-600 text-white mb-4">
+              <ShieldX size={16} /> {ar ? "حظر نهائي وحذف" : "Blacklist & Delete"}
+            </button>
             <div>
               <p className="text-sm font-semibold mb-2 flex items-center gap-1.5"><Star size={16} className="text-amber-500" /> {ar ? "التقييمات" : "Ratings"}</p>
               {ratings[selected.id]?.length ? (
@@ -200,7 +271,20 @@ export default function AdminUsers() {
                     <div key={r.id} className="rounded-xl bg-muted p-2.5 text-sm">
                       <div className="flex items-center justify-between">
                         <span className="font-semibold">{r.rater_name || "—"}</span>
-                        <RatingStars value={r.score} size={12} />
+                        <div className="flex items-center gap-1.5">
+                          <select
+                            value={r.score}
+                            onChange={(e) => editRating(r, Number(e.target.value))}
+                            className="text-xs rounded-lg bg-card border border-border/60 px-1.5 py-0.5 outline-none"
+                          >
+                            {[1, 2, 3, 4, 5].map((n) => (
+                              <option key={n} value={n}>{n} ★</option>
+                            ))}
+                          </select>
+                          <button onClick={() => deleteRating(r)} className="w-6 h-6 rounded-lg bg-rose-100 text-rose-600 dark:bg-rose-950/40 flex items-center justify-center shrink-0">
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
                       </div>
                       {r.review && <p className="text-muted-foreground mt-1">{r.review}</p>}
                     </div>

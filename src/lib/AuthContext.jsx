@@ -13,6 +13,8 @@ export const AuthProvider = ({ children }) => {
   const [authError, setAuthError] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
+  const [blocked, setBlocked] = useState(false);
+  const [blockedReason, setBlockedReason] = useState(null);
 
   useEffect(() => {
     checkAppState();
@@ -98,6 +100,19 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
       setAuthChecked(true);
+      // Check if this user is blacklisted
+      try {
+        const res = await base44.functions.invoke("checkBlacklist", {});
+        if (res?.data?.blocked) {
+          setBlocked(true);
+          setBlockedReason(res.data.reason || null);
+        } else {
+          setBlocked(false);
+          setBlockedReason(null);
+        }
+      } catch {
+        setBlocked(false);
+      }
     } catch (error) {
       console.error('User auth check failed:', error);
       setIsLoadingAuth(false);
@@ -141,6 +156,8 @@ export const AuthProvider = ({ children }) => {
       authError,
       appPublicSettings,
       authChecked,
+      blocked,
+      blockedReason,
       logout,
       navigateToLogin,
       checkUserAuth,

@@ -1,12 +1,14 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, Tag, Flag, LifeBuoy, ArrowLeft } from "lucide-react";
+import { LayoutDashboard, Users, Tag, Flag, LifeBuoy, ArrowLeft, MessageSquare, ShieldX } from "lucide-react";
 import { useStore } from "@/lib/store";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminListings from "@/components/admin/AdminListings";
 import AdminReports from "@/components/admin/AdminReports";
 import AdminTickets from "@/components/admin/AdminTickets";
+import AdminMessages from "@/components/admin/AdminMessages";
+import AdminBlacklist from "@/components/admin/AdminBlacklist";
 
 export default function Admin() {
   const { lang, user } = useStore();
@@ -25,9 +27,11 @@ export default function Admin() {
   const tabs = [
     { id: "dashboard", icon: LayoutDashboard, label: ar ? "لوحة التحكم" : "Dashboard" },
     { id: "users", icon: Users, label: ar ? "المستخدمون" : "Users" },
+    { id: "messages", icon: MessageSquare, label: ar ? "الرسائل" : "Messages" },
     { id: "listings", icon: Tag, label: ar ? "الإعلانات" : "Listings" },
     { id: "reports", icon: Flag, label: ar ? "البلاغات" : "Reports" },
     { id: "tickets", icon: LifeBuoy, label: ar ? "التذاكر" : "Tickets" },
+    { id: "blacklist", icon: ShieldX, label: ar ? "الحظر" : "Blacklist" },
   ];
 
   return (
@@ -56,9 +60,11 @@ export default function Admin() {
 
       {tab === "dashboard" && <AdminDashboard />}
       {tab === "users" && <AdminUsers />}
+      {tab === "messages" && <AdminMessages />}
       {tab === "listings" && <AdminListings />}
       {tab === "reports" && <AdminReports />}
       {tab === "tickets" && <AdminTickets />}
+      {tab === "blacklist" && <AdminBlacklist />}
     </div>
   );
 }

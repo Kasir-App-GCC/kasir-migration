@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import BlockedScreen from '@/components/BlockedScreen';
 import ScrollToTop from './components/ScrollToTop';
 import { StoreProvider } from "@/lib/store";
 import AppLayout from "@/components/AppLayout";
@@ -25,7 +26,7 @@ import MapView from "@/pages/MapView";
 import Admin from "@/pages/Admin";
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user, blocked, blockedReason } = useAuth();
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -45,6 +46,11 @@ const AuthenticatedApp = () => {
       navigateToLogin();
       return null;
     }
+  }
+
+  // Block blacklisted users from entering the app
+  if (blocked) {
+    return <BlockedScreen reason={blockedReason} />;
   }
 
   // Require profile completion before entering the app

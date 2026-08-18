@@ -184,12 +184,19 @@ export default function Home() {
               <ItemCard key={it.id} item={it} onClick={() => nav(`/item/${it.id}`)} />
             ))}
           </div>
-          <div ref={sentinelRef} className="flex items-center justify-center py-6">
+          <div ref={sentinelRef} className="flex flex-col items-center justify-center py-6 gap-3">
             {loadingMore ? (
               <div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
-            ) : !hasMore ? (
+            ) : hasMore ? (
+              <button
+                onClick={loadMore}
+                className="px-6 py-3 rounded-2xl bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition"
+              >
+                {lang === "ar" ? "تحميل المزيد" : "Load more"}
+              </button>
+            ) : (
               <span className="text-xs text-muted-foreground">{t("endOfFeed") || (lang === "ar" ? "لا مزيد من الإعلانات" : "No more listings")}</span>
-            ) : null}
+            )}
           </div>
         </div>
       )}

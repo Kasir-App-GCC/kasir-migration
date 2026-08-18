@@ -13,6 +13,7 @@ import RatingStars from "@/components/RatingStars";
 import ReviewTagChips from "@/components/ReviewTagChips";
 import ReportDialog from "@/components/ReportDialog";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
+import { sendPush } from "@/lib/notify";
 
 const SELLER_TAG_OPTIONS = [
   { en: "Fast replies", ar: "ردود سريعة" },
@@ -165,6 +166,12 @@ export default function ItemDetail() {
     setSellerTags([]);
     const rs = await base44.entities.Rating.filter({ rated_user_id: item.seller_id }, "-created_date", 20);
     setRatings(rs || []);
+    sendPush({
+      user_id: item.seller_id,
+      title: t("appName"),
+      content: lang === "ar" ? "تلقيت تقييماً جديداً ⭐" : "You received a new rating ⭐",
+      action_url: `/item/${item.id}`,
+    });
   };
 
   const isOwner = user && item && item.seller_id === user.id;
@@ -189,6 +196,7 @@ export default function ItemDetail() {
       });
       const text = (lang === "ar" ? "أبي أعرض عليك بسعر " : "I'd like to offer ") + formatPrice(offerPrice, lang, item.country);
       await base44.entities.ChatRoom.update(room.id, { last_message: text });
+      sendPush({ user_id: item.seller_id, title: user?.name || t("appName"), content: text, action_url: `/chat/${room.id}` });
       nav(`/chat/${room.id}`);
     } catch {
       setSending(false);
@@ -223,6 +231,12 @@ export default function ItemDetail() {
       item_id: item.id,
       role: "seller",
     });
+    sendPush({
+      user_id: item.sold_to,
+      title: t("appName"),
+      content: lang === "ar" ? "تلقيت تقييماً جديداً ⭐" : "You received a new rating ⭐",
+      action_url: `/item/${item.id}`,
+    });
     setRateBuyerOpen(false);
     setBuyerTags([]);
   };
@@ -254,6 +268,7 @@ export default function ItemDetail() {
             item_image: item.images?.[0] || null,
             text,
           });
+          sendPush({ user_id: buyer.id, title: t("appName"), content: text, action_url: `/item/${item.id}` });
         } catch {}
       }
     } catch {}

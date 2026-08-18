@@ -195,9 +195,7 @@ export default function Home() {
               >
                 {lang === "ar" ? "تحميل المزيد" : "Load more"}
               </button>
-            ) : (
-              <span className="text-xs text-muted-foreground">{t("endOfFeed") || (lang === "ar" ? "لا مزيد من الإعلانات" : "No more listings")}</span>
-            )}
+            ) : null}
           </div>
         </div>
       )}

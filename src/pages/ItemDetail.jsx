@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Flag, MessageCircle, Star, Share2, ChevronRight, X, Tag, Trash2, CheckCircle, Pencil, BadgeCheck } from "lucide-react";
+import { ArrowLeft, MapPin, Flag, MessageCircle, Star, Share2, ChevronRight, X, Tag, Trash2, CheckCircle, Pencil, BadgeCheck, RotateCcw } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -270,6 +270,13 @@ export default function ItemDetail() {
     setManualBuyer("");
   };
 
+  const unmarkSold = async () => {
+    try {
+      await base44.entities.Item.update(item.id, { status: "available", sold_to: null, sold_to_name: null });
+      setItem({ ...item, status: "available", sold_to: null, sold_to_name: null });
+    } catch {}
+  };
+
   if (loading) {
     return <div className="py-10 text-center text-muted-foreground"><div className="w-7 h-7 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin mx-auto" /></div>;
   }
@@ -500,9 +507,13 @@ export default function ItemDetail() {
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
           {isOwner ? (
             <>
-              {item.status !== "sold" && (
+              {item.status !== "sold" ? (
                 <button onClick={openSold} className="flex-1 py-3.5 rounded-2xl bg-emerald-600 text-white font-bold flex items-center justify-center gap-2">
                   <CheckCircle size={18} /> {t("markAsSold")}
+                </button>
+              ) : (
+                <button onClick={unmarkSold} className="flex-1 py-3.5 rounded-2xl bg-amber-500 text-white font-bold flex items-center justify-center gap-2">
+                  <RotateCcw size={18} /> {t("markAsAvailable")}
                 </button>
               )}
               <button onClick={() => nav(`/edit/${item.id}`)} className="px-4 py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold flex items-center justify-center gap-2">

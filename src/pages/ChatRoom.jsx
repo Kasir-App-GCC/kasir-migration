@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, Sparkles, ShieldCheck, Check, CheckCheck, Star, BadgeCheck } from "lucide-react";
+import { ArrowLeft, Send, ShieldCheck, Check, CheckCheck, Star, BadgeCheck } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -22,13 +22,9 @@ export default function ChatRoom() {
   const [offers, setOffers] = useState([]);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
-  const [suggestions, setSuggestions] = useState([]);
-  const [suggLoading, setSuggLoading] = useState(false);
   const [otherTrusted, setOtherTrusted] = useState(false);
   const [otherAvatar, setOtherAvatar] = useState(null);
   const endRef = useRef(null);
-  const suggTimer = useRef(null);
-  const lastSig = useRef("");
 
   const loadAll = useCallback(async () => {
     const [ms, ofs] = await Promise.all([
@@ -127,43 +123,12 @@ export default function ChatRoom() {
     nav(`/user/${otherId}?name=${encodeURIComponent(otherName || "")}&avatar=${encodeURIComponent(avatar || "")}`);
   };
 
-  const fetchSuggestions = useCallback(async (msgs) => {
-    if (!room || !user) return;
-    const sig = msgs.map((m) => m.sender_id + ":" + m.text).join("|");
-    if (sig === lastSig.current) return;
-    lastSig.current = sig;
-    setSuggLoading(true);
-    try {
-      const res = await base44.functions.invoke("suggestReplies", {
-        messages: msgs.map((m) => ({ sender_id: m.sender_id, text: m.text })),
-        role: isSeller ? "seller" : "buyer",
-        itemTitle: room.item_title,
-        itemPrice: room.item_price,
-      });
-      const s = res?.data?.suggestions;
-      setSuggestions(Array.isArray(s) && s.length ? s : []);
-    } catch {
-      setSuggestions([]);
-    } finally {
-      setSuggLoading(false);
-    }
-  }, [room, user, isSeller]);
-
-  useEffect(() => {
-    if (suggTimer.current) clearTimeout(suggTimer.current);
-    if (!messages.length) { setSuggestions([]); return; }
-    suggTimer.current = setTimeout(() => fetchSuggestions(messages), 400);
-    return () => clearTimeout(suggTimer.current);
-  }, [messages, fetchSuggestions]);
-
   const sendText = async (value) => {
     const body = (value ?? text).trim();
     if (!body) return;
     const senderName = isOfficial && isSeller ? officialLabel : user.name;
     const msg = { chatroom_id: id, sender_id: user.id, sender_name: senderName, text: body };
     setText("");
-    setSuggestions([]);
-    lastSig.current = "";
     try {
       await base44.entities.Message.create(msg);
       await base44.entities.ChatRoom.update(id, { last_message: msg.text, hidden_for_buyer: false, hidden_for_seller: false });
@@ -387,29 +352,6 @@ export default function ChatRoom() {
           })
         )}
         <div ref={endRef} />
-      </div>
-
-      <div className="px-3 pt-2 pb-1.5 overflow-x-auto no-scrollbar shrink-0 min-h-[44px]">
-        {isOfficial ? null : suggLoading ? (
-          <div className="flex gap-2 min-w-max">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-8 w-24 rounded-full bg-muted animate-pulse" />
-            ))}
-          </div>
-        ) : suggestions.length > 0 ? (
-          <div className="flex gap-2 min-w-max items-center">
-            <Sparkles size={14} className="text-amber-500 shrink-0" />
-            {suggestions.map((s, i) => (
-              <button
-                key={i}
-                onClick={() => sendText(s)}
-                className="px-3 py-1.5 rounded-full bg-muted hover:bg-primary hover:text-primary-foreground text-xs font-medium whitespace-nowrap transition"
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        ) : null}
       </div>
 
       <div className="p-3 border-t border-border/60 flex items-center gap-2 pb-[env(safe-area-inset-bottom)] shrink-0">

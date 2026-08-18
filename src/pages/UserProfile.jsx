@@ -67,7 +67,7 @@ export default function UserProfile() {
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-extrabold truncate flex items-center gap-1.5">
               {profile?.full_name || name}
-              {profile?.is_trusted && <BadgeCheck size={18} className="text-cyan-300 shrink-0" />}
+              {profile?.is_trusted && <BadgeCheck size={18} className="text-sky-400 shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]" />}
             </h1>
             {profile?.username && <p className="text-sm opacity-80 -mt-0.5 truncate">@{profile.username}</p>}
             <div className="flex items-center gap-1.5 text-sm mt-0.5">

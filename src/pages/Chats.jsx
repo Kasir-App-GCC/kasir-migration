@@ -249,7 +249,7 @@ export default function Chats() {
                     <span className={`truncate flex items-center gap-1 ${unread[r.id] ? "font-bold" : "font-semibold"}`}>
                       {otherName(r)}
                       {isOfficialForMe(r) && <BadgeCheck size={14} className="text-primary shrink-0" />}
-                      {!r.is_official && trusted[otherId(r)] && <BadgeCheck size={14} className="text-cyan-500 shrink-0" />}
+                      {!r.is_official && trusted[otherId(r)] && <BadgeCheck size={14} className="text-sky-500 shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]" />}
                     </span>
                     <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(r.updated_date, lang)}</span>
                   </div>

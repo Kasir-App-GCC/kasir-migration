@@ -440,7 +440,7 @@ export default function ItemDetail() {
               <div className="flex-1 min-w-0">
                 <p className="font-bold truncate flex items-center gap-1">
                   {seller.name}
-                  {sellerProfile?.is_trusted && <BadgeCheck size={15} className="text-cyan-500 shrink-0" />}
+                  {sellerProfile?.is_trusted && <BadgeCheck size={15} className="text-sky-500 shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]" />}
                   <ChevronRight size={15} className="text-muted-foreground rtl:rotate-180 shrink-0" />
                 </p>
                 {sellerProfile?.username && <p className="text-xs text-muted-foreground -mt-0.5 truncate">@{sellerProfile.username}</p>}

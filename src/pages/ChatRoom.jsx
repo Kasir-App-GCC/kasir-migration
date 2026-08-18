@@ -281,7 +281,7 @@ export default function ChatRoom() {
           <p className="font-bold text-sm truncate flex items-center gap-1">
             {otherName}
             {isOfficial && !isSeller && <BadgeCheck size={15} className="text-primary shrink-0" />}
-            {!isOfficial && otherTrusted && <BadgeCheck size={15} className="text-cyan-500 shrink-0" />}
+            {!isOfficial && otherTrusted && <BadgeCheck size={15} className="text-sky-500 shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]" />}
           </p>
           {isOfficial ? (
             <p className="text-xs text-muted-foreground truncate">{officialLabel} · {ar ? "محادثة رسمية" : "Official chat"}</p>

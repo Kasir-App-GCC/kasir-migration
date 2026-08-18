@@ -62,7 +62,8 @@ export default function AdminUsers() {
 
   const toggleTrusted = async (u) => {
     try {
-      await base44.asServiceRole.entities.User.update(u.id, { is_trusted: !u.is_trusted });
+      const res = await base44.functions.invoke("updateUser", { userId: u.id, is_trusted: !u.is_trusted });
+      if (!res.data?.success) throw new Error(res.data?.error || "Update failed");
       setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, is_trusted: !u.is_trusted } : x)));
       if (selected?.id === u.id) setSelected({ ...u, is_trusted: !u.is_trusted });
       toast({ title: !u.is_trusted ? (ar ? "تم منح شارة الثقة" : "Trusted badge granted") : (ar ? "تم إزالة شارة الثقة" : "Trusted badge removed") });
@@ -73,7 +74,8 @@ export default function AdminUsers() {
 
   const toggleBan = async (u) => {
     try {
-      await base44.asServiceRole.entities.User.update(u.id, { is_banned: !u.is_banned });
+      const res = await base44.functions.invoke("updateUser", { userId: u.id, is_banned: !u.is_banned });
+      if (!res.data?.success) throw new Error(res.data?.error || "Update failed");
       setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, is_banned: !u.is_banned } : x)));
       if (selected?.id === u.id) setSelected({ ...u, is_banned: !u.is_banned });
       toast({ title: !u.is_banned ? (ar ? "تم حظر المستخدم" : "User banned") : (ar ? "تم رفع الحظر" : "User unbanned") });

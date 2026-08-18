@@ -23,6 +23,7 @@ export default function ChatRoom() {
   const [loading, setLoading] = useState(true);
   const [suggestions, setSuggestions] = useState([]);
   const [suggLoading, setSuggLoading] = useState(false);
+  const [otherTrusted, setOtherTrusted] = useState(false);
   const endRef = useRef(null);
   const suggTimer = useRef(null);
   const lastSig = useRef("");
@@ -41,10 +42,11 @@ export default function ChatRoom() {
       try {
         const r = await base44.entities.ChatRoom.get(id);
         setRoom(r);
-        if (!r.is_official) {
+        const otherId = r && String(r.seller_id) === String(user?.id) ? r.buyer_id : r?.seller_id;
+        if (otherId && !r.is_official) {
           try {
-            const it = await base44.entities.Item.get(r.item_id);
-            if (it?.country) setItemCountry(it.country);
+            const p = await base44.functions.invoke("getPublicProfile", { user_id: otherId });
+            setOtherTrusted(!!p?.data?.is_trusted);
           } catch {}
         }
         await loadAll();
@@ -279,6 +281,7 @@ export default function ChatRoom() {
           <p className="font-bold text-sm truncate flex items-center gap-1">
             {otherName}
             {isOfficial && !isSeller && <BadgeCheck size={15} className="text-primary shrink-0" />}
+            {!isOfficial && otherTrusted && <BadgeCheck size={15} className="text-cyan-500 shrink-0" />}
           </p>
           {isOfficial ? (
             <p className="text-xs text-muted-foreground truncate">{officialLabel} · {ar ? "محادثة رسمية" : "Official chat"}</p>

@@ -16,6 +16,7 @@ export default function Chats() {
   const [confirmRoom, setConfirmRoom] = useState(null);
   const [confirmAll, setConfirmAll] = useState(false);
   const [unread, setUnread] = useState({});
+  const [trusted, setTrusted] = useState({});
   const roomsRef = useRef([]);
   const lastFocusRef = useRef(0);
 
@@ -65,8 +66,22 @@ export default function Chats() {
           if (c > 0) map[r.id] = c;
         });
         setUnread(map);
+        // Fetch trusted status for each distinct other party (skip official chats).
+        const otherIds = [];
+        mine.forEach((r) => {
+          if (r.is_official) return;
+          const oid = r.seller_id === user.id ? r.buyer_id : r.seller_id;
+          if (oid && !otherIds.includes(oid)) otherIds.push(oid);
+        });
+        const tMap = {};
+        await Promise.all(otherIds.map(async (oid) => {
+          try {
+            const p = await base44.functions.invoke("getPublicProfile", { user_id: oid });
+            if (p?.data?.is_trusted) tMap[oid] = true;
+          } catch {}
+        }));
+        setTrusted(tMap);
       } catch {}
-    } catch {
       // Never clear existing rooms on a transient fetch error — keep what we have.
     } finally {
       loadingRef.current = false;
@@ -172,6 +187,7 @@ export default function Chats() {
 
   const otherName = (r) => (r.seller_id === user.id ? r.buyer_name : r.seller_name);
   const otherAvatar = (r) => (r.seller_id === user.id ? r.buyer_avatar : r.seller_avatar);
+  const otherId = (r) => (r.seller_id === user.id ? r.buyer_id : r.seller_id);
   const isOfficialForMe = (r) => r.is_official && r.seller_id !== user.id;
 
   const sortedRooms = [...rooms].sort(
@@ -233,6 +249,7 @@ export default function Chats() {
                     <span className={`truncate flex items-center gap-1 ${unread[r.id] ? "font-bold" : "font-semibold"}`}>
                       {otherName(r)}
                       {isOfficialForMe(r) && <BadgeCheck size={14} className="text-primary shrink-0" />}
+                      {!r.is_official && trusted[otherId(r)] && <BadgeCheck size={14} className="text-cyan-500 shrink-0" />}
                     </span>
                     <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(r.updated_date, lang)}</span>
                   </div>

@@ -135,11 +135,11 @@ export default function EditProfileDialog({ open, onClose }) {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-sm font-semibold">{t("firstName")} *</label>
-              <input value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30" />
+              <input value={firstName} maxLength={15} onChange={(e) => setFirstName(e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30" />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-semibold">{t("lastName")}</label>
-              <input value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30" />
+              <input value={lastName} maxLength={15} onChange={(e) => setLastName(e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30" />
             </div>
           </div>
           <div className="space-y-1.5">
@@ -178,6 +178,7 @@ export default function EditProfileDialog({ open, onClose }) {
                   </select>
                   <input
                     value={waNumber}
+                    maxLength={15}
                     onChange={(e) => setWaNumber(e.target.value)}
                     placeholder={ar ? "مثال: 5XXXXXXXX" : "e.g. 5XXXXXXXX"}
                     inputMode="tel"

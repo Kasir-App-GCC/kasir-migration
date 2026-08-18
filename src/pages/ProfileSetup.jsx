@@ -13,8 +13,12 @@ export default function ProfileSetup() {
   const { lang, setCountry } = useStore();
   const t = useT();
   const ar = lang === "ar";
-  const [firstName, setFirstName] = useState(user?.first_name || "");
-  const [lastName, setLastName] = useState(user?.last_name || "");
+  // Don't pre-fill the name from the OAuth provider (Google/Apple auto-populate
+  // first_name/last_name). Start empty so the user explicitly chooses their
+  // display name; the original OAuth name stays on the built-in full_name field
+  // for the admin panel.
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState(user?.username || "");
   const [phone, setPhone] = useState(user?.phone || "");
   const [countryCode, setCountryCode] = useState(user?.country_code || "+966");

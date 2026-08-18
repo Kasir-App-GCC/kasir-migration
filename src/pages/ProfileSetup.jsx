@@ -177,6 +177,7 @@ export default function ProfileSetup() {
               <label className="text-sm font-semibold">{t("firstName")} *</label>
               <input
                 value={firstName}
+                maxLength={15}
                 onChange={(e) => setFirstName(e.target.value)}
                 className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30"
               />
@@ -185,6 +186,7 @@ export default function ProfileSetup() {
               <label className="text-sm font-semibold">{t("lastName")}</label>
               <input
                 value={lastName}
+                maxLength={15}
                 onChange={(e) => setLastName(e.target.value)}
                 className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30"
               />
@@ -196,6 +198,7 @@ export default function ProfileSetup() {
               <span className="text-muted-foreground me-1">@</span>
               <input
                 value={username}
+                maxLength={15}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder={t("usernamePlaceholder")}
                 className="bg-transparent outline-none flex-1 lowercase"
@@ -221,6 +224,7 @@ export default function ProfileSetup() {
               </select>
               <input
                 value={phone}
+                maxLength={15}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder={ar ? "5xxxxxxxx" : "5XXXXXXXX"}
                 inputMode="tel"

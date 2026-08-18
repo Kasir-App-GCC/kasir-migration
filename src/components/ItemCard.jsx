@@ -1,11 +1,11 @@
 import React, { useState, useRef } from "react";
-import { Heart, MapPin, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Heart, MapPin, Clock, ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { timeAgo } from "@/lib/format";
 import Price from "@/components/Price";
 import { getCategory, getCityName, getCondition } from "@/lib/constants";
-import { useTrusted } from "@/lib/useTrusted";
+import { useSellerInfo } from "@/lib/useTrusted";
 import TrustedBadge from "@/components/TrustedBadge";
 
 export default function ItemCard({ item, onClick }) {
@@ -20,7 +20,7 @@ export default function ItemCard({ item, onClick }) {
     : ["https://picsum.photos/seed/" + encodeURIComponent(item.title || item.id) + "/600/600"];
   const cond = getCondition(item.condition);
   const multi = imgs.length > 1;
-  const sellerTrusted = useTrusted(item.seller_id);
+  const sellerInfo = useSellerInfo(item.seller_id);
 
   const step = (d, e) => {
     e.stopPropagation();
@@ -137,7 +137,13 @@ export default function ItemCard({ item, onClick }) {
         {item.seller_name && (
           <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">
             <span className="truncate">{item.seller_name}</span>
-            {sellerTrusted && <TrustedBadge size={12} />}
+            {sellerInfo.trusted && <TrustedBadge size={12} />}
+            {sellerInfo.rating != null && (
+              <span className="inline-flex items-center gap-0.5 shrink-0">
+                <Star size={11} className="fill-amber-400 text-amber-400" />
+                <span className="font-semibold text-foreground/80">{sellerInfo.rating.toFixed(1)}</span>
+              </span>
+            )}
           </div>
         )}
         <div className="flex items-center justify-between mt-1.5 text-xs text-muted-foreground">

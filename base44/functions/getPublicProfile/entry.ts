@@ -13,6 +13,23 @@ export default async function (req) {
     const u = await base44.asServiceRole.entities.User.get(userId);
     if (!u) return Response.json({ error: "not found" }, { status: 404 });
 
+    // Aggregate the user's ratings so callers (feed cards, chat, profile) can
+    // display their seller rating without a separate round-trip per card.
+    let rating_avg = 0;
+    let rating_count = 0;
+    try {
+      const ratings = await base44.asServiceRole.entities.Rating.filter(
+        { rated_user_id: userId },
+        "-created_date",
+        200
+      );
+      rating_count = ratings?.length || 0;
+      if (rating_count) {
+        const sum = ratings.reduce((s, r) => s + (Number(r.score) || 0), 0);
+        rating_avg = Math.round((sum / rating_count) * 10) / 10;
+      }
+    } catch {}
+
     return Response.json({
       username: u.username || "",
       first_name: u.first_name || "",
@@ -22,6 +39,8 @@ export default async function (req) {
       whatsapp_enabled: !!u.whatsapp_enabled,
       whatsapp_number: u.whatsapp_enabled ? (u.whatsapp_number || "") : "",
       is_trusted: !!u.is_trusted,
+      rating_avg,
+      rating_count,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

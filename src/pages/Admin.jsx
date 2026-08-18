@@ -51,7 +51,7 @@ export default function Admin() {
           <button
             key={tb.id}
             onClick={() => setTab(tb.id)}
-            className={`flex-1 min-w-fit px-3 py-2.5 rounded-xl text-sm font-semibold transition flex items-center justify-center gap-1.5 whitespace-nowrap ${tab === tb.id ? "bg-card shadow-sm" : "text-muted-foreground"}`}
+            className={`shrink-0 px-3 py-2.5 rounded-xl text-sm font-semibold transition flex items-center justify-center gap-1.5 whitespace-nowrap ${tab === tb.id ? "bg-card shadow-sm" : "text-muted-foreground"}`}
           >
             <tb.icon size={16} /> {tb.label}
           </button>

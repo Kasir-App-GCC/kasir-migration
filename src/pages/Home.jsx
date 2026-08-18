@@ -39,7 +39,7 @@ export default function Home() {
     skipRef.current = 0;
     setHasMore(true);
     try {
-      const first = await base44.entities.Item.list("-created_date", PAGE_SIZE, 0);
+      const first = await base44.entities.Item.filter({ country }, "-created_date", PAGE_SIZE, 0);
       const list = first || [];
       setItems(list);
       setHasMore(list.length === PAGE_SIZE);
@@ -49,14 +49,14 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [country]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
     const skip = skipRef.current + PAGE_SIZE;
     try {
-      const next = await base44.entities.Item.list("-created_date", PAGE_SIZE, skip);
+      const next = await base44.entities.Item.filter({ country }, "-created_date", PAGE_SIZE, skip);
       const list = next || [];
       skipRef.current = skip;
       setItems((prev) => {
@@ -69,7 +69,7 @@ export default function Home() {
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, hasMore]);
+  }, [loadingMore, hasMore, country]);
 
   useEffect(() => {
     loadInitial();

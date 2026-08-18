@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -24,9 +24,22 @@ import ShoppingAssistant from "@/pages/ShoppingAssistant";
 import EditListing from "@/pages/EditListing";
 import MapView from "@/pages/MapView";
 import Admin from "@/pages/Admin";
+import About from "@/pages/About";
+import Contact from "@/pages/Contact";
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user, blocked, blockedReason } = useAuth();
+  const location = useLocation();
+
+  // Public pages bypass auth checks entirely
+  if (location.pathname === '/about' || location.pathname === '/contact') {
+    return (
+      <Routes>
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+      </Routes>
+    );
+  }
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {

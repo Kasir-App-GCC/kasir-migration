@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Star } from "lucide-react";
+import { ArrowLeft, Star, BadgeCheck } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -65,7 +65,10 @@ export default function UserProfile() {
             {avatar ? <img src={avatar} className="w-full h-full object-cover" /> : <span className="w-full h-full flex items-center justify-center text-2xl font-bold">{name?.[0]}</span>}
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-extrabold truncate">{profile?.full_name || name}</h1>
+            <h1 className="text-xl font-extrabold truncate flex items-center gap-1.5">
+              {profile?.full_name || name}
+              {profile?.is_trusted && <BadgeCheck size={18} className="text-cyan-300 shrink-0" />}
+            </h1>
             {profile?.username && <p className="text-sm opacity-80 -mt-0.5 truncate">@{profile.username}</p>}
             <div className="flex items-center gap-1.5 text-sm mt-0.5">
               <Star size={14} className="fill-amber-300 text-amber-300" />

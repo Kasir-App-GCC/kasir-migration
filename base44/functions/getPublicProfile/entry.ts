@@ -21,6 +21,7 @@ export default async function (req) {
       avatar: u.avatar || "",
       whatsapp_enabled: !!u.whatsapp_enabled,
       whatsapp_number: u.whatsapp_enabled ? (u.whatsapp_number || "") : "",
+      is_trusted: !!u.is_trusted,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Flag, MessageCircle, Star, Share2, ChevronRight, X, Tag, Trash2, CheckCircle, Pencil } from "lucide-react";
+import { ArrowLeft, MapPin, Flag, MessageCircle, Star, Share2, ChevronRight, X, Tag, Trash2, CheckCircle, Pencil, BadgeCheck } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -440,6 +440,7 @@ export default function ItemDetail() {
               <div className="flex-1 min-w-0">
                 <p className="font-bold truncate flex items-center gap-1">
                   {seller.name}
+                  {sellerProfile?.is_trusted && <BadgeCheck size={15} className="text-cyan-500 shrink-0" />}
                   <ChevronRight size={15} className="text-muted-foreground rtl:rotate-180 shrink-0" />
                 </p>
                 {sellerProfile?.username && <p className="text-xs text-muted-foreground -mt-0.5 truncate">@{sellerProfile.username}</p>}

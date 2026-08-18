@@ -7,6 +7,8 @@ import { useT } from "@/lib/i18n";
 import { CATEGORIES, CONDITIONS, getSubcategories, getCityName } from "@/lib/constants";
 import { getCities, nearestCityInCountry, getCountry, convertCurrency } from "@/lib/countries";
 import MapPinPicker from "@/components/MapPinPicker";
+import { Image } from "@/components/ui/image";
+import { compressImage } from "@/lib/compressImage";
 import { useToast } from "@/components/ui/use-toast";
 
 // Convert Arabic-Indic (٠-٩) and Eastern Arabic (۰-۹) digits to ASCII 0-9
@@ -92,7 +94,8 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
       await Promise.all(
         files.map(async (f) => {
           try {
-            const r = await base44.integrations.Core.UploadFile({ file: f });
+            const compressed = await compressImage(f);
+            const r = await base44.integrations.Core.UploadFile({ file: compressed });
             setImages((prev) => [...prev, r.file_url].slice(0, 5));
           } catch {}
         })
@@ -173,7 +176,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
                             {...prov.dragHandleProps}
                             className={`relative aspect-square rounded-xl overflow-hidden flex-1 select-none ${snap.isDragging ? "opacity-70 ring-2 ring-primary" : ""}`}
                           >
-                            <img src={url} className="w-full h-full object-cover pointer-events-none" />
+                            <Image src={url} fittingType="fill" className="w-full h-full pointer-events-none" style={{ display: "block" }} />
                             <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/25 transition pointer-events-none">
                               <GripVertical size={18} className="text-white opacity-70 drop-shadow" />
                             </div>

@@ -13,6 +13,7 @@ import RatingStars from "@/components/RatingStars";
 import ReviewTagChips from "@/components/ReviewTagChips";
 import ReportDialog from "@/components/ReportDialog";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
+import { Image } from "@/components/ui/image";
 import { sendPush } from "@/lib/notify";
 
 const SELLER_TAG_OPTIONS = [
@@ -91,22 +92,15 @@ export default function ItemDetail() {
       try {
         const it = await base44.entities.Item.get(id);
         setItem(it);
-        if (it?.seller_id) {
-          try {
-            const rs = await base44.entities.Rating.filter({ rated_user_id: it.seller_id }, "-created_date", 20);
-            setRatings(rs || []);
-          } catch {}
-          try {
-            const p = await base44.functions.invoke("getPublicProfile", { user_id: it.seller_id });
-            setSellerProfile(p?.data || null);
-          } catch {}
-        }
-        if (it?.category) {
-          try {
-            const sim = await base44.entities.Item.filter({ category: it.category, status: "available" }, "-created_date", 30);
-            setSimilar((sim || []).filter((x) => x.id !== id).slice(0, 6));
-          } catch {}
-        }
+        // Fetch ratings, seller profile, and similar items in parallel for faster load
+        const [ratingsRes, profileRes, simRes] = await Promise.allSettled([
+          it?.seller_id ? base44.entities.Rating.filter({ rated_user_id: it.seller_id }, "-created_date", 20) : Promise.resolve(null),
+          it?.seller_id ? base44.functions.invoke("getPublicProfile", { user_id: it.seller_id }) : Promise.resolve(null),
+          it?.category ? base44.entities.Item.filter({ category: it.category, status: "available" }, "-created_date", 7) : Promise.resolve(null),
+        ]);
+        if (ratingsRes.status === "fulfilled") setRatings(ratingsRes.value || []);
+        if (profileRes.status === "fulfilled") setSellerProfile(profileRes.value?.data || null);
+        if (simRes.status === "fulfilled") setSimilar((simRes.value || []).filter((x) => x.id !== id).slice(0, 6));
         base44.entities.Item.update(id, { views: (Number(it.views) || 0) + 1 }).catch(() => {});
       } catch {
         setItem(null);
@@ -361,16 +355,16 @@ export default function ItemDetail() {
         }}
         onPointerCancel={() => { pointers.current.clear(); pinchStart.current = null; swipeStart.current = null; setPinchScale(1); setPinchOrigin({ x: 50, y: 50 }); }}
       >
-        <img
-          src={imgs[activeImg]}
-          draggable={false}
-          className="w-full h-full object-cover pointer-events-none select-none"
+        <div
+          className="absolute inset-0 pointer-events-none select-none"
           style={{
             transform: pinchScale > 1 ? `scale(${pinchScale})` : zoom ? "scale(2.2)" : "scale(1)",
             transformOrigin: `${(pinchScale > 1 ? pinchOrigin : origin).x}% ${(pinchScale > 1 ? pinchOrigin : origin).y}%`,
             transition: pinchScale > 1 ? "none" : "transform 0.2s ease-out",
           }}
-        />
+        >
+          <Image src={imgs[activeImg]} fittingType="fill" className="w-full h-full" style={{ display: "block" }} />
+        </div>
         {item.is_family && (
           <span className="absolute top-3 start-3 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500 text-white">{t("featuredBadge")}</span>
         )}
@@ -390,7 +384,7 @@ export default function ItemDetail() {
         <div className="flex gap-2 mt-2 overflow-x-auto no-scrollbar">
           {imgs.map((u, i) => (
             <button key={i} onClick={() => setActiveImg(i)} className={`w-16 h-16 rounded-xl overflow-hidden shrink-0 ring-2 ${i === activeImg ? "ring-primary" : "ring-transparent"}`}>
-              <img src={u} className="w-full h-full object-cover" />
+              <Image src={u} fittingType="fill" className="w-full h-full" style={{ display: "block" }} />
             </button>
           ))}
         </div>
@@ -452,11 +446,10 @@ export default function ItemDetail() {
               </div>
             </button>
             {sellerProfile?.whatsapp_enabled && sellerProfile?.whatsapp_number && (() => {
-              const img = item.images?.[0];
               const priceLine = formatPrice(item.price, lang, item.country);
               const msg = lang === "ar"
-                ? `مرحباً، أنا مهتم بسلعتك على كاسر:\n\n• ${item.title}\n• السعر: ${priceLine}\n${img ? `• صورة: ${img}\n` : ""}• الرابط: ${window.location.href}`
-                      : `Hi, I'm interested in your item on Kasir:\n\n• ${item.title}\n• Price: ${priceLine}\n${img ? `• Image: ${img}\n` : ""}• Link: ${window.location.href}`;
+                ? `مرحباً، أنا مهتم بسلعتك: ${item.title} بسعر ${priceLine}`
+                : `Hi, I'm interested in your item: ${item.title} for ${priceLine}`;
               return (
                 <a
                   href={`https://wa.me/${sellerProfile.whatsapp_number.replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`}

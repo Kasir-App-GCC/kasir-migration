@@ -45,7 +45,9 @@ export default function EditListing() {
   }
 
   const submit = async (data) => {
-    const { boost_hours, boost_cross_country, boost_amount, ...itemData } = data;
+    // Strip boost + featured fields: editing must never reset an active boost.
+    // The featured clock started at posting time and survives any number of edits.
+    const { boost_hours, boost_cross_country, boost_amount, featured, featured_until, featured_cross_country, ...itemData } = data;
     await base44.entities.Item.update(id, itemData);
     nav(`/item/${id}`);
   };

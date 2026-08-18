@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Search, Trash2, Eye, Star, Tag } from "lucide-react";
+import { Search, Trash2, Eye, Star, Tag, Clock, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -16,6 +16,9 @@ export default function AdminListings() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState("all");
+  const [featureItem, setFeatureItem] = useState(null);
+  const [featureHours, setFeatureHours] = useState(24);
+  const [featureSaving, setFeatureSaving] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -52,13 +55,39 @@ export default function AdminListings() {
     }
   };
 
-  const toggleFeatured = async (it) => {
+  const openFeature = (it) => {
+    setFeatureItem(it);
+    setFeatureHours(24);
+  };
+
+  const applyFeature = async () => {
+    if (!featureItem || !featureHours || featureHours < 1) return;
+    setFeatureSaving(true);
     try {
-      await base44.entities.Item.update(it.id, { featured: !it.featured });
-      setItems((prev) => prev.map((x) => (x.id === it.id ? { ...x, featured: !x.featured } : x)));
-      toast({ title: !it.featured ? (ar ? "تم التمييز" : "Featured") : (ar ? "تم إزالة التمييز" : "Unfeatured") });
+      const until = new Date(Date.now() + featureHours * 3600000).toISOString();
+      await base44.entities.Item.update(featureItem.id, { featured: true, featured_until: until });
+      setItems((prev) => prev.map((x) => (x.id === featureItem.id ? { ...x, featured: true, featured_until: until } : x)));
+      toast({ title: ar ? "تم التمييز" : "Featured", description: ar ? `لمدة ${featureHours} ساعة` : `For ${featureHours} hours` });
+      setFeatureItem(null);
     } catch {
       toast({ title: ar ? "فشل" : "Failed", variant: "destructive" });
+    } finally {
+      setFeatureSaving(false);
+    }
+  };
+
+  const defeature = async () => {
+    if (!featureItem) return;
+    setFeatureSaving(true);
+    try {
+      await base44.entities.Item.update(featureItem.id, { featured: false, featured_until: null });
+      setItems((prev) => prev.map((x) => (x.id === featureItem.id ? { ...x, featured: false, featured_until: null } : x)));
+      toast({ title: ar ? "تم إزالة التمييز" : "Unfeatured" });
+      setFeatureItem(null);
+    } catch {
+      toast({ title: ar ? "فشل" : "Failed", variant: "destructive" });
+    } finally {
+      setFeatureSaving(false);
     }
   };
 
@@ -119,13 +148,64 @@ export default function AdminListings() {
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               <button onClick={() => nav(`/item/${it.id}`)} title={ar ? "عرض" : "View"} className="w-8 h-8 rounded-lg bg-muted hover:bg-muted/70 flex items-center justify-center"><Eye size={16} /></button>
-              <button onClick={() => toggleFeatured(it)} title={ar ? "تمييز" : "Feature"} className={`w-8 h-8 rounded-lg flex items-center justify-center transition ${it.featured ? "bg-amber-100 text-amber-600 dark:bg-amber-950/40" : "bg-muted hover:bg-muted/70"}`}><Star size={16} /></button>
+              <button onClick={() => openFeature(it)} title={ar ? "تمييز" : "Feature"} className={`w-8 h-8 rounded-lg flex items-center justify-center transition ${it.featured ? "bg-amber-100 text-amber-600 dark:bg-amber-950/40" : "bg-muted hover:bg-muted/70"}`}><Star size={16} className={it.featured ? "fill-amber-500" : ""} /></button>
               <button onClick={() => markSold(it)} title={ar ? "تبديل الحالة" : "Toggle sold"} className="w-8 h-8 rounded-lg bg-muted hover:bg-muted/70 flex items-center justify-center"><Tag size={16} /></button>
               <button onClick={() => deleteItem(it)} title={ar ? "حذف" : "Delete"} className="w-8 h-8 rounded-lg bg-muted hover:bg-rose-100 hover:text-rose-600 dark:hover:bg-rose-950/40 flex items-center justify-center transition"><Trash2 size={16} /></button>
             </div>
           </div>
         ))}
       </div>
+
+      {featureItem && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !featureSaving && setFeatureItem(null)} />
+          <div className="relative w-full sm:max-w-sm bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 animate-in fade-in slide-in-from-bottom-[100%] duration-300">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="font-bold text-lg">{ar ? "تمييز الإعلان" : "Feature listing"}</h3>
+              <button onClick={() => !featureSaving && setFeatureItem(null)} className="p-1.5 rounded-full hover:bg-muted"><X size={20} /></button>
+            </div>
+            <p className="text-sm text-muted-foreground truncate mb-4">{featureItem.title}</p>
+
+            {featureItem.featured && featureItem.featured_until && (
+              <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900">
+                <Clock size={16} className="text-amber-600 shrink-0" />
+                <span className="text-xs text-amber-700 dark:text-amber-300">
+                  {new Date(featureItem.featured_until) > new Date()
+                    ? (ar ? `مميز حالياً حتى ${new Date(featureItem.featured_until).toLocaleString(ar ? "ar-SA" : "en-US")}` : `Currently featured until ${new Date(featureItem.featured_until).toLocaleString()}`)
+                    : (ar ? "انتهت مدة التمييز السابقة" : "Previous feature expired")}
+                </span>
+              </div>
+            )}
+
+            <label className="text-sm font-semibold mb-2 block">{ar ? "المدة بالساعات" : "Duration (hours)"}</label>
+            <div className="flex gap-2 mb-3">
+              {[24, 48, 72].map((h) => (
+                <button key={h} type="button" onClick={() => setFeatureHours(h)} className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition ${featureHours === h ? "bg-primary text-primary-foreground" : "bg-muted"}`}>{h} {ar ? "س" : "h"}</button>
+              ))}
+            </div>
+            <input
+              type="number"
+              min={1}
+              max={720}
+              value={featureHours}
+              onChange={(e) => setFeatureHours(Math.max(1, Math.min(720, Number(e.target.value) || 1)))}
+              className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm mb-4"
+            />
+            <p className="text-[11px] text-muted-foreground mb-4">{ar ? "ساعة الإدارة تتجاوز ساعة المستخدم — يبدأ العد من الآن" : "Admin hours override user hours — clock starts now"}</p>
+
+            <div className="flex gap-2">
+              {featureItem.featured && (
+                <button onClick={defeature} disabled={featureSaving} className="flex-1 py-3 rounded-2xl bg-rose-600 text-white font-bold disabled:opacity-50">
+                  {ar ? "إزالة التمييز" : "Defeature"}
+                </button>
+              )}
+              <button onClick={applyFeature} disabled={featureSaving || featureHours < 1} className="flex-1 py-3 rounded-2xl bg-amber-500 text-white font-bold disabled:opacity-50">
+                {featureSaving ? "…" : (ar ? "تمييز" : "Feature")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

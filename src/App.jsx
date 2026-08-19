@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
@@ -57,7 +57,15 @@ const AuthenticatedApp = () => {
   const location = useLocation();
   const depth = routeDepth(location.pathname);
   const depthRef = useRef(depth);
-  const direction = depth > depthRef.current ? 1 : depth < depthRef.current ? -1 : 0;
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const handler = () => setIsMobile(mq.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  // On phones, skip the horizontal page-flip slide and use a simple fade instead.
+  const direction = isMobile ? 0 : depth > depthRef.current ? 1 : depth < depthRef.current ? -1 : 0;
   depthRef.current = depth;
 
   // Show loading spinner while checking app public settings or auth

@@ -8,6 +8,7 @@ import { formatPrice, timeAgo } from "@/lib/format";
 import Price from "@/components/Price";
 import ItemCard from "@/components/ItemCard";
 import { getCategory, getCityName, getCondition } from "@/lib/constants";
+import { localizeListingTag } from "@/lib/listingTags";
 import { getCountry } from "@/lib/countries";
 import RatingStars from "@/components/RatingStars";
 import ReviewTagChips from "@/components/ReviewTagChips";
@@ -434,6 +435,15 @@ export default function ItemDetail() {
         <div className="mt-4">
           <h3 className="font-bold mb-1.5">{t("description")}</h3>
           <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{item.description}</p>
+        </div>
+      )}
+      {item.tags?.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {item.tags.map((tg) => (
+            <span key={tg} className="px-3 py-1.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+              {localizeListingTag(tg, lang)}
+            </span>
+          ))}
         </div>
       )}
 

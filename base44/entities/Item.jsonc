@@ -26,6 +26,13 @@
         "type": "string"
       }
     },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Quick attribute tags selected by the seller, relevant to the item's category"
+    },
     "condition": {
       "type": "string",
       "enum": [

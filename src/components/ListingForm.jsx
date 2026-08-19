@@ -12,6 +12,8 @@ import { Image } from "@/components/ui/image";
 import { compressImage } from "@/lib/compressImage";
 import { useToast } from "@/components/ui/use-toast";
 import SheetSelect from "@/components/SheetSelect";
+import ReviewTagChips from "@/components/ReviewTagChips";
+import { getListingTags } from "@/lib/listingTags";
 
 // Convert Arabic-Indic (٠-٩) and Eastern Arabic (۰-۹) digits to ASCII 0-9
 function normalizeDigits(s) {
@@ -39,6 +41,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [subcats, setSubcats] = useState(
     Array.isArray(initial?.subcategory) ? initial.subcategory : (initial?.subcategory ? [initial.subcategory] : [])
   );
+  const [tags, setTags] = useState(Array.isArray(initial?.tags) ? initial.tags : []);
   const [boostHours, setBoostHours] = useState(0);
   const [boostCross, setBoostCross] = useState(false);
   const ar = lang === "ar";
@@ -120,6 +123,10 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const toggleSub = (s) => {
     setSubcats((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
   };
+  const toggleTag = (t) => {
+    setTags((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
+  };
+  const tagOptions = getListingTags(category);
 
   const onPriceChange = (e) => setPrice(normalizeDigits(e.target.value).replace(/\D/g, "").slice(0, 8));
 
@@ -134,6 +141,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         category,
         subcategory: subcats.length ? subcats : undefined,
         condition,
+        tags: tags.length ? tags : undefined,
         city,
         location_name: locationName || undefined,
         country: country || "SA",
@@ -233,23 +241,11 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         <div className="flex justify-end text-[11px] text-muted-foreground mt-1">{(title || "").length}/50</div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <label className="text-sm font-semibold">{t("price")}</label>
-          <div className="flex items-center px-4 py-3 rounded-2xl bg-muted">
-            <input value={price} onChange={onPriceChange} placeholder={t("pricePlaceholder")} className="bg-transparent outline-none flex-1" inputMode="numeric" />
-            <span className="text-muted-foreground text-sm font-bold">{ar ? cur.currencyAr : cur.currency}</span>
-          </div>
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm font-semibold">{t("selectCondition")}</label>
-          <SheetSelect
-            value={condition}
-            onChange={setCondition}
-            label={t("selectCondition")}
-            buttonClassName="border-2 border-amber-400 dark:border-amber-500 bg-amber-50 dark:bg-amber-950/30 ring-2 ring-amber-300/40"
-            options={CONDITIONS.map((c) => ({ value: c.id, label: lang === "ar" ? c.ar : c.en }))}
-          />
+      <div className="space-y-1">
+        <label className="text-sm font-semibold">{t("price")}</label>
+        <div className="flex items-center px-4 py-3 rounded-2xl bg-muted">
+          <input value={price} onChange={onPriceChange} placeholder={t("pricePlaceholder")} className="bg-transparent outline-none flex-1" inputMode="numeric" />
+          <span className="text-muted-foreground text-sm font-bold">{ar ? cur.currencyAr : cur.currency}</span>
         </div>
       </div>
 
@@ -257,12 +253,52 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         <label className="text-sm font-semibold">{t("category")}</label>
         <SheetSelect
           value={category}
-          onChange={(v) => { setCategory(v); setSubcats([]); }}
+          onChange={(v) => { setCategory(v); setSubcats([]); setTags([]); }}
           placeholder={t("selectCategory")}
           label={t("category")}
           options={CATEGORIES.filter((c) => c.id !== "all").map((c) => ({ value: c.id, label: lang === "ar" ? c.ar : c.en }))}
         />
       </div>
+
+      {subs.length > 0 && (
+        <div className="space-y-1">
+          <label className="text-sm font-semibold">{t("subcategory")}</label>
+          <div className="flex flex-wrap gap-2">
+            {subs.map((s) => {
+              const active = subcats.includes(s.en);
+              return (
+                <button
+                  key={s.en}
+                  type="button"
+                  onClick={() => toggleSub(s.en)}
+                  className={`px-3.5 py-2 rounded-full text-sm font-semibold whitespace-nowrap border ${active ? "bg-primary text-primary-foreground border-transparent" : "bg-card border-border/70 hover:bg-muted"}`}
+                >
+                  {lang === "ar" ? s.ar : s.en}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-1">
+        <label className="text-sm font-semibold">{t("selectCondition")}</label>
+        <SheetSelect
+          value={condition}
+          onChange={setCondition}
+          label={t("selectCondition")}
+          buttonClassName="border-2 border-amber-400 dark:border-amber-500 bg-amber-50 dark:bg-amber-950/30 ring-2 ring-amber-300/40"
+          options={CONDITIONS.map((c) => ({ value: c.id, label: lang === "ar" ? c.ar : c.en }))}
+        />
+      </div>
+
+      {tagOptions.length > 0 && (
+        <div className="space-y-1">
+          <label className="text-sm font-semibold">{ar ? "مميزات سريعة" : "Quick tags"}</label>
+          <p className="text-[11px] text-muted-foreground -mt-0.5">{ar ? "اختر ما ينطبق على منتجك ليظهر للمشترين" : "Pick what applies — buyers will see these"}</p>
+          <ReviewTagChips options={tagOptions} selected={tags} onToggle={toggleTag} lang={lang} />
+        </div>
+      )}
 
       <div className="space-y-1">
         <label className="text-sm font-semibold">{t("location")}</label>
@@ -299,27 +335,6 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
           </div>
         </div>
       </div>
-
-      {subs.length > 0 && (
-        <div className="space-y-1">
-          <label className="text-sm font-semibold">{t("subcategory")}</label>
-          <div className="flex flex-wrap gap-2">
-            {subs.map((s) => {
-              const active = subcats.includes(s.en);
-              return (
-                <button
-                  key={s.en}
-                  type="button"
-                  onClick={() => toggleSub(s.en)}
-                  className={`px-3.5 py-2 rounded-full text-sm font-semibold whitespace-nowrap border ${active ? "bg-primary text-primary-foreground border-transparent" : "bg-card border-border/70 hover:bg-muted"}`}
-                >
-                  {lang === "ar" ? s.ar : s.en}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       <div className="space-y-1">
         <label className="text-sm font-semibold">{t("description")}</label>

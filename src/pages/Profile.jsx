@@ -330,10 +330,6 @@ export default function Profile() {
             </button>
           )}
         </div>
-        <button onClick={() => { if (window.confirm(t("clearFavsConfirm"))) clearFavorites(); }} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
-          <span className="flex items-center gap-2 text-sm font-semibold"><Trash2 size={18} /> {t("clearFavorites")}</span>
-          <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
-        </button>
         <button onClick={() => setSupportOpen(true)} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
           <span className="flex items-center gap-2 text-sm font-semibold"><LifeBuoy size={18} /> {t("contactSupport")}</span>
           <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />

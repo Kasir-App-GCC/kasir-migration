@@ -228,8 +228,18 @@ export default function Profile() {
 
       {tab === "saved" && (
         saved.length ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {saved.map((it) => <ItemCard key={it.id} item={it} onClick={() => nav(`/item/${it.id}`)} />)}
+          <div className="space-y-3">
+            <div className="flex justify-end">
+              <button
+                onClick={() => { if (window.confirm(t("clearFavsConfirm"))) clearFavorites(); }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 text-xs font-semibold border border-rose-200 dark:border-rose-900"
+              >
+                <Trash2 size={14} /> {t("clearFavorites")}
+              </button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {saved.map((it) => <ItemCard key={it.id} item={it} onClick={() => nav(`/item/${it.id}`)} />)}
+            </div>
           </div>
         ) : (
           <div className="text-center py-16 text-muted-foreground">

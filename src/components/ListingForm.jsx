@@ -331,7 +331,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         <div className="flex items-center gap-2.5">
           <Sparkles size={18} className="text-amber-500" />
           <div className="flex-1">
-            <p className="text-sm font-semibold block">{t("promoteListing")}</p>
+            <p className="text-sm font-semibold flex items-center gap-1.5">{t("promoteListing")} <span className="text-base leading-none">{cur.flag}</span></p>
             <p className="text-xs text-muted-foreground">{ar ? "تعزيز الإعلان ليظهر في المميز" : "Boost your listing to appear in featured"}</p>
           </div>
         </div>
@@ -409,9 +409,9 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
               ))}
               <div className="flex items-center justify-between pt-1 border-t border-border/60">
                 <span className="text-muted-foreground">{ar ? "الإجمالي بعد التعزيز" : "Total after boost"}</span>
-                <span className="font-semibold">{totalAfter}{ar ? "ساعة" : "h"}</span>
+                <span className="font-semibold">{fmt(boostDisplay)} {ar ? cur.currencyAr : cur.currency}</span>
               </div>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">{ar ? "سيظهر إعلانك في قسم المميز طوال هذه المدة لجميع المدن في دولتك" : "Your listing will appear in the Featured section for this duration across all cities in your country"}</p>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">{ar ? <>سيظهر إعلانك في قسم المميز طوال هذه المدة لجميع المدن في دولتك {cur.flag}</> : <>Your listing will appear in the Featured section for this duration across all cities in your country {cur.flag}</>}</p>
             </div>
           )}
         </div>
@@ -426,7 +426,6 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
                 <Globe size={16} className="text-primary" />
                 <span>
                   <span className="text-sm font-semibold block">{ar ? "عرض في كل دول الخليج" : "Show across all Gulf countries"}</span>
-                  <span className="text-xs text-muted-foreground">{ar ? "+٣/+٢/+١ حسب الفئة" : "+3/+2/+1 per tier"}</span>
                 </span>
               </span>
               <span className={`w-11 h-6 rounded-full p-0.5 transition ${boostCross ? "bg-amber-500" : "bg-muted-foreground/30"}`}>

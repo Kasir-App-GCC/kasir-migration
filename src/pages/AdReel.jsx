@@ -7,8 +7,8 @@ import ItemCard from "@/components/ItemCard";
 import TrustedBadge from "@/components/TrustedBadge";
 import { COUNTRIES } from "@/lib/countries";
 
-const SCENES = 6;
-const DURATIONS = [2500, 2500, 3000, 3500, 4000, 2500];
+const SCENES = 5;
+const DURATIONS = [2500, 2500, 4000, 3500, 2500];
 
 const SELL_PHOTOS = [
   "https://media.base44.com/images/public/6a81368f876e0b385d3684d3/808035172_generated_image.png",
@@ -45,12 +45,11 @@ export default function AdReel() {
 
       <AnimatePresence mode="wait">
         <motion.div key={scene} initial={{ opacity: 0, scale: 1.03 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.45 }} className="flex-1 relative">
-          {scene === 0 && <SceneHome ar={ar} items={grid} />}
-          {scene === 1 && <SceneCountry ar={ar} />}
-          {scene === 2 && <SceneNearby ar={ar} />}
+          {scene === 0 && <SceneCountry ar={ar} />}
+          {scene === 1 && <SceneHome ar={ar} items={grid} />}
+          {scene === 2 && <SceneSell ar={ar} />}
           {scene === 3 && <SceneOffer ar={ar} />}
-          {scene === 4 && <SceneSell ar={ar} />}
-          {scene === 5 && <SceneCTA ar={ar} />}
+          {scene === 4 && <SceneCTA ar={ar} />}
         </motion.div>
       </AnimatePresence>
 
@@ -156,62 +155,6 @@ function SceneCountry({ ar }) {
           <p className="text-2xl font-extrabold">{ar ? "السعودية" : "Saudi Arabia"}</p>
           <p className="text-muted-foreground text-sm mt-1">{ar ? "تم اختيار دولتك" : "Your country is set"}</p>
         </motion.div>
-      </div>
-    </div>
-  );
-}
-
-function SceneNearby({ ar }) {
-  const [radius, setRadius] = useState(5);
-  useEffect(() => {
-    const id = setTimeout(() => setRadius(10), 1500);
-    return () => clearTimeout(id);
-  }, []);
-  return (
-    <div className="absolute inset-0 bg-background flex flex-col">
-      <header className="border-b border-border/60">
-        <div className="px-4 h-14 flex items-center gap-3">
-          <BrandMark ar={ar} />
-          <div className="flex-1 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-muted text-sm"><span>📍</span><span className="truncate">{ar ? "الرياض" : "Riyadh"}</span></div>
-          <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center text-lg">🇸🇦</div>
-        </div>
-      </header>
-      <div className="flex-1 overflow-hidden p-3">
-        <div className="rounded-3xl bg-background border border-border shadow-xl flex flex-col h-full">
-          <div className="flex items-center justify-between p-4 border-b border-border">
-            <h3 className="font-bold text-lg">{ar ? "تصفية الموقع" : "Location filter"}</h3>
-            <div className="p-1.5 rounded-full bg-muted"><X size={20} /></div>
-          </div>
-          <div className="flex gap-1 p-3">
-            <div className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-muted text-muted-foreground text-center">{ar ? "المدينة" : "City"}</div>
-            <div className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-primary text-primary-foreground text-center">{ar ? "قريب مني" : "Near me"}</div>
-            <div className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-muted text-muted-foreground text-center">{ar ? "الخريطة" : "Map"}</div>
-          </div>
-          <div className="flex-1 px-4 pb-2 overflow-hidden">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center"><Crosshair size={22} /></div>
-              <div>
-                <p className="font-semibold">{ar ? "قريب مني" : "Near me"}</p>
-                <p className="text-xs text-muted-foreground">{ar ? "تم تحديد موقعك: الرياض" : "Location found: Riyadh"}</p>
-              </div>
-            </div>
-            <div className="flex items-baseline justify-between mb-2">
-              <span className="text-sm text-muted-foreground">{ar ? "نطاق البحث" : "Radius"}</span>
-              <span className="text-2xl font-extrabold">{radius} <span className="text-sm font-medium text-muted-foreground">{ar ? "كم" : "km"}</span></span>
-            </div>
-            <input type="range" min={1} max={200} value={radius} onChange={() => {}} className="w-full accent-primary" />
-            <div className="flex justify-between text-[11px] text-muted-foreground mt-1"><span>1 {ar ? "كم" : "km"}</span><span>200 {ar ? "كم" : "km"}</span></div>
-            <div className="flex flex-wrap gap-2 mt-4">
-              {[1, 5, 10, 15, 20, 50, 100].map((km) => (
-                <span key={km} className={`px-3 py-1.5 rounded-full text-xs font-bold ${radius === km ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{km} {ar ? "كم" : "km"}</span>
-              ))}
-            </div>
-          </div>
-          <div className="p-4 border-t border-border flex gap-2">
-            <div className="px-4 py-3 rounded-xl text-sm font-semibold bg-muted text-muted-foreground">{ar ? "مسح" : "Clear"}</div>
-            <div className="flex-1 py-3 rounded-xl text-sm font-bold bg-primary text-primary-foreground text-center">{ar ? "تطبيق" : "Apply"}</div>
-          </div>
-        </div>
       </div>
     </div>
   );

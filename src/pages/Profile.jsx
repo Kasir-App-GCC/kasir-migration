@@ -96,7 +96,10 @@ export default function Profile() {
             {user.avatar ? <img src={user.avatar} className="w-full h-full object-cover" /> : <Tag size={28} className="w-full h-full flex items-center justify-center p-3" />}
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-extrabold truncate">{user.name}</h1>
+            <h1 className="text-xl font-extrabold truncate flex items-center gap-1.5">
+              <span className="truncate">{user.name}</span>
+              {user.is_trusted && <BadgeCheck size={18} className="text-sky-300 shrink-0" />}
+            </h1>
             <div className="flex items-center gap-1.5 text-sm mt-0.5">
               <Star size={14} className="fill-amber-300 text-amber-300" />
               <span className="font-bold">{avg}</span>

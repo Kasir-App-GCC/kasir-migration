@@ -575,7 +575,7 @@ export default function ItemDetail() {
                   disabled={sending}
                   className="py-3 rounded-2xl bg-primary text-primary-foreground font-bold text-sm leading-tight disabled:opacity-50"
                 >
-                  {t("haggleFor")} {pct}% {t("lessWord")}
+                  {t("haggleBtn")} {pct}%
                   <span className="block text-xs font-semibold opacity-90 mt-0.5"><Price value={Math.round(item.price * (1 - pct / 100))} lang={lang} country={item.country} /></span>
                 </button>
               ))}

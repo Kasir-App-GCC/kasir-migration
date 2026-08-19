@@ -10,12 +10,12 @@ const SCENES = 6;
 const DURATION = 2500;
 
 const CAPTIONS = [
-  { ar: "كاسر — سوقك المحلي", en: "Kasir — your local marketplace" },
-  { ar: "تصفّح آلاف الإعلانات", en: "Browse thousands of listings" },
-  { ar: "صوّر، انشر، بِع", en: "Snap, post, sell" },
-  { ar: "تحاوِر وفاوضض بثقة", en: "Chat & negotiate with confidence" },
-  { ar: "بائعون موثوقون قربك", en: "Verified sellers near you" },
-  { ar: "عزّز إعلانك في كل الخليج", en: "Boost across the GCC" },
+  { ar: "كاسر — سوقك المحلي في الخليج", en: "Kasir — your local GCC marketplace" },
+  { ar: "تصفّح آلاف الإعلانات حولك", en: "Browse thousands of listings around you" },
+  { ar: "اعثر على أفضل العروض قربك", en: "Find the best deals near you" },
+  { ar: "أرسل عرضك وتفاوض على السعر", en: "Send an offer and negotiate the price" },
+  { ar: "بِع في دقائق — صوّر وانشر", en: "Sell in minutes — snap and post" },
+  { ar: "عزّز إعلانك ليصل إلى كل الخليج", en: "Boost your listing to reach the whole GCC" },
 ];
 
 export default function AdReel() {
@@ -50,9 +50,9 @@ export default function AdReel() {
         <motion.div key={scene} initial={{ opacity: 0, scale: 1.03 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.45 }} className="flex-1 relative">
           {scene === 0 && <SceneBrand ar={ar} />}
           {scene === 1 && <SceneBrowse ar={ar} items={grid} />}
-          {scene === 2 && <SceneSell ar={ar} />}
+          {scene === 2 && <SceneMap ar={ar} />}
           {scene === 3 && <SceneChat ar={ar} />}
-          {scene === 4 && <SceneMap ar={ar} />}
+          {scene === 4 && <SceneSell ar={ar} />}
           {scene === 5 && <SceneBoost ar={ar} />}
         </motion.div>
       </AnimatePresence>
@@ -122,9 +122,9 @@ function SceneSell({ ar }) {
 
 function SceneChat({ ar }) {
   const bubbles = [
-    { me: false, text: ar ? "السلام، هل لا يزال متوفر؟" : "Hi, is it still available?" },
-    { me: true, text: ar ? "نعم متوفر" : "Yes, available" },
-    { me: false, text: ar ? "أعطيك ٢٬٤٠٠" : "I'll offer 2,400" },
+    { me: false, text: ar ? "السلام، متوفر؟" : "Hi, is this available?" },
+    { me: true, text: ar ? "نعم، متوفر" : "Yes, it is" },
+    { me: false, text: ar ? "أقدم عرض ٢٬٤٠٠ ريال" : "I'll offer 2,400 SAR" },
   ];
   return (
     <div className="absolute inset-0 bg-background flex flex-col p-4 pt-12 max-w-sm mx-auto w-full">
@@ -143,7 +143,11 @@ function SceneChat({ ar }) {
         ))}
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 1.25 }} className="flex justify-center pt-1">
           <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-2xl px-4 py-3 flex items-center gap-4">
-            <div className="text-center"><div className="text-[10px] text-muted-foreground">{ar ? "عرض" : "Offer"}</div><div className="font-extrabold text-amber-600 text-lg">﷼ 2,400</div></div>
+            <div className="text-center">
+              <div className="text-[10px] text-muted-foreground">{ar ? "عرضك" : "Your offer"}</div>
+              <div className="font-extrabold text-amber-600 text-lg leading-tight">﷼ 2,400</div>
+              <div className="text-[10px] text-muted-foreground line-through">﷼ 2,800</div>
+            </div>
             <div className="flex gap-2">
               <span className="px-3.5 py-1.5 rounded-full bg-emerald-500 text-white text-xs font-bold">{ar ? "قبول" : "Accept"}</span>
               <span className="px-3.5 py-1.5 rounded-full bg-muted text-xs font-bold">{ar ? "مقايضة" : "Counter"}</span>

@@ -242,10 +242,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
           </div>
         </div>
         <div className="space-y-1">
-          <label className="text-sm font-semibold flex items-center gap-1.5">
-            {t("selectCondition")}
-            <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/50 px-1.5 py-0.5 rounded-full">{ar ? "مهم" : "Important"}</span>
-          </label>
+          <label className="text-sm font-semibold">{t("selectCondition")}</label>
           <SheetSelect
             value={condition}
             onChange={setCondition}
@@ -253,7 +250,6 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             buttonClassName="border-2 border-amber-400 dark:border-amber-500 bg-amber-50 dark:bg-amber-950/30 ring-2 ring-amber-300/40"
             options={CONDITIONS.map((c) => ({ value: c.id, label: lang === "ar" ? c.ar : c.en }))}
           />
-          <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">{ar ? "حدّد حالة المنتج بدقة — تساعد المشترين على الثقة بك" : "Pick the item's condition accurately — it builds buyer trust"}</p>
         </div>
       </div>
 

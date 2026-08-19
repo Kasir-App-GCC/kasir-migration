@@ -21,7 +21,6 @@ export default function AdReel() {
   const ar = lang === "ar";
   const [scene, setScene] = useState(0);
   const [items, setItems] = useState([]);
-  const [recording, setRecording] = useState(false);
 
   useEffect(() => {
     base44.entities.Item.list("-created_date", 8).then(setItems).catch(() => {});
@@ -34,34 +33,6 @@ export default function AdReel() {
 
   const grid = useMemo(() => items.slice(0, 8), [items]);
 
-  const downloadAd = async () => {
-    if (recording) return;
-    try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: false });
-      const mime = ["video/mp4", "video/webm"].find((m) => MediaRecorder.isTypeSupported(m)) || "video/webm";
-      const rec = new MediaRecorder(stream, { mimeType: mime });
-      const chunks = [];
-      rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
-      rec.onstop = () => {
-        stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunks, { type: mime });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "kasir-ad." + (mime.includes("mp4") ? "mp4" : "webm");
-        a.click();
-        URL.revokeObjectURL(url);
-        setRecording(false);
-      };
-      setScene(0);
-      rec.start();
-      setRecording(true);
-      setTimeout(() => { if (rec.state === "recording") rec.stop(); }, 15000);
-    } catch {
-      setRecording(false);
-    }
-  };
-
   return (
     <div className="fixed inset-0 bg-background overflow-hidden flex flex-col select-none" dir={ar ? "rtl" : "ltr"}>
       <div className="absolute top-0 inset-x-0 h-1 bg-muted/40 z-50">
@@ -72,10 +43,6 @@ export default function AdReel() {
           <span key={i} className={`h-1.5 rounded-full transition-all ${i === scene ? "w-5 bg-amber-500" : "w-1.5 bg-foreground/30"}`} />
         ))}
       </div>
-      <button onClick={downloadAd} disabled={recording} aria-label="download" className="absolute top-3 end-3 z-50 w-10 h-10 rounded-full bg-background/80 backdrop-blur border border-border shadow-md flex items-center justify-center disabled:opacity-50">
-        {recording ? <div className="w-4 h-4 border-2 border-foreground border-t-transparent rounded-full animate-spin" /> : <Download size={18} />}
-      </button>
-
       <AnimatePresence mode="wait">
         <motion.div key={scene} initial={{ opacity: 0, scale: 1.03 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.45 }} className="flex-1 relative">
           {scene === 0 && <SceneCountry ar={ar} />}

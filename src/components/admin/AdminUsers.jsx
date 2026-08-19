@@ -326,8 +326,8 @@ export default function AdminUsers() {
               <div className="rounded-xl bg-muted p-2.5"><p className="text-xs text-muted-foreground">{ar ? "الدور" : "Role"}</p><p className="font-semibold capitalize">{selected.role}</p></div>
               <div className="rounded-xl bg-muted p-2.5"><p className="text-xs text-muted-foreground">{ar ? "انضم" : "Joined"}</p><p className="font-semibold">{new Date(selected.created_date).toLocaleDateString()}</p></div>
               <div className="rounded-xl bg-muted p-2.5"><p className="text-xs text-muted-foreground">{ar ? "البريد" : "Email"}</p><p className="font-semibold truncate" title={selected.email}>{selected.email}</p></div>
-              {selected.full_name && (
-                <div className="rounded-xl bg-muted p-2.5 col-span-2"><p className="text-xs text-muted-foreground">{ar ? "الاسم لدى Google/Apple" : "OAuth provider name"}</p><p className="font-semibold truncate" title={selected.full_name}>{selected.full_name}</p></div>
+              {(selected.provider_name || selected.full_name) && (
+                <div className="rounded-xl bg-muted p-2.5 col-span-2"><p className="text-xs text-muted-foreground">{ar ? "الاسم لدى Google/Apple" : "Login name (Google/Apple)"}</p><p className="font-semibold truncate" title={selected.provider_name || selected.full_name}>{selected.provider_name || selected.full_name}</p></div>
               )}
             </div>
 

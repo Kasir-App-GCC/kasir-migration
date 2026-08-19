@@ -110,6 +110,9 @@ export default function ProfileSetup() {
       await base44.auth.updateMe({
         first_name: firstName.trim(),
         last_name: lastName.trim(),
+        // Capture the original OAuth provider name once, so the admin always
+        // has the login-method name on record even if full_name later changes.
+        provider_name: user?.provider_name || user?.full_name || "",
         username: uname,
         phone: digits,
         country_code: countryCode,

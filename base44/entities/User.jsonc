@@ -16,6 +16,10 @@
       "type": "string",
       "description": "The user's last name, shown to other users"
     },
+    "provider_name": {
+      "type": "string",
+      "description": "The original name from the OAuth provider (Google/Apple) captured at signup \u2014 visible to admins only"
+    },
     "username": {
       "type": "string",
       "description": "A unique handle shown to other users"

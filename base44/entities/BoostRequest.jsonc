@@ -30,7 +30,7 @@
     },
     "receipt_url": {
       "type": "string",
-      "description": "URL of the uploaded bank transfer receipt"
+      "description": "URL of the payment receipt (when a manual receipt is provided; otherwise populated by the online payment gateway)"
     },
     "status": {
       "type": "string",
@@ -50,8 +50,7 @@
     "item_id",
     "user_id",
     "hours",
-    "amount",
-    "receipt_url"
+    "amount"
   ],
   "rls": {
     "create": {

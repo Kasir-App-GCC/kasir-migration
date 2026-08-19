@@ -25,7 +25,7 @@
     },
     "payment_receipt_url": {
       "type": "string",
-      "description": "URL of the uploaded payment receipt for the verification fee"
+      "description": "URL of the payment receipt for the verification fee (populated by the online payment gateway)"
     },
     "status": {
       "type": "string",
@@ -44,8 +44,7 @@
   "required": [
     "user_id",
     "full_name",
-    "national_id",
-    "payment_receipt_url"
+    "national_id"
   ],
   "rls": {
     "create": {

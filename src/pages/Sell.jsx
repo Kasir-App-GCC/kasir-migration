@@ -14,7 +14,7 @@ export default function Sell() {
   const ar = lang === "ar";
 
   const submit = async (data) => {
-    const { boost_hours, boost_cross_country, boost_amount, boost_receipt_url, ...itemData } = data;
+    const { boost_hours, boost_cross_country, boost_amount, ...itemData } = data;
     const boosted = boost_hours > 0;
     const item = await base44.entities.Item.create({
       ...itemData,
@@ -27,7 +27,7 @@ export default function Sell() {
       featured_until: null,
       featured_cross_country: false,
     });
-    if (boosted && boost_receipt_url) {
+    if (boosted) {
       try {
         await base44.entities.BoostRequest.create({
           item_id: item.id,
@@ -37,7 +37,6 @@ export default function Sell() {
           hours: boost_hours,
           cross_country: !!boost_cross_country,
           amount: boost_amount || 0,
-          receipt_url: boost_receipt_url,
           status: "pending",
         });
       } catch {}

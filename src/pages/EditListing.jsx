@@ -50,11 +50,11 @@ export default function EditListing() {
   const submit = async (data) => {
     // Strip boost + featured fields: editing must never reset an active boost.
     // The featured clock started at posting time and survives any number of edits.
-    const { boost_hours, boost_cross_country, boost_amount, boost_receipt_url, featured, featured_until, featured_cross_country, ...itemData } = data;
+    const { boost_hours, boost_cross_country, boost_amount, featured, featured_until, featured_cross_country, ...itemData } = data;
     await base44.entities.Item.update(id, itemData);
     // A boost requested from the edit screen creates a pending BoostRequest
     // for admin review — same as the new-listing flow.
-    if (boost_hours > 0 && boost_receipt_url) {
+    if (boost_hours > 0) {
       try {
         await base44.entities.BoostRequest.create({
           item_id: id,
@@ -64,7 +64,6 @@ export default function EditListing() {
           hours: boost_hours,
           cross_country: !!boost_cross_country,
           amount: boost_amount || 0,
-          receipt_url: boost_receipt_url,
           status: "pending",
         });
         toast({

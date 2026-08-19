@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Tag, Check, X, Sparkles, ShoppingBag, Map as MapIcon, Sun, Clock, ArrowLeftRight, Volume2, VolumeX, Download } from "lucide-react";
+import { Tag, Check, X, Sparkles, ShoppingBag, Map as MapIcon, Sun, Clock, ArrowLeftRight, Download } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import ItemCard from "@/components/ItemCard";
 import TrustedBadge from "@/components/TrustedBadge";
 import { COUNTRIES } from "@/lib/countries";
 import { useNavigate } from "react-router-dom";
-import useVoiceover from "@/hooks/useVoiceover";
 
 const SCENES = 5;
 const DURATIONS = [2500, 2500, 4000, 3500, 2500];
@@ -17,20 +16,11 @@ const SELL_PHOTOS = [
   "https://media.base44.com/images/public/6a81368f876e0b385d3684d3/12e104a16_generated_image.png",
 ];
 
-const VOICEOVER_URLS = [
-  "https://media.base44.com/files/public/6a81368f876e0b385d3684d3/5db446ffa_speech.mp3",
-  "https://media.base44.com/files/public/6a81368f876e0b385d3684d3/503331ceb_speech.mp3",
-  "https://media.base44.com/files/public/6a81368f876e0b385d3684d3/3646c68eb_speech.mp3",
-  "https://media.base44.com/files/public/6a81368f876e0b385d3684d3/eb8ff5ae5_speech.mp3",
-  "https://media.base44.com/files/public/6a81368f876e0b385d3684d3/b24d62137_speech.mp3",
-];
-
 export default function AdReel() {
   const { lang } = useStore();
   const ar = lang === "ar";
   const [scene, setScene] = useState(0);
   const [items, setItems] = useState([]);
-  const { muted, toggle: toggleVoice } = useVoiceover(VOICEOVER_URLS, scene);
 
   useEffect(() => {
     base44.entities.Item.list("-created_date", 8).then(setItems).catch(() => {});
@@ -53,10 +43,6 @@ export default function AdReel() {
           <span key={i} className={`h-1.5 rounded-full transition-all ${i === scene ? "w-5 bg-amber-500" : "w-1.5 bg-foreground/30"}`} />
         ))}
       </div>
-      <button onClick={toggleVoice} aria-label="voice" className="absolute top-3 end-3 z-50 w-10 h-10 rounded-full bg-background/80 backdrop-blur border border-border shadow-md flex items-center justify-center">
-        {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-      </button>
-
       <AnimatePresence mode="wait">
         <motion.div key={scene} initial={{ opacity: 0, scale: 1.03 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.45 }} className="flex-1 relative">
           {scene === 0 && <SceneCountry ar={ar} />}
@@ -203,12 +189,12 @@ function SceneOffer({ ar }) {
               )}
             </div>
             <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground mb-1">
-              <span className="line-through">﷼ 90</span>
+              <span className="line-through">﷼ 200</span>
               <span>· {ar ? "السعر الأصلي" : "Original"}</span>
             </div>
             <div className="flex items-center justify-center gap-1.5 py-2 bg-amber-100/70 dark:bg-amber-950/40 rounded-xl">
               <Tag size={15} className="text-amber-600" />
-              <span className="text-lg font-extrabold">﷼ 50</span>
+              <span className="text-lg font-extrabold">﷼ 140</span>
             </div>
             <AnimatePresence>
               {!accepted && (
@@ -271,7 +257,7 @@ function SceneSell({ ar }) {
         <div className="grid grid-cols-2 gap-3">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: step >= 1 ? 1 : 0.4, y: 0 }} className="h-12 rounded-2xl bg-muted flex items-center px-4 justify-between">
             <span className="text-sm font-semibold text-muted-foreground">{ar ? "السعر" : "Price"}</span>
-            {step >= 1 && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-amber-600 font-extrabold">﷼ 50</motion.span>}
+            {step >= 1 && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-amber-600 font-extrabold">﷼ 200</motion.span>}
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: step >= 1 ? 1 : 0.4, y: 0 }} className="h-12 rounded-2xl bg-muted flex items-center px-4 justify-between">
             <span className="text-sm font-semibold text-muted-foreground">{ar ? "الحالة" : "Condition"}</span>

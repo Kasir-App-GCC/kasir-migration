@@ -6,6 +6,7 @@ import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { CATEGORIES, CONDITIONS, getSubcategories, getCityName } from "@/lib/constants";
 import { getCities, nearestCityInCountry, getCountry, convertCurrency } from "@/lib/countries";
+import { computeBoostCost, buildBoostSegments, existingBoostHours, BOOST_MAX_HOURS, BOOST_MIN_HOURS } from "@/lib/boostPricing";
 import MapPinPicker from "@/components/MapPinPicker";
 import { Image } from "@/components/ui/image";
 import { compressImage } from "@/lib/compressImage";
@@ -150,13 +151,17 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   };
 
   const valid = title && price && category && city && images.length > 0;
-  // Tiered boost pricing: short boosts are cheapest per hour, longer boosts cost more.
-  // 1-9h → 5 SAR/hr, 10-23h → 8 SAR/hr, 24-47h → 10 SAR/hr, 48-72h → 12 SAR/hr.
-  const boostRate = boostHours >= 48 ? 12 : boostHours >= 24 ? 10 : boostHours >= 10 ? 8 : 5;
-  const boostAmount = boostHours > 0 ? boostHours * boostRate + (boostCross ? boostHours * 7 : 0) : 0;
+  // Cumulative tiered boost pricing: each new hour is priced by where it lands
+  // in the 0–72h accumulated range (existing boost + new hours), so stacking
+  // short boosts can't re-earn the cheapest tier every time.
+  //   0–24h → 10/hr (+7 cross), 24–48h → 8/hr (+6), 48–72h → 7/hr (+5).
+  const existingHours = existingBoostHours(initial?.featured_until);
+  const maxBoost = Math.max(0, BOOST_MAX_HOURS - existingHours);
+  const boostAmount = boostHours > 0 ? computeBoostCost(existingHours, boostHours, boostCross).amount : 0;
+  const boostSegments = boostHours > 0 ? buildBoostSegments(existingHours, boostHours) : [];
+  const totalAfter = Math.min(existingHours + boostHours, BOOST_MAX_HOURS);
   const cur = getCountry(country || "SA");
   const boostDisplay = convertCurrency(boostAmount, "SA", country || "SA");
-  const crossRateDisplay = convertCurrency(7, "SA", country || "SA");
   const fmt = (n) => Number(n).toLocaleString(ar ? "ar-SA" : "en-US", { maximumFractionDigits: 2 });
   const subs = category ? getSubcategories(category) : [];
 
@@ -331,40 +336,47 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         </div>
         <div>
           <div className="flex items-center justify-between text-sm mb-1.5">
-            <span className="font-semibold">{ar ? "المدة" : "Duration"}</span>
-            <span className="font-bold">{boostHours} {ar ? "ساعة" : "h"}{boostHours >= 72 ? ` · ${ar ? "٣ أيام" : "3 days"}` : ""}</span>
+            <span className="font-semibold">{ar ? "المدة المضافة" : "Hours to add"}</span>
+            <span className="font-bold">{boostHours > 0 ? `${boostHours} ${ar ? "ساعة" : "h"}` : (ar ? "بدون تعزيز" : "No boost")}</span>
           </div>
+          {existingHours > 0 && (
+            <p className="text-[11px] text-muted-foreground mb-1.5">
+              {ar ? `تعزيز حالي: ${existingHours} ساعة متبقية` : `Current boost: ${existingHours}h remaining`}
+            </p>
+          )}
           <input
             type="range"
             min={0}
-            max={72}
+            max={maxBoost}
             step={1}
             value={boostHours}
-            onChange={(e) => setBoostHours(Number(e.target.value))}
-            className="w-full accent-amber-500"
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              setBoostHours(v === 1 ? BOOST_MIN_HOURS : v);
+            }}
+            disabled={maxBoost === 0}
+            className="w-full accent-amber-500 disabled:opacity-50"
           />
           <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-            <span>0</span><span>10</span><span>24</span><span>48</span><span>72</span>
+            <span>0</span>
+            <span>{maxBoost}</span>
           </div>
-          {boostHours > 0 && (
-            <div className="flex items-center justify-between mt-2 text-xs">
-              <span className="text-muted-foreground">{ar ? "السعر/ساعة" : "Rate / hour"}</span>
-              <span className="font-bold text-amber-600 dark:text-amber-400">
-                {fmt(convertCurrency(boostRate, "SA", country || "SA"))} {ar ? cur.currencyAr : cur.currency}
-              </span>
+          {maxBoost === 0 && (
+            <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">{ar ? "وصلت للحد الأقصى (٧٢ ساعة)" : "Max boost reached (72h)"}</p>
+          )}
+          {boostHours > 0 && boostSegments.length > 0 && (
+            <div className="mt-2.5 space-y-1 text-xs">
+              {boostSegments.map((seg, i) => (
+                <div key={i} className="flex items-center justify-between text-muted-foreground">
+                  <span>{seg.hours}{ar ? "س" : "h"} × {fmt(convertCurrency(seg.base, "SA", country || "SA"))} {ar ? cur.currencyAr : cur.currency}</span>
+                  <span className="font-semibold text-foreground">{fmt(convertCurrency(seg.hours * seg.base, "SA", country || "SA"))}</span>
+                </div>
+              ))}
+              <div className="flex items-center justify-between pt-1 border-t border-border/60">
+                <span className="text-muted-foreground">{ar ? "الإجمالي بعد التعزيز" : "Total after boost"}</span>
+                <span className="font-semibold">{totalAfter}{ar ? "ساعة" : "h"}</span>
+              </div>
             </div>
-          )}
-          {boostHours > 0 && boostRate === 5 && (
-            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1">{ar ? "أقل سعر — تعزيز سريع" : "Lowest rate — quick boost"}</p>
-          )}
-          {boostHours > 0 && boostRate === 8 && (
-            <p className="text-[10px] text-muted-foreground mt-1">{ar ? "تعزيز متوسط" : "Mid tier"}</p>
-          )}
-          {boostHours > 0 && boostRate === 10 && (
-            <p className="text-[10px] text-muted-foreground mt-1">{ar ? "تعزيز ليوم كامل" : "Full-day boost"}</p>
-          )}
-          {boostHours > 0 && boostRate === 12 && (
-            <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">{ar ? "تعزيز ممتد — أعلى سعر" : "Extended boost — premium rate"}</p>
           )}
         </div>
         {boostHours > 0 && (
@@ -378,13 +390,19 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
                 <Globe size={16} className="text-primary" />
                 <span>
                   <span className="text-sm font-semibold block">{ar ? "عرض في كل الدول" : "Show across all countries"}</span>
-                  <span className="text-xs text-muted-foreground">+{fmt(crossRateDisplay)} {ar ? `${cur.currencyAr} / ساعة` : `${cur.currency} / hour`}</span>
+                  <span className="text-xs text-muted-foreground">{ar ? "+٧/+٦/+٥ حسب الفئة" : "+7/+6/+5 per tier"}</span>
                 </span>
               </span>
               <span className={`w-11 h-6 rounded-full p-0.5 transition ${boostCross ? "bg-amber-500" : "bg-muted-foreground/30"}`}>
                 <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${boostCross ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
               </span>
             </button>
+            {boostCross && boostSegments.length > 0 && (
+              <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 text-xs">
+                <span className="text-emerald-700 dark:text-emerald-300 font-semibold">{ar ? "إضافة عرض كل الدول" : "All-countries add-on"}</span>
+                <span className="font-bold text-emerald-700 dark:text-emerald-300">+{fmt(convertCurrency(boostSegments.reduce((s, seg) => s + seg.hours * seg.cross, 0), "SA", country || "SA"))} {ar ? cur.currencyAr : cur.currency}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900">
               <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">{ar ? "الإجمالي" : "Total"}</span>
               <span className="text-lg font-extrabold text-amber-700 dark:text-amber-300">{fmt(boostDisplay)} {ar ? cur.currencyAr : cur.currency}</span>

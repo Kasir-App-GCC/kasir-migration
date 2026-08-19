@@ -8,6 +8,7 @@ import { CATEGORIES, CONDITIONS, getSubcategories, getCityName } from "@/lib/con
 import { getCities, nearestCityInCountry, getCountry, convertCurrency } from "@/lib/countries";
 import { computeBoostCost, buildBoostSegments, existingBoostHours, BOOST_MAX_HOURS, BOOST_MIN_HOURS } from "@/lib/boostPricing";
 import { BANK_TRANSFER_IBAN, BANK_TRANSFER_BANK } from "@/lib/verificationPayment";
+import CopyButton from "@/components/CopyButton";
 import MapPinPicker from "@/components/MapPinPicker";
 import { Image } from "@/components/ui/image";
 import { compressImage } from "@/lib/compressImage";
@@ -452,7 +453,10 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
               <p className="text-xs text-muted-foreground">{ar ? "حوّل المبلغ إلى الحساب البنكي التالي ثم ارفع إيصال الدفع لتفعيل التعزيز بعد مراجعة الإدارة:" : "Transfer the amount to the bank account below, then upload the receipt to activate the boost after admin review:"}</p>
               <div className="flex items-center justify-between text-xs bg-background/60 rounded-lg px-2.5 py-1.5">
                 <span className="font-semibold">{ar ? "تحويل بنكي" : "Bank Transfer"}</span>
-                <span className="text-muted-foreground selectable" dir="ltr">{BANK_TRANSFER_BANK} · {BANK_TRANSFER_IBAN}</span>
+                <span className="flex items-center gap-1.5 text-muted-foreground selectable" dir="ltr">
+                  {BANK_TRANSFER_BANK} · {BANK_TRANSFER_IBAN}
+                  <CopyButton value={BANK_TRANSFER_IBAN} />
+                </span>
               </div>
             </div>
             <div className="space-y-1.5">

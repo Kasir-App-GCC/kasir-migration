@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
 import { VERIFICATION_FEE, TRANSFER_METHODS } from "@/lib/verificationPayment";
+import CopyButton from "@/components/CopyButton";
 
 const MAX_FILE = 10 * 1024 * 1024; // 10MB
 
@@ -115,7 +116,10 @@ export default function VerificationDialog({ open, onClose }) {
               {TRANSFER_METHODS.map((m) => (
                 <div key={m.id} className="flex items-center justify-between text-xs bg-background/60 rounded-lg px-2.5 py-1.5">
                   <span className="font-semibold">{ar ? m.ar : m.en}</span>
-                  <span className="text-muted-foreground selectable" dir="ltr">{m.detail}</span>
+                  <span className="flex items-center gap-1.5 text-muted-foreground selectable" dir="ltr">
+                    {m.detail}
+                    {m.iban && <CopyButton value={m.iban} />}
+                  </span>
                 </div>
               ))}
             </div>

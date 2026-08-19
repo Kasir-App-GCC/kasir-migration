@@ -6,5 +6,5 @@ export const BANK_TRANSFER_BANK = "SAB BANK";
 export const BANK_TRANSFER_IBAN = "SA6145000000815457858001";
 
 export const TRANSFER_METHODS = [
-  { id: "bank", en: "Bank Transfer", ar: "تحويل بنكي", detail: "SAB BANK · SA6145000000815457858001" },
+  { id: "bank", en: "Bank Transfer", ar: "تحويل بنكي", bank: "SAB BANK", iban: "SA6145000000815457858001", detail: "SAB BANK · SA6145000000815457858001" },
 ];

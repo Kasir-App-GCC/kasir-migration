@@ -359,9 +359,20 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
           </div>
         </div>
         {boostLocked && (
-          <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900">
-            <Sparkles size={15} className="text-amber-500 shrink-0" />
-            <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">{ar ? "هذا الإعلان مُعزَّز حالياً — لا يمكن تعديل الترويج من هنا" : "This listing is currently promoted — promotion can't be modified here"}</p>
+          <div className="flex items-start gap-2 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900">
+            <Sparkles size={15} className="text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+              {ar ? "هذا الإعلان مُعزَّز حالياً — لا يمكن تعديل الترويج من هنا" : "This listing is currently promoted — promotion can't be modified here"}
+              {initial?.featured_until && (
+                <>
+                  {" · "}
+                  {ar ? "ينتهي في " : "Ends "}
+                  {new Date(initial.featured_until).toLocaleString(ar ? "ar-SA" : "en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  {" · "}
+                  {ar ? "يمكنك طلب تعزيز جديد بعد انتهائه" : "you can request a new boost after it ends"}
+                </>
+              )}
+            </p>
           </div>
         )}
         <div className={boostLocked ? "opacity-50 pointer-events-none" : ""}>

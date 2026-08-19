@@ -152,9 +152,9 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
 
   const valid = title && price && category && city && images.length > 0;
   // Cumulative tiered boost pricing: each new hour is priced by where it lands
-  // in the 0–72h accumulated range (existing boost + new hours), so stacking
+  // in the 0–168h accumulated range (existing boost + new hours), so stacking
   // short boosts can't re-earn the cheapest tier every time.
-  //   0–24h → 10/hr (+7 cross), 24–48h → 8/hr (+6), 48–72h → 7/hr (+5).
+  //   0–24h → 5/hr (+3 cross), 24–48h → 4/hr (+3), 48h–1wk → 3/hr (+2).
   const existingHours = existingBoostHours(initial?.featured_until);
   const maxBoost = Math.max(0, BOOST_MAX_HOURS - existingHours);
   const boostAmount = boostHours > 0 ? computeBoostCost(existingHours, boostHours, boostCross).amount : 0;
@@ -337,7 +337,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         <div>
           <div className="flex items-center justify-between text-sm mb-1.5">
             <span className="font-semibold">{ar ? "المدة المضافة" : "Hours to add"}</span>
-            <span className="font-bold">{boostHours > 0 ? `${boostHours} ${ar ? "ساعة" : "h"}` : (ar ? "بدون تعزيز" : "No boost")}</span>
+            <span className="font-bold">{boostHours > 0 ? `${boostHours} ${ar ? "ساعة" : "h"}${boostHours >= 24 ? ` (${Math.floor(boostHours / 24)} ${ar ? "يوم" : Math.floor(boostHours / 24) === 1 ? "day" : "days"})` : ""}` : (ar ? "بدون تعزيز" : "No boost")}</span>
           </div>
           {existingHours > 0 && (
             <p className="text-[11px] text-muted-foreground mb-1.5">
@@ -362,7 +362,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             <span>{maxBoost}</span>
           </div>
           {maxBoost === 0 && (
-            <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">{ar ? "وصلت للحد الأقصى (٧٢ ساعة)" : "Max boost reached (72h)"}</p>
+            <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">{ar ? "وصلت للحد الأقصى (أسبوع واحد)" : "Max boost reached (1 week)"}</p>
           )}
           {boostHours > 0 && boostSegments.length > 0 && (
             <div className="mt-2.5 space-y-1 text-xs">
@@ -390,7 +390,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
                 <Globe size={16} className="text-primary" />
                 <span>
                   <span className="text-sm font-semibold block">{ar ? "عرض في كل الدول" : "Show across all countries"}</span>
-                  <span className="text-xs text-muted-foreground">{ar ? "+٧/+٦/+٥ حسب الفئة" : "+7/+6/+5 per tier"}</span>
+                  <span className="text-xs text-muted-foreground">{ar ? "+٣/+٣/+٢ حسب الفئة" : "+3/+3/+2 per tier"}</span>
                 </span>
               </span>
               <span className={`w-11 h-6 rounded-full p-0.5 transition ${boostCross ? "bg-amber-500" : "bg-muted-foreground/30"}`}>

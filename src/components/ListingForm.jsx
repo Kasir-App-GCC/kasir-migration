@@ -23,7 +23,7 @@ function normalizeDigits(s) {
   });
 }
 
-export default function ListingForm({ initial, submitLabel, submittingLabel, onSubmit, boostReceiptRequired = true }) {
+export default function ListingForm({ initial, submitLabel, submittingLabel, onSubmit, boostReceiptRequired = true, boostLocked = false }) {
   const { user, lang, country } = useStore();
   const t = useT();
   const { toast } = useToast();
@@ -358,7 +358,13 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             <p className="text-xs text-muted-foreground">{ar ? "تعزيز الإعلان ليظهر في المميز" : "Boost your listing to appear in featured"}</p>
           </div>
         </div>
-        <div>
+        {boostLocked && (
+          <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900">
+            <Sparkles size={15} className="text-amber-500 shrink-0" />
+            <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">{ar ? "هذا الإعلان مُعزَّز حالياً — لا يمكن تعديل الترويج من هنا" : "This listing is currently promoted — promotion can't be modified here"}</p>
+          </div>
+        )}
+        <div className={boostLocked ? "opacity-50 pointer-events-none" : ""}>
           <div className="flex items-center justify-between text-sm mb-1.5">
             <span className="font-semibold">{ar ? "المدة المضافة" : "Hours to add"}</span>
             <span className="font-bold">{boostHours > 0 ? (() => { const days = boostHours / 24; const dayLabel = days >= 1 && boostHours % 24 === 0 ? ` (${days} ${ar ? (days === 1 ? "يوم" : days === 2 ? "يومان" : days <= 10 ? "أيام" : "يوم") : days === 1 ? "day" : "days"})` : ""; return `${boostHours} ${ar ? "ساعة" : "h"}${dayLabel}`; })() : (ar ? "بدون تعزيز" : "No boost")}</span>
@@ -373,12 +379,12 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             min={0}
             max={maxBoost}
             step={1}
-            value={boostHours}
+            value={boostLocked ? 0 : boostHours}
             onChange={(e) => {
               const v = Number(e.target.value);
               setBoostHours(v === 1 ? BOOST_MIN_HOURS : v);
             }}
-            disabled={maxBoost === 0}
+            disabled={maxBoost === 0 || boostLocked}
             className="w-full accent-amber-500 disabled:opacity-50"
           />
           <div className="flex justify-between text-[10px] text-muted-foreground mt-1">

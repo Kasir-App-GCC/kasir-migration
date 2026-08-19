@@ -52,6 +52,8 @@ export default function EditListing() {
     nav(`/item/${id}`);
   };
 
+  const promoted = !!(item?.featured && item?.featured_until && new Date(item.featured_until) > new Date());
+
   return (
     <div className="pt-[calc(env(safe-area-inset-top)+0.75rem)] max-w-2xl mx-auto">
       <button onClick={() => nav(-1)} className="flex items-center gap-1 text-sm text-muted-foreground mb-3">
@@ -64,6 +66,7 @@ export default function EditListing() {
         submittingLabel={t("savingChanges")}
         onSubmit={submit}
         boostReceiptRequired={false}
+        boostLocked={promoted}
       />
     </div>
   );

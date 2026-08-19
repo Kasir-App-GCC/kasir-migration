@@ -1,0 +1,84 @@
+{
+  "name": "VerificationRequest",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "The user requesting verification"
+    },
+    "user_name": {
+      "type": "string"
+    },
+    "user_email": {
+      "type": "string"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "Full legal name as submitted by the user"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "national_id": {
+      "type": "string",
+      "description": "National ID number (e.g. Saudi Iqama/National ID)"
+    },
+    "document_url": {
+      "type": "string",
+      "description": "URL of the uploaded supporting document"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending"
+    },
+    "reviewed_by": {
+      "type": "string",
+      "description": "The admin user id who reviewed the request"
+    }
+  },
+  "required": [
+    "user_id",
+    "full_name",
+    "national_id",
+    "document_url"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "created_by_id": "{{user.id}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

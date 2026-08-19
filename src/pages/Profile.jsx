@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield } from "lucide-react";
+import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck } from "lucide-react";
+import VerificationDialog from "@/components/VerificationDialog";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -17,6 +18,7 @@ export default function Profile() {
   const { user, lang, setLang, theme, setTheme, logout, favorites, prefs, setPrefs, clearFavorites } = useStore();
   const { checkUserAuth } = useAuth();
   const t = useT();
+  const ar = lang === "ar";
   const nav = useNavigate();
   const [tab, setTab] = useState("listings");
   const [allItems, setAllItems] = useState([]);
@@ -24,6 +26,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
+  const [verificationOpen, setVerificationOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [waSaving, setWaSaving] = useState(false);
 
@@ -119,6 +122,20 @@ export default function Profile() {
       </div>
 
       <SellerDashboard myListings={myListings} ratings={ratings} />
+
+      {/* Verification status */}
+      <div className="rounded-2xl bg-card border border-border/60 p-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <BadgeCheck size={22} className={user.is_trusted ? "text-sky-500 shrink-0" : "text-muted-foreground shrink-0"} />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold truncate">{user.is_trusted ? (ar ? "حساب موثّق" : "Verified account") : (ar ? "احصل على شارة التوثيق" : "Get the verified badge")}</p>
+            <p className="text-xs text-muted-foreground truncate">{user.is_trusted ? (ar ? "حسابك موثّق وموثوق به" : "Your account is verified & trusted") : (ar ? "تحقق من هويتك لتعزيز ثقة المشترين" : "Verify your identity to build buyer trust")}</p>
+          </div>
+        </div>
+        {!user.is_trusted && (
+          <button onClick={() => setVerificationOpen(true)} className="px-4 py-2.5 rounded-xl bg-sky-500 text-white text-sm font-bold shrink-0">{ar ? "توثيق" : "Verify"}</button>
+        )}
+      </div>
 
       {/* Tabs */}
       <div className="flex gap-1 p-1 bg-muted rounded-2xl">
@@ -304,6 +321,7 @@ export default function Profile() {
 
       <EditProfileDialog open={editOpen} onClose={() => setEditOpen(false)} />
       <ContactSupportDialog open={supportOpen} onClose={() => setSupportOpen(false)} />
+      <VerificationDialog open={verificationOpen} onClose={() => setVerificationOpen(false)} />
     </div>
   );
 }

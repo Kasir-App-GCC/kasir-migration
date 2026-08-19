@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, MessageCircle, Star, Tag, Trash2, CheckCircle, Check, X, ArrowLeftRight, Pencil } from "lucide-react";
+import { Bell, MessageCircle, Star, Tag, Trash2, CheckCircle, Check, X, ArrowLeftRight, Pencil, BadgeCheck } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Image } from "@/components/ui/image";
 import { useStore } from "@/lib/store";
@@ -211,6 +211,10 @@ export default function Notifications() {
               ) : n.type === "offer_modified" ? (
                 <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-primary/10 text-primary">
                   <Pencil size={18} />
+                </div>
+              ) : n.type === "verification_submitted" || n.type === "verification_approved" || n.type === "verification_rejected" ? (
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${n.type === "verification_approved" ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300" : n.type === "verification_rejected" ? "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-300" : "bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-300"}`}>
+                  <BadgeCheck size={18} />
                 </div>
               ) : (
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${n.type === "message" ? "bg-primary/10 text-primary" : n.type === "offer" ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300" : "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-300"}`}>

@@ -7,7 +7,7 @@ import ItemCard from "@/components/ItemCard";
 import TrustedBadge from "@/components/TrustedBadge";
 import { COUNTRIES } from "@/lib/countries";
 import { useNavigate } from "react-router-dom";
-import useAmbientMusic from "@/hooks/useAmbientMusic";
+import useVoiceover from "@/hooks/useVoiceover";
 
 const SCENES = 5;
 const DURATIONS = [2500, 2500, 4000, 3500, 2500];
@@ -17,12 +17,20 @@ const SELL_PHOTOS = [
   "https://media.base44.com/images/public/6a81368f876e0b385d3684d3/12e104a16_generated_image.png",
 ];
 
+const VOICEOVER_URLS = [
+  "https://media.base44.com/files/public/6a81368f876e0b385d3684d3/5db446ffa_speech.mp3",
+  "https://media.base44.com/files/public/6a81368f876e0b385d3684d3/503331ceb_speech.mp3",
+  "https://media.base44.com/files/public/6a81368f876e0b385d3684d3/3646c68eb_speech.mp3",
+  "https://media.base44.com/files/public/6a81368f876e0b385d3684d3/eb8ff5ae5_speech.mp3",
+  "https://media.base44.com/files/public/6a81368f876e0b385d3684d3/b24d62137_speech.mp3",
+];
+
 export default function AdReel() {
   const { lang } = useStore();
   const ar = lang === "ar";
   const [scene, setScene] = useState(0);
   const [items, setItems] = useState([]);
-  const { muted, toggle: toggleMusic } = useAmbientMusic();
+  const { muted, toggle: toggleVoice } = useVoiceover(VOICEOVER_URLS, scene);
 
   useEffect(() => {
     base44.entities.Item.list("-created_date", 8).then(setItems).catch(() => {});
@@ -45,7 +53,7 @@ export default function AdReel() {
           <span key={i} className={`h-1.5 rounded-full transition-all ${i === scene ? "w-5 bg-amber-500" : "w-1.5 bg-foreground/30"}`} />
         ))}
       </div>
-      <button onClick={toggleMusic} aria-label="music" className="absolute top-3 end-3 z-50 w-10 h-10 rounded-full bg-background/80 backdrop-blur border border-border shadow-md flex items-center justify-center">
+      <button onClick={toggleVoice} aria-label="voice" className="absolute top-3 end-3 z-50 w-10 h-10 rounded-full bg-background/80 backdrop-blur border border-border shadow-md flex items-center justify-center">
         {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
       </button>
 
@@ -294,31 +302,6 @@ function SceneSell({ ar }) {
 
 function SceneCTA({ ar }) {
   const navigate = useNavigate();
-  const [recording, setRecording] = useState(false);
-  const downloadAd = async () => {
-    if (recording) return;
-    try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: false });
-      const rec = new MediaRecorder(stream, { mimeType: "video/webm" });
-      const chunks = [];
-      rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
-      rec.onstop = () => {
-        stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunks, { type: "video/webm" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url; a.download = "kasir-ad.webm"; a.click();
-        URL.revokeObjectURL(url);
-        setRecording(false);
-      };
-      rec.start();
-      setRecording(true);
-      setTimeout(() => { if (rec.state === "recording") rec.stop(); }, 15000);
-    } catch {
-      setRecording(false);
-      alert(ar ? "تعذّر تسجيل الإعلان — جرّب فتح التطبيق في نافذة مستقلة" : "Couldn't record the ad — try opening the app in its own window");
-    }
-  };
   return (
     <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-amber-900 flex flex-col items-center justify-center">
       <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 120, damping: 12 }} className="w-20 h-20 rounded-3xl bg-amber-500 flex items-center justify-center mb-6 shadow-lg shadow-amber-500/30">
@@ -329,9 +312,6 @@ function SceneCTA({ ar }) {
       <motion.button initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.6 }} onClick={() => navigate("/")} className="mt-8 bg-amber-500 text-slate-900 font-extrabold px-9 py-4 rounded-2xl text-xl shadow-2xl shadow-amber-500/30 flex items-center gap-2 active:scale-95 transition">
         <Download size={22} />
         {ar ? "حمّل كاسر الآن" : "Get Kasir now"}
-      </motion.button>
-      <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }} onClick={downloadAd} disabled={recording} className="mt-5 text-white/80 hover:text-white text-sm font-semibold underline underline-offset-4 disabled:opacity-60">
-        {recording ? (ar ? "جاري التسجيل… اترك هذه النافذة ظاهرة" : "Recording… keep this tab visible") : (ar ? "نزّل الإعلان (فيديو)" : "Download this ad (video)")}
       </motion.button>
     </div>
   );

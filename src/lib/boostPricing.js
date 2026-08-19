@@ -4,18 +4,18 @@
 // cheapest first-tier rate every time — that's the whole point of the model.
 //
 // Tiers (base SAR/hr + cross-country SAR/hr add-on):
-//   0–24h  → 10 + 7
-//   24–48h →  8 + 6
-//   48–72h →  7 + 5
+//   0–24h  → 5 + 3
+//   24–48h → 4 + 3
+//   48–72h → 3 + 2
 // Total accumulated boost is capped at 72h; minimum purchase is 2h.
 
 export const BOOST_MAX_HOURS = 72;
 export const BOOST_MIN_HOURS = 2;
 
 const TIERS = [
-  { upTo: 24, base: 10, cross: 7 },
-  { upTo: 48, base: 8, cross: 6 },
-  { upTo: 72, base: 7, cross: 5 },
+  { upTo: 24, base: 5, cross: 3 },
+  { upTo: 48, base: 4, cross: 3 },
+  { upTo: 72, base: 3, cross: 2 },
 ];
 
 function tierAt(hour) {

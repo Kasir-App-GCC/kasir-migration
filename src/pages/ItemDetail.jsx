@@ -80,6 +80,7 @@ export default function ItemDetail() {
   const [origin, setOrigin] = useState({ x: 50, y: 50 });
   const [pinchScale, setPinchScale] = useState(1);
   const [pinchOrigin, setPinchOrigin] = useState({ x: 50, y: 50 });
+  const [canHover] = useState(() => typeof window !== "undefined" && window.matchMedia("(hover: hover) and (pointer: fine)").matches);
   const pointers = useRef(new Map());
   const pinchStart = useRef(null);
   const swipeStart = useRef(null);
@@ -294,12 +295,12 @@ export default function ItemDetail() {
 
       {/* Gallery */}
       <div
-        className="relative aspect-[4/3] rounded-3xl overflow-hidden bg-muted cursor-zoom-in"
+        className={`relative aspect-[4/3] rounded-3xl overflow-hidden bg-muted ${canHover ? "cursor-zoom-in" : ""}`}
         style={{ touchAction: pinchScale > 1 ? "none" : "pan-y" }}
-        onMouseEnter={() => setZoom(true)}
-        onMouseLeave={() => setZoom(false)}
+        onMouseEnter={() => canHover && setZoom(true)}
+        onMouseLeave={() => canHover && setZoom(false)}
         onMouseMove={(e) => {
-          if (pinchScale > 1) return;
+          if (!canHover || pinchScale > 1) return;
           const r = e.currentTarget.getBoundingClientRect();
           setOrigin({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 });
         }}
@@ -370,7 +371,7 @@ export default function ItemDetail() {
             transition: pinchScale > 1 ? "none" : "transform 0.2s ease-out",
           }}
         >
-          <Image src={imgs[activeImg]} fittingType="fit" className="w-full h-full" style={{ display: "block" }} />
+          <Image src={imgs[activeImg]} fittingType="fill" className="w-full h-full object-cover" style={{ display: "block" }} />
         </div>
         {item.is_family && (
           <span className="absolute top-3 start-3 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500 text-white">{t("featuredBadge")}</span>
@@ -391,7 +392,7 @@ export default function ItemDetail() {
         <div className="flex gap-2 mt-2 overflow-x-auto no-scrollbar">
           {imgs.map((u, i) => (
             <button key={i} onClick={() => setActiveImg(i)} className={`w-16 h-16 rounded-xl overflow-hidden shrink-0 ring-2 ${i === activeImg ? "ring-primary" : "ring-transparent"}`}>
-              <Image src={u} fittingType="fill" className="w-full h-full" style={{ display: "block" }} />
+              <Image src={u} fittingType="fill" className="w-full h-full object-cover" style={{ display: "block" }} />
             </button>
           ))}
         </div>

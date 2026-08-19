@@ -253,7 +253,7 @@ export default function ContactSupportDialog({ open, onClose }) {
               onClick={() => fileInputRef.current?.click()}
               className="w-full px-4 py-3 rounded-2xl bg-muted outline-none border border-dashed border-border text-sm text-muted-foreground flex items-center justify-center gap-2"
             >
-              <Paperclip size={16} /> {lang === "ar" ? "إضافة مرفقات (حد أقصى ١٠ ميجا)" : "Add attachments (10MB max)"}
+              <Paperclip size={16} /> {lang === "ar" ? "إضافة مرفقات (حد أقصى ١٠ ميجابايت)" : "Add attachments (10MB max)"}
             </button>
             {files.length > 0 && (
               <div className="mt-2 space-y-1.5">
@@ -265,7 +265,7 @@ export default function ContactSupportDialog({ open, onClose }) {
                   </div>
                 ))}
                 <p className={`text-[11px] ${filesTotal > MAX_ATTACH_TOTAL ? "text-rose-500 font-semibold" : "text-muted-foreground"}`}>
-                  {lang === "ar" ? `الإجمالي: ${(filesTotal / 1024 / 1024).toFixed(1)} / 10 ميجا` : `Total: ${(filesTotal / 1024 / 1024).toFixed(1)} / 10 MB`}
+                  {lang === "ar" ? `الإجمالي: ${(filesTotal / 1024 / 1024).toFixed(1)} / 10 ميجابايت` : `Total: ${(filesTotal / 1024 / 1024).toFixed(1)} / 10 MB`}
                 </p>
               </div>
             )}

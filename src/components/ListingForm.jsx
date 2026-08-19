@@ -415,6 +415,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
                 <span className="text-muted-foreground">{ar ? "الإجمالي بعد التعزيز" : "Total after boost"}</span>
                 <span className="font-semibold">{totalAfter}{ar ? "ساعة" : "h"}</span>
               </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">{ar ? "سيظهر إعلانك في قسم المميز طوال هذه المدة لجميع المدن في دولتك" : "Your listing will appear in the Featured section for this duration across all cities in your country"}</p>
             </div>
           )}
         </div>

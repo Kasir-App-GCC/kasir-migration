@@ -1,0 +1,90 @@
+{
+  "name": "BoostRequest",
+  "type": "object",
+  "properties": {
+    "item_id": {
+      "type": "string",
+      "description": "The listing to promote"
+    },
+    "item_title": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "The seller requesting the boost"
+    },
+    "user_name": {
+      "type": "string"
+    },
+    "hours": {
+      "type": "number",
+      "description": "Boost hours requested"
+    },
+    "cross_country": {
+      "type": "boolean",
+      "default": false
+    },
+    "amount": {
+      "type": "number",
+      "description": "Total boost amount in SAR"
+    },
+    "receipt_url": {
+      "type": "string",
+      "description": "URL of the uploaded bank transfer receipt"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending"
+    },
+    "reviewed_by": {
+      "type": "string",
+      "description": "The admin user id who reviewed the request"
+    }
+  },
+  "required": [
+    "item_id",
+    "user_id",
+    "hours",
+    "amount",
+    "receipt_url"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "created_by_id": "{{user.id}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

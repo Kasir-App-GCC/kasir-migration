@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ImagePlus, X, Sparkles, LocateFixed, MapPin, GripVertical, Globe } from "lucide-react";
+import { ImagePlus, X, Sparkles, LocateFixed, MapPin, GripVertical, Globe, Receipt, Upload, Loader2, FileCheck2 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -7,6 +7,7 @@ import { useT } from "@/lib/i18n";
 import { CATEGORIES, CONDITIONS, getSubcategories, getCityName } from "@/lib/constants";
 import { getCities, nearestCityInCountry, getCountry, convertCurrency } from "@/lib/countries";
 import { computeBoostCost, buildBoostSegments, existingBoostHours, BOOST_MAX_HOURS, BOOST_MIN_HOURS } from "@/lib/boostPricing";
+import { BANK_TRANSFER_IBAN } from "@/lib/verificationPayment";
 import MapPinPicker from "@/components/MapPinPicker";
 import { Image } from "@/components/ui/image";
 import { compressImage } from "@/lib/compressImage";
@@ -22,7 +23,7 @@ function normalizeDigits(s) {
   });
 }
 
-export default function ListingForm({ initial, submitLabel, submittingLabel, onSubmit }) {
+export default function ListingForm({ initial, submitLabel, submittingLabel, onSubmit, boostReceiptRequired = true }) {
   const { user, lang, country } = useStore();
   const t = useT();
   const { toast } = useToast();
@@ -47,6 +48,9 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [mapPos, setMapPos] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [posting, setPosting] = useState(false);
+  const [boostReceiptUrl, setBoostReceiptUrl] = useState("");
+  const [boostReceiptName, setBoostReceiptName] = useState("");
+  const [uploadingBoostReceipt, setUploadingBoostReceipt] = useState(false);
 
   // Reverse-geocode coordinates to an accurate place name for display.
   const reverseGeocode = async (la, ln) => {
@@ -123,6 +127,25 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
 
   const onPriceChange = (e) => setPrice(normalizeDigits(e.target.value).replace(/\D/g, "").slice(0, 8));
 
+  const onPickBoostReceipt = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: ar ? "الحجم الأقصى 10 ميجابايت" : "Max file size is 10MB", variant: "destructive" });
+      return;
+    }
+    setUploadingBoostReceipt(true);
+    try {
+      const r = await base44.integrations.Core.UploadFile({ file });
+      setBoostReceiptUrl(r.file_url);
+      setBoostReceiptName(file.name);
+    } catch {
+      toast({ title: ar ? "فشل رفع الملف" : "Failed to upload file", variant: "destructive" });
+    } finally {
+      setUploadingBoostReceipt(false);
+    }
+  };
+
   const submit = async () => {
     if (!title || !price || !category || !city || images.length === 0) return;
     setPosting(true);
@@ -144,6 +167,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         boost_hours: boostHours,
         boost_cross_country: boostCross,
         boost_amount: boostAmount,
+        boost_receipt_url: boostReceiptUrl,
       });
     } catch (e) {
       setPosting(false);
@@ -407,14 +431,28 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
               <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">{ar ? "الإجمالي" : "Total"}</span>
               <span className="text-lg font-extrabold text-amber-700 dark:text-amber-300">{fmt(boostDisplay)} {ar ? cur.currencyAr : cur.currency}</span>
             </div>
-            <p className="text-[11px] text-muted-foreground text-center">{ar ? "التعزيز مجاني حالياً — الدفع قريباً" : "Boost is free for now — payment coming soon"}</p>
+            <div className="p-3 rounded-2xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900/50 space-y-2">
+              <p className="text-xs text-muted-foreground">{ar ? "حوّل المبلغ إلى الحساب البنكي التالي ثم ارفع إيصال الدفع لتفعيل التعزيز بعد مراجعة الإدارة:" : "Transfer the amount to the bank account below, then upload the receipt to activate the boost after admin review:"}</p>
+              <div className="flex items-center justify-between text-xs bg-background/60 rounded-lg px-2.5 py-1.5">
+                <span className="font-semibold">{ar ? "تحويل بنكي" : "Bank Transfer"}</span>
+                <span className="text-muted-foreground selectable" dir="ltr">{BANK_TRANSFER_IBAN}</span>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold flex items-center gap-1.5"><Receipt size={14} /> {ar ? "إيصال الدفع" : "Payment receipt"} * <span className="text-xs text-muted-foreground font-normal">({ar ? "حد أقصى 10 ميجابايت" : "10MB max"})</span></label>
+              <label className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl border-2 border-dashed border-border cursor-pointer hover:bg-muted/50 transition">
+                {uploadingBoostReceipt ? <Loader2 size={18} className="animate-spin" /> : boostReceiptUrl ? <FileCheck2 size={18} className="text-emerald-500" /> : <Upload size={18} />}
+                <span className="text-sm font-medium">{uploadingBoostReceipt ? (ar ? "جاري الرفع…" : "Uploading…") : boostReceiptUrl ? (boostReceiptName || (ar ? "تم الرفع" : "Uploaded")) : (ar ? "ارفع صورة الإيصال" : "Upload receipt")}</span>
+                <input type="file" className="hidden" onChange={onPickBoostReceipt} accept="image/*,application/pdf" />
+              </label>
+            </div>
           </>
         )}
       </div>
 
       <button
         onClick={submit}
-        disabled={!valid || posting}
+        disabled={!valid || posting || (boostReceiptRequired && boostHours > 0 && !boostReceiptUrl)}
         className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-lg disabled:opacity-50 hover:bg-primary/90"
       >
         {posting ? submittingLabel : submitLabel}

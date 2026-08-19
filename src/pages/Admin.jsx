@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, Tag, Flag, LifeBuoy, ArrowLeft, MessageSquare, ShieldX, BadgeCheck } from "lucide-react";
+import { LayoutDashboard, Users, Tag, Flag, LifeBuoy, ArrowLeft, MessageSquare, ShieldX, BadgeCheck, TrendingUp } from "lucide-react";
 import { useStore } from "@/lib/store";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminUsers from "@/components/admin/AdminUsers";
@@ -10,6 +10,7 @@ import AdminTickets from "@/components/admin/AdminTickets";
 import AdminMessages from "@/components/admin/AdminMessages";
 import AdminBlacklist from "@/components/admin/AdminBlacklist";
 import AdminVerifications from "@/components/admin/AdminVerifications";
+import AdminBoosts from "@/components/admin/AdminBoosts";
 import { base44 } from "@/api/base44Client";
 
 export default function Admin() {
@@ -17,20 +18,22 @@ export default function Admin() {
   const ar = lang === "ar";
   const nav = useNavigate();
   const [tab, setTab] = useState("dashboard");
-  const [counts, setCounts] = useState({ tickets: 0, reports: 0, verifications: 0 });
+  const [counts, setCounts] = useState({ tickets: 0, reports: 0, verifications: 0, boosts: 0 });
 
   useEffect(() => {
     (async () => {
       try {
-        const [tickets, reports, verifications] = await Promise.allSettled([
+        const [tickets, reports, verifications, boosts] = await Promise.allSettled([
           base44.entities.SupportTicket.filter({ status: "open" }, "-created_date", 500),
           base44.entities.Report.list("-created_date", 500),
           base44.entities.VerificationRequest.filter({ status: "pending" }, "-created_date", 500),
+          base44.entities.BoostRequest.filter({ status: "pending" }, "-created_date", 500),
         ]);
         setCounts({
           tickets: tickets.value?.length || 0,
           reports: (reports.value || []).filter((r) => !r.resolved).length,
           verifications: verifications.value?.length || 0,
+          boosts: boosts.value?.length || 0,
         });
       } catch {}
     })();
@@ -53,6 +56,7 @@ export default function Admin() {
     { id: "tickets", icon: LifeBuoy, label: ar ? "التذاكر" : "Tickets" },
     { id: "blacklist", icon: ShieldX, label: ar ? "الحظر" : "Blacklist" },
     { id: "verifications", icon: BadgeCheck, label: ar ? "التوثيق" : "Verifications" },
+    { id: "boosts", icon: TrendingUp, label: ar ? "التعزيزات" : "Boosts" },
   ];
 
   return (
@@ -88,6 +92,7 @@ export default function Admin() {
       {tab === "tickets" && <AdminTickets />}
       {tab === "blacklist" && <AdminBlacklist />}
       {tab === "verifications" && <AdminVerifications />}
+      {tab === "boosts" && <AdminBoosts />}
     </div>
   );
 }

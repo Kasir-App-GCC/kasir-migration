@@ -14,25 +14,36 @@ export default function Sell() {
   const ar = lang === "ar";
 
   const submit = async (data) => {
-    const { boost_hours, boost_cross_country, boost_amount, ...itemData } = data;
+    const { boost_hours, boost_cross_country, boost_amount, boost_receipt_url, ...itemData } = data;
     const boosted = boost_hours > 0;
-    await base44.entities.Item.create({
+    const item = await base44.entities.Item.create({
       ...itemData,
       seller_id: user?.id,
       seller_name: user?.name,
       seller_avatar: user?.avatar || null,
       is_family: false,
       status: "available",
-      featured: boosted,
-      featured_until: boosted ? new Date(Date.now() + boost_hours * 3600000).toISOString() : null,
-      featured_cross_country: boosted ? !!boost_cross_country : false,
+      featured: false,
+      featured_until: null,
+      featured_cross_country: false,
     });
-    if (boosted) {
+    if (boosted && boost_receipt_url) {
+      try {
+        await base44.entities.BoostRequest.create({
+          item_id: item.id,
+          item_title: item.title,
+          user_id: user?.id,
+          user_name: user?.name,
+          hours: boost_hours,
+          cross_country: !!boost_cross_country,
+          amount: boost_amount || 0,
+          receipt_url: boost_receipt_url,
+          status: "pending",
+        });
+      } catch {}
       toast({
-        title: ar ? "تم نشر إعلانك وتعزيزه" : "Listing posted & boosted",
-        description: ar
-          ? `يظهر في المميز لمدة ${boost_hours} ساعة`
-          : `Featured for ${boost_hours} hours`,
+        title: ar ? "تم نشر إعلانك" : "Listing posted",
+        description: ar ? "التعزيز قيد المراجعة من الإدارة" : "Promotion is pending admin approval",
       });
     }
     nav("/");

@@ -47,7 +47,7 @@ export default function EditListing() {
   const submit = async (data) => {
     // Strip boost + featured fields: editing must never reset an active boost.
     // The featured clock started at posting time and survives any number of edits.
-    const { boost_hours, boost_cross_country, boost_amount, featured, featured_until, featured_cross_country, ...itemData } = data;
+    const { boost_hours, boost_cross_country, boost_amount, boost_receipt_url, featured, featured_until, featured_cross_country, ...itemData } = data;
     await base44.entities.Item.update(id, itemData);
     nav(`/item/${id}`);
   };
@@ -63,6 +63,7 @@ export default function EditListing() {
         submitLabel={t("saveChanges")}
         submittingLabel={t("savingChanges")}
         onSubmit={submit}
+        boostReceiptRequired={false}
       />
     </div>
   );

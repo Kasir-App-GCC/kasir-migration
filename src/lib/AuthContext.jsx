@@ -153,6 +153,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Silently re-fetch the current user (e.g. after profile/verification
+  // changes) without toggling the full-screen auth loading overlay.
+  const refreshUser = async () => {
+    try {
+      const currentUser = await base44.auth.me();
+      setUser(currentUser);
+    } catch {}
+  };
+
   const logout = (shouldRedirect = true) => {
     setUser(null);
     setIsAuthenticated(false);
@@ -187,6 +196,7 @@ export const AuthProvider = ({ children }) => {
       logout,
       navigateToLogin,
       checkUserAuth,
+      refreshUser,
       checkAppState
     }}>
       {children}

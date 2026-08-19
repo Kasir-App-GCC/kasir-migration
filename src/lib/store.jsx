@@ -45,6 +45,7 @@ export function StoreProvider({ children }) {
         whatsapp_number: auth.user.whatsapp_number || null,
         country: auth.user.country || "SA",
         role: auth.user.role || "user",
+        is_trusted: !!auth.user.is_trusted,
       }
     : null;
 

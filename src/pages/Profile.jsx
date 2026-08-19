@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck } from "lucide-react";
 import VerificationDialog from "@/components/VerificationDialog";
@@ -10,13 +10,14 @@ import RatingStars from "@/components/RatingStars";
 import EditProfileDialog from "@/components/EditProfileDialog";
 import ContactSupportDialog from "@/components/ContactSupportDialog";
 import SellerDashboard from "@/components/SellerDashboard";
+import PullToRefresh from "@/components/PullToRefresh";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { useAuth } from "@/lib/AuthContext";
 import { formatPrice, timeAgo } from "@/lib/format";
 
 export default function Profile() {
   const { user, lang, setLang, theme, setTheme, logout, favorites, prefs, setPrefs, clearFavorites } = useStore();
-  const { checkUserAuth } = useAuth();
+  const { checkUserAuth, refreshUser } = useAuth();
   const t = useT();
   const ar = lang === "ar";
   const nav = useNavigate();
@@ -40,20 +41,34 @@ export default function Profile() {
     setWaSaving(false);
   };
 
-  useEffect(() => {
-    (async () => {
-      if (!user) { setLoading(false); return; }
-      try {
-        const all = await base44.entities.Item.list("-created_date", 200);
-        setAllItems(all || []);
-        const rs = await base44.entities.Rating.filter({ rated_user_id: user.id }, "-created_date", 50);
-        setRatings(rs || []);
-      } catch {
-      } finally {
-        setLoading(false);
-      }
-    })();
+  const loadAll = useCallback(async () => {
+    if (!user) { setLoading(false); return; }
+    try {
+      const [all, rs] = await Promise.all([
+        base44.entities.Item.list("-created_date", 200),
+        base44.entities.Rating.filter({ rated_user_id: user.id }, "-created_date", 50),
+      ]);
+      setAllItems(all || []);
+      setRatings(rs || []);
+    } catch {} finally {
+      setLoading(false);
+    }
   }, [user]);
+
+  // Silently refresh the signed-in user (name, avatar, verified status, …)
+  // each time the profile is visited.
+  useEffect(() => {
+    refreshUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
+
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([refreshUser(), loadAll()]);
+  }, [refreshUser, loadAll]);
 
   const myListings = allItems.filter((it) => it.seller_id === user.id);
   const soldItems = myListings.filter((it) => it.status === "sold");
@@ -85,6 +100,7 @@ export default function Profile() {
   if (!user) return null;
 
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="pt-3 space-y-5">
       {/* Profile header */}
       <div className="rounded-3xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground p-5 relative">
@@ -326,5 +342,6 @@ export default function Profile() {
       <ContactSupportDialog open={supportOpen} onClose={() => setSupportOpen(false)} />
       <VerificationDialog open={verificationOpen} onClose={() => setVerificationOpen(false)} />
     </div>
+    </PullToRefresh>
   );
 }

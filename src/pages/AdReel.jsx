@@ -11,11 +11,11 @@ const SCENES = 6;
 const DURATIONS = [2500, 2500, 3000, 3500, 4000, 2500];
 
 const CAPTIONS = [
-  { ar: "تصفّح آلاف الإعلانات حولك", en: "Browse thousands of listings around you" },
-  { ar: "اختر دولتك — السعودية", en: "Pick your country — Saudi Arabia" },
-  { ar: "اعثر على عروض قربك", en: "Find deals near you" },
-  { ar: "أرسل عرضك — وتم القبول", en: "Send an offer — accepted!" },
-  { ar: "بِع في دقائق — صوّر وانشر", en: "Sell in minutes — snap and post" },
+  { ar: "كل اللي تحتامه، قدّام بيتك", en: "Everything you need, right around the corner" },
+  { ar: "دولتك، سوقك — السعودية", en: "Your country, your market — Saudi Arabia" },
+  { ar: "حدّد نطاقك، لق العروض قريب", en: "Set your radius, find deals nearby" },
+  { ar: "اعرض سعرك — وتم الاتفاق", en: "Make an offer — deal done" },
+  { ar: "صوّر، انشر، بِع", en: "Snap, post, sell" },
   { ar: "كاسر — سوقك المحلي في الخليج", en: "Kasir — your local GCC marketplace" },
 ];
 
@@ -265,12 +265,12 @@ function SceneOffer({ ar }) {
               )}
             </div>
             <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground mb-1">
-              <span className="line-through">﷼ 2,800</span>
+              <span className="line-through">﷼ 90</span>
               <span>· {ar ? "السعر الأصلي" : "Original"}</span>
             </div>
             <div className="flex items-center justify-center gap-1.5 py-2 bg-amber-100/70 dark:bg-amber-950/40 rounded-xl">
               <Tag size={15} className="text-amber-600" />
-              <span className="text-lg font-extrabold">﷼ 2,400</span>
+              <span className="text-lg font-extrabold">﷼ 50</span>
             </div>
             <AnimatePresence>
               {!accepted && (
@@ -322,7 +322,7 @@ function SceneSell({ ar, photo }) {
         <div className="grid grid-cols-2 gap-3">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: filled(), y: 0 }} className="h-12 rounded-2xl bg-muted flex items-center px-4 justify-between">
             <span className="text-sm font-semibold text-muted-foreground">{ar ? "السعر" : "Price"}</span>
-            {step >= 1 && <span className="text-amber-600 font-extrabold">﷼ 2,200</span>}
+            {step >= 1 && <span className="text-amber-600 font-extrabold">﷼ 50</span>}
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: filled(), y: 0 }} className="h-12 rounded-2xl bg-muted flex items-center px-4">
             <span className="text-sm font-semibold text-muted-foreground">{ar ? "ممتاز" : "Excellent"}</span>
@@ -347,13 +347,13 @@ function SceneSell({ ar, photo }) {
 
 function SceneCTA({ ar }) {
   return (
-    <div className="absolute inset-0 bg-gradient-to-br from-amber-500 via-amber-400 to-orange-500 flex flex-col items-center justify-center">
-      <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 120, damping: 12 }} className="w-20 h-20 rounded-3xl bg-white/15 backdrop-blur flex items-center justify-center mb-6 border border-white/20">
-        <Tag size={40} className="text-white -rotate-12" />
+    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-amber-900 flex flex-col items-center justify-center">
+      <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 120, damping: 12 }} className="w-20 h-20 rounded-3xl bg-amber-500 flex items-center justify-center mb-6 shadow-lg shadow-amber-500/30">
+        <Tag size={40} className="text-slate-900 -rotate-12" />
       </motion.div>
       <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-7xl font-extrabold text-white drop-shadow-xl">{ar ? "كاسر" : "Kasir"}</motion.h1>
-      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-white/90 text-lg font-semibold mt-3">{ar ? "سوقك المحلي في الخليج" : "Your local GCC marketplace"}</motion.p>
-      <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.6 }} className="mt-8 bg-white text-slate-900 font-extrabold px-9 py-4 rounded-2xl text-xl shadow-2xl">{ar ? "حمّل كاسر الآن" : "Get Kasir now"}</motion.div>
+      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-white/80 text-lg font-semibold mt-3">{ar ? "سوقك المحلي في الخليج" : "Your local GCC marketplace"}</motion.p>
+      <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.6 }} className="mt-8 bg-amber-500 text-slate-900 font-extrabold px-9 py-4 rounded-2xl text-xl shadow-2xl shadow-amber-500/30">{ar ? "حمّل كاسر الآن" : "Get Kasir now"}</motion.div>
     </div>
   );
 }

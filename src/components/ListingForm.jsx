@@ -126,7 +126,15 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const toggleTag = (t) => {
     setTags((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
   };
-  const tagOptions = getListingTags(category);
+  const tagOptions = getListingTags(category, subcats, condition);
+
+  // Prune selected tags that are no longer valid for the current
+  // category / subcategory / condition (e.g. "Sealed" after switching to "good").
+  useEffect(() => {
+    const valid = new Set(getListingTags(category, subcats, condition).map((o) => o.en));
+    setTags((prev) => (prev.every((t) => valid.has(t)) ? prev : prev.filter((t) => valid.has(t))));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category, subcats, condition]);
 
   const onPriceChange = (e) => setPrice(normalizeDigits(e.target.value).replace(/\D/g, "").slice(0, 8));
 
@@ -294,7 +302,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
 
       {tagOptions.length > 0 && (
         <div className="space-y-1">
-          <label className="text-sm font-semibold">{ar ? "مميزات سريعة" : "Quick tags"}</label>
+          <label className="text-sm font-semibold">{ar ? "تفاصيل سريعة" : "Quick details"}</label>
           <p className="text-[11px] text-muted-foreground -mt-0.5">{ar ? "اختر ما ينطبق على منتجك ليظهر للمشترين" : "Pick what applies — buyers will see these"}</p>
           <ReviewTagChips options={tagOptions} selected={tags} onToggle={toggleTag} lang={lang} />
         </div>

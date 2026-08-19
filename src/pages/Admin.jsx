@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { LayoutDashboard, Users, Tag, Flag, LifeBuoy, ArrowLeft, MessageSquare, ShieldX, BadgeCheck, TrendingUp } from "lucide-react";
 import { useStore } from "@/lib/store";
 import AdminDashboard from "@/components/admin/AdminDashboard";
@@ -17,8 +17,16 @@ export default function Admin() {
   const { lang, user } = useStore();
   const ar = lang === "ar";
   const nav = useNavigate();
-  const [tab, setTab] = useState("dashboard");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [tab, setTab] = useState(searchParams.get("tab") || "dashboard");
   const [counts, setCounts] = useState({ tickets: 0, reports: 0, verifications: 0, boosts: 0 });
+
+  // Keep the active tab in sync with the URL so notification deep-links open
+  // the right board section.
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t && t !== tab) setTab(t);
+  }, [searchParams]);
 
   useEffect(() => {
     (async () => {
@@ -75,7 +83,7 @@ export default function Admin() {
         {tabs.map((tb) => (
           <button
             key={tb.id}
-            onClick={() => setTab(tb.id)}
+            onClick={() => { setTab(tb.id); setSearchParams({ tab: tb.id }, { replace: true }); }}
             className={`px-3 py-2.5 rounded-xl text-sm font-semibold transition flex items-center justify-center gap-1.5 ${tab === tb.id ? "bg-card shadow-sm" : "text-muted-foreground"}`}
           >
             <tb.icon size={16} /> {tb.label}

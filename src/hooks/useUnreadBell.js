@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { playBeep } from "@/lib/beep";
 import useUnreadChats from "@/hooks/useUnreadChats";
+import useAdminPending from "@/hooks/useAdminPending";
 
 // Bell badge = unread chats/offers (from useUnreadChats) + unread system
 // notifications (sold / offer status / verification, etc.). This is what the
@@ -11,6 +12,7 @@ import useUnreadChats from "@/hooks/useUnreadChats";
 export default function useUnreadBell() {
   const { user } = useStore();
   const chats = useUnreadChats();
+  const admin = useAdminPending();
   const [notifUnread, setNotifUnread] = useState(0);
 
   useEffect(() => {
@@ -52,5 +54,5 @@ export default function useUnreadBell() {
     };
   }, [user]);
 
-  return chats + notifUnread;
+  return chats + notifUnread + (user?.role === "admin" ? admin.count : 0);
 }

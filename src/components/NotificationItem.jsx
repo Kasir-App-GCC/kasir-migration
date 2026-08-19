@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, Star, Tag, CheckCircle, Check, X, ArrowLeftRight, Pencil, BadgeCheck, TrendingUp } from "lucide-react";
+import { MessageCircle, Star, Tag, CheckCircle, Check, X, ArrowLeftRight, Pencil, BadgeCheck, TrendingUp, Flag, LifeBuoy } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -12,6 +12,11 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
   const nav = useNavigate();
 
   const handle = () => {
+    if (n.type === "admin_report" || n.type === "admin_ticket" || n.type === "admin_verification" || n.type === "admin_boost") {
+      nav(`/admin?tab=${n.adminTab}`);
+      onClick?.();
+      return;
+    }
     if (n.type === "sold" || n.type === "boost_approved") { onMarkRead?.(n); if (n.itemId) nav(`/item/${n.itemId}`); }
     else if (n.type === "message" || n.type === "offer") nav(`/chat/${n.roomId}`);
     else if (n.roomId) { onMarkRead?.(n); nav(`/chat/${n.roomId}`); }
@@ -54,6 +59,22 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
       ) : n.type === "verification_submitted" || n.type === "verification_approved" || n.type === "verification_rejected" ? (
         <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${n.type === "verification_approved" ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300" : n.type === "verification_rejected" ? "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-300" : "bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-300"}`}>
           <BadgeCheck size={18} />
+        </div>
+      ) : n.type === "admin_report" ? (
+        <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-300">
+          <Flag size={18} />
+        </div>
+      ) : n.type === "admin_ticket" ? (
+        <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-300">
+          <LifeBuoy size={18} />
+        </div>
+      ) : n.type === "admin_verification" ? (
+        <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-300">
+          <BadgeCheck size={18} />
+        </div>
+      ) : n.type === "admin_boost" ? (
+        <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-300">
+          <TrendingUp size={18} />
         </div>
       ) : (
         <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${n.type === "message" ? "bg-primary/10 text-primary" : n.type === "offer" ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300" : "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-300"}`}>

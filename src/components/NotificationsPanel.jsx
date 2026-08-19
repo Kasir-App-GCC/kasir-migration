@@ -1,14 +1,16 @@
 import React from "react";
-import { Bell, Trash2 } from "lucide-react";
+import { Bell, Trash2, ShieldAlert } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import useNotifications from "@/hooks/useNotifications";
+import useAdminPending from "@/hooks/useAdminPending";
 import NotificationItem from "@/components/NotificationItem";
 
 export default function NotificationsPanel({ onClose, style }) {
   const { lang } = useStore();
   const t = useT();
   const { items, loading, clearAll, markNotifRead } = useNotifications();
+  const admin = useAdminPending();
 
   return (
     <>
@@ -26,11 +28,21 @@ export default function NotificationsPanel({ onClose, style }) {
           )}
         </div>
         <div className="overflow-y-auto flex-1">
+          {admin.items.length > 0 && (
+            <div className="p-1.5 pb-1 space-y-1.5 border-b border-border/60 mb-1.5">
+              <div className="px-1.5 pt-1 pb-0.5 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                <ShieldAlert size={12} /> {lang === "ar" ? "بانتظار إجراء الإدارة" : "Admin action needed"}
+              </div>
+              {admin.items.map((n) => (
+                <NotificationItem key={n.id} n={n} onClick={onClose} />
+              ))}
+            </div>
+          )}
           {loading ? (
             <div className="py-8 text-center">
               <div className="w-5 h-5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin mx-auto" />
             </div>
-          ) : items.length === 0 ? (
+          ) : items.length === 0 && admin.items.length === 0 ? (
             <div className="py-10 text-center text-muted-foreground">
               <Bell size={28} className="mx-auto mb-2 opacity-40" />
               <p className="text-sm font-semibold">{t("noNotifications")}</p>

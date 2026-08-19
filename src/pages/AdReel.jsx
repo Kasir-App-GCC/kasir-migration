@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Tag, Crosshair, Check, X, Camera, Sparkles, ShoppingBag, Map as MapIcon, Sun, Clock, ArrowLeftRight } from "lucide-react";
+import { Tag, Check, X, Sparkles, ShoppingBag, Map as MapIcon, Sun, Clock, ArrowLeftRight, Volume2, VolumeX, Download } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import ItemCard from "@/components/ItemCard";
 import TrustedBadge from "@/components/TrustedBadge";
 import { COUNTRIES } from "@/lib/countries";
+import { useNavigate } from "react-router-dom";
+import useAmbientMusic from "@/hooks/useAmbientMusic";
 
 const SCENES = 5;
 const DURATIONS = [2500, 2500, 4000, 3500, 2500];
@@ -20,6 +22,7 @@ export default function AdReel() {
   const ar = lang === "ar";
   const [scene, setScene] = useState(0);
   const [items, setItems] = useState([]);
+  const { muted, toggle: toggleMusic } = useAmbientMusic();
 
   useEffect(() => {
     base44.entities.Item.list("-created_date", 8).then(setItems).catch(() => {});
@@ -42,6 +45,9 @@ export default function AdReel() {
           <span key={i} className={`h-1.5 rounded-full transition-all ${i === scene ? "w-5 bg-amber-500" : "w-1.5 bg-foreground/30"}`} />
         ))}
       </div>
+      <button onClick={toggleMusic} aria-label="music" className="absolute top-3 end-3 z-50 w-10 h-10 rounded-full bg-background/80 backdrop-blur border border-border shadow-md flex items-center justify-center">
+        {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+      </button>
 
       <AnimatePresence mode="wait">
         <motion.div key={scene} initial={{ opacity: 0, scale: 1.03 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.45 }} className="flex-1 relative">
@@ -110,7 +116,7 @@ function SceneHome({ ar, items }) {
           <Sparkles size={18} />
         </div>
         <div className="flex items-baseline justify-between shrink-0">
-          <h2 className="font-bold text-lg">{ar ? "وصل حديثاً" : "New arrivals"}</h2>
+          <h2 className="font-bold text-lg">{ar ? "أُضيف حديثاً" : "Added recently"}</h2>
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted-foreground">{items.length} {ar ? "إعلان" : "items"}</span>
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted text-sm font-semibold"><MapIcon size={16} /> {ar ? "الخريطة" : "Map"}</span>
@@ -287,14 +293,22 @@ function SceneSell({ ar }) {
 }
 
 function SceneCTA({ ar }) {
+  const navigate = useNavigate();
   return (
     <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-amber-900 flex flex-col items-center justify-center">
       <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 120, damping: 12 }} className="w-20 h-20 rounded-3xl bg-amber-500 flex items-center justify-center mb-6 shadow-lg shadow-amber-500/30">
         <Tag size={40} className="text-slate-900 -rotate-12" />
       </motion.div>
       <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-7xl font-extrabold text-white drop-shadow-xl">{ar ? "كاسر" : "Kasir"}</motion.h1>
-      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-white/80 text-lg font-semibold mt-3">{ar ? "سوقك المحلي في الخليج" : "Your local GCC marketplace"}</motion.p>
-      <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.6 }} className="mt-8 bg-amber-500 text-slate-900 font-extrabold px-9 py-4 rounded-2xl text-xl shadow-2xl shadow-amber-500/30">{ar ? "حمّل كاسر الآن" : "Get Kasir now"}</motion.div>
+      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-white/80 text-lg font-semibold mt-3">{ar ? "سوقك الرقمي في الخليج" : "Your digital GCC marketplace"}</motion.p>
+      <motion.button initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.6 }} onClick={() => navigate("/")} className="mt-8 bg-amber-500 text-slate-900 font-extrabold px-9 py-4 rounded-2xl text-xl shadow-2xl shadow-amber-500/30 flex items-center gap-2 active:scale-95 transition">
+        <Download size={22} />
+        {ar ? "حمّل كاسر الآن" : "Get Kasir now"}
+      </motion.button>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }} className="mt-4 flex items-center gap-3 text-white/70 text-xs font-semibold">
+        <span className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/15"> App Store</span>
+        <span className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/15">▶ Google Play</span>
+      </motion.div>
     </div>
   );
 }

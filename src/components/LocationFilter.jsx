@@ -95,7 +95,7 @@ export default function LocationFilter({ open, onClose }) {
     if (tab === "map") {
       if (mapPos) {
         const c = nearestCityInCountry(mapPos.lat, mapPos.lng, country);
-        setLocationFilter({ mode: "map", radius, city: c?.en || null, lat: mapPos.lat, lng: mapPos.lng });
+        setLocationFilter({ mode: "map", radius, city: c?.en || null, lat: mapPos.lat, lng: mapPos.lng, name: mapName || null });
       }
       onClose();
       return;

@@ -10,16 +10,10 @@ import { COUNTRIES } from "@/lib/countries";
 const SCENES = 6;
 const DURATIONS = [2500, 2500, 3000, 3500, 4000, 2500];
 
-const CAPTIONS = [
-  { ar: "كل اللي تحتامه، قدّام بيتك", en: "Everything you need, right around the corner" },
-  { ar: "دولتك، سوقك — السعودية", en: "Your country, your market — Saudi Arabia" },
-  { ar: "حدّد نطاقك، لق العروض قريب", en: "Set your radius, find deals nearby" },
-  { ar: "اعرض سعرك — وتم الاتفاق", en: "Make an offer — deal done" },
-  { ar: "صوّر، انشر، بِع", en: "Snap, post, sell" },
-  { ar: "كاسر — سوقك المحلي في الخليج", en: "Kasir — your local GCC marketplace" },
+const SELL_PHOTOS = [
+  "https://media.base44.com/images/public/6a81368f876e0b385d3684d3/808035172_generated_image.png",
+  "https://media.base44.com/images/public/6a81368f876e0b385d3684d3/12e104a16_generated_image.png",
 ];
-
-const FALLBACK_PHOTO = "https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=500&q=80";
 
 export default function AdReel() {
   const { lang } = useStore();
@@ -37,7 +31,6 @@ export default function AdReel() {
   }, [scene]);
 
   const grid = useMemo(() => items.slice(0, 8), [items]);
-  const sellPhoto = useMemo(() => items[0]?.images?.[0] || FALLBACK_PHOTO, [items]);
 
   return (
     <div className="fixed inset-0 bg-background overflow-hidden flex flex-col select-none" dir={ar ? "rtl" : "ltr"}>
@@ -56,19 +49,11 @@ export default function AdReel() {
           {scene === 1 && <SceneCountry ar={ar} />}
           {scene === 2 && <SceneNearby ar={ar} />}
           {scene === 3 && <SceneOffer ar={ar} />}
-          {scene === 4 && <SceneSell ar={ar} photo={sellPhoto} />}
+          {scene === 4 && <SceneSell ar={ar} />}
           {scene === 5 && <SceneCTA ar={ar} />}
         </motion.div>
       </AnimatePresence>
 
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none z-30" />
-      <div className="absolute bottom-0 inset-x-0 z-40 p-5 pb-7 text-center pointer-events-none">
-        <AnimatePresence mode="wait">
-          <motion.p key={scene} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.4 }} className="text-white text-xl font-extrabold drop-shadow-lg">
-            {CAPTIONS[scene][ar ? "ar" : "en"]}
-          </motion.p>
-        </AnimatePresence>
-      </div>
     </div>
   );
 }
@@ -234,9 +219,11 @@ function SceneNearby({ ar }) {
 
 function SceneOffer({ ar }) {
   const [accepted, setAccepted] = useState(false);
+  const [meet, setMeet] = useState(false);
   useEffect(() => {
-    const id = setTimeout(() => setAccepted(true), 1800);
-    return () => clearTimeout(id);
+    const t1 = setTimeout(() => setAccepted(true), 1600);
+    const t2 = setTimeout(() => setMeet(true), 2700);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
   return (
     <div className="absolute inset-0 bg-background flex flex-col p-4 pt-12 max-w-sm mx-auto w-full">
@@ -248,13 +235,7 @@ function SceneOffer({ ar }) {
         </div>
       </div>
       <div className="flex-1 space-y-2.5 py-5">
-        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="flex justify-start">
-          <div className="max-w-[75%] px-4 py-2.5 rounded-2xl bg-muted rounded-bl-sm text-sm">{ar ? "السلام، متوفر؟" : "Hi, is this available?"}</div>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="flex justify-end">
-          <div className="max-w-[75%] px-4 py-2.5 rounded-2xl bg-primary text-primary-foreground rounded-br-sm text-sm">{ar ? "نعم، متوفر" : "Yes, it is"}</div>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.9 }} className="flex justify-start">
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex justify-start">
           <div className="max-w-[85%] rounded-2xl border-2 border-border/60 bg-card rounded-bl-md p-3 w-[230px]">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-semibold text-muted-foreground">{ar ? "عرضك" : "Your offer"}</span>
@@ -281,54 +262,71 @@ function SceneOffer({ ar }) {
                 </motion.div>
               )}
             </AnimatePresence>
-            {accepted && (
-              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[11px] text-center text-muted-foreground mt-2">{ar ? "تم الاتفاق — رتّبوا الاستلام" : "Agreed — arrange pickup"}</motion.p>
-            )}
           </div>
         </motion.div>
+
+        <AnimatePresence>
+          {meet && (
+            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="flex justify-end">
+              <div className="max-w-[75%] px-4 py-2.5 rounded-2xl bg-primary text-primary-foreground rounded-br-sm text-sm">{ar ? "وين نلتقي؟" : "Where do we meet?"}</div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <AnimatePresence>
+          {meet && (
+            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="flex justify-start">
+              <div className="max-w-[75%] px-4 py-2.5 rounded-2xl bg-muted rounded-bl-sm text-sm">{ar ? "شارع العليا، الرياض الساعة ٦" : "Olaya St, Riyadh — 6pm"}</div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
 }
 
-function SceneSell({ ar, photo }) {
+function SceneSell({ ar }) {
   const [step, setStep] = useState(0);
   useEffect(() => {
     const t1 = setTimeout(() => setStep(1), 1200);
-    const t2 = setTimeout(() => setStep(2), 2600);
+    const t2 = setTimeout(() => setStep(2), 3000);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
-  const filled = (d) => (step >= 1 ? 1 : 0.4);
+  const conds = ar
+    ? [{ id: "new", label: "جديد" }, { id: "like_new", label: "مثل جديد" }, { id: "good", label: "جيد" }, { id: "fair", label: "مقبول" }]
+    : [{ id: "new", label: "New" }, { id: "like_new", label: "Like new" }, { id: "good", label: "Good" }, { id: "fair", label: "Fair" }];
+  const picked = "good";
   return (
     <div className="absolute inset-0 bg-background flex flex-col">
       <div className="px-4 pt-4 pb-2"><h1 className="text-2xl font-extrabold">{ar ? "بِع" : "Sell"}</h1></div>
       <div className="flex-1 overflow-hidden p-4 space-y-3.5 max-w-sm mx-auto w-full">
         <div className="flex gap-2">
-          <div className="aspect-square rounded-xl overflow-hidden flex-1 relative bg-muted border-2 border-dashed border-border">
-            {photo && <motion.img initial={{ opacity: 0, scale: 1.1 }} animate={{ opacity: step >= 0 ? 1 : 0, scale: 1 }} src={photo} className="w-full h-full object-cover" />}
-            {step === 0 && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center"><Camera size={20} className="text-slate-900" /></div>
-              </motion.div>
-            )}
-            {step >= 1 && <span className="absolute bottom-0 inset-x-0 bg-black/55 text-white text-[10px] text-center py-0.5">{ar ? "الغلاف" : "Cover"}</span>}
-          </div>
-          <div className="aspect-square rounded-xl border-2 border-dashed border-border flex-1" />
+          {SELL_PHOTOS.map((p, i) => (
+            <div key={i} className="aspect-square rounded-xl overflow-hidden flex-1 relative bg-muted">
+              <motion.img initial={{ opacity: 0, scale: 1.1 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.15 }} src={p} className="w-full h-full object-cover" />
+              {i === 0 && <span className="absolute bottom-0 inset-x-0 bg-black/55 text-white text-[10px] text-center py-0.5">{ar ? "الغلاف" : "Cover"}</span>}
+            </div>
+          ))}
           <div className="aspect-square rounded-xl border-2 border-dashed border-border flex-1" />
         </div>
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: filled(), y: 0 }} className="h-12 rounded-2xl bg-muted flex items-center px-4">
-          <span className="text-sm font-semibold">{step >= 1 ? (ar ? "آيفون ١٤ مستعمل" : "Used iPhone 14") : (ar ? "العنوان" : "Title")}</span>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: step >= 1 ? 1 : 0.4, y: 0 }} className="h-12 rounded-2xl bg-muted flex items-center px-4">
+          <span className="text-sm font-semibold">{step >= 1 ? (ar ? "آيفون 12 مستعمل" : "Used iPhone 12") : (ar ? "العنوان" : "Title")}</span>
         </motion.div>
         <div className="grid grid-cols-2 gap-3">
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: filled(), y: 0 }} className="h-12 rounded-2xl bg-muted flex items-center px-4 justify-between">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: step >= 1 ? 1 : 0.4, y: 0 }} className="h-12 rounded-2xl bg-muted flex items-center px-4 justify-between">
             <span className="text-sm font-semibold text-muted-foreground">{ar ? "السعر" : "Price"}</span>
-            {step >= 1 && <span className="text-amber-600 font-extrabold">﷼ 50</span>}
+            {step >= 1 && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-amber-600 font-extrabold">﷼ 50</motion.span>}
           </motion.div>
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: filled(), y: 0 }} className="h-12 rounded-2xl bg-muted flex items-center px-4">
-            <span className="text-sm font-semibold text-muted-foreground">{ar ? "ممتاز" : "Excellent"}</span>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: step >= 1 ? 1 : 0.4, y: 0 }} className="h-12 rounded-2xl bg-muted flex items-center px-4 justify-between">
+            <span className="text-sm font-semibold text-muted-foreground">{ar ? "الحالة" : "Condition"}</span>
+            {step >= 1 && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-bold text-sm">{ar ? "جيد" : "Good"}</motion.span>}
           </motion.div>
         </div>
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: filled(), y: 0 }} className="h-12 rounded-2xl bg-muted flex items-center px-4">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: step >= 1 ? 1 : 0 }} className="flex flex-wrap gap-2">
+          {conds.map((c) => (
+            <span key={c.id} className={`px-3 py-1.5 rounded-full text-xs font-bold ${c.id === picked ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{c.label}</span>
+          ))}
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: step >= 1 ? 1 : 0.4, y: 0 }} className="h-12 rounded-2xl bg-muted flex items-center px-4">
           <span className="text-sm font-semibold text-muted-foreground">{ar ? "الرياض" : "Riyadh"}</span>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`w-full py-4 rounded-2xl font-bold text-lg text-center ${step >= 2 ? "bg-emerald-500 text-white" : "bg-primary text-primary-foreground"}`}>

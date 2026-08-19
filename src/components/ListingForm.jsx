@@ -154,7 +154,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   // Cumulative tiered boost pricing: each new hour is priced by where it lands
   // in the 0–168h accumulated range (existing boost + new hours), so stacking
   // short boosts can't re-earn the cheapest tier every time.
-  //   0–24h → 5/hr (+3 cross), 24–48h → 4/hr (+3), 48h–1wk → 3/hr (+2).
+  //   0–24h → 5/hr (+3), 24–48h → 4/hr (+2), 48–72h → 3/hr (+1), 72h–1wk → 1/hr (+1).
   const existingHours = existingBoostHours(initial?.featured_until);
   const maxBoost = Math.max(0, BOOST_MAX_HOURS - existingHours);
   const boostAmount = boostHours > 0 ? computeBoostCost(existingHours, boostHours, boostCross).amount : 0;
@@ -337,7 +337,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         <div>
           <div className="flex items-center justify-between text-sm mb-1.5">
             <span className="font-semibold">{ar ? "المدة المضافة" : "Hours to add"}</span>
-            <span className="font-bold">{boostHours > 0 ? `${boostHours} ${ar ? "ساعة" : "h"}${boostHours >= 24 ? ` (${Math.floor(boostHours / 24)} ${ar ? "يوم" : Math.floor(boostHours / 24) === 1 ? "day" : "days"})` : ""}` : (ar ? "بدون تعزيز" : "No boost")}</span>
+            <span className="font-bold">{boostHours > 0 ? (() => { const days = boostHours / 24; const dayLabel = days >= 1 && boostHours % 24 === 0 ? ` (${days} ${ar ? (days === 1 ? "يوم" : days === 2 ? "يومان" : days <= 10 ? "أيام" : "يوم") : days === 1 ? "day" : "days"})` : ""; return `${boostHours} ${ar ? "ساعة" : "h"}${dayLabel}`; })() : (ar ? "بدون تعزيز" : "No boost")}</span>
           </div>
           {existingHours > 0 && (
             <p className="text-[11px] text-muted-foreground mb-1.5">
@@ -390,7 +390,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
                 <Globe size={16} className="text-primary" />
                 <span>
                   <span className="text-sm font-semibold block">{ar ? "عرض في كل الدول" : "Show across all countries"}</span>
-                  <span className="text-xs text-muted-foreground">{ar ? "+٣/+٣/+٢ حسب الفئة" : "+3/+3/+2 per tier"}</span>
+                  <span className="text-xs text-muted-foreground">{ar ? "+٣/+٢/+١ حسب الفئة" : "+3/+2/+1 per tier"}</span>
                 </span>
               </span>
               <span className={`w-11 h-6 rounded-full p-0.5 transition ${boostCross ? "bg-amber-500" : "bg-muted-foreground/30"}`}>

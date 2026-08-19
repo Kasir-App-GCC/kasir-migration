@@ -32,6 +32,13 @@
     "message": {
       "type": "string"
     },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URLs of documents attached by the user (10MB total max)"
+    },
     "status": {
       "type": "string",
       "enum": [

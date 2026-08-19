@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { X, Send, LifeBuoy, CheckCircle2, Hash, Mail } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { X, Send, LifeBuoy, CheckCircle2, Hash, Mail, Paperclip } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -18,6 +18,7 @@ function normalizeDigits(s) {
 
 const MIN_PHONE = 8;
 const MAX_PHONE = 12;
+const MAX_ATTACH_TOTAL = 10 * 1024 * 1024; // 10 MB total across all attachments
 
 const CATEGORIES = [
   { id: "general", en: "General question", ar: "استفسار عام" },
@@ -40,6 +41,8 @@ export default function ContactSupportDialog({ open, onClose }) {
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [ticketNumber, setTicketNumber] = useState(null);
+  const [files, setFiles] = useState([]);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (open) {
@@ -50,6 +53,7 @@ export default function ContactSupportDialog({ open, onClose }) {
       setFullName(user?.name || "");
       setEmail(user?.email || "");
       setPhone("");
+      setFiles([]);
       const c = getCountry(country || "SA");
       setPhoneCode(c?.phoneCode || "966");
     }
@@ -60,8 +64,19 @@ export default function ContactSupportDialog({ open, onClose }) {
 
   const submit = async () => {
     if (!fullName.trim() || !phoneValid || !email.trim() || !subject.trim() || !message.trim() || submitting) return;
+    if (filesTotal > MAX_ATTACH_TOTAL) return;
     setSubmitting(true);
     try {
+      let attachments = [];
+      if (files.length > 0) {
+        const uploaded = await Promise.all(
+          files.map(async (f) => {
+            const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
+            return file_url;
+          })
+        );
+        attachments = uploaded.filter(Boolean);
+      }
       const res = await base44.functions.invoke("submitSupportTicket", {
         fullName: fullName.trim(),
         phone: `+${phoneCode} ${phone}`,
@@ -69,6 +84,7 @@ export default function ContactSupportDialog({ open, onClose }) {
         category,
         subject: subject.trim(),
         message: message.trim(),
+        attachments,
       });
       const num = res?.data?.ticketNumber;
       setTicketNumber(num || null);
@@ -76,6 +92,7 @@ export default function ContactSupportDialog({ open, onClose }) {
       setMessage("");
       setCategory("general");
       setPhone("");
+      setFiles([]);
     } catch (e) {
       toast({
         title: lang === "ar" ? "تعذّر إرسال التذكرة" : "Couldn't submit ticket",
@@ -91,7 +108,8 @@ export default function ContactSupportDialog({ open, onClose }) {
   const onPhoneChange = (e) => setPhone(digitsOnly(e.target.value).slice(0, MAX_PHONE));
   const phoneLen = digitsOnly(phone).length;
   const phoneValid = phoneLen >= MIN_PHONE && phoneLen <= MAX_PHONE;
-  const valid = fullName.trim() && phoneValid && email.trim() && subject.trim() && message.trim();
+  const filesTotal = files.reduce((s, f) => s + f.size, 0);
+  const valid = fullName.trim() && phoneValid && email.trim() && subject.trim() && message.trim() && filesTotal <= MAX_ATTACH_TOTAL;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -214,6 +232,43 @@ export default function ContactSupportDialog({ open, onClose }) {
               className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30 resize-none"
             />
             <div className="flex justify-end text-[11px] text-muted-foreground mt-1">{(message || "").length}/1000</div>
+          </div>
+
+          <div>
+            <label className="text-sm font-semibold mb-1.5 block">{lang === "ar" ? "المرفقات" : "Attachments"}</label>
+            <input
+              type="file"
+              multiple
+              ref={fileInputRef}
+              onChange={(e) => {
+                const picked = Array.from(e.target.files || []);
+                setFiles((prev) => [...prev, ...picked]);
+                e.target.value = "";
+              }}
+              className="hidden"
+              accept="image/*,.pdf,.doc,.docx,.txt,.xlsx,.xls,.ppt,.pptx,.zip"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full px-4 py-3 rounded-2xl bg-muted outline-none border border-dashed border-border text-sm text-muted-foreground flex items-center justify-center gap-2"
+            >
+              <Paperclip size={16} /> {lang === "ar" ? "إضافة مرفقات (حد أقصى ١٠ ميجا)" : "Add attachments (10MB max)"}
+            </button>
+            {files.length > 0 && (
+              <div className="mt-2 space-y-1.5">
+                {files.map((f, i) => (
+                  <div key={i} className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-muted text-xs">
+                    <span className="truncate flex-1">{f.name}</span>
+                    <span className="text-muted-foreground shrink-0">{(f.size / 1024).toFixed(0)} KB</span>
+                    <button type="button" onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))} className="text-muted-foreground hover:text-rose-500 shrink-0"><X size={14} /></button>
+                  </div>
+                ))}
+                <p className={`text-[11px] ${filesTotal > MAX_ATTACH_TOTAL ? "text-rose-500 font-semibold" : "text-muted-foreground"}`}>
+                  {lang === "ar" ? `الإجمالي: ${(filesTotal / 1024 / 1024).toFixed(1)} / 10 ميجا` : `Total: ${(filesTotal / 1024 / 1024).toFixed(1)} / 10 MB`}
+                </p>
+              </div>
+            )}
           </div>
 
           <button

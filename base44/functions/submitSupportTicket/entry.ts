@@ -16,6 +16,7 @@ export default async function(req) {
     const category = body.category || 'general';
     const subject = (body.subject || "").trim();
     const message = (body.message || "").trim();
+    const attachments = Array.isArray(body.attachments) ? body.attachments.filter(Boolean) : [];
 
     if (!fullName || !phone || !email || !subject || !message) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
@@ -30,6 +31,7 @@ export default async function(req) {
       category,
       subject,
       message,
+      attachments,
       status: 'open',
     });
 
@@ -49,7 +51,7 @@ export default async function(req) {
       '',
       'Message:',
       message,
-    ].join('\n');
+    ].join('\n') + (attachments.length > 0 ? '\n\nAttachments:\n' + attachments.map((u, i) => `${i + 1}. ${u}`).join('\n') : '');
 
     let supportEmailOk = true;
     try {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { LifeBuoy, Send, CheckCircle2, Clock, X } from "lucide-react";
+import { LifeBuoy, Send, CheckCircle2, Clock, X, Paperclip } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
@@ -58,6 +58,14 @@ export default function AdminTickets() {
           });
         } catch {}
       }
+      try {
+        await base44.entities.Notification.create({
+          user_id: t.user_id,
+          type: "support_resolved",
+          text: text,
+          actor_name: "Kasir Support",
+        });
+      } catch {}
       setTickets((prev) => prev.map((x) => (x.id === t.id ? { ...x, reply: text, status: "resolved" } : x)));
       setReply((prev) => ({ ...prev, [t.id]: "" }));
       toast({ title: ar ? "تم إرسال الرد" : "Reply sent" });
@@ -97,6 +105,15 @@ export default function AdminTickets() {
             <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(t.created_date, lang)}</span>
           </div>
           <p className="text-sm mt-1.5">{t.message}</p>
+          {t.attachments?.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {t.attachments.map((url, i) => (
+                <a key={i} href={url} target="_blank" rel="noreferrer" className="px-2.5 py-1.5 rounded-lg bg-muted text-xs font-semibold flex items-center gap-1 hover:bg-muted/70">
+                  <Paperclip size={12} /> {ar ? "مرفق" : "Attachment"} {i + 1}
+                </a>
+              ))}
+            </div>
+          )}
           {t.reply && (
             <div className="mt-2 p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900">
               <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-0.5">{ar ? "رد الإدارة" : "Admin reply"}</p>

@@ -61,7 +61,7 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
           <span className="font-semibold text-sm truncate">{n.name || "—"}</span>
           <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(n.date, lang)}</span>
         </div>
-        <p className="text-sm text-muted-foreground truncate">
+        <p className="text-sm text-muted-foreground whitespace-normal break-words">
           {n.text || (n.type === "rating" ? `${t("newRating")} · ${n.score}★` : n.type === "offer" ? t("offerMessage") : "")}
         </p>
       </div>

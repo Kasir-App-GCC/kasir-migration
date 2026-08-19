@@ -294,6 +294,31 @@ function SceneSell({ ar }) {
 
 function SceneCTA({ ar }) {
   const navigate = useNavigate();
+  const [recording, setRecording] = useState(false);
+  const downloadAd = async () => {
+    if (recording) return;
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: false });
+      const rec = new MediaRecorder(stream, { mimeType: "video/webm" });
+      const chunks = [];
+      rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+      rec.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunks, { type: "video/webm" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = "kasir-ad.webm"; a.click();
+        URL.revokeObjectURL(url);
+        setRecording(false);
+      };
+      rec.start();
+      setRecording(true);
+      setTimeout(() => { if (rec.state === "recording") rec.stop(); }, 15000);
+    } catch {
+      setRecording(false);
+      alert(ar ? "تعذّر تسجيل الإعلان — جرّب فتح التطبيق في نافذة مستقلة" : "Couldn't record the ad — try opening the app in its own window");
+    }
+  };
   return (
     <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-amber-900 flex flex-col items-center justify-center">
       <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 120, damping: 12 }} className="w-20 h-20 rounded-3xl bg-amber-500 flex items-center justify-center mb-6 shadow-lg shadow-amber-500/30">
@@ -305,10 +330,9 @@ function SceneCTA({ ar }) {
         <Download size={22} />
         {ar ? "حمّل كاسر الآن" : "Get Kasir now"}
       </motion.button>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }} className="mt-4 flex items-center gap-3 text-white/70 text-xs font-semibold">
-        <span className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/15"> App Store</span>
-        <span className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/15">▶ Google Play</span>
-      </motion.div>
+      <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }} onClick={downloadAd} disabled={recording} className="mt-5 text-white/80 hover:text-white text-sm font-semibold underline underline-offset-4 disabled:opacity-60">
+        {recording ? (ar ? "جاري التسجيل… اترك هذه النافذة ظاهرة" : "Recording… keep this tab visible") : (ar ? "نزّل الإعلان (فيديو)" : "Download this ad (video)")}
+      </motion.button>
     </div>
   );
 }

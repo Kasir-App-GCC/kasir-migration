@@ -192,12 +192,12 @@ export function getSubcategories(catId) {
 }
 
 export const CONDITIONS = [
-  { id: "new", en: "Brand New", ar: "جديد", color: "bg-emerald-500 text-white" },
-  { id: "like_new", en: "Like New", ar: "كالجديد", color: "bg-teal-500 text-white" },
-  { id: "excellent", en: "Excellent", ar: "ممتاز", color: "bg-blue-500 text-white" },
-  { id: "good", en: "Good", ar: "جيد", color: "bg-cyan-500 text-white" },
-  { id: "fair", en: "Fair", ar: "مقبول", color: "bg-amber-500 text-white" },
-  { id: "poor", en: "Poor", ar: "ضعيف", color: "bg-orange-500 text-white" },
+  { id: "new", en: "Brand New", ar: "جديد", color: "bg-emerald-500 text-white", descEn: "Never used, still sealed in original packaging", descAr: "لم يُستخدم، مغلّق بالتغليف الأصلي" },
+  { id: "like_new", en: "Like New", ar: "كالجديد", color: "bg-teal-500 text-white", descEn: "Barely used, no visible signs of wear", descAr: "بالكاد مستخدم، ما فيه علامات استخدام واضحة" },
+  { id: "excellent", en: "Excellent", ar: "ممتاز", color: "bg-blue-500 text-white", descEn: "Lightly used, works perfectly with only minor wear", descAr: "استخدام خفيف، يشتغل تمام، بسلى بسيط" },
+  { id: "good", en: "Good", ar: "جيد", color: "bg-cyan-500 text-white", descEn: "Used with normal wear but fully functional", descAr: "مستخدم ببلى طبيعي لكنه يشتغل كامل" },
+  { id: "fair", en: "Fair", ar: "مقبول", color: "bg-amber-500 text-white", descEn: "Visible wear, may have some cosmetic flaws", descAr: "علامات استخدام واضحة، ممكن فيه عيوب شكلية" },
+  { id: "poor", en: "Poor", ar: "ضعيف", color: "bg-orange-500 text-white", descEn: "Heavy wear, may need repairs", descAr: "استخدام مكثّف، ممكن يحتاج صيانة" },
 ];
 
 export function getCondition(id) {

@@ -247,7 +247,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             value={condition}
             onChange={setCondition}
             label={t("selectCondition")}
-            options={CONDITIONS.map((c) => ({ value: c.id, label: lang === "ar" ? c.ar : c.en }))}
+            options={CONDITIONS.map((c) => ({ value: c.id, label: lang === "ar" ? c.ar : c.en, description: lang === "ar" ? c.descAr : c.descEn }))}
           />
         </div>
       </div>
@@ -362,7 +362,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             <span>{maxBoost}</span>
           </div>
           {maxBoost === 0 && (
-            <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">{ar ? "وصلت للحد الأقصى (٧٢ ساعة)" : "Max boost reached (72h)"}</p>
+            <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">{ar ? "وصلت للحد الأقصى (أسبوع)" : "Max boost reached (7 days)"}</p>
           )}
           {boostHours > 0 && boostSegments.length > 0 && (
             <div className="mt-2.5 space-y-1 text-xs">

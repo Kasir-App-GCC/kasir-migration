@@ -5,7 +5,7 @@ import { useT } from "@/lib/i18n";
 import useNotifications from "@/hooks/useNotifications";
 import NotificationItem from "@/components/NotificationItem";
 
-export default function NotificationsPanel({ onClose }) {
+export default function NotificationsPanel({ onClose, style }) {
   const { lang } = useStore();
   const t = useT();
   const { items, loading, clearAll, markNotifRead } = useNotifications();
@@ -13,7 +13,10 @@ export default function NotificationsPanel({ onClose }) {
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
-      <div className="fixed end-2 top-[calc(3.5rem+env(safe-area-inset-top)+0.25rem)] z-50 w-[min(92vw,380px)] max-h-[70vh] rounded-2xl bg-background border border-border shadow-xl overflow-hidden flex flex-col">
+      <div
+        className="fixed z-50 max-h-[70vh] rounded-2xl bg-background border border-border shadow-xl overflow-hidden flex flex-col"
+        style={style ? { left: style.left, top: style.top, width: style.width } : undefined}
+      >
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/60">
           <span className="font-bold text-sm">{t("notifications")}</span>
           {items.length > 0 && (

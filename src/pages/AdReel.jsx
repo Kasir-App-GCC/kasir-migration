@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Tag, Crosshair, Check, X, Camera, Sparkles, ShoppingBag, Map as MapIcon, Sun, Clock, ArrowLeftRight } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -36,7 +36,7 @@ export default function AdReel() {
     return () => clearTimeout(id);
   }, [scene]);
 
-  const grid = useMemo(() => items.slice(0, 4), [items]);
+  const grid = useMemo(() => items.slice(0, 8), [items]);
   const sellPhoto = useMemo(() => items[0]?.images?.[0] || FALLBACK_PHOTO, [items]);
 
   return (
@@ -83,6 +83,23 @@ function BrandMark({ ar }) {
 }
 
 function SceneHome({ ar, items }) {
+  const scrollRef = useRef(null);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    let raf;
+    const start = performance.now();
+    const dur = 2000;
+    const max = () => Math.max(0, el.scrollHeight - el.clientHeight);
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / dur);
+      const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      el.scrollTop = eased * max();
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [items]);
   return (
     <div className="absolute inset-0 bg-background flex flex-col">
       <header className="bg-background/85 backdrop-blur-xl border-b border-border/60">
@@ -99,8 +116,8 @@ function SceneHome({ ar, items }) {
           </div>
         </div>
       </header>
-      <div className="flex-1 overflow-hidden p-4 space-y-4">
-        <div className="w-full flex items-center gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg">
+      <div className="flex-1 overflow-hidden p-4 space-y-4 flex flex-col">
+        <div className="w-full flex items-center gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg shrink-0">
           <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0"><ShoppingBag size={20} /></div>
           <div className="flex-1 text-start">
             <p className="font-bold text-sm leading-tight">{ar ? "مساعد التسوق الذكي" : "AI Shopping Assistant"}</p>
@@ -108,16 +125,16 @@ function SceneHome({ ar, items }) {
           </div>
           <Sparkles size={18} />
         </div>
-        <div className="flex items-baseline justify-between">
+        <div className="flex items-baseline justify-between shrink-0">
           <h2 className="font-bold text-lg">{ar ? "وصل حديثاً" : "New arrivals"}</h2>
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted-foreground">{items.length} {ar ? "إعلان" : "items"}</span>
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted text-sm font-semibold"><MapIcon size={16} /> {ar ? "الخريطة" : "Map"}</span>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          {(items.length ? items : Array.from({ length: 4 })).map((it, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.12 }}>
+        <div ref={scrollRef} className="grid grid-cols-2 gap-3 overflow-y-auto no-scrollbar flex-1 content-start">
+          {(items.length ? items : Array.from({ length: 8 })).map((it, i) => (
+            <motion.div key={i} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
               {items.length ? <ItemCard item={it} onClick={() => {}} /> : <div className="aspect-square rounded-2xl bg-muted" />}
             </motion.div>
           ))}

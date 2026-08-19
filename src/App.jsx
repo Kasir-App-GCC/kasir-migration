@@ -30,7 +30,6 @@ import ShoppingAssistant from "@/pages/ShoppingAssistant";
 import EditListing from "@/pages/EditListing";
 import MapView from "@/pages/MapView";
 import Admin from "@/pages/Admin";
-import AdReel from "@/pages/AdReel";
 
 function routeDepth(pathname) {
   if (pathname === "/") return 0;
@@ -100,7 +99,6 @@ const AuthenticatedApp = () => {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/ad" element={<RequireAuth><AdReel /></RequireAuth>} />
       <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
         <Route path="/" element={<Home />} />
         <Route path="/search" element={<Search />} />

@@ -5,6 +5,7 @@ import { useT } from "@/lib/i18n";
 import { getCityName } from "@/lib/constants";
 import { getCities, nearestCityInCountry } from "@/lib/countries";
 import MapPinPicker from "@/components/MapPinPicker";
+import { base44 } from "@/api/base44Client";
 
 export default function LocationFilter({ open, onClose }) {
   const { lang, locationFilter, setLocationFilter, country } = useStore();
@@ -19,6 +20,20 @@ export default function LocationFilter({ open, onClose }) {
   const [mapPos, setMapPos] = useState(
     locationFilter.mode === "map" && locationFilter.lat ? { lat: locationFilter.lat, lng: locationFilter.lng } : null
   );
+  const [mapName, setMapName] = useState("");
+
+  // Reverse-geocode the dropped pin to an accurate place name (same source as the listing form).
+  useEffect(() => {
+    if (!mapPos) { setMapName(""); return; }
+    let active = true;
+    (async () => {
+      try {
+        const res = await base44.functions.invoke("geocodeLocation", { lat: mapPos.lat, lng: mapPos.lng, country: country || "SA", lang });
+        if (active && res?.data?.name) setMapName(String(res.data.name).slice(0, 120));
+      } catch {}
+    })();
+    return () => { active = false; };
+  }, [mapPos, country, lang]);
 
   useEffect(() => {
     if (open) {
@@ -194,8 +209,9 @@ export default function LocationFilter({ open, onClose }) {
               />
               {mapPos ? (
                 <p className="text-xs text-muted-foreground mt-2">
-                  {lang === "ar" ? "الموقع" : "Location"}: {mapPos.lat.toFixed(4)}, {mapPos.lng.toFixed(4)}
-                  {(() => { const c = nearestCityInCountry(mapPos.lat, mapPos.lng, country); return c ? ` · ${lang === "ar" ? c.ar : c.en}` : ""; })()}
+                  {mapName ? <span className="font-semibold text-foreground">{mapName}</span> : (lang === "ar" ? "جاري تحديد الموقع…" : "Locating…")}
+                  {" · "}
+                  {mapPos.lat.toFixed(4)}, {mapPos.lng.toFixed(4)}
                 </p>
               ) : (
                 <p className="text-xs text-muted-foreground mt-2">{lang === "ar" ? "لم يتم اختيار موقع بعد" : "No location selected yet"}</p>

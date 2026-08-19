@@ -13,8 +13,9 @@ export default async function(req) {
     const phone = (body.phone || "").trim();
     const nationalId = (body.nationalId || "").trim();
     const documentUrl = (body.documentUrl || "").trim();
+    const paymentReceiptUrl = (body.paymentReceiptUrl || "").trim();
 
-    if (!fullName || !phone || !nationalId || !documentUrl) {
+    if (!fullName || !phone || !nationalId || !documentUrl || !paymentReceiptUrl) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
     // A profile photo is required before requesting verification.
@@ -30,6 +31,7 @@ export default async function(req) {
       phone,
       national_id: nationalId,
       document_url: documentUrl,
+      payment_receipt_url: paymentReceiptUrl,
       status: 'pending',
     });
 
@@ -46,6 +48,7 @@ export default async function(req) {
       'Phone: ' + phone,
       'National ID: ' + nationalId,
       'Document: ' + documentUrl,
+      'Payment receipt: ' + paymentReceiptUrl,
       '',
       'Review it in the Admin Panel > Verifications.',
     ].join('\n');

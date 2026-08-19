@@ -27,6 +27,10 @@
       "type": "string",
       "description": "URL of the uploaded supporting document"
     },
+    "payment_receipt_url": {
+      "type": "string",
+      "description": "URL of the uploaded payment receipt for the verification fee"
+    },
     "status": {
       "type": "string",
       "enum": [
@@ -45,7 +49,8 @@
     "user_id",
     "full_name",
     "national_id",
-    "document_url"
+    "document_url",
+    "payment_receipt_url"
   ],
   "rls": {
     "create": {

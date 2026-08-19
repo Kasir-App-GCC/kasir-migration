@@ -93,11 +93,18 @@ export default function AdminVerifications() {
             </div>
             <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(r.created_date, lang)}</span>
           </div>
-          {r.document_url && (
-            <a href={r.document_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary font-semibold hover:underline">
-              <ExternalLink size={12} /> {ar ? "عرض المستند" : "View document"}
-            </a>
-          )}
+          <div className="flex flex-wrap gap-x-3 gap-y-1">
+            {r.document_url && (
+              <a href={r.document_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary font-semibold hover:underline">
+                <ExternalLink size={12} /> {ar ? "عرض المستند" : "View document"}
+              </a>
+            )}
+            {r.payment_receipt_url && (
+              <a href={r.payment_receipt_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-emerald-600 font-semibold hover:underline">
+                <ExternalLink size={12} /> {ar ? "عرض الإيصال" : "View receipt"}
+              </a>
+            )}
+          </div>
           {r.status === "pending" && (
             <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-border/40">
               <button onClick={() => approve(r)} disabled={acting === r.id} className="px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1 disabled:opacity-50"><CheckCircle2 size={13} /> {ar ? "موافقة" : "Approve"}</button>

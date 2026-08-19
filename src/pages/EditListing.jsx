@@ -4,13 +4,16 @@ import { ArrowLeft } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
+import { useToast } from "@/components/ui/use-toast";
 import ListingForm from "@/components/ListingForm";
 
 export default function EditListing() {
   const { id } = useParams();
   const nav = useNavigate();
-  const { user } = useStore();
+  const { user, lang } = useStore();
   const t = useT();
+  const { toast } = useToast();
+  const ar = lang === "ar";
   const [item, setItem] = useState(undefined);
   const [error, setError] = useState(null);
 
@@ -49,6 +52,27 @@ export default function EditListing() {
     // The featured clock started at posting time and survives any number of edits.
     const { boost_hours, boost_cross_country, boost_amount, boost_receipt_url, featured, featured_until, featured_cross_country, ...itemData } = data;
     await base44.entities.Item.update(id, itemData);
+    // A boost requested from the edit screen creates a pending BoostRequest
+    // for admin review — same as the new-listing flow.
+    if (boost_hours > 0 && boost_receipt_url) {
+      try {
+        await base44.entities.BoostRequest.create({
+          item_id: id,
+          item_title: itemData.title,
+          user_id: user?.id,
+          user_name: user?.name,
+          hours: boost_hours,
+          cross_country: !!boost_cross_country,
+          amount: boost_amount || 0,
+          receipt_url: boost_receipt_url,
+          status: "pending",
+        });
+        toast({
+          title: ar ? "تم حفظ التعديلات" : "Changes saved",
+          description: ar ? "التعزيز قيد المراجعة من الإدارة" : "Promotion is pending admin approval",
+        });
+      } catch {}
+    }
     nav(`/item/${id}`);
   };
 
@@ -65,7 +89,6 @@ export default function EditListing() {
         submitLabel={t("saveChanges")}
         submittingLabel={t("savingChanges")}
         onSubmit={submit}
-        boostReceiptRequired={false}
         boostLocked={promoted}
       />
     </div>

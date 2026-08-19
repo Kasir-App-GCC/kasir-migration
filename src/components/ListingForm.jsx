@@ -331,7 +331,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         <div className="flex items-center gap-2.5">
           <Sparkles size={18} className="text-amber-500" />
           <div className="flex-1">
-            <p className="text-sm font-semibold flex items-center gap-1.5">{t("promoteListing")} <span className="text-base leading-none">{cur.flag}</span></p>
+            <p className="text-sm font-semibold">{t("promoteListing")}</p>
             <p className="text-xs text-muted-foreground">{ar ? "تعزيز الإعلان ليظهر في المميز" : "Boost your listing to appear in featured"}</p>
           </div>
         </div>

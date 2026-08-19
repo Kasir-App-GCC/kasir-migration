@@ -81,10 +81,14 @@ export default function Home() {
       const it = event.data;
       if (event.type === "delete") {
         setItems((prev) => prev.filter((x) => x.id !== it?.id));
+      } else if (event.type === "create" && it) {
+        setItems((prev) => [it, ...prev.filter((x) => x.id !== it.id)]);
       } else if (it) {
+        // Updates refresh an existing item in place — never prepend, so
+        // editing an old listing can't bump it to the top (no free boost).
         setItems((prev) => {
           const idx = prev.findIndex((x) => x.id === it.id);
-          if (idx === -1) return [it, ...prev];
+          if (idx === -1) return prev;
           const copy = [...prev]; copy[idx] = it; return copy;
         });
       }

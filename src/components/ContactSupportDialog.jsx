@@ -173,11 +173,6 @@ export default function ContactSupportDialog({ open, onClose }) {
                 className="flex-1 min-w-0 px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30"
               />
             </div>
-            <p className={`text-[11px] mt-1 ps-1 ${phone && !phoneValid ? "text-rose-500 font-semibold" : "text-muted-foreground"}`}>
-              {phone && !phoneValid
-                ? (lang === "ar" ? `الرقم يجب أن يكون بين ${MIN_PHONE} و ${MAX_PHONE} أرقام` : `Must be ${MIN_PHONE}–${MAX_PHONE} digits`)
-                : (lang === "ar" ? `بدون مفتاح الدولة — بين ${MIN_PHONE} و ${MAX_PHONE} أرقام` : `Without country code — ${MIN_PHONE}–${MAX_PHONE} digits`)}
-            </p>
           </div>
 
           <div>

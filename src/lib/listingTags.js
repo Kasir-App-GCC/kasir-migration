@@ -1,13 +1,12 @@
 // Quick-detail tags a seller can attach to a listing. The set returned is
 // driven by ALL THREE choices the seller made above:
-//   1) category
-//   2) subcategory (the primary driver — each subcategory has its own tags)
-//   3) condition  → new/like_new → "new" group, excellent/good → "used",
-//                   fair/poor → "worn"
-// So switching the condition visibly changes the chips (e.g. Phones + new
-// shows "With charger / Warranty"; Phones + good shows "Some scratches
-// visible / Battery 90%+"). No tag restates a condition enum value, and there
-// are no shipping/delivery tags (the platform does not offer shipping).
+//   1) category   2) subcategory   3) condition
+//      new / like_new → "new" group (what's included / extras)
+//      excellent / good → "used" group (light wear / honest specifics)
+//      fair / poor → "worn" group (concrete damage a buyer must know)
+// The point is to save the seller typing these into the description. So tags
+// are concrete attributes/flaws, never obvious filler like "As-is" or "For
+// parts", and never a restated condition enum. No shipping/delivery tags.
 // Values are stored as the `en` key; localizeListingTag() maps back to the
 // active language for display on the item detail page.
 
@@ -15,143 +14,158 @@ const LISTING_TAGS = {
   electronics: {
     _default: {
       new: [
-        { en: "With original box", ar: "علبة أصلية" },
+        { en: "With original box", ar: "بالعلبة الأصلية" },
         { en: "With warranty", ar: "عليه ضمان" },
-        { en: "Sealed", ar: "مختوم" },
         { en: "With charger", ar: "مع الشاحن" },
+        { en: "Sealed", ar: "مختوم" },
       ],
       used: [
-        { en: "Tested & working", ar: "مجرّب وشغّال" },
+        { en: "Light scratches", ar: "خدوش بسيطة" },
         { en: "All accessories", ar: "كل الملحقات" },
-        { en: "Minor scratches", ar: "خدوش بسيطة" },
+        { en: "Battery 90%+", ar: "بطارية 90% فأكثر" },
+        { en: "Tested & working", ar: "مجرّب وشغّال" },
       ],
       worn: [
-        { en: "For parts", ar: "للقطع" },
-        { en: "Sold as-is", ar: "يباع كحالته" },
+        { en: "Heavy scratches", ar: "خدوش كثيرة" },
         { en: "Battery weak", ar: "بطارية ضعيفة" },
+        { en: "Non-functional", ar: "متعطل" },
       ],
     },
     Phones: {
       new: [
-        { en: "With original box", ar: "علبة أصلية" },
+        { en: "With original box", ar: "بالعلبة الأصلية" },
         { en: "With warranty", ar: "عليه ضمان" },
         { en: "With charger", ar: "مع الشاحن" },
         { en: "Sealed", ar: "مختوم" },
       ],
       used: [
-        { en: "Some scratches visible", ar: "فيه خدوش ظاهرة" },
+        { en: "No scratches", ar: "بلا خدوش" },
+        { en: "Light scratches", ar: "خدوش بسيطة" },
         { en: "Battery 90%+", ar: "بطارية 90% فأكثر" },
         { en: "Unlocked", ar: "مفتوح لكل الشبكات" },
-        { en: "No scratches", ar: "بلا خدوش" },
       ],
       worn: [
         { en: "Cracked screen", ar: "شاشة مشروخة" },
-        { en: "Battery weak", ar: "بطارية ضعيفة" },
-        { en: "For parts", ar: "للقطع" },
+        { en: "Cracked back", ar: "الظهر مكسور" },
+        { en: "Battery needs replacement", ar: "البطارية تحتاج تغيير" },
+        { en: "Non-functional", ar: "متعطل" },
       ],
     },
     Laptops: {
       new: [
-        { en: "With original box", ar: "علبة أصلية" },
+        { en: "With original box", ar: "بالعلبة الأصلية" },
         { en: "With warranty", ar: "عليه ضمان" },
         { en: "With charger", ar: "مع الشاحن" },
         { en: "Sealed", ar: "مختوم" },
       ],
       used: [
-        { en: "Minor scratches", ar: "خدوش بسيطة" },
+        { en: "Light scratches", ar: "خدوش بسيطة" },
         { en: "RAM upgraded", ar: "ذاكرة مطوّرة" },
         { en: "SSD", ar: "قرص SSD" },
         { en: "Battery 90%+", ar: "بطارية 90% فأكثر" },
       ],
       worn: [
-        { en: "Cracked body", ar: "جسم مشروخ" },
+        { en: "Cracked body", ar: "جسم مكسور" },
+        { en: "Broken hinge", ar: "الوصلة مكسورة" },
         { en: "Battery weak", ar: "بطارية ضعيفة" },
-        { en: "For parts", ar: "للقطع" },
+        { en: "Non-functional", ar: "متعطل" },
       ],
     },
     Tablets: {
       new: [
-        { en: "With original box", ar: "علبة أصلية" },
+        { en: "With original box", ar: "بالعلبة الأصلية" },
         { en: "With warranty", ar: "عليه ضمان" },
         { en: "With charger", ar: "مع الشاحن" },
         { en: "Cellular", ar: "خلوي" },
       ],
       used: [
-        { en: "Minor scratches", ar: "خدوش بسيطة" },
+        { en: "Light scratches", ar: "خدوش بسيطة" },
         { en: "Cellular", ar: "خلوي" },
         { en: "Battery 90%+", ar: "بطارية 90% فأكثر" },
+        { en: "With charger", ar: "مع الشاحن" },
       ],
       worn: [
         { en: "Cracked screen", ar: "شاشة مشروخة" },
-        { en: "For parts", ar: "للقطع" },
+        { en: "Battery weak", ar: "بطارية ضعيفة" },
+        { en: "Non-functional", ar: "متعطل" },
       ],
     },
     "TVs & Screens": {
       new: [
-        { en: "With original box", ar: "علبة أصلية" },
+        { en: "With original box", ar: "بالعلبة الأصلية" },
         { en: "With warranty", ar: "عليه ضمان" },
         { en: "Sealed", ar: "مختوم" },
         { en: "Wall mount included", ar: "حامل جداري مشمول" },
       ],
       used: [
         { en: "No scratches", ar: "بلا خدوش" },
-        { en: "Wall mount included", ar: "حامل جداري مشمول" },
         { en: "Remote included", ar: "ريموت مشمول" },
+        { en: "Stand included", ar: "قاعدة مشمولة" },
+        { en: "Wall mount included", ar: "حامل جداري مشمول" },
       ],
       worn: [
         { en: "Dead pixels", ar: "نقاط ميتة" },
-        { en: "For parts", ar: "للقطع" },
+        { en: "Screen burn", ar: "احتراق الشاشة" },
+        { en: "Lines on screen", ar: "خطوط على الشاشة" },
+        { en: "Non-functional", ar: "متعطل" },
       ],
     },
     Audio: {
       new: [
-        { en: "With original box", ar: "علبة أصلية" },
+        { en: "With original box", ar: "بالعلبة الأصلية" },
         { en: "With warranty", ar: "عليه ضمان" },
         { en: "Sealed", ar: "مختوم" },
         { en: "Case included", ar: "جراب مشمول" },
       ],
       used: [
-        { en: "Minor scratches", ar: "خدوش بسيطة" },
+        { en: "Light scratches", ar: "خدوش بسيطة" },
         { en: "Case included", ar: "جراب مشمول" },
         { en: "All accessories", ar: "كل الملحقات" },
+        { en: "Working", ar: "شغّال" },
       ],
       worn: [
-        { en: "For parts", ar: "للقطع" },
-        { en: "Sold as-is", ar: "يباع كحالته" },
+        { en: "One side not working", ar: "جهة واحدة لا تعمل" },
+        { en: "Crackling sound", ar: "صوت طقطقة" },
+        { en: "Non-functional", ar: "متعطل" },
       ],
     },
     Gaming: {
       new: [
-        { en: "With original box", ar: "علبة أصلية" },
+        { en: "With original box", ar: "بالعلبة الأصلية" },
         { en: "With warranty", ar: "عليه ضمان" },
         { en: "Sealed", ar: "مختوم" },
         { en: "Extra controller", ar: "يد إضافية" },
       ],
       used: [
+        { en: "Light scratches", ar: "خدوش بسيطة" },
         { en: "All accessories", ar: "كل الملحقات" },
         { en: "Extra controller", ar: "يد إضافية" },
-        { en: "Minor scratches", ar: "خدوش بسيطة" },
+        { en: "Working", ar: "شغّال" },
       ],
       worn: [
-        { en: "For parts", ar: "للقطع" },
-        { en: "Disc reader issue", ar: "مشكلة قارئ الأقراص" },
+        { en: "Disc reader issue", ar: "مشكلة في قارئ الأقراص" },
+        { en: "Overheating", ar: "يسخن بسرعة" },
+        { en: "Joystick drift", ar: "انحراف اليد" },
+        { en: "Non-functional", ar: "متعطل" },
       ],
     },
     Accessories: {
       new: [
-        { en: "With original packaging", ar: "تغليف أصلي" },
+        { en: "With original packaging", ar: "بالتغليف الأصلي" },
         { en: "With warranty", ar: "عليه ضمان" },
         { en: "Sealed", ar: "مختوم" },
         { en: "Genuine", ar: "أصلي" },
       ],
       used: [
+        { en: "Light scratches", ar: "خدوش بسيطة" },
         { en: "Genuine", ar: "أصلي" },
-        { en: "Minor scratches", ar: "خدوش بسيطة" },
         { en: "Working", ar: "شغّال" },
+        { en: "Compatible", ar: "متوافق" },
       ],
       worn: [
-        { en: "For parts", ar: "للقطع" },
-        { en: "Sold as-is", ar: "يباع كحالته" },
+        { en: "Frayed cable", ar: "كابل متآكل" },
+        { en: "Broken connector", ar: "موصل مكسور" },
+        { en: "Non-functional", ar: "متعطل" },
       ],
     },
   },
@@ -167,12 +181,13 @@ const LISTING_TAGS = {
         { en: "No accidents", ar: "بلا حوادث" },
         { en: "Low mileage", ar: "ممشور قليل" },
         { en: "Single owner", ar: "مالك واحد" },
-        { en: "Valid inspection", ar: "فحص ساري" },
+        { en: "Full service history", ar: "سجل صيانة كامل" },
       ],
       worn: [
-        { en: "Needs work", ar: "يحتاج إصلاح" },
-        { en: "For parts", ar: "للقطع" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "High mileage", ar: "ممشور عالي" },
+        { en: "Minor dents", ar: "انبعاجات بسيطة" },
+        { en: "Needs paint", ar: "يحتاج صبغ" },
+        { en: "Engine issue", ar: "مشكلة في المحرك" },
       ],
     },
     Sedan: {
@@ -185,13 +200,14 @@ const LISTING_TAGS = {
       used: [
         { en: "No accidents", ar: "بلا حوادث" },
         { en: "Low mileage", ar: "ممشور قليل" },
-        { en: "Fuel efficient", ar: "موفر للوقود" },
         { en: "Single owner", ar: "مالك واحد" },
+        { en: "Fuel efficient", ar: "موفر للوقود" },
       ],
       worn: [
-        { en: "Needs work", ar: "يحتاج إصلاح" },
         { en: "High mileage", ar: "ممشور عالي" },
-        { en: "For parts", ar: "للقطع" },
+        { en: "Minor dents", ar: "انبعاجات بسيطة" },
+        { en: "Needs paint", ar: "يحتاج صبغ" },
+        { en: "Engine issue", ar: "مشكلة في المحرك" },
       ],
     },
     "SUV / 4x4": {
@@ -203,14 +219,15 @@ const LISTING_TAGS = {
       ],
       used: [
         { en: "No accidents", ar: "بلا حوادث" },
+        { en: "Low mileage", ar: "ممشور قليل" },
         { en: "4WD", ar: "دفع رباعي" },
         { en: "Off-road ready", ar: "جاهز للطرق الوعرة" },
-        { en: "Low mileage", ar: "ممشور قليل" },
       ],
       worn: [
-        { en: "Needs work", ar: "يحتاج إصلاح" },
         { en: "High mileage", ar: "ممشور عالي" },
-        { en: "For parts", ar: "للقطع" },
+        { en: "Minor dents", ar: "انبعاجات بسيطة" },
+        { en: "Needs paint", ar: "يحتاج صبغ" },
+        { en: "Engine issue", ar: "مشكلة في المحرك" },
       ],
     },
     Motorcycles: {
@@ -223,13 +240,14 @@ const LISTING_TAGS = {
       used: [
         { en: "No accidents", ar: "بلا حوادث" },
         { en: "Low mileage", ar: "ممشور قليل" },
-        { en: "Helmet included", ar: "خوذة مشمولة" },
         { en: "Single owner", ar: "مالك واحد" },
+        { en: "Helmet included", ar: "خوذة مشمولة" },
       ],
       worn: [
-        { en: "Needs work", ar: "يحتاج إصلاح" },
-        { en: "For parts", ar: "للقطع" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "High mileage", ar: "ممشور عالي" },
+        { en: "Scratches on frame", ar: "خدوش على الهيكل" },
+        { en: "Needs paint", ar: "يحتاج صبغ" },
+        { en: "Engine issue", ar: "مشكلة في المحرك" },
       ],
     },
     "Parts & Accessories": {
@@ -246,8 +264,9 @@ const LISTING_TAGS = {
         { en: "Used", ar: "مستخدم" },
       ],
       worn: [
-        { en: "For parts", ar: "للقطع" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Worn", ar: "مهترئ" },
+        { en: "For repair", ar: "للإصلاح" },
+        { en: "Compatible only", ar: "متوافق فقط" },
       ],
     },
   },
@@ -255,248 +274,270 @@ const LISTING_TAGS = {
     _default: {
       new: [
         { en: "Still in packaging", ar: "لا يزال بالتغليف" },
+        { en: "Smoke-free home", ar: "بيت بلا تدخين" },
         { en: "Gift-ready", ar: "جاهز للإهداء" },
         { en: "Assembly included", ar: "تركيب مشمول" },
-        { en: "Smoke-free home", ar: "بيت بلا تدخين" },
       ],
       used: [
-        { en: "Well maintained", ar: "معتنى به" },
         { en: "Smoke-free home", ar: "بيت بلا تدخين" },
-        { en: "Disassembly available", ar: "تفكيك متاح" },
         { en: "Pet-free home", ar: "بيت بلا حيوانات" },
+        { en: "Minor scratches", ar: "خدوش بسيطة" },
+        { en: "Well maintained", ar: "معتنى به" },
       ],
       worn: [
+        { en: "Stains", ar: "بقع" },
+        { en: "Scratches", ar: "خدوش" },
+        { en: "Loose frame", ar: "الهيكل مرتخي" },
         { en: "Needs restoration", ar: "يحتاج ترميم" },
-        { en: "DIY project", ar: "مشروع شخصي" },
-        { en: "As-is", ar: "كحالته" },
       ],
     },
     Sofas: {
       new: [
         { en: "Still in packaging", ar: "لا يزال بالتغليف" },
-        { en: "Gift-ready", ar: "جاهز للإهداء" },
         { en: "Washable covers", ar: "أغطية قابلة للغسل" },
         { en: "Smoke-free home", ar: "بيت بلا تدخين" },
+        { en: "Gift-ready", ar: "جاهز للإهداء" },
       ],
       used: [
-        { en: "Well maintained", ar: "معتنى به" },
         { en: "Washable covers", ar: "أغطية قابلة للغسل" },
         { en: "Smoke-free home", ar: "بيت بلا تدخين" },
-        { en: "Pet-free home", ar: "بيت بلا حيوانات" },
+        { en: "Firm cushions", ar: "وسائد متماسكة" },
+        { en: "Minor scratches", ar: "خدوش بسيطة" },
       ],
       worn: [
-        { en: "Needs restoration", ar: "يحتاج ترميم" },
         { en: "Stains", ar: "بقع" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Torn upholstery", ar: "التنجيد ممزق" },
+        { en: "Sagging cushions", ar: "وسائد مترهلة" },
+        { en: "Needs reupholstering", ar: "يحتاج إعادة تنجيد" },
       ],
     },
     Beds: {
       new: [
         { en: "Still in packaging", ar: "لا يزال بالتغليف" },
-        { en: "Gift-ready", ar: "جاهز للإهداء" },
         { en: "Mattress included", ar: "فرشة مشمولة" },
         { en: "Smoke-free home", ar: "بيت بلا تدخين" },
+        { en: "Gift-ready", ar: "جاهز للإهداء" },
       ],
       used: [
-        { en: "Well maintained", ar: "معتنى به" },
         { en: "Mattress included", ar: "فرشة مشمولة" },
         { en: "Smoke-free home", ar: "بيت بلا تدخين" },
         { en: "Disassembly available", ar: "تفكيك متاح" },
+        { en: "Well maintained", ar: "معتنى به" },
       ],
       worn: [
-        { en: "Needs restoration", ar: "يحتاج ترميم" },
-        { en: "As-is", ar: "كحالته" },
-        { en: "For parts", ar: "للقطع" },
+        { en: "Stains", ar: "بقع" },
+        { en: "Sagging", ar: "ترهّل" },
+        { en: "Broken slats", ar: "قوائم مكسورة" },
+        { en: "Torn fabric", ar: "قماش ممزق" },
       ],
     },
     "Tables & Chairs": {
       new: [
         { en: "Still in packaging", ar: "لا يزال بالتغليف" },
-        { en: "Gift-ready", ar: "جاهز للإهداء" },
         { en: "Extendable", ar: "قابل للتمديد" },
         { en: "Smoke-free home", ar: "بيت بلا تدخين" },
+        { en: "Gift-ready", ar: "جاهز للإهداء" },
       ],
       used: [
-        { en: "Well maintained", ar: "معتنى به" },
         { en: "Extendable", ar: "قابل للتمديد" },
         { en: "Smoke-free home", ar: "بيت بلا تدخين" },
+        { en: "Sturdy", ar: "متين" },
         { en: "Minor scratches", ar: "خدوش بسيطة" },
       ],
       worn: [
-        { en: "Needs restoration", ar: "يحتاج ترميم" },
         { en: "Wobbly", ar: "مهتز" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Scratches", ar: "خدوش" },
+        { en: "Chipped edges", ar: "حواف متكسرة" },
+        { en: "Loose joints", ar: "مفاصل مرتخية" },
       ],
     },
     Storage: {
       new: [
         { en: "Still in packaging", ar: "لا يزال بالتغليف" },
-        { en: "Gift-ready", ar: "جاهز للإهداء" },
         { en: "Adjustable shelves", ar: "رفوف قابلة للتعديل" },
         { en: "Smoke-free home", ar: "بيت بلا تدخين" },
+        { en: "Gift-ready", ar: "جاهز للإهداء" },
       ],
       used: [
-        { en: "Well maintained", ar: "معتنى به" },
         { en: "Adjustable shelves", ar: "رفوف قابلة للتعديل" },
         { en: "Smoke-free home", ar: "بيت بلا تدخين" },
         { en: "Disassembly available", ar: "تفكيك متاح" },
+        { en: "Minor scratches", ar: "خدوش بسيطة" },
       ],
       worn: [
-        { en: "Needs restoration", ar: "يحتاج ترميم" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Scratches", ar: "خدوش" },
+        { en: "Dented", ar: "منبعج" },
+        { en: "Broken hinges", ar: "مفصلات مكسورة" },
+        { en: "Missing shelves", ar: "رفوف ناقصة" },
       ],
     },
     Decor: {
       new: [
         { en: "Still in packaging", ar: "لا يزال بالتغليف" },
-        { en: "Gift-ready", ar: "جاهز للإهداء" },
         { en: "Handmade", ar: "صناعة يدوية" },
         { en: "Smoke-free home", ar: "بيت بلا تدخين" },
+        { en: "Gift-ready", ar: "جاهز للإهداء" },
       ],
       used: [
         { en: "Handmade", ar: "صناعة يدوية" },
-        { en: "Well maintained", ar: "معتنى به" },
         { en: "Smoke-free home", ar: "بيت بلا تدخين" },
+        { en: "Well maintained", ar: "معتنى به" },
         { en: "Minor scratches", ar: "خدوش بسيطة" },
       ],
       worn: [
-        { en: "Needs restoration", ar: "يحتاج ترميم" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Chips", ar: "تكسرات" },
+        { en: "Faded color", ar: "اللون باهت" },
+        { en: "Cracked", ar: "مشروخ" },
+        { en: "Missing parts", ar: "أجزاء ناقصة" },
       ],
     },
   },
   fashion: {
     _default: {
       new: [
-        { en: "Original tags", ar: "علامة أصلية" },
-        { en: "In-season", ar: "من الموسم" },
+        { en: "Original tags", ar: "بالعلامة الأصلية" },
+        { en: "Unworn", ar: "غير ملبوس" },
         { en: "Gift-boxed", ar: "علبة إهداء" },
         { en: "Authentic", ar: "أصلي" },
       ],
       used: [
-        { en: "From a clean closet", ar: "من خزانة نظيفة" },
-        { en: "Authentic", ar: "أصلي" },
-        { en: "Final sale", ar: "بيع نهائي" },
         { en: "No flaws", ar: "بلا عيوب" },
+        { en: "Minor wear", ar: "استخدام بسيط" },
+        { en: "From a clean closet", ar: "من خزانة نظيفة" },
+        { en: "Smoke-free", ar: "بلا تدخين" },
       ],
       worn: [
-        { en: "Needs repair", ar: "يحتاج إصلاح" },
-        { en: "For upcycling", ar: "لإعادة التدوير" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Visible rips", ar: "تمزق ظاهر" },
+        { en: "Stains", ar: "بقع" },
+        { en: "Faded color", ar: "اللون باهت" },
+        { en: "Missing buttons", ar: "أزرار ناقصة" },
+        { en: "Broken zipper", ar: "سحّاب مكسور" },
       ],
     },
     Men: {
       new: [
-        { en: "Original tags", ar: "علامة أصلية" },
-        { en: "In-season", ar: "من الموسم" },
+        { en: "Original tags", ar: "بالعلامة الأصلية" },
+        { en: "Unworn", ar: "غير ملبوس" },
         { en: "Gift-boxed", ar: "علبة إهداء" },
         { en: "Authentic", ar: "أصلي" },
       ],
       used: [
-        { en: "From a clean closet", ar: "من خزانة نظيفة" },
-        { en: "Authentic", ar: "أصلي" },
         { en: "No flaws", ar: "بلا عيوب" },
-        { en: "Final sale", ar: "بيع نهائي" },
+        { en: "Minor wear", ar: "استخدام بسيط" },
+        { en: "From a clean closet", ar: "من خزانة نظيفة" },
+        { en: "Smoke-free", ar: "بلا تدخين" },
       ],
       worn: [
-        { en: "Needs repair", ar: "يحتاج إصلاح" },
-        { en: "For upcycling", ar: "لإعادة التدوير" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Visible rips", ar: "تمزق ظاهر" },
+        { en: "Stains", ar: "بقع" },
+        { en: "Faded color", ar: "اللون باهت" },
+        { en: "Missing buttons", ar: "أزرار ناقصة" },
+        { en: "Broken zipper", ar: "سحّاب مكسور" },
       ],
     },
     Women: {
       new: [
-        { en: "Original tags", ar: "علامة أصلية" },
-        { en: "In-season", ar: "من الموسم" },
+        { en: "Original tags", ar: "بالعلامة الأصلية" },
+        { en: "Unworn", ar: "غير ملبوس" },
         { en: "Gift-boxed", ar: "علبة إهداء" },
         { en: "Authentic", ar: "أصلي" },
       ],
       used: [
-        { en: "From a clean closet", ar: "من خزانة نظيفة" },
-        { en: "Authentic", ar: "أصلي" },
         { en: "No flaws", ar: "بلا عيوب" },
-        { en: "Final sale", ar: "بيع نهائي" },
+        { en: "Minor wear", ar: "استخدام بسيط" },
+        { en: "From a clean closet", ar: "من خزانة نظيفة" },
+        { en: "Smoke-free", ar: "بلا تدخين" },
       ],
       worn: [
-        { en: "Needs repair", ar: "يحتاج إصلاح" },
-        { en: "For upcycling", ar: "لإعادة التدوير" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Visible rips", ar: "تمزق ظاهر" },
+        { en: "Stains", ar: "بقع" },
+        { en: "Faded color", ar: "اللون باهت" },
+        { en: "Missing buttons", ar: "أزرار ناقصة" },
+        { en: "Broken zipper", ar: "سحّاب مكسور" },
       ],
     },
     Kids: {
       new: [
-        { en: "Original tags", ar: "علامة أصلية" },
-        { en: "In-season", ar: "من الموسم" },
+        { en: "Original tags", ar: "بالعلامة الأصلية" },
+        { en: "Unworn", ar: "غير ملبوس" },
         { en: "Gift-boxed", ar: "علبة إهداء" },
         { en: "Authentic", ar: "أصلي" },
       ],
       used: [
-        { en: "From a clean closet", ar: "من خزانة نظيفة" },
-        { en: "Authentic", ar: "أصلي" },
         { en: "No flaws", ar: "بلا عيوب" },
-        { en: "Final sale", ar: "بيع نهائي" },
+        { en: "Minor wear", ar: "استخدام بسيط" },
+        { en: "From a clean closet", ar: "من خزانة نظيفة" },
+        { en: "Smoke-free", ar: "بلا تدخين" },
       ],
       worn: [
-        { en: "Needs repair", ar: "يحتاج إصلاح" },
-        { en: "For upcycling", ar: "لإعادة التدوير" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Visible rips", ar: "تمزق ظاهر" },
+        { en: "Stains", ar: "بقع" },
+        { en: "Faded color", ar: "اللون باهت" },
+        { en: "Missing buttons", ar: "أزرار ناقصة" },
+        { en: "Broken zipper", ar: "سحّاب مكسور" },
       ],
     },
     Shoes: {
       new: [
-        { en: "Original box", ar: "علبة أصلية" },
-        { en: "Original tags", ar: "علامة أصلية" },
-        { en: "In-season", ar: "من الموسم" },
+        { en: "Original box", ar: "بالعلبة الأصلية" },
+        { en: "Original tags", ar: "بالعلامة الأصلية" },
+        { en: "Unworn", ar: "غير ملبوس" },
         { en: "Authentic", ar: "أصلي" },
       ],
       used: [
-        { en: "From a clean closet", ar: "من خزانة نظيفة" },
-        { en: "Authentic", ar: "أصلي" },
-        { en: "Minor wear", ar: "استخدام بسيط" },
         { en: "No flaws", ar: "بلا عيوب" },
+        { en: "Minor wear", ar: "استخدام بسيط" },
+        { en: "From a clean closet", ar: "من خزانة نظيفة" },
+        { en: "Smoke-free", ar: "بلا تدخين" },
       ],
       worn: [
-        { en: "Needs repair", ar: "يحتاج إصلاح" },
         { en: "Sole wear", ar: "تآكل النعل" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Visible rips", ar: "تمزق ظاهر" },
+        { en: "Scuffs", ar: "حكّات" },
+        { en: "Broken sole", ar: "النعل مكسور" },
+        { en: "Worn insoles", ar: "نعل داخلي مهترئ" },
       ],
     },
     Bags: {
       new: [
         { en: "Dust bag included", ar: "كيس حفظ مشمول" },
-        { en: "Original tags", ar: "علامة أصلية" },
+        { en: "Original tags", ar: "بالعلامة الأصلية" },
         { en: "Gift-boxed", ar: "علبة إهداء" },
         { en: "Authentic", ar: "أصلي" },
       ],
       used: [
         { en: "Dust bag included", ar: "كيس حفظ مشمول" },
-        { en: "Authentic", ar: "أصلي" },
         { en: "Minor wear", ar: "استخدام بسيط" },
         { en: "No flaws", ar: "بلا عيوب" },
+        { en: "From a clean closet", ar: "من خزانة نظيفة" },
       ],
       worn: [
-        { en: "Needs repair", ar: "يحتاج إصلاح" },
-        { en: "For upcycling", ar: "لإعادة التدوير" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Scratches", ar: "خدوش" },
+        { en: "Torn lining", ar: "البطانة ممزقة" },
+        { en: "Broken zipper", ar: "سحّاب مكسور" },
+        { en: "Faded hardware", ar: "الإكسسوارات باهتة" },
+        { en: "Stains", ar: "بقع" },
       ],
     },
     Accessories: {
       new: [
         { en: "Gift-boxed", ar: "علبة إهداء" },
-        { en: "Original tags", ar: "علامة أصلية" },
+        { en: "Original tags", ar: "بالعلامة الأصلية" },
+        { en: "Unworn", ar: "غير مستخدم" },
         { en: "Authentic", ar: "أصلي" },
-        { en: "In-season", ar: "من الموسم" },
       ],
       used: [
-        { en: "Authentic", ar: "أصلي" },
         { en: "No flaws", ar: "بلا عيوب" },
         { en: "Minor wear", ar: "استخدام بسيط" },
         { en: "From a clean closet", ar: "من خزانة نظيفة" },
+        { en: "Authentic", ar: "أصلي" },
       ],
       worn: [
-        { en: "Needs repair", ar: "يحتاج إصلاح" },
-        { en: "For upcycling", ar: "لإعادة التدوير" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Tarnished", ar: "مطعّج" },
+        { en: "Broken clasp", ar: "القفل مكسور" },
+        { en: "Scratches", ar: "خدوش" },
+        { en: "Faded", ar: "باهت" },
+        { en: "Missing stones", ar: "أحجار ناقصة" },
       ],
     },
   },
@@ -504,20 +545,21 @@ const LISTING_TAGS = {
     _default: {
       new: [
         { en: "Never occupied", ar: "غير مأهول" },
-        { en: "Furnished", ar: "مفروش" },
-        { en: "Available now", ar: "متاح الآن" },
         { en: "Direct owner", ar: "من المالك مباشرة" },
+        { en: "No commission", ar: "بدون عمولة" },
+        { en: "Available now", ar: "متاح الآن" },
       ],
       used: [
-        { en: "Furnished", ar: "مفروش" },
+        { en: "Direct owner", ar: "من المالك مباشرة" },
+        { en: "No commission", ar: "بدون عمولة" },
         { en: "Utilities included", ar: "شامل الخدمات" },
         { en: "Parking included", ar: "موقف مشمول" },
-        { en: "Elevator", ar: "مصعد" },
       ],
       worn: [
         { en: "Needs renovation", ar: "يحتاج تجديد" },
+        { en: "Needs paint", ar: "يحتاج صبغ" },
+        { en: "Old plumbing", ar: "سباكة قديمة" },
         { en: "Fixer-upper", ar: "تحت الصيانة" },
-        { en: "As-is", ar: "كحالته" },
       ],
     },
     "For Sale": {
@@ -535,16 +577,17 @@ const LISTING_TAGS = {
       ],
       worn: [
         { en: "Needs renovation", ar: "يحتاج تجديد" },
+        { en: "Needs paint", ar: "يحتاج صبغ" },
+        { en: "Old plumbing", ar: "سباكة قديمة" },
         { en: "Fixer-upper", ar: "تحت الصيانة" },
-        { en: "As-is", ar: "كحالته" },
       ],
     },
     "For Rent": {
       new: [
         { en: "Furnished", ar: "مفروش" },
-        { en: "Available now", ar: "متاح الآن" },
+        { en: "Never occupied", ar: "غير مأهول" },
         { en: "Short-term ok", ar: "قصير الأمد" },
-        { en: "Direct owner", ar: "من المالك مباشرة" },
+        { en: "Available now", ar: "متاح الآن" },
       ],
       used: [
         { en: "Furnished", ar: "مفروش" },
@@ -554,7 +597,9 @@ const LISTING_TAGS = {
       ],
       worn: [
         { en: "Needs renovation", ar: "يحتاج تجديد" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Needs paint", ar: "يحتاج صبغ" },
+        { en: "Old AC", ar: "مكيف قديم" },
+        { en: "Damp", ar: "رطوبة" },
       ],
     },
     Apartments: {
@@ -572,8 +617,9 @@ const LISTING_TAGS = {
       ],
       worn: [
         { en: "Needs renovation", ar: "يحتاج تجديد" },
-        { en: "Fixer-upper", ar: "تحت الصيانة" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Needs paint", ar: "يحتاج صبغ" },
+        { en: "Old plumbing", ar: "سباكة قديمة" },
+        { en: "Damp", ar: "رطوبة" },
       ],
     },
     Villas: {
@@ -591,26 +637,29 @@ const LISTING_TAGS = {
       ],
       worn: [
         { en: "Needs renovation", ar: "يحتاج تجديد" },
-        { en: "Fixer-upper", ar: "تحت الصيانة" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Needs paint", ar: "يحتاج صبغ" },
+        { en: "Old AC", ar: "مكيف قديم" },
+        { en: "Cracks", ar: "شقوق" },
       ],
     },
     Land: {
       new: [
         { en: "Titled", ar: "مخطّط" },
         { en: "Corner plot", ar: "زاوية" },
-        { en: "Available now", ar: "متاح الآن" },
         { en: "Direct owner", ar: "من المالك مباشرة" },
+        { en: "Available now", ar: "متاح الآن" },
       ],
       used: [
         { en: "Titled", ar: "مخطّط" },
         { en: "Corner plot", ar: "زاوية" },
-        { en: "Direct owner", ar: "من المالك مباشرة" },
+        { en: "Walled", ar: "مسيّج" },
         { en: "No commission", ar: "بدون عمولة" },
       ],
       worn: [
         { en: "Needs clearing", ar: "يحتاج تنظيف" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Uneven", ar: "غير مستوي" },
+        { en: "No utilities", ar: "بلا خدمات" },
+        { en: "Untitled", ar: "غير مخطّط" },
       ],
     },
   },
@@ -623,137 +672,154 @@ const LISTING_TAGS = {
         { en: "Warranty on work", ar: "ضمان على العمل" },
       ],
       used: [
-        { en: "Mobile service", ar: "خدمة متنقلة" },
+        { en: "Experienced", ar: "ذو خبرة" },
         { en: "Materials included", ar: "شامل المواد" },
-        { en: "Licensed", ar: "مرخّص" },
+        { en: "Mobile service", ar: "خدمة متنقلة" },
         { en: "Warranty on work", ar: "ضمان على العمل" },
       ],
       worn: [
-        { en: "As-is", ar: "كحالته" },
         { en: "Limited availability", ar: "توفّر محدود" },
+        { en: "By appointment", ar: "بموعد مسبق" },
       ],
     },
     Cleaning: {
       new: [
         { en: "Same-day service", ar: "خدمة بنفس اليوم" },
         { en: "Eco-friendly", ar: "صديق للبيئة" },
-        { en: "Licensed", ar: "مرخّص" },
         { en: "First-time discount", ar: "خصم أول طلب" },
+        { en: "Licensed", ar: "مرخّص" },
       ],
       used: [
-        { en: "Mobile service", ar: "خدمة متنقلة" },
+        { en: "Experienced", ar: "ذو خبرة" },
         { en: "Eco-friendly", ar: "صديق للبيئة" },
         { en: "Materials included", ar: "شامل المواد" },
-        { en: "Licensed", ar: "مرخّص" },
+        { en: "Mobile service", ar: "خدمة متنقلة" },
       ],
-      worn: [{ en: "As-is", ar: "كحالته" }],
+      worn: [
+        { en: "Limited availability", ar: "توفّر محدود" },
+        { en: "By appointment", ar: "بموعد مسبق" },
+      ],
     },
     Maintenance: {
       new: [
         { en: "Same-day service", ar: "خدمة بنفس اليوم" },
+        { en: "First-time discount", ar: "خصم أول طلب" },
         { en: "Warranty on work", ar: "ضمان على العمل" },
         { en: "Licensed", ar: "مرخّص" },
-        { en: "First-time discount", ar: "خصم أول طلب" },
       ],
       used: [
-        { en: "Mobile service", ar: "خدمة متنقلة" },
+        { en: "Experienced", ar: "ذو خبرة" },
         { en: "Materials included", ar: "شامل المواد" },
+        { en: "Mobile service", ar: "خدمة متنقلة" },
         { en: "Warranty on work", ar: "ضمان على العمل" },
-        { en: "Licensed", ar: "مرخّص" },
       ],
-      worn: [{ en: "As-is", ar: "كحالته" }],
+      worn: [
+        { en: "Limited availability", ar: "توفّر محدود" },
+        { en: "By appointment", ar: "بموعد مسبق" },
+      ],
     },
     Tutoring: {
       new: [
+        { en: "Free trial", ar: "تجربة مجانية" },
         { en: "First-time discount", ar: "خصم أول طلب" },
         { en: "Certified", ar: "معتمد" },
-        { en: "Online ok", ar: "أونلاين" },
         { en: "Beginner friendly", ar: "للمبتدئين" },
       ],
       used: [
+        { en: "Experienced", ar: "ذو خبرة" },
         { en: "Certified", ar: "معتمد" },
-        { en: "Online ok", ar: "أونلاين" },
         { en: "Materials included", ar: "شامل المواد" },
         { en: "One-on-one", ar: "خصوصي" },
       ],
-      worn: [],
+      worn: [
+        { en: "Group only", ar: "جماعي فقط" },
+        { en: "Online only", ar: "أونلاين فقط" },
+      ],
     },
     Transport: {
       new: [
         { en: "Same-day service", ar: "خدمة بنفس اليوم" },
+        { en: "First-time discount", ar: "خصم أول طلب" },
         { en: "Insured", ar: "مؤمّن" },
         { en: "Licensed", ar: "مرخّص" },
-        { en: "First-time discount", ar: "خصم أول طلب" },
       ],
       used: [
-        { en: "Mobile service", ar: "خدمة متنقلة" },
+        { en: "Experienced", ar: "ذو خبرة" },
         { en: "Insured", ar: "مؤمّن" },
-        { en: "Licensed", ar: "مرخّص" },
         { en: "Available on date", ar: "متاح بالتاريخ" },
+        { en: "Licensed", ar: "مرخّص" },
       ],
-      worn: [{ en: "As-is", ar: "كحالته" }],
+      worn: [
+        { en: "Limited availability", ar: "توفّر محدود" },
+        { en: "By appointment", ar: "بموعد مسبق" },
+      ],
     },
     Events: {
       new: [
         { en: "Same-day service", ar: "خدمة بنفس اليوم" },
-        { en: "Setup included", ar: "تركيب مشمول" },
         { en: "All-inclusive", ar: "شامل الكل" },
+        { en: "First-time discount", ar: "خصم أول طلب" },
         { en: "Licensed", ar: "مرخّص" },
       ],
       used: [
+        { en: "Experienced", ar: "ذو خبرة" },
         { en: "Setup included", ar: "تركيب مشمول" },
-        { en: "Mobile service", ar: "خدمة متنقلة" },
         { en: "Customizable", ar: "حسب الطلب" },
         { en: "Available on date", ar: "متاح بالتاريخ" },
       ],
-      worn: [],
+      worn: [
+        { en: "Limited availability", ar: "توفّر محدود" },
+        { en: "By appointment", ar: "بموعد مسبق" },
+      ],
     },
   },
   toys: {
     _default: {
       new: [
-        { en: "Original packaging", ar: "تغليف أصلي" },
+        { en: "Original packaging", ar: "بالتغليف الأصلي" },
         { en: "Sealed", ar: "مختوم" },
         { en: "Gift-ready", ar: "جاهز للإهداء" },
-        { en: "Smoke-free home", ar: "بيت بلا تدخين" },
+        { en: "Age-appropriate", ar: "مناسب للعمر" },
       ],
       used: [
         { en: "All pieces", ar: "كل القطع" },
-        { en: "Smoke-free home", ar: "بيت بلا تدخين" },
         { en: "Complete set", ar: "طقم كامل" },
+        { en: "Smoke-free home", ar: "بيت بلا تدخين" },
         { en: "Gently played with", ar: "استخدام بسيط" },
       ],
       worn: [
         { en: "Missing pieces", ar: "قطع ناقصة" },
-        { en: "For parts", ar: "للقطع" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Scratches", ar: "خدوش" },
+        { en: "Broken parts", ar: "أجزاء مكسورة" },
+        { en: "Faded", ar: "باهت" },
       ],
     },
     "Kids Toys": {
       new: [
-        { en: "Original packaging", ar: "تغليف أصلي" },
+        { en: "Original packaging", ar: "بالتغليف الأصلي" },
         { en: "Sealed", ar: "مختوم" },
         { en: "Gift-ready", ar: "جاهز للإهداء" },
         { en: "Age-appropriate", ar: "مناسب للعمر" },
       ],
       used: [
         { en: "All pieces", ar: "كل القطع" },
-        { en: "Age-appropriate", ar: "مناسب للعمر" },
-        { en: "Smoke-free home", ar: "بيت بلا تدخين" },
         { en: "Complete set", ar: "طقم كامل" },
+        { en: "Smoke-free home", ar: "بيت بلا تدخين" },
+        { en: "Gently played with", ar: "استخدام بسيط" },
       ],
       worn: [
         { en: "Missing pieces", ar: "قطع ناقصة" },
-        { en: "For parts", ar: "للقطع" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Scratches", ar: "خدوش" },
+        { en: "Broken parts", ar: "أجزاء مكسورة" },
+        { en: "Faded", ar: "باهت" },
       ],
     },
     "Board Games": {
       new: [
         { en: "Sealed", ar: "مختوم" },
         { en: "Instructions included", ar: "دليل اللعب مشمول" },
-        { en: "Gift-ready", ar: "جاهز للإهداء" },
         { en: "All pieces", ar: "كل القطع" },
+        { en: "Gift-ready", ar: "جاهز للإهداء" },
       ],
       used: [
         { en: "All pieces", ar: "كل القطع" },
@@ -763,13 +829,14 @@ const LISTING_TAGS = {
       ],
       worn: [
         { en: "Missing pieces", ar: "قطع ناقصة" },
-        { en: "For parts", ar: "للقطع" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Worn box", ar: "العلبة مهترئة" },
+        { en: "Missing instructions", ar: "الدليل ناقص" },
+        { en: "Damaged cards", ar: "بطاقات تالفة" },
       ],
     },
     Collectibles: {
       new: [
-        { en: "Original packaging", ar: "تغليف أصلي" },
+        { en: "Original packaging", ar: "بالتغليف الأصلي" },
         { en: "Sealed", ar: "مختوم" },
         { en: "Limited edition", ar: "إصدار محدود" },
         { en: "Gift-ready", ar: "جاهز للإهداء" },
@@ -781,37 +848,40 @@ const LISTING_TAGS = {
         { en: "Smoke-free home", ar: "بيت بلا تدخين" },
       ],
       worn: [
-        { en: "For parts", ar: "للقطع" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Scratches", ar: "خدوش" },
+        { en: "Missing parts", ar: "أجزاء ناقصة" },
+        { en: "Faded", ar: "باهت" },
+        { en: "Damaged box", ar: "علبة تالفة" },
       ],
     },
   },
   sports: {
     _default: {
       new: [
-        { en: "Gift-ready", ar: "جاهز للإهداء" },
-        { en: "Still tagged", ar: "لا يزال بالبطاقة" },
+        { en: "Still tagged", ar: "بالبطاقة" },
         { en: "All accessories", ar: "كل الملحقات" },
         { en: "Carry bag included", ar: "حقيبة حمل مشمولة" },
+        { en: "Gift-ready", ar: "جاهز للإهداء" },
       ],
       used: [
         { en: "All accessories", ar: "كل الملحقات" },
-        { en: "Carry bag included", ar: "حقيبة حمل مشمولة" },
         { en: "Minor wear", ar: "استخدام بسيط" },
         { en: "Well maintained", ar: "معتنى به" },
+        { en: "Carry bag included", ar: "حقيبة حمل مشمولة" },
       ],
       worn: [
-        { en: "Needs maintenance", ar: "يحتاج صيانة" },
-        { en: "For parts", ar: "للقطع" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Rust", ar: "صدأ" },
+        { en: "Torn grip", ar: "المقبض ممزق" },
+        { en: "Missing parts", ar: "أجزاء ناقصة" },
+        { en: "Squeaky", ar: "يصدر صوت" },
       ],
     },
     Fitness: {
       new: [
-        { en: "Gift-ready", ar: "جاهز للإهداء" },
+        { en: "Still tagged", ar: "بالبطاقة" },
         { en: "All accessories", ar: "كل الملحقات" },
         { en: "Folds flat", ar: "قابل للطي" },
-        { en: "Still tagged", ar: "لا يزال بالبطاقة" },
+        { en: "Gift-ready", ar: "جاهز للإهداء" },
       ],
       used: [
         { en: "All accessories", ar: "كل الملحقات" },
@@ -820,17 +890,18 @@ const LISTING_TAGS = {
         { en: "Well maintained", ar: "معتنى به" },
       ],
       worn: [
-        { en: "Needs maintenance", ar: "يحتاج صيانة" },
-        { en: "For parts", ar: "للقطع" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Rust", ar: "صدأ" },
+        { en: "Torn grip", ar: "المقبض ممزق" },
+        { en: "Missing parts", ar: "أجزاء ناقصة" },
+        { en: "Squeaky", ar: "يصدر صوت" },
       ],
     },
     Bicycles: {
       new: [
-        { en: "Gift-ready", ar: "جاهز للإهداء" },
+        { en: "Still tagged", ar: "بالبطاقة" },
         { en: "Helmet included", ar: "خوذة مشمولة" },
         { en: "All accessories", ar: "كل الملحقات" },
-        { en: "Still tagged", ar: "لا يزال بالبطاقة" },
+        { en: "Gift-ready", ar: "جاهز للإهداء" },
       ],
       used: [
         { en: "Helmet included", ar: "خوذة مشمولة" },
@@ -839,17 +910,18 @@ const LISTING_TAGS = {
         { en: "All accessories", ar: "كل الملحقات" },
       ],
       worn: [
-        { en: "Needs maintenance", ar: "يحتاج صيانة" },
-        { en: "For parts", ar: "للقطع" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Rust", ar: "صدأ" },
+        { en: "Worn tires", ar: "إطارات مهترئة" },
+        { en: "Scratches", ar: "خدوش" },
+        { en: "Needs tune-up", ar: "يحتاج ضبط" },
       ],
     },
     "Team Sports": {
       new: [
-        { en: "Gift-ready", ar: "جاهز للإهداء" },
+        { en: "Still tagged", ar: "بالبطاقة" },
         { en: "Full set", ar: "طقم كامل" },
         { en: "All accessories", ar: "كل الملحقات" },
-        { en: "Still tagged", ar: "لا يزال بالبطاقة" },
+        { en: "Gift-ready", ar: "جاهز للإهداء" },
       ],
       used: [
         { en: "Full set", ar: "طقم كامل" },
@@ -858,16 +930,18 @@ const LISTING_TAGS = {
         { en: "Well maintained", ar: "معتنى به" },
       ],
       worn: [
-        { en: "For parts", ar: "للقطع" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Worn grip", ar: "المقبض مهترئ" },
+        { en: "Missing parts", ar: "أجزاء ناقصة" },
+        { en: "Scratches", ar: "خدوش" },
+        { en: "Faded", ar: "باهت" },
       ],
     },
     Outdoor: {
       new: [
-        { en: "Gift-ready", ar: "جاهز للإهداء" },
+        { en: "Still tagged", ar: "بالبطاقة" },
         { en: "All accessories", ar: "كل الملحقات" },
         { en: "Carry bag included", ar: "حقيبة حمل مشمولة" },
-        { en: "Still tagged", ar: "لا يزال بالبطاقة" },
+        { en: "Gift-ready", ar: "جاهز للإهداء" },
       ],
       used: [
         { en: "All accessories", ar: "كل الملحقات" },
@@ -876,9 +950,10 @@ const LISTING_TAGS = {
         { en: "Well maintained", ar: "معتنى به" },
       ],
       worn: [
-        { en: "Needs maintenance", ar: "يحتاج صيانة" },
-        { en: "For parts", ar: "للقطع" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Rust", ar: "صدأ" },
+        { en: "Tears", ar: "تمزّق" },
+        { en: "Missing parts", ar: "أجزاء ناقصة" },
+        { en: "Faded", ar: "باهت" },
       ],
     },
   },
@@ -886,9 +961,9 @@ const LISTING_TAGS = {
     _default: {
       new: [
         { en: "Shrink-wrapped", ar: "مغلوف بالنايلون" },
-        { en: "Gift-ready", ar: "جاهز للإهداء" },
         { en: "First edition", ar: "الطبعة الأولى" },
         { en: "Hardcover", ar: "غلاف مقوّى" },
+        { en: "Gift-ready", ar: "جاهز للإهداء" },
       ],
       used: [
         { en: "No highlights", ar: "بلا تظليل" },
@@ -898,17 +973,18 @@ const LISTING_TAGS = {
       ],
       worn: [
         { en: "Highlighted", ar: "فيه تظليل" },
+        { en: "Notes inside", ar: "ملاحظات بداخله" },
         { en: "Loose binding", ar: "تجليد مرتخي" },
-        { en: "For parts", ar: "للقطع" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Torn pages", ar: "صفحات ممزقة" },
+        { en: "Water damage", ar: "تلف بالماء" },
       ],
     },
     Textbooks: {
       new: [
         { en: "Shrink-wrapped", ar: "مغلوف بالنايلون" },
         { en: "Edition noted", ar: "الطبعة مذكورة" },
-        { en: "Gift-ready", ar: "جاهز للإهداء" },
         { en: "Hardcover", ar: "غلاف مقوّى" },
+        { en: "Gift-ready", ar: "جاهز للإهداء" },
       ],
       used: [
         { en: "No highlights", ar: "بلا تظليل" },
@@ -918,16 +994,18 @@ const LISTING_TAGS = {
       ],
       worn: [
         { en: "Highlighted", ar: "فيه تظليل" },
+        { en: "Notes inside", ar: "ملاحظات بداخله" },
         { en: "Loose binding", ar: "تجليد مرتخي" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Torn pages", ar: "صفحات ممزقة" },
+        { en: "Water damage", ar: "تلف بالماء" },
       ],
     },
     Novels: {
       new: [
         { en: "Shrink-wrapped", ar: "مغلوف بالنايلون" },
-        { en: "Gift-ready", ar: "جاهز للإهداء" },
         { en: "First edition", ar: "الطبعة الأولى" },
         { en: "Hardcover", ar: "غلاف مقوّى" },
+        { en: "Gift-ready", ar: "جاهز للإهداء" },
       ],
       used: [
         { en: "No highlights", ar: "بلا تظليل" },
@@ -938,15 +1016,17 @@ const LISTING_TAGS = {
       worn: [
         { en: "Highlighted", ar: "فيه تظليل" },
         { en: "Loose binding", ar: "تجليد مرتخي" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Torn cover", ar: "الغلاف ممزق" },
+        { en: "Yellowed pages", ar: "صفحات مصفرّة" },
+        { en: "Water damage", ar: "تلف بالماء" },
       ],
     },
     Religious: {
       new: [
         { en: "Shrink-wrapped", ar: "مغلوف بالنايلون" },
-        { en: "Gift-ready", ar: "جاهز للإهداء" },
-        { en: "Hardcover", ar: "غلاف مقوّى" },
         { en: "First edition", ar: "الطبعة الأولى" },
+        { en: "Hardcover", ar: "غلاف مقوّى" },
+        { en: "Gift-ready", ar: "جاهز للإهداء" },
       ],
       used: [
         { en: "No highlights", ar: "بلا تظليل" },
@@ -957,15 +1037,17 @@ const LISTING_TAGS = {
       worn: [
         { en: "Highlighted", ar: "فيه تظليل" },
         { en: "Loose binding", ar: "تجليد مرتخي" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Torn cover", ar: "الغلاف ممزق" },
+        { en: "Worn cover", ar: "غلاف مهترئ" },
+        { en: "Water damage", ar: "تلف بالماء" },
       ],
     },
     Children: {
       new: [
         { en: "Shrink-wrapped", ar: "مغلوف بالنايلون" },
-        { en: "Gift-ready", ar: "جاهز للإهداء" },
         { en: "Illustrated", ar: "مصوّر" },
         { en: "Hardcover", ar: "غلاف مقوّى" },
+        { en: "Gift-ready", ar: "جاهز للإهداء" },
       ],
       used: [
         { en: "No highlights", ar: "بلا تظليل" },
@@ -974,9 +1056,11 @@ const LISTING_TAGS = {
         { en: "Complete set", ar: "مجموعة كاملة" },
       ],
       worn: [
-        { en: "Highlighted", ar: "فيه تظليل" },
+        { en: "Torn pages", ar: "صفحات ممزقة" },
+        { en: "Scribbles", ar: "شخبطات" },
         { en: "Loose binding", ar: "تجليد مرتخي" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Worn cover", ar: "غلاف مهترئ" },
+        { en: "Missing pages", ar: "صفحات ناقصة" },
       ],
     },
   },
@@ -996,7 +1080,8 @@ const LISTING_TAGS = {
       ],
       worn: [
         { en: "Needs care", ar: "يحتاج رعاية" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Underweight", ar: "نحيف" },
+        { en: "Injured", ar: "مصاب" },
       ],
     },
     Livestock: {
@@ -1014,7 +1099,8 @@ const LISTING_TAGS = {
       ],
       worn: [
         { en: "Needs care", ar: "يحتاج رعاية" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Underweight", ar: "نحيف" },
+        { en: "Injured", ar: "مصاب" },
       ],
     },
     Pets: {
@@ -1032,7 +1118,9 @@ const LISTING_TAGS = {
       ],
       worn: [
         { en: "Needs care", ar: "يحتاج رعاية" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Special diet", ar: "يحتاج حمية خاصة" },
+        { en: "Injured", ar: "مصاب" },
+        { en: "Unvaccinated", ar: "غير مطعّم" },
       ],
     },
     Birds: {
@@ -1050,7 +1138,8 @@ const LISTING_TAGS = {
       ],
       worn: [
         { en: "Needs care", ar: "يحتاج رعاية" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Injured", ar: "مصاب" },
+        { en: "Plucked feathers", ar: "ريش متساقط" },
       ],
     },
     Fish: {
@@ -1068,7 +1157,8 @@ const LISTING_TAGS = {
       ],
       worn: [
         { en: "Needs care", ar: "يحتاج رعاية" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Sick", ar: "مريض" },
+        { en: "Injured", ar: "مصاب" },
       ],
     },
     Supplies: {
@@ -1085,8 +1175,10 @@ const LISTING_TAGS = {
         { en: "Used", ar: "مستخدم" },
       ],
       worn: [
-        { en: "For parts", ar: "للقطع" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Broken", ar: "مكسور" },
+        { en: "Missing parts", ar: "أجزاء ناقصة" },
+        { en: "Expired", ar: "منتهي الصلاحية" },
+        { en: "Worn", ar: "مهترئ" },
       ],
     },
   },
@@ -1102,7 +1194,7 @@ const LISTING_TAGS = {
         { en: "Experience required", ar: "يتطلب خبرة" },
         { en: "Visa provided", ar: "إقامة مشمولة" },
         { en: "Remote ok", ar: "عن بُعد" },
-        { en: "Immediate start", ar: "بدء فوري" },
+        { en: "Flexible hours", ar: "ساعات مرنة" },
       ],
       worn: [],
     },
@@ -1161,9 +1253,9 @@ const LISTING_TAGS = {
         { en: "Beginner friendly", ar: "للمبتدئين" },
       ],
       used: [
+        { en: "Experienced", ar: "ذو خبرة" },
         { en: "Certified", ar: "معتمد" },
         { en: "Materials included", ar: "شامل المواد" },
-        { en: "Group ok", ar: "جماعي" },
         { en: "One-on-one", ar: "خصوصي" },
       ],
       worn: [],
@@ -1176,10 +1268,10 @@ const LISTING_TAGS = {
         { en: "One-on-one", ar: "خصوصي" },
       ],
       used: [
+        { en: "Experienced", ar: "ذو خبرة" },
         { en: "Certified", ar: "معتمد" },
         { en: "Materials included", ar: "شامل المواد" },
         { en: "One-on-one", ar: "خصوصي" },
-        { en: "Online ok", ar: "أونلاين" },
       ],
       worn: [],
     },
@@ -1191,10 +1283,10 @@ const LISTING_TAGS = {
         { en: "Completion certificate", ar: "شهادة إتمام" },
       ],
       used: [
+        { en: "Experienced", ar: "ذو خبرة" },
         { en: "Certified", ar: "معتمد" },
         { en: "Materials included", ar: "شامل المواد" },
         { en: "Completion certificate", ar: "شهادة إتمام" },
-        { en: "Group ok", ar: "جماعي" },
       ],
       worn: [],
     },
@@ -1206,9 +1298,9 @@ const LISTING_TAGS = {
         { en: "Beginner friendly", ar: "للمبتدئين" },
       ],
       used: [
+        { en: "Experienced", ar: "ذو خبرة" },
         { en: "Certified", ar: "معتمد" },
         { en: "Materials included", ar: "شامل المواد" },
-        { en: "Group ok", ar: "جماعي" },
         { en: "One-on-one", ar: "خصوصي" },
       ],
       worn: [],
@@ -1223,7 +1315,7 @@ const LISTING_TAGS = {
         { en: "Sample available", ar: "عيّنة متاحة" },
       ],
       used: [
-        { en: "Mobile service", ar: "خدمة متنقلة" },
+        { en: "Experienced", ar: "ذو خبرة" },
         { en: "Setup included", ar: "تركيب مشمول" },
         { en: "Available on date", ar: "متاح بالتاريخ" },
         { en: "Customizable", ar: "حسب الطلب" },
@@ -1238,7 +1330,7 @@ const LISTING_TAGS = {
         { en: "Booking required", ar: "يتطلب حجز" },
       ],
       used: [
-        { en: "Mobile service", ar: "خدمة متنقلة" },
+        { en: "Experienced", ar: "ذو خبرة" },
         { en: "Setup included", ar: "تركيب مشمول" },
         { en: "Available on date", ar: "متاح بالتاريخ" },
         { en: "Customizable", ar: "حسب الطلب" },
@@ -1253,7 +1345,7 @@ const LISTING_TAGS = {
         { en: "Mobile service", ar: "خدمة متنقلة" },
       ],
       used: [
-        { en: "Mobile service", ar: "خدمة متنقلة" },
+        { en: "Experienced", ar: "ذو خبرة" },
         { en: "Setup included", ar: "تركيب مشمول" },
         { en: "Available on date", ar: "متاح بالتاريخ" },
         { en: "Customizable", ar: "حسب الطلب" },
@@ -1268,8 +1360,8 @@ const LISTING_TAGS = {
         { en: "Sample available", ar: "عيّنة متاحة" },
       ],
       used: [
+        { en: "Experienced", ar: "ذو خبرة" },
         { en: "Tasting available", ar: "تذوق متاح" },
-        { en: "Mobile service", ar: "خدمة متنقلة" },
         { en: "Setup included", ar: "تركيب مشمول" },
         { en: "Available on date", ar: "متاح بالتاريخ" },
       ],
@@ -1283,10 +1375,10 @@ const LISTING_TAGS = {
         { en: "Available on date", ar: "متاح بالتاريخ" },
       ],
       used: [
+        { en: "Experienced", ar: "ذو خبرة" },
         { en: "Setup included", ar: "تركيب مشمول" },
         { en: "Available on date", ar: "متاح بالتاريخ" },
         { en: "Customizable", ar: "حسب الطلب" },
-        { en: "Mobile service", ar: "خدمة متنقلة" },
       ],
       worn: [],
     },
@@ -1307,8 +1399,10 @@ const LISTING_TAGS = {
       ],
       worn: [
         { en: "Needs restoration", ar: "يحتاج ترميم" },
-        { en: "Restorable", ar: "قابل للترميم" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Cracks", ar: "شقوق" },
+        { en: "Chips", ar: "تكسرات" },
+        { en: "Tarnished", ar: "مطعّج" },
+        { en: "Missing parts", ar: "أجزاء ناقصة" },
       ],
     },
     Coins: {
@@ -1326,7 +1420,9 @@ const LISTING_TAGS = {
       ],
       worn: [
         { en: "Needs restoration", ar: "يحتاج ترميم" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Tarnished", ar: "مطعّج" },
+        { en: "Scratches", ar: "خدوش" },
+        { en: "Worn details", ar: "التفاصيل باهتة" },
       ],
     },
     Heritage: {
@@ -1344,8 +1440,9 @@ const LISTING_TAGS = {
       ],
       worn: [
         { en: "Needs restoration", ar: "يحتاج ترميم" },
-        { en: "Restorable", ar: "قابل للترميم" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Cracks", ar: "شقوق" },
+        { en: "Chips", ar: "تكسرات" },
+        { en: "Missing parts", ar: "أجزاء ناقصة" },
       ],
     },
     Collectibles: {
@@ -1363,7 +1460,9 @@ const LISTING_TAGS = {
       ],
       worn: [
         { en: "Needs restoration", ar: "يحتاج ترميم" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Scratches", ar: "خدوش" },
+        { en: "Chips", ar: "تكسرات" },
+        { en: "Missing parts", ar: "أجزاء ناقصة" },
       ],
     },
   },
@@ -1377,14 +1476,16 @@ const LISTING_TAGS = {
       ],
       used: [
         { en: "Framed", ar: "مؤطر" },
-        { en: "Hand-carved", ar: "حفر يدوي" },
-        { en: "Stretched canvas", ar: "كانفس مشدود" },
         { en: "Original", ar: "أصلي" },
+        { en: "Minor wear", ar: "استخدام بسيط" },
+        { en: "Hand-carved", ar: "حفر يدوي" },
       ],
       worn: [
         { en: "Needs reframing", ar: "يحتاج تأطير" },
-        { en: "Restorable", ar: "قابل للترميم" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Scratches", ar: "خدوش" },
+        { en: "Faded", ar: "باهت" },
+        { en: "Tears", ar: "تمزّق" },
+        { en: "Damaged", ar: "تالف" },
       ],
     },
     Paintings: {
@@ -1402,16 +1503,18 @@ const LISTING_TAGS = {
       ],
       worn: [
         { en: "Needs reframing", ar: "يحتاج تأطير" },
-        { en: "Restorable", ar: "قابل للترميم" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Scratches", ar: "خدوش" },
+        { en: "Faded", ar: "باهت" },
+        { en: "Tears", ar: "تمزّق" },
+        { en: "Water damage", ar: "تلف بالماء" },
       ],
     },
     Handicrafts: {
       new: [
         { en: "Handmade", ar: "صناعة يدوية" },
-        { en: "Gift-ready", ar: "جاهز للإهداء" },
         { en: "Signed", ar: "موقّع" },
         { en: "Limited edition", ar: "إصدار محدود" },
+        { en: "Gift-ready", ar: "جاهز للإهداء" },
       ],
       used: [
         { en: "Handmade", ar: "صناعة يدوية" },
@@ -1421,8 +1524,9 @@ const LISTING_TAGS = {
       ],
       worn: [
         { en: "Needs restoration", ar: "يحتاج ترميم" },
-        { en: "Restorable", ar: "قابل للترميم" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Scratches", ar: "خدوش" },
+        { en: "Chips", ar: "تكسرات" },
+        { en: "Faded", ar: "باهت" },
       ],
     },
     Calligraphy: {
@@ -1440,8 +1544,9 @@ const LISTING_TAGS = {
       ],
       worn: [
         { en: "Needs reframing", ar: "يحتاج تأطير" },
-        { en: "Restorable", ar: "قابل للترميم" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Scratches", ar: "خدوش" },
+        { en: "Faded", ar: "باهت" },
+        { en: "Damaged", ar: "تالف" },
       ],
     },
   },
@@ -1454,10 +1559,10 @@ const LISTING_TAGS = {
         { en: "Customizable", ar: "حسب الطلب" },
       ],
       used: [
+        { en: "Fresh", ar: "طازج" },
+        { en: "Same-day prep", ar: "تحضير بنفس اليوم" },
         { en: "Family-made", ar: "منتج أسري" },
         { en: "Customizable", ar: "حسب الطلب" },
-        { en: "Same-day prep", ar: "تحضير بنفس اليوم" },
-        { en: "Made to order", ar: "حسب الطلب" },
       ],
       worn: [],
     },
@@ -1540,21 +1645,22 @@ const LISTING_TAGS = {
   other: {
     _default: {
       new: [
-        { en: "Gift-ready", ar: "جاهز للإهداء" },
         { en: "Sealed", ar: "مختوم" },
+        { en: "Gift-ready", ar: "جاهز للإهداء" },
         { en: "Authentic", ar: "أصلي" },
         { en: "Customizable", ar: "حسب الطلب" },
       ],
       used: [
         { en: "Authentic", ar: "أصلي" },
-        { en: "Customizable", ar: "حسب الطلب" },
         { en: "Minor wear", ar: "استخدام بسيط" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Working", ar: "شغّال" },
+        { en: "Customizable", ar: "حسب الطلب" },
       ],
       worn: [
-        { en: "For parts", ar: "للقطع" },
-        { en: "Needs work", ar: "يحتاج إصلاح" },
-        { en: "As-is", ar: "كحالته" },
+        { en: "Scratches", ar: "خدوش" },
+        { en: "Broken parts", ar: "أجزاء مكسورة" },
+        { en: "Faded", ar: "باهت" },
+        { en: "Needs repair", ar: "يحتاج إصلاح" },
       ],
     },
   },

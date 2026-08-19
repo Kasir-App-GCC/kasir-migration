@@ -370,7 +370,7 @@ export default function ItemDetail() {
             transition: pinchScale > 1 ? "none" : "transform 0.2s ease-out",
           }}
         >
-          <Image src={imgs[activeImg]} fittingType="fill" className="w-full h-full" style={{ display: "block" }} />
+          <Image src={imgs[activeImg]} fittingType="fit" className="w-full h-full" style={{ display: "block" }} />
         </div>
         {item.is_family && (
           <span className="absolute top-3 start-3 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500 text-white">{t("featuredBadge")}</span>

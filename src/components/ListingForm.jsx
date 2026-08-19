@@ -378,6 +378,23 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             <span>0</span>
             <span>{maxBoost}</span>
           </div>
+          <div className="flex flex-wrap gap-2 mt-3">
+            {[1, 2, 3, 4, 5, 6, 7].map((d) => {
+              const hrs = d * 24;
+              if (hrs > maxBoost) return null;
+              const label = d === 7 ? (ar ? "أسبوع" : "1 Week") : d === 1 ? (ar ? "يوم" : "1 Day") : d === 2 ? (ar ? "يومان" : "2 Days") : (ar ? `${d} أيام` : `${d} Days`);
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setBoostHours(hrs)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition ${boostHours === hrs ? "bg-amber-500 text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
           {maxBoost === 0 && (
             <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">{ar ? "وصلت للحد الأقصى (أسبوع واحد)" : "Max boost reached (1 week)"}</p>
           )}
@@ -406,7 +423,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
               <span className="flex items-center gap-2 text-start">
                 <Globe size={16} className="text-primary" />
                 <span>
-                  <span className="text-sm font-semibold block">{ar ? "عرض في كل الدول" : "Show across all countries"}</span>
+                  <span className="text-sm font-semibold block">{ar ? "عرض في كل دول الخليج" : "Show across all Gulf countries"}</span>
                   <span className="text-xs text-muted-foreground">{ar ? "+٣/+٢/+١ حسب الفئة" : "+3/+2/+1 per tier"}</span>
                 </span>
               </span>
@@ -416,7 +433,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             </button>
             {boostCross && boostSegments.length > 0 && (
               <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 text-xs">
-                <span className="text-emerald-700 dark:text-emerald-300 font-semibold">{ar ? "إضافة عرض كل الدول" : "All-countries add-on"}</span>
+                <span className="text-emerald-700 dark:text-emerald-300 font-semibold">{ar ? "إضافة عرض كل دول الخليج" : "Gulf countries add-on"}</span>
                 <span className="font-bold text-emerald-700 dark:text-emerald-300">+{fmt(convertCurrency(boostSegments.reduce((s, seg) => s + seg.hours * seg.cross, 0), "SA", country || "SA"))} {ar ? cur.currencyAr : cur.currency}</span>
               </div>
             )}

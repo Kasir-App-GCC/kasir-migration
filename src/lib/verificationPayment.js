@@ -2,8 +2,9 @@
 // Replace the placeholder account details below with your real account info.
 export const VERIFICATION_FEE = 2; // SAR
 
-export const BANK_TRANSFER_IBAN = "SA03 8000 0000 6080 1016 7519";
+export const BANK_TRANSFER_BANK = "SAB BANK";
+export const BANK_TRANSFER_IBAN = "SA6145000000815457858001";
 
 export const TRANSFER_METHODS = [
-  { id: "bank", en: "Bank Transfer", ar: "تحويل بنكي", detail: "IBAN: SA03 8000 0000 6080 1016 7519" },
+  { id: "bank", en: "Bank Transfer", ar: "تحويل بنكي", detail: "SAB BANK · SA6145000000815457858001" },
 ];

@@ -37,6 +37,15 @@ export default function AdminBoosts() {
       const until = new Date(Date.now() + (r.hours || 0) * 3600000).toISOString();
       await base44.entities.Item.update(r.item_id, { featured: true, featured_until: until, featured_cross_country: !!r.cross_country });
       await base44.entities.BoostRequest.update(r.id, { status: "approved", reviewed_by: admin.id });
+      try {
+        await base44.entities.Notification.create({
+          user_id: r.user_id,
+          type: "boost_approved",
+          item_id: r.item_id,
+          item_title: r.item_title,
+          text: ar ? "تم تفعيل تعزيز إعلانك ⭐" : "Your listing has been promoted ⭐",
+        });
+      } catch {}
       sendPush({ user_id: r.user_id, title: ar ? "كاشر" : "Kasir", content: ar ? "تمت الموافقة على تعزيز إعلانك ⭐" : "Your boost was approved ⭐", action_url: `/item/${r.item_id}` });
       setRequests((prev) => prev.map((x) => (x.id === r.id ? { ...x, status: "approved" } : x)));
       toast({ title: ar ? "تم تفعيل التعزيز" : "Boost activated" });

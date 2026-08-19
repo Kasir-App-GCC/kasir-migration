@@ -16,7 +16,8 @@
         "offer_modified",
         "verification_submitted",
         "verification_approved",
-        "verification_rejected"
+        "verification_rejected",
+        "boost_approved"
       ],
       "default": "sold"
     },

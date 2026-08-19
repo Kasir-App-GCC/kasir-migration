@@ -1,31 +1,42 @@
 // Quick-detail tags a seller can attach to a listing. The set returned for a
-// listing is built from THREE inputs:
-//   1) category   → base tags for that category
+// listing is built from THREE inputs so it visibly changes as the seller
+// changes any of them:
+//   1) category    → base tags for that category
 //   2) subcategory → extra tags specific to the chosen subcategory(ies)
-//   3) condition  → tags are filtered to only those valid for the selected
-//                   condition (a tag may declare `conditions` listing the
-//                   condition ids it applies to; absent = all conditions).
+//   3) condition   → tags are split into groups:
+//        common : always shown
+//        newish : shown for "new" / "like_new"
+//        used   : shown for "excellent" / "good" / "fair" / "poor"
+//        worn   : additionally shown for "fair" / "poor"
 // No tag ever restates a condition enum value (new / like_new / excellent /
 // good / fair / poor) — that's already captured by the condition selector
-// above, so it would contradict it.
+// above, so it would contradict it. No shipping/delivery tags (the platform
+// does not offer shipping).
 // Values are stored as the `en` key; localizeListingTag() maps back to the
 // active language for display on the item detail page.
 
 const LISTING_TAGS = {
   electronics: {
-    base: [
-      { en: "With warranty", ar: "عليه ضمان", conditions: ["new", "like_new", "excellent"] },
-      { en: "Original box", ar: "علبة أصلية" },
-      { en: "Sealed", ar: "مختوم", conditions: ["new"] },
-      { en: "Refurbished", ar: "مجدّد", conditions: ["good", "fair", "poor"] },
+    common: [
       { en: "All accessories", ar: "كل الملحقات" },
-      { en: "Fast shipping", ar: "شحن سريع" },
+      { en: "Original box", ar: "علبة أصلية" },
+    ],
+    newish: [
+      { en: "With warranty", ar: "عليه ضمان" },
+      { en: "Sealed", ar: "مختوم" },
+      { en: "Gift-ready", ar: "جاهز للإهداء" },
+    ],
+    used: [
+      { en: "Refurbished", ar: "مجدّد" },
+      { en: "Tested & working", ar: "مجرّب وشغّال" },
+      { en: "Battery 90%+", ar: "بطارية 90% فأكثر" },
+    ],
+    worn: [
+      { en: "Sold as-is", ar: "يباع كحالته" },
+      { en: "For parts", ar: "للقطع" },
     ],
     subcats: {
-      Phones: [
-        { en: "Unlocked", ar: "مفتوح لكل الشبكات" },
-        { en: "Battery 90%+", ar: "بطارية 90% فأكثر", conditions: ["like_new", "excellent", "good", "fair"] },
-      ],
+      Phones: [{ en: "Unlocked", ar: "مفتوح لكل الشبكات" }],
       Laptops: [
         { en: "RAM upgraded", ar: "ذاكرة مطوّرة" },
         { en: "SSD", ar: "قرص SSD" },
@@ -38,13 +49,24 @@ const LISTING_TAGS = {
     },
   },
   cars: {
-    base: [
+    common: [
       { en: "Full service history", ar: "سجل صيانة كامل" },
-      { en: "No accidents", ar: "بلا حوادث" },
-      { en: "Low mileage", ar: "ممشور قليل" },
       { en: "Valid inspection", ar: "فحص ساري" },
       { en: "Bank transfer ok", ar: "تحويل بنكي" },
-      { en: "Lease transfer ok", ar: "تحويل عقد" },
+    ],
+    newish: [
+      { en: "Under warranty", ar: "تحت الضمان" },
+      { en: "Never registered", ar: "غير مسجّل" },
+      { en: "Gift-ready", ar: "جاهز للإهداء" },
+    ],
+    used: [
+      { en: "No accidents", ar: "بلا حوادث" },
+      { en: "Low mileage", ar: "ممشور قليل" },
+      { en: "Single owner", ar: "مالك واحد" },
+    ],
+    worn: [
+      { en: "Needs work", ar: "يحتاج إصلاح" },
+      { en: "For parts", ar: "للقطع" },
     ],
     subcats: {
       Sedan: [{ en: "Fuel efficient", ar: "موفر للوقود" }],
@@ -57,13 +79,22 @@ const LISTING_TAGS = {
     },
   },
   furniture: {
-    base: [
-      { en: "Disassembly available", ar: "تفكيك متاح" },
+    common: [
       { en: "Smoke-free home", ar: "بيت بلا تدخين" },
-      { en: "Delivery available", ar: "توصيل متاح" },
       { en: "Pet-free home", ar: "بيت بلا حيوانات" },
       { en: "Assembly included", ar: "تركيب متاح" },
-      { en: "Gift-ready", ar: "جاهز للإهداء", conditions: ["new", "like_new", "excellent"] },
+    ],
+    newish: [
+      { en: "Gift-ready", ar: "جاهز للإهداء" },
+      { en: "Still in packaging", ar: "لا يزال بالتغليف" },
+    ],
+    used: [
+      { en: "Disassembly available", ar: "تفكيك متاح" },
+      { en: "Well maintained", ar: "معتنى به" },
+    ],
+    worn: [
+      { en: "Needs restoration", ar: "يحتاج ترميم" },
+      { en: "DIY project", ar: "مشروع شخصي" },
     ],
     subcats: {
       Sofas: [{ en: "Washable covers", ar: "أغطية قابلة للغسل" }],
@@ -74,28 +105,48 @@ const LISTING_TAGS = {
     },
   },
   fashion: {
-    base: [
-      { en: "Original tags", ar: "علامة أصلية", conditions: ["new", "like_new"] },
-      { en: "Size exchange ok", ar: "تبديل مقاس" },
+    common: [
       { en: "Authentic", ar: "أصلي" },
+      { en: "Size exchange ok", ar: "تبديل مقاس" },
       { en: "Limited edition", ar: "إصدار محدود" },
+    ],
+    newish: [
+      { en: "Original tags", ar: "علامة أصلية" },
       { en: "In-season", ar: "من الموسم" },
+      { en: "Gift-boxed", ar: "علبة إهداء" },
+    ],
+    used: [
       { en: "Final sale", ar: "بيع نهائي" },
+      { en: "From a clean closet", ar: "من خزانة نظيفة" },
+    ],
+    worn: [
+      { en: "Needs repair", ar: "يحتاج إصلاح" },
+      { en: "For upcycling", ar: "لإعادة التدوير" },
     ],
     subcats: {
-      Shoes: [{ en: "Original box", ar: "علبة أصلية", conditions: ["new", "like_new"] }],
+      Shoes: [{ en: "Original box", ar: "علبة أصلية" }],
       Bags: [{ en: "Dust bag included", ar: "كيس حفظ" }],
       Accessories: [{ en: "Gift-boxed", ar: "علبة إهداء" }],
     },
   },
   realestate: {
-    base: [
+    common: [
       { en: "Direct owner", ar: "من المالك مباشرة" },
       { en: "No commission", ar: "بدون عمولة" },
-      { en: "Furnished", ar: "مفروش" },
       { en: "Available now", ar: "متاح الآن" },
+    ],
+    newish: [
+      { en: "Furnished", ar: "مفروش" },
+      { en: "Never occupied", ar: "غير مأهول" },
+    ],
+    used: [
       { en: "Utilities included", ar: "شامل الخدمات" },
       { en: "Parking included", ar: "موقف مشمول" },
+      { en: "Elevator", ar: "مصعد" },
+    ],
+    worn: [
+      { en: "Needs renovation", ar: "يحتاج تجديد" },
+      { en: "Fixer-upper", ar: "تحت الصيانة" },
     ],
     subcats: {
       "For Rent": [{ en: "Short-term ok", ar: "قصير الأمد" }],
@@ -108,14 +159,20 @@ const LISTING_TAGS = {
     },
   },
   services: {
-    base: [
-      { en: "Same-day service", ar: "خدمة بنفس اليوم" },
-      { en: "Mobile service", ar: "خدمة متنقلة" },
+    common: [
       { en: "Licensed", ar: "مرخّص" },
-      { en: "Materials included", ar: "شامل المواد" },
       { en: "Warranty on work", ar: "ضمان على العمل" },
       { en: "Online booking", ar: "حجز أونلاين" },
     ],
+    newish: [
+      { en: "Same-day service", ar: "خدمة بنفس اليوم" },
+      { en: "First-time discount", ar: "خصم أول طلب" },
+    ],
+    used: [
+      { en: "Mobile service", ar: "خدمة متنقلة" },
+      { en: "Materials included", ar: "شامل المواد" },
+    ],
+    worn: [],
     subcats: {
       Cleaning: [{ en: "Eco-friendly", ar: "صديق للبيئة" }],
       Transport: [{ en: "Insured", ar: "مؤمّن" }],
@@ -123,13 +180,23 @@ const LISTING_TAGS = {
     },
   },
   toys: {
-    base: [
-      { en: "All pieces", ar: "كل القطع" },
+    common: [
       { en: "Smoke-free home", ar: "بيت بلا تدخين" },
       { en: "Age-appropriate", ar: "مناسب للعمر" },
-      { en: "Gift-ready", ar: "جاهز للإهداء", conditions: ["new", "like_new", "excellent"] },
       { en: "Battery-free", ar: "بلا بطاريات" },
-      { en: "Original packaging", ar: "تغليف أصلي", conditions: ["new", "like_new"] },
+    ],
+    newish: [
+      { en: "Gift-ready", ar: "جاهز للإهداء" },
+      { en: "Original packaging", ar: "تغليف أصلي" },
+      { en: "Sealed", ar: "مختوم" },
+    ],
+    used: [
+      { en: "All pieces", ar: "كل القطع" },
+      { en: "Complete set", ar: "طقم كامل" },
+    ],
+    worn: [
+      { en: "Restorable", ar: "قابل للترميم" },
+      { en: "For parts", ar: "للقطع" },
     ],
     subcats: {
       "Board Games": [{ en: "Instructions included", ar: "دليل اللعب مشمول" }],
@@ -137,13 +204,23 @@ const LISTING_TAGS = {
     },
   },
   sports: {
-    base: [
-      { en: "All accessories", ar: "كل الملحقات" },
+    common: [
       { en: "For beginners", ar: "للمبتدئين" },
-      { en: "Indoor use", ar: "استخدام داخلي" },
-      { en: "Outdoor use", ar: "استخدام خارجي" },
       { en: "Adjustable", ar: "قابل للتعديل" },
       { en: "Carry bag included", ar: "حقيبة حمل" },
+    ],
+    newish: [
+      { en: "Gift-ready", ar: "جاهز للإهداء" },
+      { en: "Still tagged", ar: "لا يزال بالبطاقة" },
+    ],
+    used: [
+      { en: "All accessories", ar: "كل الملحقات" },
+      { en: "Indoor use", ar: "استخدام داخلي" },
+      { en: "Outdoor use", ar: "استخدام خارجي" },
+    ],
+    worn: [
+      { en: "Needs maintenance", ar: "يحتاج صيانة" },
+      { en: "For parts", ar: "للقطع" },
     ],
     subcats: {
       Fitness: [{ en: "Folds flat", ar: "قابل للطي" }],
@@ -152,13 +229,23 @@ const LISTING_TAGS = {
     },
   },
   books: {
-    base: [
-      { en: "No highlights", ar: "بلا تظليل", conditions: ["new", "like_new", "excellent", "good"] },
+    common: [
       { en: "Original", ar: "أصلي" },
       { en: "Complete set", ar: "مجموعة كاملة" },
-      { en: "First edition", ar: "الطبعة الأولى" },
       { en: "Hardcover", ar: "غلاف مقوّى" },
-      { en: "Gift-ready", ar: "جاهز للإهداء", conditions: ["new", "like_new", "excellent"] },
+    ],
+    newish: [
+      { en: "First edition", ar: "الطبعة الأولى" },
+      { en: "Gift-ready", ar: "جاهز للإهداء" },
+      { en: "Shrink-wrapped", ar: "مغلوف بالنايلون" },
+    ],
+    used: [
+      { en: "No highlights", ar: "بلا تظليل" },
+      { en: "Clean pages", ar: "صفحات نظيفة" },
+    ],
+    worn: [
+      { en: "Highlighted", ar: "فيه تظليل" },
+      { en: "Loose binding", ar: "تجليد مرتخي" },
     ],
     subcats: {
       Textbooks: [{ en: "Edition noted", ar: "الطبعة مذكورة" }],
@@ -166,14 +253,20 @@ const LISTING_TAGS = {
     },
   },
   animals: {
-    base: [
-      { en: "Vaccinated", ar: "مطعّم" },
+    common: [
       { en: "Healthy", ar: "سليم" },
-      { en: "With supplies", ar: "مع المستلزمات" },
       { en: "Tame", ar: "أليف" },
       { en: "Pedigree", ar: "أصيل" },
-      { en: "Trained", ar: "مدرّب" },
     ],
+    newish: [
+      { en: "Vaccinated", ar: "مطعّم" },
+      { en: "Young", ar: "صغير السن" },
+    ],
+    used: [
+      { en: "Trained", ar: "مدرّب" },
+      { en: "With supplies", ar: "مع المستلزمات" },
+    ],
+    worn: [],
     subcats: {
       Livestock: [{ en: "Grass-fed", ar: "تغذية طبيعية" }],
       Pets: [{ en: "Microchipped", ar: "بشريحة تعريف" }],
@@ -183,53 +276,82 @@ const LISTING_TAGS = {
     },
   },
   jobs: {
-    base: [
+    common: [
       { en: "Remote ok", ar: "عن بُعد" },
       { en: "Flexible hours", ar: "ساعات مرنة" },
       { en: "Immediate start", ar: "بدء فوري" },
+    ],
+    newish: [
+      { en: "Entry level", ar: "للمبتدئين" },
+      { en: "Training provided", ar: "تدريب مشمول" },
+    ],
+    used: [
       { en: "Experience required", ar: "يتطلب خبرة" },
       { en: "Visa provided", ar: "إقامة مشمولة" },
-      { en: "Transportation provided", ar: "نقل مشمول" },
     ],
+    worn: [],
     subcats: {
       Freelance: [{ en: "Portfolio available", ar: "أعمال جاهزة" }],
     },
   },
   education: {
-    base: [
+    common: [
       { en: "Certified", ar: "معتمد" },
       { en: "Online ok", ar: "أونلاين" },
-      { en: "Materials included", ar: "شامل المواد" },
       { en: "Beginner friendly", ar: "للمبتدئين" },
+    ],
+    newish: [
+      { en: "Free trial", ar: "تجربة مجانية" },
+      { en: "First-time discount", ar: "خصم أول طلب" },
+    ],
+    used: [
+      { en: "Materials included", ar: "شامل المواد" },
       { en: "Group ok", ar: "جماعي" },
       { en: "One-on-one", ar: "خصوصي" },
     ],
+    worn: [],
     subcats: {
       Courses: [{ en: "Completion certificate", ar: "شهادة إتمام" }],
     },
   },
   occasions: {
-    base: [
-      { en: "Booking required", ar: "يتطلب حجز" },
-      { en: "Mobile service", ar: "خدمة متنقلة" },
-      { en: "All-inclusive", ar: "شامل الكل" },
-      { en: "Available on date", ar: "متاح بالتاريخ" },
+    common: [
       { en: "Customizable", ar: "حسب الطلب" },
+      { en: "Booking required", ar: "يتطلب حجز" },
       { en: "Sample available", ar: "عيّنة متاحة" },
     ],
+    newish: [
+      { en: "All-inclusive", ar: "شامل الكل" },
+      { en: "First-time discount", ar: "خصم أول طلب" },
+    ],
+    used: [
+      { en: "Mobile service", ar: "خدمة متنقلة" },
+      { en: "Available on date", ar: "متاح بالتاريخ" },
+      { en: "Setup included", ar: "تركيب مشمول" },
+    ],
+    worn: [],
     subcats: {
       Catering: [{ en: "Tasting available", ar: "تذوق متاح" }],
       Rentals: [{ en: "Setup included", ar: "تركيب مشمول" }],
     },
   },
   antiques: {
-    base: [
+    common: [
       { en: "Authentic", ar: "أصلي" },
-      { en: "With certificate", ar: "مع شهادة" },
       { en: "Rare", ar: "نادر" },
-      { en: "No restoration", ar: "بدون ترميم" },
-      { en: "Appraised", ar: "مقيّم" },
       { en: "Period piece", ar: "قطعة زمنية" },
+    ],
+    newish: [
+      { en: "With certificate", ar: "مع شهادة" },
+      { en: "Appraised", ar: "مقيّم" },
+    ],
+    used: [
+      { en: "No restoration", ar: "بدون ترميم" },
+      { en: "Aged patina", ar: "باتينا زمنية" },
+    ],
+    worn: [
+      { en: "Needs restoration", ar: "يحتاج ترميم" },
+      { en: "Restorable", ar: "قابل للترميم" },
     ],
     subcats: {
       Coins: [{ en: "Graded", ar: "مصنّف" }],
@@ -237,13 +359,23 @@ const LISTING_TAGS = {
     },
   },
   arts: {
-    base: [
+    common: [
       { en: "Original", ar: "أصلي" },
-      { en: "Framed", ar: "مؤطر" },
       { en: "Customizable", ar: "حسب الطلب" },
-      { en: "Signed", ar: "موقّع" },
       { en: "Ready to hang", ar: "جاهز للتعليق" },
+    ],
+    newish: [
+      { en: "Signed", ar: "موقّع" },
       { en: "Limited edition", ar: "إصدار محدود" },
+      { en: "Framed", ar: "مؤطر" },
+    ],
+    used: [
+      { en: "Hand-carved", ar: "حفر يدوي" },
+      { en: "Stretched canvas", ar: "كانفس مشدود" },
+    ],
+    worn: [
+      { en: "Needs reframing", ar: "يحتاج تأطير" },
+      { en: "Restorable", ar: "قابل للترميم" },
     ],
     subcats: {
       Paintings: [{ en: "Stretched canvas", ar: "كانفس مشدود" }],
@@ -251,14 +383,20 @@ const LISTING_TAGS = {
     },
   },
   families: {
-    base: [
-      { en: "Fresh", ar: "طازج" },
-      { en: "Made to order", ar: "حسب الطلب" },
-      { en: "Local delivery", ar: "توصيل محلي" },
-      { en: "Customizable", ar: "حسب الطلب" },
+    common: [
       { en: "Family-made", ar: "منتج أسري" },
+      { en: "Customizable", ar: "حسب الطلب" },
+      { en: "Made to order", ar: "حسب الطلب" },
+    ],
+    newish: [
+      { en: "Fresh", ar: "طازج" },
       { en: "Gift-ready", ar: "جاهز للإهداء" },
     ],
+    used: [
+      { en: "Same-day prep", ar: "تحضير بنفس اليوم" },
+      { en: "Sugar-free option", ar: "خيار بلا سكر" },
+    ],
+    worn: [],
     subcats: {
       Food: [{ en: "Same-day prep", ar: "تحضير بنفس اليوم" }],
       "Bakery & Sweets": [{ en: "Sugar-free option", ar: "خيار بلا سكر" }],
@@ -267,13 +405,22 @@ const LISTING_TAGS = {
     },
   },
   other: {
-    base: [
-      { en: "Fast shipping", ar: "شحن سريع" },
+    common: [
       { en: "Authentic", ar: "أصلي" },
-      { en: "Gift-ready", ar: "جاهز للإهداء", conditions: ["new", "like_new", "excellent"] },
       { en: "Customizable", ar: "حسب الطلب" },
       { en: "Bulk available", ar: "متاح بالجملة" },
+    ],
+    newish: [
+      { en: "Gift-ready", ar: "جاهز للإهداء" },
+      { en: "Sealed", ar: "مختوم" },
+    ],
+    used: [
       { en: "No returns", ar: "بلا إرجاع" },
+      { en: "As-is", ar: "كحالته" },
+    ],
+    worn: [
+      { en: "For parts", ar: "للقطع" },
+      { en: "Needs work", ar: "يحتاج إصلاح" },
     ],
   },
 };
@@ -286,29 +433,43 @@ export function getListingTags(category, subcategory, condition) {
     : subcategory
       ? [subcategory]
       : [];
-  let tags = [...(def.base || [])];
+  let tags = [...(def.common || [])];
+  if (condition) {
+    const isNewish = condition === "new" || condition === "like_new";
+    const isWorn = condition === "fair" || condition === "poor";
+    if (isNewish) {
+      tags = tags.concat(def.newish || []);
+    } else {
+      tags = tags.concat(def.used || []);
+      if (isWorn) tags = tags.concat(def.worn || []);
+    }
+  } else {
+    tags = tags.concat(def.newish || [], def.used || [], def.worn || []);
+  }
   for (const s of subs) {
     const extra = (def.subcats && def.subcats[s]) || [];
     tags = tags.concat(extra);
   }
-  // Deduplicate by the stored `en` key (a subcategory extra may repeat a base tag).
+  // Deduplicate by the stored `en` key.
   const seen = new Set();
   tags = tags.filter((t) => {
     if (seen.has(t.en)) return false;
     seen.add(t.en);
     return true;
   });
-  // Filter to tags valid for the selected condition.
-  if (condition) {
-    tags = tags.filter((t) => !t.conditions || t.conditions.includes(condition));
-  }
   return tags.map(({ en, ar }) => ({ en, ar }));
 }
 
 export function localizeListingTag(value, lang) {
   for (const cat of Object.keys(LISTING_TAGS)) {
     const def = LISTING_TAGS[cat];
-    const all = [...(def.base || []), ...Object.values(def.subcats || {}).flat()];
+    const all = [
+      ...(def.common || []),
+      ...(def.newish || []),
+      ...(def.used || []),
+      ...(def.worn || []),
+      ...Object.values(def.subcats || {}).flat(),
+    ];
     const found = all.find((t) => t.en === value);
     if (found) return lang === "ar" ? found.ar : found.en;
   }

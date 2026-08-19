@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Bell } from "lucide-react";
-import useUnreadChats from "@/hooks/useUnreadChats";
+import useUnreadBell from "@/hooks/useUnreadBell";
 import NotificationsPanel from "@/components/NotificationsPanel";
 
 export default function NotificationsDropdown() {
-  const unread = useUnreadChats();
+  const unread = useUnreadBell();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 

@@ -1,46 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
-
-// Lazily create a single AudioContext and resume it on the first user gesture
-// (browsers block audio until the page has been interacted with).
-let audioCtx = null;
-function getCtx() {
-  if (typeof window === "undefined") return null;
-  if (!audioCtx) {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return null;
-    audioCtx = new AC();
-  }
-  return audioCtx;
-}
-if (typeof window !== "undefined") {
-  const resume = () => {
-    const c = getCtx();
-    if (c && c.state === "suspended") c.resume().catch(() => {});
-  };
-  window.addEventListener("pointerdown", resume, { once: true });
-  window.addEventListener("keydown", resume, { once: true });
-}
-
-function playBeep() {
-  try {
-    const ctx = getCtx();
-    if (!ctx) return;
-    if (ctx.state === "suspended") ctx.resume().catch(() => {});
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.connect(g);
-    g.connect(ctx.destination);
-    o.type = "sine";
-    o.frequency.value = 880;
-    g.gain.setValueAtTime(0.0001, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.45);
-    o.start();
-    o.stop(ctx.currentTime + 0.47);
-  } catch {}
-}
+import { playBeep } from "@/lib/beep";
 
 // Is this offer directed at the given user (i.e. incoming, not self-created)?
 function offerIsIncoming(o, userId) {
@@ -50,6 +11,8 @@ function offerIsIncoming(o, userId) {
   return false;
 }
 
+// Counts ONLY unread chat messages + incoming offers across the user's rooms.
+// System notifications are intentionally excluded — those belong to the bell.
 export default function useUnreadChats() {
   const { user } = useStore();
   const [count, setCount] = useState(0);
@@ -91,10 +54,6 @@ export default function useUnreadChats() {
             (o) => o.chatroom_id === r.id && offerIsIncoming(o, user.id) && new Date(o.created_date).getTime() > since
           ).length;
         });
-        try {
-          const notifs = await base44.entities.Notification.filter({ user_id: user.id }, "-created_date", 50);
-          total += (notifs || []).filter((n) => !n.read).length;
-        } catch {}
         if (!cancelled) setCount(total);
       } catch {} finally {
         inFlight = false;
@@ -149,29 +108,12 @@ export default function useUnreadChats() {
       if (event.type === "create") schedule();
     });
 
-    // Offer accept/reject/counter/modify and "sold" alerts arrive as Notification records.
-    const unsubN = base44.entities.Notification.subscribe((event) => {
-      const n = event && event.data;
-      if (!n || n.user_id !== user.id) return;
-      if (event.type === "create") {
-        const onNotifs = window.location.pathname.startsWith("/notifications");
-        if (!onNotifs) {
-          maybeBeep();
-          setCount((c) => c + 1);
-        }
-        return; // Optimistic bump is sufficient.
-      }
-      // Updates (mark as read) and deletes need a recompute to adjust the count.
-      schedule();
-    });
-
     return () => {
       cancelled = true;
       if (timer) clearTimeout(timer);
       if (unsubM) unsubM();
       if (unsubO) unsubO();
       if (unsubR) unsubR();
-      if (unsubN) unsubN();
     };
   }, [user]);
 

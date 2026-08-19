@@ -37,16 +37,11 @@ export default function SheetSelect({ value, onChange, options, placeholder, lab
                 key={o.value}
                 onClick={() => { onChange(o.value); setOpen(false); }}
                 className={cn(
-                  "w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl text-start text-sm font-medium transition",
+                  "w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-start text-sm font-medium transition",
                   o.value === value ? "bg-primary/10 text-primary font-bold" : "hover:bg-muted"
                 )}
               >
-                <span className="min-w-0">
-                  <span className="block truncate">{o.label}</span>
-                  {o.description && (
-                    <span className={cn("block text-xs font-normal mt-0.5 leading-snug", o.value === value ? "text-primary/70" : "text-muted-foreground")}>{o.description}</span>
-                  )}
-                </span>
+                <span className="truncate">{o.label}</span>
                 {o.value === value && <Check size={18} className="text-primary shrink-0" />}
               </button>
             ))}

@@ -14,9 +14,6 @@ export default function VerificationDialog({ open, onClose }) {
   const [fullName, setFullName] = useState(user?.name || "");
   const [phone, setPhone] = useState(user?.phone ? (user.country_code || "") + user.phone : "");
   const [nationalId, setNationalId] = useState("");
-  const [documentUrl, setDocumentUrl] = useState("");
-  const [docName, setDocName] = useState("");
-  const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [paymentReceiptUrl, setPaymentReceiptUrl] = useState("");
@@ -26,26 +23,6 @@ export default function VerificationDialog({ open, onClose }) {
   if (!open) return null;
 
   const hasAvatar = !!user?.avatar;
-
-  const onPickDoc = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > MAX_FILE) {
-      setError(ar ? "الحجم الأقصى 10 ميجابايت" : "Max file size is 10MB");
-      return;
-    }
-    setUploading(true);
-    setError("");
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setDocumentUrl(file_url);
-      setDocName(file.name);
-    } catch {
-      setError(ar ? "فشل رفع الملف" : "Failed to upload file");
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const onPickReceipt = async (e) => {
     const file = e.target.files?.[0];
@@ -73,7 +50,7 @@ export default function VerificationDialog({ open, onClose }) {
       setError(ar ? "أضف صورة شخصية أولاً من تعديل الملف" : "Please add a profile photo first from Edit Profile");
       return;
     }
-    if (!fullName.trim() || !phone.trim() || !nationalId.trim() || !documentUrl || !paymentReceiptUrl) {
+    if (!fullName.trim() || !phone.trim() || !nationalId.trim() || !paymentReceiptUrl) {
       setError(ar ? "أكمل جميع الحقول بما فيها إيصال الدفع" : "Please complete all fields including the payment receipt");
       return;
     }
@@ -83,7 +60,6 @@ export default function VerificationDialog({ open, onClose }) {
         fullName: fullName.trim(),
         phone: phone.trim(),
         nationalId: nationalId.trim(),
-        documentUrl,
         paymentReceiptUrl,
       });
       if (res?.data?.error) throw new Error(res.data.error);
@@ -127,15 +103,6 @@ export default function VerificationDialog({ open, onClose }) {
             <label className="text-sm font-semibold">{ar ? "رقم الهوية" : "National ID"} *</label>
             <input value={nationalId} onChange={(e) => setNationalId(e.target.value)} inputMode="numeric" className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30" />
           </div>
-          <div className="space-y-1.5">
-            <label className="text-sm font-semibold">{ar ? "المستند الداعم" : "Supporting document"} * <span className="text-xs text-muted-foreground font-normal">({ar ? "حد أقصى 10 ميجابايت" : "10MB max"})</span></label>
-            <label className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl border-2 border-dashed border-border cursor-pointer hover:bg-muted/50 transition">
-              {uploading ? <Loader2 size={18} className="animate-spin" /> : documentUrl ? <FileCheck2 size={18} className="text-emerald-500" /> : <Upload size={18} />}
-              <span className="text-sm font-medium">{uploading ? (ar ? "جاري الرفع…" : "Uploading…") : documentUrl ? (docName || (ar ? "تم الرفع" : "Uploaded")) : (ar ? "اختر ملف" : "Choose file")}</span>
-              <input type="file" className="hidden" onChange={onPickDoc} accept="image/*,application/pdf" />
-            </label>
-          </div>
-
           {/* Verification fee + payment receipt */}
           <div className="p-3 rounded-2xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900/50 space-y-2">
             <div className="flex items-center gap-2 text-sky-700 dark:text-sky-300">
@@ -143,7 +110,7 @@ export default function VerificationDialog({ open, onClose }) {
               <span className="text-sm font-bold">{ar ? "رسوم التوثيق" : "Verification fee"}</span>
               <span className="ms-auto font-extrabold">{VERIFICATION_FEE} {ar ? "ر.س" : "SAR"}</span>
             </div>
-            <p className="text-xs text-muted-foreground">{ar ? "حوّل المبلغ عبر إحدى الطرق التالية ثم ارفع إيصال الدفع:" : "Transfer the amount via one of the methods below, then upload the payment receipt:"}</p>
+            <p className="text-xs text-muted-foreground">{ar ? "حوّل المبلغ إلى الحساب البنكي التالي ثم ارفع إيصال الدفع:" : "Transfer the amount to the bank account below, then upload the payment receipt:"}</p>
             <div className="space-y-1">
               {TRANSFER_METHODS.map((m) => (
                 <div key={m.id} className="flex items-center justify-between text-xs bg-background/60 rounded-lg px-2.5 py-1.5">
@@ -163,7 +130,7 @@ export default function VerificationDialog({ open, onClose }) {
             </label>
           </div>
 
-          <button onClick={submit} disabled={submitting || uploading || uploadingReceipt || !hasAvatar || !paymentReceiptUrl} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold flex items-center justify-center gap-2 disabled:opacity-50">
+          <button onClick={submit} disabled={submitting || uploadingReceipt || !hasAvatar || !paymentReceiptUrl} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold flex items-center justify-center gap-2 disabled:opacity-50">
             {submitting && <Loader2 size={18} className="animate-spin" />}
             {submitting ? (ar ? "جاري الإرسال…" : "Submitting…") : (ar ? "إرسال الطلب" : "Submit request")}
           </button>

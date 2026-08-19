@@ -23,10 +23,6 @@
       "type": "string",
       "description": "National ID number (e.g. Saudi Iqama/National ID)"
     },
-    "document_url": {
-      "type": "string",
-      "description": "URL of the uploaded supporting document"
-    },
     "payment_receipt_url": {
       "type": "string",
       "description": "URL of the uploaded payment receipt for the verification fee"
@@ -49,7 +45,6 @@
     "user_id",
     "full_name",
     "national_id",
-    "document_url",
     "payment_receipt_url"
   ],
   "rls": {

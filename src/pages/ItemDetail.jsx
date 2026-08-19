@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Flag, MessageCircle, Star, Share2, ChevronRight, X, Tag, Trash2, CheckCircle, Pencil, BadgeCheck, RotateCcw } from "lucide-react";
+import { ArrowLeft, MapPin, Flag, MessageCircle, Star, Share2, ChevronRight, X, Tag, Trash2, CheckCircle, Pencil, BadgeCheck, RotateCcw, Sparkles } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -417,6 +417,16 @@ export default function ItemDetail() {
           </div>
         )}
       </div>
+
+      {isOwner && item.featured && item.featured_until && new Date(item.featured_until) > new Date() && (
+        <div className="mt-3 flex items-center gap-2 p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900">
+          <Sparkles size={18} className="text-amber-500 shrink-0" />
+          <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
+            {lang === "ar" ? "إعلانك مُعزَّز حتى " : "Your listing is promoted until "}
+            {new Date(item.featured_until).toLocaleString(lang === "ar" ? "ar-SA" : "en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+          </p>
+        </div>
+      )}
 
       {/* Description */}
       {item.description && (

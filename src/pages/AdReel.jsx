@@ -331,7 +331,9 @@ function SceneSell({ ar, photo }) {
 function SceneCTA({ ar }) {
   return (
     <div className="absolute inset-0 bg-gradient-to-br from-amber-500 via-amber-400 to-orange-500 flex flex-col items-center justify-center">
-      <motion.div initial={{ scale: 0.6, rotate: -8, opacity: 0 }} animate={{ scale: 1, rotate: -3, opacity: 1 }} transition={{ type: "spring", stiffness: 120, damping: 12 }} className="bg-white text-amber-600 px-5 py-2.5 rounded-lg shadow-2xl rotate-[-3deg] mb-7"><span className="text-3xl font-extrabold">﷼ 1,200</span></motion.div>
+      <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 120, damping: 12 }} className="w-20 h-20 rounded-3xl bg-white/15 backdrop-blur flex items-center justify-center mb-6 border border-white/20">
+        <Tag size={40} className="text-white -rotate-12" />
+      </motion.div>
       <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-7xl font-extrabold text-white drop-shadow-xl">{ar ? "كاسر" : "Kasir"}</motion.h1>
       <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-white/90 text-lg font-semibold mt-3">{ar ? "سوقك المحلي في الخليج" : "Your local GCC marketplace"}</motion.p>
       <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.6 }} className="mt-8 bg-white text-slate-900 font-extrabold px-9 py-4 rounded-2xl text-xl shadow-2xl">{ar ? "حمّل كاسر الآن" : "Get Kasir now"}</motion.div>

@@ -141,7 +141,7 @@ export default function ItemCard({ item, onClick, promoted = false }) {
         <h3 className="text-sm font-semibold line-clamp-1 leading-snug">{item.title}</h3>
         {item.seller_name && (
           <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">
-            <span className="truncate">{item.seller_name}</span>
+            <span className="truncate">{(item.seller_name || "").split(" ")[0]}</span>
             {sellerInfo.trusted && (
               <span className="inline-flex items-center gap-0.5 shrink-0 px-1 py-0.5 rounded bg-sky-500 text-white text-[9px] font-bold leading-none">
                 <BadgeCheck size={10} className="shrink-0" />

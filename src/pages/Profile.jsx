@@ -22,7 +22,9 @@ export default function Profile() {
   const ar = lang === "ar";
   const nav = useNavigate();
   const [tab, setTab] = useState("listings");
-  const [allItems, setAllItems] = useState([]);
+  const [myListings, setMyListings] = useState([]);
+  const [boughtItems, setBoughtItems] = useState([]);
+  const [savedItems, setSavedItems] = useState([]);
   const [ratings, setRatings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
@@ -44,16 +46,32 @@ export default function Profile() {
   const loadAll = useCallback(async () => {
     if (!user) { setLoading(false); return; }
     try {
-      const [all, rs] = await Promise.all([
-        base44.entities.Item.list("-created_date", 200),
+      // Fetch each category server-side — the old code loaded the newest 200
+      // listings globally and filtered client-side, so with a large catalog a
+      // user's own listings fell outside that window and showed as 0.
+      const [mine, bought, rs] = await Promise.all([
+        base44.entities.Item.filter({ seller_id: user.id }, "-created_date", 200),
+        base44.entities.Item.filter({ sold_to: user.id }, "-created_date", 200),
         base44.entities.Rating.filter({ rated_user_id: user.id }, "-created_date", 50),
       ]);
-      setAllItems(all || []);
+      setMyListings(mine || []);
+      setBoughtItems(bought || []);
       setRatings(rs || []);
     } catch {} finally {
       setLoading(false);
     }
   }, [user]);
+
+  // Saved items are fetched by their favorited IDs so they don't depend on the
+  // recency window either.
+  useEffect(() => {
+    if (!user || !favorites.length) { setSavedItems([]); return; }
+    let alive = true;
+    base44.entities.Item.filter({ id: { $in: favorites } }, "-created_date", 200)
+      .then((list) => { if (alive) setSavedItems(list || []); })
+      .catch(() => { if (alive) setSavedItems([]); });
+    return () => { alive = false; };
+  }, [user, favorites]);
 
   // Silently refresh the signed-in user (name, avatar, verified status, …)
   // each time the profile is visited.
@@ -70,16 +88,14 @@ export default function Profile() {
     await Promise.all([refreshUser(), loadAll()]);
   }, [refreshUser, loadAll]);
 
-  const myListings = allItems.filter((it) => it.seller_id === user.id);
   const soldItems = myListings.filter((it) => it.status === "sold");
-  const boughtItems = allItems.filter((it) => it.sold_to === user.id);
-  const saved = allItems.filter((it) => favorites.includes(it.id));
+  const saved = savedItems;
 
   const deleteListing = async (id) => {
     if (!window.confirm(t("deleteConfirm"))) return;
     try {
       await base44.entities.Item.delete(id);
-      setAllItems(allItems.filter((x) => x.id !== id));
+      setMyListings((prev) => prev.filter((x) => x.id !== id));
     } catch {}
   };
 

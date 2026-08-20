@@ -27,8 +27,9 @@ export default function Home() {
   const { locationFilter, lang, prefs, country } = useStore();
   const t = useT();
   const nav = useNavigate();
-  const PAGE_SIZE = 100;
+  const PAGE_SIZE = 24;
   const [items, setItems] = useState([]);
+  const [featuredItems, setFeaturedItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -51,6 +52,20 @@ export default function Home() {
       setLoading(false);
     }
   }, [country]);
+
+  // Featured listings are fetched independently of the feed page so the
+  // paid carousel works even with a small feed page size — a boosted but
+  // older listing (low created_date) would otherwise never reach the top
+  // of the feed. Sorted by featured_until so the longest-remaining boosts
+  // surface first; country/cross-country filtering is applied client-side.
+  const loadFeatured = useCallback(async () => {
+    try {
+      const list = await base44.entities.Item.filter({ featured: true }, "-featured_until", 100);
+      setFeaturedItems(list || []);
+    } catch {
+      setFeaturedItems([]);
+    }
+  }, []);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
@@ -75,14 +90,17 @@ export default function Home() {
 
   useEffect(() => {
     loadInitial();
+    loadFeatured();
     // Keep the feed live: apply any item change in-place as it happens.
     const unsub = base44.entities.Item.subscribe((event) => {
       if (!event) return;
       const it = event.data;
       if (event.type === "delete") {
         setItems((prev) => prev.filter((x) => x.id !== it?.id));
+        setFeaturedItems((prev) => prev.filter((x) => x.id !== it?.id));
       } else if (event.type === "create" && it) {
         setItems((prev) => [it, ...prev.filter((x) => x.id !== it.id)]);
+        if (it.featured) setFeaturedItems((prev) => [it, ...prev.filter((x) => x.id !== it.id)]);
       } else if (it) {
         // Updates refresh an existing item in place — never prepend, so
         // editing an old listing can't bump it to the top (no free boost).
@@ -91,11 +109,20 @@ export default function Home() {
           if (idx === -1) return prev;
           const copy = [...prev]; copy[idx] = it; return copy;
         });
+        // Keep the featured carousel in sync: upsert while featured, drop when not.
+        setFeaturedItems((prev) => {
+          const idx = prev.findIndex((x) => x.id === it.id);
+          if (it.featured) {
+            if (idx === -1) return [it, ...prev];
+            const copy = [...prev]; copy[idx] = it; return copy;
+          }
+          return idx === -1 ? prev : prev.filter((x) => x.id !== it.id);
+        });
       }
     });
     // Self-heal only while idle on the first page, so deep pagination isn't wiped.
-    const onFocus = () => { if (skipRef.current === 0 && !loadingMore) loadInitial(); };
-    const onVis = () => { if (!document.hidden && skipRef.current === 0 && !loadingMore) loadInitial(); };
+    const onFocus = () => { if (skipRef.current === 0 && !loadingMore) { loadInitial(); loadFeatured(); } };
+    const onVis = () => { if (!document.hidden && skipRef.current === 0 && !loadingMore) { loadInitial(); loadFeatured(); } };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVis);
     return () => {
@@ -103,7 +130,7 @@ export default function Home() {
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [loadInitial]);
+  }, [loadInitial, loadFeatured]);
 
   // Infinite scroll: fetch the next page when the sentinel nears the viewport.
   useEffect(() => {
@@ -123,8 +150,8 @@ export default function Home() {
     return matchLocation(it, locationFilter, country);
   });
   const now = Date.now();
-  const featured = items.filter((it) => {
-    if (!it.featured || it.status === "sold") return false;
+  const featured = featuredItems.filter((it) => {
+    if (it.status === "sold") return false;
     if (it.featured_until && new Date(it.featured_until).getTime() < now) return false;
     // Per-country: show only items featured in the browsing country,
     // unless the seller paid for the cross-country option.
@@ -135,7 +162,7 @@ export default function Home() {
   const showFeatured = categories.length === 0 && featured.length > 0;
 
   return (
-    <PullToRefresh onRefresh={loadInitial}>
+    <PullToRefresh onRefresh={async () => { await loadInitial(); await loadFeatured(); }}>
     <div className="space-y-5 pt-2">
       {/* AI Shopping Assistant button */}
       <button

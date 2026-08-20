@@ -3,7 +3,7 @@ import { RotateCw, RotateCcw, Check, X, ZoomIn, ZoomOut, Pencil, Droplets, Undo2
 
 const COLORS = ["#ffffff", "#000000", "#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#a855f7"];
 const BLUR_PX = 14; // blur radius in stage CSS px
-const clampScale = (s) => Math.min(Math.max(s, 1), 5);
+const clampZoom = (z) => Math.min(Math.max(z, 1), 5);
 
 // Basic image filter presets (CSS filter strings).
 const FILTERS = [
@@ -15,13 +15,14 @@ const FILTERS = [
   { id: "vintage", ar: "كلاسيكي", en: "Vintage", css: "sepia(0.3) contrast(1.1) brightness(1.05) saturate(1.2)" },
 ];
 
-// Pre-upload editor: position the photo (pan/zoom/pinch/wheel — what you see is
-// what gets posted) + filters + draw + blur. Exports 1080×1080 JPEG.
-export default function ImageEditor({ file, lang, onCancel, onDone }) {
+// Pre-upload editor (Instagram/WhatsApp style): the full original photo is shown
+// first (contained, with a blurred background fill) — pinch/drag to zoom & crop,
+// plus filters, draw, and blur. What you see is what gets posted (1080×1080 JPEG).
+export default function ImageEditor({ file, lang, index = 0, total = 1, onCancel, onDone }) {
   const ar = lang === "ar";
   const [img, setImg] = useState(null);
   const [rot, setRot] = useState(0);
-  const [scale, setScale] = useState(1);
+  const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [tool, setTool] = useState(""); // "" (pan) | draw | blur | filter
   const [color, setColor] = useState("#ef4444");
@@ -30,14 +31,16 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
   const [blurStrokes, setBlurStrokes] = useState([]); // {size,points:[{x,y}]} in 0..1
   const [filterIdx, setFilterIdx] = useState(0);
   const [log, setLog] = useState([]); // {type:'draw'|'blur'} for undo
+  const [box, setBox] = useState(0);
   const stageRef = useRef(null);
+  const wrapRef = useRef(null);
   const pointers = useRef(new Map());
   const pan = useRef(null);
   const pinch = useRef(null);
   const drawRef = useRef(null);
   const rafRef = useRef(null);
-  const tf = useRef({ scale, offset });
-  tf.current = { scale, offset };
+  const tf = useRef({ zoom, offset });
+  tf.current = { zoom, offset };
   const filterCss = FILTERS[filterIdx].css;
 
   useEffect(() => {
@@ -47,36 +50,69 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
     im.src = u;
   }, [file]);
 
-  const clamp = (x, y, s) => {
+  // Measure the available area and render a true square that fits inside it
+  // (prevents the canvas from overlapping the tool panel below).
+  useEffect(() => {
+    const el = wrapRef.current; if (!el) return;
+    const measure = () => {
+      const r = el.getBoundingClientRect();
+      setBox(Math.max(0, Math.floor(Math.min(r.width, r.height))));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const dims = () => {
+    const rot90 = rot % 180 !== 0;
+    const iw = rot90 ? img.naturalHeight : img.naturalWidth;
+    const ih = rot90 ? img.naturalWidth : img.naturalHeight;
+    return { iw, ih };
+  };
+
+  const clamp = (x, y, z) => {
     const vp = stageRef.current;
-    if (!vp) return { x, y };
+    if (!vp || !img) return { x, y };
     const r = vp.getBoundingClientRect();
-    const maxX = ((s - 1) * r.width) / 2;
-    const maxY = ((s - 1) * r.height) / 2;
+    const V = r.width || box;
+    const { iw, ih } = dims();
+    const fit = Math.min(V / iw, V / ih);
+    const dispW = iw * fit * z;
+    const dispH = ih * fit * z;
+    const maxX = Math.max(0, (dispW - V) / 2);
+    const maxY = Math.max(0, (dispH - V) / 2);
     return { x: Math.min(Math.max(x, -maxX), maxX), y: Math.min(Math.max(y, -maxY), maxY) };
   };
 
   const render = useCallback(() => {
     const canvas = stageRef.current;
-    if (!canvas || !img) return;
+    if (!canvas || !img || !box) return;
     const dpr = window.devicePixelRatio || 1;
-    const r = canvas.getBoundingClientRect();
-    const V = r.width;
-    if (!V) return;
+    const V = box;
     canvas.width = Math.round(V * dpr);
     canvas.height = Math.round(V * dpr);
     const ctx = canvas.getContext("2d");
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, V, V);
+    const { iw, ih } = dims();
+    const fit = Math.min(V / iw, V / ih);
+    const bgCover = Math.max(V / iw, V / ih) * 1.12;
+    const bgFilter = (filterCss && filterCss !== "none" ? filterCss + " " : "") + `blur(${Math.round(V * 0.05)}px)`;
+    // Blurred background fill (covers the letterbox area nicely).
+    ctx.save();
+    ctx.filter = bgFilter;
+    ctx.translate(V / 2, V / 2);
+    ctx.rotate((rot * Math.PI) / 180);
+    ctx.scale(bgCover, bgCover);
+    ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+    ctx.restore();
+    // Main image: contained at zoom=1 (full original visible), zoom to crop.
     ctx.save();
     ctx.filter = filterCss;
     ctx.translate(V / 2 + offset.x, V / 2 + offset.y);
     ctx.rotate((rot * Math.PI) / 180);
-    const rot90 = rot % 180 !== 0;
-    const iw = rot90 ? img.naturalHeight : img.naturalWidth;
-    const ih = rot90 ? img.naturalWidth : img.naturalHeight;
-    const cover = Math.max(V / iw, V / ih);
-    ctx.scale(cover * scale, cover * scale);
+    ctx.scale(fit * zoom, fit * zoom);
     ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
     ctx.restore();
     if (blurStrokes.length) {
@@ -109,7 +145,7 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
       s.points.forEach((p, i) => { const x = p.x * V, y = p.y * V; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
       ctx.stroke();
     });
-  }, [img, rot, scale, offset, strokes, blurStrokes, filterCss]);
+  }, [img, rot, zoom, offset, strokes, blurStrokes, filterCss, box]);
 
   const schedule = useCallback(() => {
     if (rafRef.current) return;
@@ -126,12 +162,12 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
       const V = r.width;
       const px = e.clientX - r.left - V / 2;
       const py = e.clientY - r.top - V / 2;
-      const { scale: s, offset: o } = tf.current;
+      const { zoom: z, offset: o } = tf.current;
       const factor = Math.exp(-e.deltaY * 0.0015);
-      const ns = clampScale(s * factor);
-      const local = { x: (px - o.x) / s, y: (py - o.y) / s };
-      const no = { x: px - local.x * ns, y: py - local.y * ns };
-      setScale(ns); setOffset(clamp(no.x, no.y, ns));
+      const nz = clampZoom(z * factor);
+      const local = { x: (px - o.x) / z, y: (py - o.y) / z };
+      const no = { x: px - local.x * nz, y: py - local.y * nz };
+      setZoom(nz); setOffset(clamp(no.x, no.y, nz));
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
@@ -148,7 +184,7 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
     pan.current = null;
     drawRef.current = null;
     const [a, b] = [...pointers.current.values()];
-    pinch.current = { dist: dist(a, b), scale, mid: midOf(a, b), ox: offset.x, oy: offset.y };
+    pinch.current = { dist: dist(a, b), zoom, mid: midOf(a, b), ox: offset.x, oy: offset.y };
   };
 
   const onPointerDown = (e) => {
@@ -178,15 +214,15 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
     if (pinch.current && pointers.current.size >= 2) {
       const [a, b] = [...pointers.current.values()];
       const d = dist(a, b);
-      const ns = clampScale((pinch.current.scale * d) / pinch.current.dist);
+      const ns = clampZoom((pinch.current.zoom * d) / pinch.current.dist);
       const m = midOf(a, b);
       const no = {
-        x: m.x - (pinch.current.mid.x - pinch.current.ox) * (ns / pinch.current.scale),
-        y: m.y - (pinch.current.mid.y - pinch.current.oy) * (ns / pinch.current.scale),
+        x: m.x - (pinch.current.mid.x - pinch.current.ox) * (ns / pinch.current.zoom),
+        y: m.y - (pinch.current.mid.y - pinch.current.oy) * (ns / pinch.current.zoom),
       };
-      setScale(ns); setOffset(clamp(no.x, no.y, ns));
+      setZoom(ns); setOffset(clamp(no.x, no.y, ns));
     } else if (pan.current) {
-      setOffset(clamp(pan.current.ox + e.clientX - pan.current.x, pan.current.oy + e.clientY - pan.current.y, scale));
+      setOffset(clamp(pan.current.ox + e.clientX - pan.current.x, pan.current.oy + e.clientY - pan.current.y, zoom));
     } else if (drawRef.current) {
       drawRef.current.stroke.points.push({ x: p.nx, y: p.ny });
       drawRef.current.kind === "draw" ? setStrokes((s) => [...s]) : setBlurStrokes((s) => [...s]);
@@ -222,27 +258,32 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
     setLog((l) => l.slice(0, -1));
   };
 
-  const onScale = (s) => { setScale(s); setOffset((prev) => clamp(prev.x, prev.y, s)); };
+  const onZoom = (z) => { setZoom(z); setOffset((prev) => clamp(prev.x, prev.y, z)); };
 
   const confirm = async () => {
     if (!img) return;
-    const r = stageRef.current.getBoundingClientRect();
-    const V = r.width;
+    const V = box || stageRef.current.getBoundingClientRect().width;
     const C = 1080;
     const k = C / V;
     const canvas = document.createElement("canvas");
     canvas.width = C; canvas.height = C;
     const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, C, C);
+    const { iw, ih } = dims();
+    const fit = Math.min(C / iw, C / ih);
+    const bgCover = Math.max(C / iw, C / ih) * 1.12;
+    const bgFilter = (filterCss && filterCss !== "none" ? filterCss + " " : "") + `blur(${Math.round(C * 0.05)}px)`;
+    ctx.save();
+    ctx.filter = bgFilter;
+    ctx.translate(C / 2, C / 2);
+    ctx.rotate((rot * Math.PI) / 180);
+    ctx.scale(bgCover, bgCover);
+    ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+    ctx.restore();
     ctx.save();
     ctx.filter = filterCss;
     ctx.translate(C / 2 + offset.x * k, C / 2 + offset.y * k);
     ctx.rotate((rot * Math.PI) / 180);
-    const rot90 = rot % 180 !== 0;
-    const iw = rot90 ? img.naturalHeight : img.naturalWidth;
-    const ih = rot90 ? img.naturalWidth : img.naturalHeight;
-    const cover = Math.max(C / iw, C / ih);
-    ctx.scale(cover * scale, cover * scale);
+    ctx.scale(fit * zoom, fit * zoom);
     ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
     ctx.restore();
     if (blurStrokes.length) {
@@ -287,12 +328,15 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
     <div className="fixed inset-0 z-[60] bg-black flex flex-col select-none">
       <div className="flex items-center justify-between p-4 text-white">
         <button onClick={onCancel} className="p-2"><X size={22} /></button>
-        <span className="font-semibold">{ar ? "تعديل الصورة" : "Edit photo"}</span>
-        <button onClick={confirm} className="p-2 text-emerald-400"><Check size={24} /></button>
+        <div className="flex flex-col items-center leading-tight">
+          <span className="font-semibold">{ar ? "تعديل الصورة" : "Edit photo"}</span>
+          {total > 1 && <span className="text-xs text-white/60">{index + 1} / {total}</span>}
+        </div>
+        <button onClick={confirm} disabled={!img} className="p-2 text-emerald-400 disabled:opacity-40"><Check size={24} /></button>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-4 min-h-0">
-        <div className="relative h-full aspect-square max-w-full rounded-2xl overflow-hidden bg-slate-900">
+      <div ref={wrapRef} className="flex-1 flex items-center justify-center p-4 min-h-0">
+        <div className="relative rounded-2xl overflow-hidden bg-slate-900" style={{ width: box, height: box }}>
           <canvas
             ref={stageRef}
             onPointerDown={onPointerDown}
@@ -347,12 +391,12 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
         </div>
         <div className="flex items-center gap-3">
           <ZoomOut size={18} className="shrink-0" />
-          <input type="range" min={1} max={5} step={0.01} value={scale} onChange={(e) => onScale(Number(e.target.value))} className="flex-1 accent-emerald-400" />
+          <input type="range" min={1} max={5} step={0.01} value={zoom} onChange={(e) => onZoom(Number(e.target.value))} className="flex-1 accent-emerald-400" />
           <ZoomIn size={18} className="shrink-0" />
         </div>
-        <p className="text-center text-xs text-white/50">{ar ? "اسحب للتحريك · قرّص أو عجلة الفأرة للتكبير · ما يظهر هنا يُنشر" : "Drag to move · pinch or mouse-wheel to zoom · what you see is what gets posted"}</p>
+        <p className="text-center text-xs text-white/50">{ar ? "اسحب للتحريك · قرّص للتكبير والقص · ما يظهر هنا يُنشر" : "Drag to move · pinch to zoom & crop · what you see is what gets posted"}</p>
 
-        <button onClick={confirm} className="w-full py-3.5 rounded-2xl bg-emerald-500 text-white font-bold">{ar ? "تم" : "Done"}</button>
+        <button onClick={confirm} disabled={!img} className="w-full py-3.5 rounded-2xl bg-emerald-500 text-white font-bold disabled:opacity-50">{ar ? "تم" : "Done"}</button>
       </div>
     </div>
   );

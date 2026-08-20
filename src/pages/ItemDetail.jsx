@@ -86,6 +86,8 @@ export default function ItemDetail() {
   const pinchStart = useRef(null);
   const swipeStart = useRef(null);
   const panStart = useRef(null);
+  const [pinching, setPinching] = useState(false);
+  const lastTap = useRef(0);
 
   const clampPan = (x, y, s, w, h) => {
     if (s <= 1) return { x: 0, y: 0 };
@@ -320,8 +322,25 @@ export default function ItemDetail() {
             const [p1, p2] = [...pointers.current.values()];
             const r = e.currentTarget.getBoundingClientRect();
             pinchStart.current = { dist: Math.hypot(p1.x - p2.x, p1.y - p2.y), scale: pinchScale, midX: (p1.x + p2.x) / 2 - r.left, midY: (p1.y + p2.y) / 2 - r.top, x: pan.x, y: pan.y };
+            setPinching(true);
           } else if (pointers.current.size === 1) {
-            if (pinchScale > 1.01) panStart.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y };
+            setPinching(true);
+            const now = Date.now();
+            if (now - lastTap.current < 280) {
+              lastTap.current = 0;
+              const r = e.currentTarget.getBoundingClientRect();
+              const tx = e.clientX - r.left, ty = e.clientY - r.top;
+              if (pinchScale > 1.05) {
+                setPinchScale(1); setPan({ x: 0, y: 0 });
+              } else {
+                const target = 2.5;
+                setPinchScale(target);
+                setPan(clampPan((tx - r.width / 2) * (1 - target), (ty - r.height / 2) * (1 - target), target, r.width, r.height));
+              }
+              return;
+            }
+            lastTap.current = now;
+            if (pinchScale > 1.05) panStart.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y };
             else swipeStart.current = { x: e.clientX, y: e.clientY };
           }
         }}
@@ -333,19 +352,17 @@ export default function ItemDetail() {
             const [p1, p2] = [...pointers.current.values()];
             const r = e.currentTarget.getBoundingClientRect();
             const d = Math.hypot(p1.x - p2.x, p1.y - p2.y);
-            let ns = Math.min(Math.max(pinchStart.current.scale * (d / pinchStart.current.dist), 1), 5);
+            let ns = Math.min(Math.max(pinchStart.current.scale * (d / pinchStart.current.dist), 1), 4);
             const mx = (p1.x + p2.x) / 2 - r.left;
             const my = (p1.y + p2.y) / 2 - r.top;
             const cx = r.width / 2, cy = r.height / 2;
-            const ps0x = (pinchStart.current.midX - cx - pinchStart.current.x) / pinchStart.current.scale;
-            const ps0y = (pinchStart.current.midY - cy - pinchStart.current.y) / pinchStart.current.scale;
-            let nx = mx - cx - ps0x * ns;
-            let ny = my - cy - ps0y * ns;
-            if (ns <= 1.01) { ns = 1; nx = 0; ny = 0; }
+            let nx = mx - cx - (mx - cx - pinchStart.current.x) * (ns / pinchStart.current.scale);
+            let ny = my - cy - (my - cy - pinchStart.current.y) * (ns / pinchStart.current.scale);
+            if (ns <= 1.05) { ns = 1; nx = 0; ny = 0; }
             else { const c = clampPan(nx, ny, ns, r.width, r.height); nx = c.x; ny = c.y; }
             setPinchScale(ns);
             setPan({ x: nx, y: ny });
-          } else if (pointers.current.size === 1 && panStart.current && pinchScale > 1.01) {
+          } else if (pointers.current.size === 1 && panStart.current && pinchScale > 1.05) {
             const r = e.currentTarget.getBoundingClientRect();
             const dx = e.clientX - panStart.current.x;
             const dy = e.clientY - panStart.current.y;
@@ -366,11 +383,18 @@ export default function ItemDetail() {
           }
           pointers.current.delete(e.pointerId);
           if (pointers.current.size < 2) pinchStart.current = null;
+          if (pointers.current.size === 1) {
+            const [p] = [...pointers.current.values()];
+            if (pinchScale > 1.05) panStart.current = { x: p.x, y: p.y, px: pan.x, py: pan.y };
+            else { panStart.current = null; swipeStart.current = { x: p.x, y: p.y }; }
+            return;
+          }
           if (pointers.current.size === 0) {
+            setPinching(false);
             panStart.current = null;
             const start = swipeStart.current;
             swipeStart.current = null;
-            if (pinchScale <= 1.01) {
+            if (pinchScale <= 1.05) {
               if (start) {
                 const dx = e.clientX - start.x;
                 const dy = e.clientY - start.y;
@@ -382,20 +406,16 @@ export default function ItemDetail() {
               setPinchScale(1);
               setPan({ x: 0, y: 0 });
             }
-          } else if (pointers.current.size === 1) {
-            const [p] = [...pointers.current.values()];
-            if (pinchScale > 1.01) panStart.current = { x: p.x, y: p.y, px: pan.x, py: pan.y };
-            else swipeStart.current = { x: p.x, y: p.y };
           }
         }}
-        onPointerCancel={() => { pointers.current.clear(); pinchStart.current = null; swipeStart.current = null; panStart.current = null; setPinchScale(1); setPan({ x: 0, y: 0 }); }}
+        onPointerCancel={() => { pointers.current.clear(); pinchStart.current = null; swipeStart.current = null; panStart.current = null; setPinching(false); setPinchScale(1); setPan({ x: 0, y: 0 }); }}
       >
         <div
           className="absolute inset-0 pointer-events-none select-none"
           style={{
             transform: pinchScale > 1 ? `translate(${pan.x}px, ${pan.y}px) scale(${pinchScale})` : zoom ? "scale(2.2)" : "scale(1)",
             transformOrigin: pinchScale > 1 ? "center center" : `${origin.x}% ${origin.y}%`,
-            transition: pinchScale > 1 ? "none" : "transform 0.2s ease-out",
+            transition: pinching ? "none" : "transform 0.25s ease-out",
           }}
         >
           <Image src={imgs[activeImg]} fittingType="fill" className="w-full h-full object-cover" style={{ display: "block" }} />

@@ -519,7 +519,15 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
       )}
 
       {editQueue.length > 0 && (
-        <ImageEditor file={editQueue[0]} lang={lang} onCancel={() => setEditQueue((q) => q.slice(1))} onDone={handleEdited} />
+        <ImageEditor
+          key={editQueue[0].name + "_" + editQueue[0].size}
+          file={editQueue[0]}
+          lang={lang}
+          index={images.length}
+          total={images.length + editQueue.length}
+          onCancel={() => setEditQueue((q) => q.slice(1))}
+          onDone={handleEdited}
+        />
       )}
     </div>
   );

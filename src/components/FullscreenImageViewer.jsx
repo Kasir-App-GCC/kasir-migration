@@ -89,7 +89,9 @@ export default function FullscreenImageViewer({ images, index, onClose, lang }) 
         const dx = e.clientX - start.x;
         const dy = e.clientY - start.y;
         if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
-          if (dx < 0) goNext(); else goPrev();
+          // RTL: invert so swiping toward the reading-start feels natural
+          if (ar) { if (dx < 0) goPrev(); else goNext(); }
+          else { if (dx < 0) goNext(); else goPrev(); }
         } else if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
           onClose();
         }

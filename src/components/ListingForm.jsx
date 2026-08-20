@@ -285,6 +285,14 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
           </Droppable>
         </DragDropContext>
         <p className="text-[11px] text-muted-foreground mt-1.5">{t("dragToReorder")}</p>
+        <div className="mt-1.5">
+          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${verified ? "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300" : "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"}`}>
+            <ImagePlus size={12} />
+            {verified
+              ? (ar ? "يمكنك إضافة حتى ٢٠ صورة" : "You can upload up to 20 photos")
+              : (ar ? "يمكنك إضافة حتى ١٠ صور فقط" : "You can upload up to 10 photos only")}
+          </span>
+        </div>
         {images.length === 0 && (
           <p className="text-[11px] text-rose-500 font-semibold mt-1">{ar ? "صورة واحدة على الأقل مطلوبة" : "At least one photo is required"}</p>
         )}

@@ -32,7 +32,9 @@ export default async function(req) {
     });
     const twData = await twRes.json().catch(() => ({}));
     if (!twRes.ok) {
-      return Response.json({ error: 'Twilio error: ' + (twData.message || twRes.status) }, { status: 502 });
+      const code = twData.code ? ` [${twData.code}]` : '';
+      const more = twData.more_info ? ` (${twData.more_info})` : '';
+      return Response.json({ error: 'Twilio error: ' + (twData.message || twRes.status) + code + more, status: twRes.status }, { status: 502 });
     }
 
     return Response.json({ ok: true, status: twData.status });

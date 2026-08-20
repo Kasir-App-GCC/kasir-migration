@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import { Search, Trash2, Pencil, Star, Tag, Clock, X, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
@@ -17,11 +17,12 @@ export default function AdminListings() {
   const nav = useNavigate();
   const PAGE_SIZE = 24;
   const [items, setItems] = useState([]);
-  const [allItems, setAllItems] = useState(null);
+  const [searchItems, setSearchItems] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [searching, setSearching] = useState(false);
+  const [searchHasMore, setSearchHasMore] = useState(true);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState("all");
   const [featureItem, setFeatureItem] = useState(null);
@@ -29,6 +30,7 @@ export default function AdminListings() {
   const [featureSaving, setFeatureSaving] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const skipRef = useRef(0);
+  const searchSkipRef = useRef(0);
 
   const loadInitial = async () => {
     const list = await base44.entities.Item.filter({}, "-created_date", PAGE_SIZE, 0);
@@ -42,7 +44,23 @@ export default function AdminListings() {
   };
 
   const loadMore = async () => {
-    if (loadingMore || !hasMore) return;
+    if (loadingMore) return;
+    // Search mode paginates the server-filtered results.
+    if (q.trim()) {
+      if (!searchHasMore) return;
+      setLoadingMore(true);
+      const skip = searchSkipRef.current + PAGE_SIZE;
+      try {
+        const list = await base44.entities.Item.filter(buildSearchQuery(), "-created_date", PAGE_SIZE, skip);
+        const arr = list || [];
+        searchSkipRef.current = skip;
+        setSearchItems((prev) => [...(prev || []), ...arr.filter((x) => !(prev || []).some((p) => p.id === x.id))]);
+        setSearchHasMore(arr.length === PAGE_SIZE);
+      } catch { setSearchHasMore(false); }
+      finally { setLoadingMore(false); }
+      return;
+    }
+    if (!hasMore) return;
     setLoadingMore(true);
     try {
       const list = await base44.entities.Item.filter({}, "-created_date", PAGE_SIZE, skipRef.current);
@@ -54,21 +72,40 @@ export default function AdminListings() {
     finally { setLoadingMore(false); }
   };
 
-  // The search bar fetches a large batch so it can find any listing — even ones
-  // not yet loaded into the paginated view. Debounced so typing doesn't spam.
+  // Server-side search: query the whole catalog (title / seller) via $regex so
+  // any listing is found — not just the ones already loaded into the browse
+  // view. The status/featured filter is applied server-side too. Debounced.
+  const buildSearchQuery = useCallback(() => {
+    const query = {};
+    const s = q.trim();
+    if (s) {
+      query.$or = [
+        { title: { $regex: s, $options: "i" } },
+        { seller_name: { $regex: s, $options: "i" } },
+      ];
+    }
+    if (filter === "available") query.status = "available";
+    else if (filter === "sold") query.status = "sold";
+    else if (filter === "featured") query.featured = true;
+    return query;
+  }, [q, filter]);
+
   useEffect(() => {
-    if (!q.trim()) { setAllItems(null); setSearching(false); return; }
+    if (!q.trim()) { setSearchItems(null); setSearching(false); return; }
     setSearching(true);
+    searchSkipRef.current = 0;
     let alive = true;
     const t = setTimeout(async () => {
       try {
-        const list = await base44.entities.Item.filter({}, "-created_date", 500, 0);
-        if (alive) setAllItems(list || []);
-      } catch { if (alive) setAllItems([]); }
+        const list = await base44.entities.Item.filter(buildSearchQuery(), "-created_date", PAGE_SIZE, 0);
+        if (!alive) return;
+        setSearchItems(list || []);
+        setSearchHasMore((list || []).length === PAGE_SIZE);
+      } catch { if (alive) setSearchItems([]); }
       finally { if (alive) setSearching(false); }
     }, 300);
     return () => { alive = false; clearTimeout(t); };
-  }, [q]);
+  }, [buildSearchQuery]);
 
   useEffect(() => {
     loadInitial().finally(() => setLoading(false));
@@ -84,23 +121,26 @@ export default function AdminListings() {
       if (!event) return;
       const it = event.data;
       setItems((prev) => patch(prev, it, event.type));
-      setAllItems((prev) => (prev === null ? prev : patch(prev, it, event.type)));
+      setSearchItems((prev) => (prev === null ? prev : patch(prev, it, event.type)));
     });
     return () => unsub?.();
   }, []);
 
   const filtered = useMemo(() => {
-    const searchMode = !!q.trim();
-    let r = searchMode ? (allItems || []) : items;
+    // Search mode: results already came from the server filtered by the
+    // query — only refine "featured" for liveness (expired boosts still
+    // carry featured:true). Browse mode applies the filter to loaded pages.
+    if (q.trim()) {
+      let r = searchItems || [];
+      if (filter === "featured") r = r.filter((i) => isLiveFeatured(i));
+      return r;
+    }
+    let r = items;
     if (filter === "sold") r = r.filter((i) => i.status === "sold");
     else if (filter === "available") r = r.filter((i) => i.status === "available");
     else if (filter === "featured") r = r.filter((i) => isLiveFeatured(i));
-    if (searchMode) {
-      const s = q.trim().toLowerCase();
-      r = r.filter((i) => (i.title || "").toLowerCase().includes(s) || (i.seller_name || "").toLowerCase().includes(s));
-    }
     return r;
-  }, [items, allItems, q, filter]);
+  }, [items, searchItems, q, filter]);
 
   const deleteItem = async (it) => {
     if (!window.confirm(ar ? `حذف "${it.title}"؟` : `Delete "${it.title}"?`)) return;
@@ -215,13 +255,21 @@ export default function AdminListings() {
         ))}
       </div>
 
-      {q.trim() ? null : hasMore ? (
-        <div className="flex justify-center py-4">
-          <button onClick={loadMore} disabled={loadingMore} className="px-6 py-2.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-50">
-            {loadingMore ? "…" : (ar ? "عرض المزيد" : "See more")}
-          </button>
-        </div>
-      ) : null}
+      {q.trim()
+        ? searchHasMore && (searchItems?.length || 0) > 0 ? (
+            <div className="flex justify-center py-4">
+              <button onClick={loadMore} disabled={loadingMore} className="px-6 py-2.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-50">
+                {loadingMore ? "…" : (ar ? "عرض المزيد" : "See more")}
+              </button>
+            </div>
+          ) : null
+        : hasMore ? (
+            <div className="flex justify-center py-4">
+              <button onClick={loadMore} disabled={loadingMore} className="px-6 py-2.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-50">
+                {loadingMore ? "…" : (ar ? "عرض المزيد" : "See more")}
+              </button>
+            </div>
+          ) : null}
 
       {editItem && (
         <AdminEditListing

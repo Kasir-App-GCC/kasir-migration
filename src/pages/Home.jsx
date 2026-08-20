@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { Sparkles, ShoppingBag, Map as MapIcon } from "lucide-react";
+import { Sparkles, ShoppingBag, Map as MapIcon, Eye, EyeOff } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import ItemCard from "@/components/ItemCard";
 import FeaturedCarousel from "@/components/FeaturedCarousel";
@@ -25,7 +25,7 @@ function Skeleton() {
 
 export default function Home() {
   const { categories, subcategories } = useOutletContext();
-  const { locationFilter, lang, prefs, country } = useStore();
+  const { locationFilter, lang, prefs, setPrefs, country } = useStore();
   const t = useT();
   const nav = useNavigate();
   const PAGE_SIZE = 60;
@@ -207,6 +207,14 @@ export default function Home() {
         </h2>
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground">{filtered.length} {t("items")}</span>
+          <button
+            onClick={() => setPrefs({ showSold: !prefs.showSold })}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition ${prefs.showSold ? "bg-muted hover:bg-muted/70" : "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300"}`}
+            title={prefs.showSold ? (lang === "ar" ? "إخفاء المباع" : "Hide sold") : (lang === "ar" ? "إظهار المباع" : "Show sold")}
+          >
+            {prefs.showSold ? <Eye size={16} /> : <EyeOff size={16} />}
+            <span className="hidden sm:inline">{prefs.showSold ? (lang === "ar" ? "الكل" : "All") : (lang === "ar" ? "متاح فقط" : "Available")}</span>
+          </button>
           <button
             onClick={() => nav("/map")}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted hover:bg-muted/70 text-sm font-semibold transition"

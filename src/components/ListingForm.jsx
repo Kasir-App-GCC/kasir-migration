@@ -304,10 +304,15 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
 
       <div className="space-y-1">
         <label className="text-sm font-semibold">{t("price")}</label>
-        <div className="flex items-center px-4 py-3 rounded-2xl bg-muted">
-          <input value={price} onChange={onPriceChange} placeholder={t("pricePlaceholder")} className="bg-transparent outline-none flex-1" inputMode="numeric" />
+        <div className={`flex items-center px-4 py-3 rounded-2xl bg-muted ${boostLocked ? "opacity-60" : ""}`}>
+          <input value={price} onChange={onPriceChange} placeholder={t("pricePlaceholder")} className="bg-transparent outline-none flex-1 disabled:cursor-not-allowed" inputMode="numeric" disabled={boostLocked} />
           <span className="text-muted-foreground text-sm font-bold">{ar ? cur.currencyAr : cur.currency}</span>
         </div>
+        {boostLocked && (
+          <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
+            <Lock size={11} /> {ar ? "لا يمكن تعديل السعر أثناء تفعيل الترويج" : "Price can't be edited while the listing is promoted"}
+          </p>
+        )}
       </div>
 
       <div className="space-y-1">

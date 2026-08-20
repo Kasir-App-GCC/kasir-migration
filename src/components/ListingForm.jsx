@@ -14,6 +14,7 @@ import { useToast } from "@/components/ui/use-toast";
 import SheetSelect from "@/components/SheetSelect";
 import ReviewTagChips from "@/components/ReviewTagChips";
 import { getListingTags } from "@/lib/listingTags";
+import ImageEditor from "@/components/ImageEditor";
 
 // Convert Arabic-Indic (٠-٩) and Eastern Arabic (۰-۹) digits to ASCII 0-9
 function normalizeDigits(s) {
@@ -50,6 +51,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [mapPos, setMapPos] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [posting, setPosting] = useState(false);
+  const [editQueue, setEditQueue] = useState([]);
 
   // Reverse-geocode coordinates to an accurate place name for display.
   const reverseGeocode = async (la, ln) => {
@@ -90,24 +92,22 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const onPick = async (e) => {
+  const onPick = (e) => {
     const files = Array.from(e.target.files || []).slice(0, 5 - images.length);
     e.target.value = "";
     if (!files.length) return;
+    setEditQueue(files);
+  };
+
+  const handleEdited = async (f) => {
     setUploading(true);
     try {
-      await Promise.all(
-        files.map(async (f) => {
-          try {
-            const compressed = await compressImage(f);
-            const r = await base44.integrations.Core.UploadFile({ file: compressed });
-            setImages((prev) => [...prev, r.file_url].slice(0, 5));
-          } catch {}
-        })
-      );
-    } finally {
-      setUploading(false);
-    }
+      const compressed = await compressImage(f);
+      const r = await base44.integrations.Core.UploadFile({ file: compressed });
+      setImages((prev) => [...prev, r.file_url].slice(0, 5));
+    } catch {}
+    setUploading(false);
+    setEditQueue((q) => q.slice(1));
   };
 
   const onDragEnd = (res) => {
@@ -516,6 +516,10 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             </button>
           </div>
         </div>
+      )}
+
+      {editQueue.length > 0 && (
+        <ImageEditor file={editQueue[0]} lang={lang} onCancel={() => setEditQueue((q) => q.slice(1))} onDone={handleEdited} />
       )}
     </div>
   );

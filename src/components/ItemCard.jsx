@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Heart, MapPin, Clock, ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { Heart, MapPin, Clock, ChevronLeft, ChevronRight, Star, BadgeCheck } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { timeAgo } from "@/lib/format";
@@ -137,7 +137,12 @@ export default function ItemCard({ item, onClick }) {
         {item.seller_name && (
           <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">
             <span className="truncate">{item.seller_name}</span>
-            {sellerInfo.trusted && <TrustedBadge size={12} />}
+            {sellerInfo.trusted && (
+              <span className="inline-flex items-center gap-0.5 shrink-0 px-1 py-0.5 rounded bg-sky-500 text-white text-[9px] font-bold leading-none">
+                <BadgeCheck size={10} className="shrink-0" />
+                {lang === "ar" ? "موثّق" : "Verified"}
+              </span>
+            )}
             <span className="inline-flex items-center gap-0.5 shrink-0">
               <Star size={11} className="fill-amber-400 text-amber-400" />
               <span className="font-semibold text-foreground/80">{(sellerInfo.rating ?? 5).toFixed(1)}</span>

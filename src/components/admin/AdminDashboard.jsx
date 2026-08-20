@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Users, Tag, Flag, LifeBuoy, TrendingUp, DollarSign, ShoppingBag, AlertTriangle } from "lucide-react";
+import { Users, Tag, Flag, LifeBuoy, TrendingUp, DollarSign, ShoppingBag, AlertTriangle, Wallet } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { formatPrice } from "@/lib/format";
@@ -14,7 +14,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     (async () => {
       try {
-        const [users, items, reports, tickets, ratings, boosts, verifications] = await Promise.all([
+        const [users, items, reports, tickets, ratings, boosts, verifications, offers] = await Promise.all([
           base44.entities.User.list("-created_date", 500),
           base44.entities.Item.list("-created_date", 500),
           base44.entities.Report.list("-created_date", 200),
@@ -22,6 +22,7 @@ export default function AdminDashboard() {
           base44.entities.Rating.list("-created_date", 500),
           base44.entities.BoostRequest.list("-created_date", 500),
           base44.entities.VerificationRequest.list("-created_date", 500),
+          base44.entities.Offer.list("-created_date", 500),
         ]);
         // Exclude generated seed/test listings (seller_id starts with "seed-")
         // so dashboard stats reflect real marketplace activity only.
@@ -32,6 +33,11 @@ export default function AdminDashboard() {
         const boostRevenue = (boosts || []).filter((b) => b.status === "approved").reduce((s, b) => s + (b.amount || 0), 0);
         const verificationRevenue = (verifications || []).filter((v) => v.status === "approved").length * VERIFICATION_FEE;
         const revenue = boostRevenue + verificationRevenue;
+        // Total money spent = sum of agreed (accepted/completed) offer amounts,
+        // i.e. the actual transaction value buyers paid, not the listing price.
+        const totalSpent = (offers || [])
+          .filter((o) => (o.status === "accepted" || o.status === "completed") && !(o.seller_id || "").startsWith("seed-"))
+          .reduce((s, o) => s + (o.amount || 0), 0);
         const trusted = (users || []).filter((u) => u.is_trusted).length;
         const banned = (users || []).filter((u) => u.is_banned).length;
         const openTickets = (tickets || []).filter((t) => t.status === "open").length;
@@ -43,6 +49,7 @@ export default function AdminDashboard() {
           users: users?.length || 0,
           items: realItems.length,
           sold: soldItems.length,
+          totalSpent,
           revenue,
           trusted,
           banned,
@@ -64,7 +71,8 @@ export default function AdminDashboard() {
   const cards = [
     { icon: Users, label: ar ? "المستخدمين" : "Users", value: stats.users, color: "text-blue-500 bg-blue-50 dark:bg-blue-950/30" },
     { icon: ShoppingBag, label: ar ? "الإعلانات" : "Listings", value: stats.items, color: "text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30" },
-    { icon: Tag, label: ar ? "المباع" : "Sold", value: stats.sold, color: "text-amber-500 bg-amber-50 dark:bg-amber-950/30" },
+    { icon: Tag, label: ar ? "إجمالي المبيعات" : "Total Sales", value: stats.sold, color: "text-amber-500 bg-amber-50 dark:bg-amber-950/30" },
+    { icon: Wallet, label: ar ? "إجمالي المنفق" : "Total Spent", value: formatPrice(stats.totalSpent, country), color: "text-indigo-500 bg-indigo-50 dark:bg-indigo-950/30" },
     { icon: DollarSign, label: ar ? "إيرادات المنصة" : "Platform Revenue", value: formatPrice(stats.revenue, country), color: "text-green-500 bg-green-50 dark:bg-green-950/30" },
     { icon: TrendingUp, label: ar ? "متوسط التقييم" : "Avg Rating", value: `${stats.avgRating} ★`, color: "text-purple-500 bg-purple-50 dark:bg-purple-950/30" },
     { icon: AlertTriangle, label: ar ? "موثوقون" : "Trusted", value: stats.trusted, color: "text-cyan-500 bg-cyan-50 dark:bg-cyan-950/30" },

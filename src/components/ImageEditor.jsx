@@ -1,19 +1,19 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { RotateCw, RotateCcw, Check, X, ZoomIn, ZoomOut, Crop as CropIcon, Pencil, Type, Droplets, Undo2, Trash2 } from "lucide-react";
+import { RotateCw, RotateCcw, Check, X, ZoomIn, ZoomOut, Move, Pencil, Type, Droplets, Undo2, Trash2 } from "lucide-react";
 
 const COLORS = ["#ffffff", "#000000", "#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#a855f7"];
 const BLUR_PX = 14; // blur radius in stage CSS px
 const clampScale = (s) => Math.min(Math.max(s, 1), 5);
 
-// Basic pre-upload editor: crop (rotate/pan/zoom via slider, pinch, wheel) +
-// draw + text (inline, draggable) + blur, then export a square 1080×1080 JPEG.
+// Pre-upload editor: position the photo (pan/zoom/pinch/wheel — what you see is
+// what gets posted) + draw + text (inline, draggable) + blur. Exports 1080×1080 JPEG.
 export default function ImageEditor({ file, lang, onCancel, onDone }) {
   const ar = lang === "ar";
   const [img, setImg] = useState(null);
   const [rot, setRot] = useState(0);
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [tool, setTool] = useState("crop"); // crop | draw | text | blur
+  const [tool, setTool] = useState("move"); // move | draw | text | blur
   const [color, setColor] = useState("#ef4444");
   const [brush, setBrush] = useState(14);
   const [strokes, setStrokes] = useState([]); // {color,size,points:[{x,y}]} in 0..1
@@ -109,14 +109,13 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
       s.points.forEach((p, i) => { const x = p.x * V, y = p.y * V; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
       ctx.stroke();
     });
-    texts.forEach((t, i) => {
-      if (editing && editing.index === i) return;
+    texts.forEach((t) => {
       ctx.fillStyle = t.color;
       ctx.font = `bold ${Math.round(t.size * V)}px ui-sans-serif, system-ui, sans-serif`;
       ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.fillText(t.text, t.x * V, t.y * V);
     });
-  }, [img, rot, scale, offset, strokes, blurStrokes, texts, editing]);
+  }, [img, rot, scale, offset, strokes, blurStrokes, texts]);
 
   const schedule = useCallback(() => {
     if (rafRef.current) return;
@@ -128,7 +127,6 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
   useEffect(() => {
     const el = stageRef.current; if (!el) return;
     const onWheel = (e) => {
-      if (tool !== "crop") return;
       e.preventDefault();
       const r = el.getBoundingClientRect();
       const V = r.width;
@@ -143,7 +141,7 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
-  }, [tool]);
+  }, []);
 
   const rel = (e) => {
     const r = stageRef.current.getBoundingClientRect();
@@ -164,27 +162,32 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
     return -1;
   };
 
+  const beginPinch = () => {
+    pan.current = null;
+    drawRef.current = null;
+    dragText.current = null;
+    const [a, b] = [...pointers.current.values()];
+    pinch.current = { dist: dist(a, b), scale, mid: midOf(a, b), ox: offset.x, oy: offset.y };
+  };
+
   const onPointerDown = (e) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     const p = rel(e);
     pointers.current.set(e.pointerId, { cx: e.clientX, cy: e.clientY, x: p.x, y: p.y, nx: p.nx, ny: p.ny });
-    if (tool === "crop") {
-      if (pointers.current.size === 1) pan.current = { x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y };
-      if (pointers.current.size === 2) {
-        pan.current = null;
-        const [a, b] = [...pointers.current.values()];
-        pinch.current = { dist: dist(a, b), scale, mid: midOf(a, b), ox: offset.x, oy: offset.y };
-      }
-    } else if (tool === "draw" && pointers.current.size === 1) {
+    if (pointers.current.size === 2) { beginPinch(); return; }
+    if (pointers.current.size !== 1) return;
+    if (tool === "move") {
+      pan.current = { x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y };
+    } else if (tool === "draw") {
       const stroke = { color, size: brush / p.V, points: [{ x: p.nx, y: p.ny }] };
       drawRef.current = { kind: "draw", stroke };
       setStrokes((s) => [...s, stroke]);
-    } else if (tool === "blur" && pointers.current.size === 1) {
+    } else if (tool === "blur") {
       const stroke = { size: brush / p.V, points: [{ x: p.nx, y: p.ny }] };
       drawRef.current = { kind: "blur", stroke };
       setBlurStrokes((s) => [...s, stroke]);
-    } else if (tool === "text" && pointers.current.size === 1) {
+    } else if (tool === "text") {
       const hi = hitText(p.nx, p.ny);
       if (hi >= 0) {
         dragText.current = { index: hi, moved: false, ox: texts[hi].x, oy: texts[hi].y, sx: p.nx, sy: p.ny };
@@ -200,24 +203,22 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
     if (!pointers.current.has(e.pointerId)) return;
     const p = rel(e);
     pointers.current.set(e.pointerId, { cx: e.clientX, cy: e.clientY, x: p.x, y: p.y, nx: p.nx, ny: p.ny });
-    if (tool === "crop") {
-      if (pinch.current && pointers.current.size >= 2) {
-        const [a, b] = [...pointers.current.values()];
-        const d = dist(a, b);
-        const ns = clampScale((pinch.current.scale * d) / pinch.current.dist);
-        const m = midOf(a, b);
-        const no = {
-          x: m.x - (pinch.current.mid.x - pinch.current.ox) * (ns / pinch.current.scale),
-          y: m.y - (pinch.current.mid.y - pinch.current.oy) * (ns / pinch.current.scale),
-        };
-        setScale(ns); setOffset(clamp(no.x, no.y, ns));
-      } else if (pan.current) {
-        setOffset(clamp(pan.current.ox + e.clientX - pan.current.x, pan.current.oy + e.clientY - pan.current.y, scale));
-      }
+    if (pinch.current && pointers.current.size >= 2) {
+      const [a, b] = [...pointers.current.values()];
+      const d = dist(a, b);
+      const ns = clampScale((pinch.current.scale * d) / pinch.current.dist);
+      const m = midOf(a, b);
+      const no = {
+        x: m.x - (pinch.current.mid.x - pinch.current.ox) * (ns / pinch.current.scale),
+        y: m.y - (pinch.current.mid.y - pinch.current.oy) * (ns / pinch.current.scale),
+      };
+      setScale(ns); setOffset(clamp(no.x, no.y, ns));
+    } else if (pan.current) {
+      setOffset(clamp(pan.current.ox + e.clientX - pan.current.x, pan.current.oy + e.clientY - pan.current.y, scale));
     } else if (drawRef.current) {
       drawRef.current.stroke.points.push({ x: p.nx, y: p.ny });
       drawRef.current.kind === "draw" ? setStrokes((s) => [...s]) : setBlurStrokes((s) => [...s]);
-    } else if (tool === "text" && dragText.current) {
+    } else if (dragText.current) {
       const dx = p.nx - dragText.current.sx;
       const dy = p.ny - dragText.current.sy;
       if (Math.abs(dx) > 0.004 || Math.abs(dy) > 0.004) dragText.current.moved = true;
@@ -227,23 +228,26 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
   };
 
   const onPointerUp = (e) => {
-    const had = pointers.current.get(e.pointerId);
     pointers.current.delete(e.pointerId);
     try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
-    if (tool === "crop") {
-      if (pointers.current.size < 2) pinch.current = null;
-      if (pointers.current.size === 1) {
+    if (pinch.current && pointers.current.size < 2) {
+      pinch.current = null;
+      if (pointers.current.size === 1 && tool === "move") {
         const [r] = [...pointers.current.values()];
         pan.current = { x: r.cx, y: r.cy, ox: offset.x, oy: offset.y };
       }
-      if (pointers.current.size === 0) pan.current = null;
-    } else if (drawRef.current) {
+      return;
+    }
+    if (pointers.current.size > 0) return;
+    if (drawRef.current) {
       const kind = drawRef.current.kind;
       setLog((l) => [...l, { type: kind }]);
       drawRef.current = null;
-    } else if (tool === "text" && dragText.current) {
+    } else if (dragText.current) {
       if (!dragText.current.moved) setEditing({ index: dragText.current.index });
       dragText.current = null;
+    } else if (pan.current) {
+      pan.current = null;
     }
   };
 
@@ -319,6 +323,7 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
       ctx.stroke();
     });
     texts.forEach((t) => {
+      if (!t.text.trim()) return;
       ctx.fillStyle = t.color;
       ctx.font = `bold ${Math.round(t.size * C)}px ui-sans-serif, system-ui, sans-serif`;
       ctx.textAlign = "center"; ctx.textBaseline = "middle";
@@ -330,7 +335,7 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
   };
 
   const tools = [
-    { id: "crop", label: ar ? "اقتصاص" : "Crop", Icon: CropIcon },
+    { id: "move", label: ar ? "تحريك" : "Move", Icon: Move },
     { id: "draw", label: ar ? "رسم" : "Draw", Icon: Pencil },
     { id: "text", label: ar ? "نص" : "Text", Icon: Type },
     { id: "blur", label: ar ? "تمويه" : "Blur", Icon: Droplets },
@@ -354,7 +359,7 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
             className="absolute inset-0 w-full h-full"
-            style={{ touchAction: "none", cursor: tool === "crop" ? "grab" : tool === "text" ? "move" : "crosshair" }}
+            style={{ touchAction: "none", cursor: tool === "move" ? "grab" : tool === "text" ? "move" : "crosshair" }}
           />
           {editing && editingText && stageSize > 0 && (
             <div className="absolute z-10 flex flex-col items-center" style={{ left: editingText.x * stageSize, top: editingText.y * stageSize, transform: "translate(-50%,-50%)" }}>
@@ -365,8 +370,8 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
                 onBlur={commitText}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
                 placeholder={ar ? "اكتب…" : "Type…"}
-                className="bg-black/40 text-center font-bold outline-none border-2 border-dashed border-white/80 rounded-md px-2 py-0.5 whitespace-nowrap"
-                style={{ color: editingText.color, caretColor: editingText.color, fontSize: Math.round(editingText.size * stageSize), maxWidth: stageSize * 0.9 }}
+                className="bg-black/30 text-center font-bold outline-none border-2 border-dashed border-white/80 rounded-md px-2 py-0.5 whitespace-nowrap"
+                style={{ color: "transparent", caretColor: editingText.color, fontSize: Math.round(editingText.size * stageSize), maxWidth: stageSize * 0.9 }}
               />
               <button onClick={removeEditingText} className="mt-1 px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-bold flex items-center gap-1"><Trash2 size={11} /> {ar ? "حذف" : "Delete"}</button>
             </div>
@@ -400,20 +405,16 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
           </div>
         )}
 
-        {tool === "crop" && (
-          <>
-            <div className="flex items-center justify-center gap-6">
-              <button onClick={() => setRot((r) => r - 90)} className="p-3 rounded-full bg-white/10 active:bg-white/20"><RotateCcw size={20} /></button>
-              <button onClick={() => setRot((r) => r + 90)} className="p-3 rounded-full bg-white/10 active:bg-white/20"><RotateCw size={20} /></button>
-            </div>
-            <div className="flex items-center gap-3">
-              <ZoomOut size={18} className="shrink-0" />
-              <input type="range" min={1} max={5} step={0.01} value={scale} onChange={(e) => onScale(Number(e.target.value))} className="flex-1 accent-emerald-400" />
-              <ZoomIn size={18} className="shrink-0" />
-            </div>
-            <p className="text-center text-xs text-white/50">{ar ? "اسحب للتحريك · قرّص أو عجلة الفأرة للتكبير" : "Drag to pan · pinch or mouse-wheel to zoom"}</p>
-          </>
-        )}
+        <div className="flex items-center justify-center gap-6">
+          <button onClick={() => setRot((r) => r - 90)} className="p-3 rounded-full bg-white/10 active:bg-white/20"><RotateCcw size={20} /></button>
+          <button onClick={() => setRot((r) => r + 90)} className="p-3 rounded-full bg-white/10 active:bg-white/20"><RotateCw size={20} /></button>
+        </div>
+        <div className="flex items-center gap-3">
+          <ZoomOut size={18} className="shrink-0" />
+          <input type="range" min={1} max={5} step={0.01} value={scale} onChange={(e) => onScale(Number(e.target.value))} className="flex-1 accent-emerald-400" />
+          <ZoomIn size={18} className="shrink-0" />
+        </div>
+        <p className="text-center text-xs text-white/50">{ar ? "اسحب للتحريك · قرّص أو عجلة الفأرة للتكبير · ما يظهر هنا يُنشر" : "Drag to move · pinch or mouse-wheel to zoom · what you see is what gets posted"}</p>
         {tool === "text" && <p className="text-center text-xs text-white/60">{ar ? "اضغط لإضافة نص · اسحب النص لنقله · اضغط عليه لتعديله" : "Tap to add text · drag to move · tap again to edit"}</p>}
         {tool === "draw" && <p className="text-center text-xs text-white/60">{ar ? "ارسم بإصبعك أو بالماوس" : "Draw with your finger or mouse"}</p>}
         {tool === "blur" && <p className="text-center text-xs text-white/60">{ar ? "مرّر فوق المنطقة لتمويهها" : "Brush over areas to blur them"}</p>}

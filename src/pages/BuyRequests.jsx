@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Megaphone, Plus, X, MapPin, Clock, Tag, MessageCircle, Trash2, CheckCircle2 } from "lucide-react";
+import { Megaphone, Plus, X, MapPin, Clock, Tag, MessageCircle, Trash2, CheckCircle2, LocateFixed } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
 import { CATEGORIES } from "@/lib/constants";
-import { getCities } from "@/lib/countries";
+import { getCities, nearestCityInCountry } from "@/lib/countries";
 import { timeAgo } from "@/lib/format";
 import Price from "@/components/Price";
+import CurrencySymbol from "@/components/CurrencySymbol";
 import PullToRefresh from "@/components/PullToRefresh";
 
 export default function BuyRequests() {
@@ -20,6 +21,9 @@ export default function BuyRequests() {
   const [tab, setTab] = useState("browse");
   const [form, setForm] = useState({ title: "", category: "", budget: "", city: "", description: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const [filterCategory, setFilterCategory] = useState("");
+  const [filterCity, setFilterCity] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -34,6 +38,20 @@ export default function BuyRequests() {
   }, [country]);
 
   useEffect(() => { load(); }, [load]);
+
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const city = nearestCityInCountry(pos.coords.latitude, pos.coords.longitude, country);
+        if (city) setForm((prev) => ({ ...prev, city: city.en }));
+        setLocating(false);
+      },
+      () => setLocating(false),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   const submit = async () => {
     if (!form.title.trim() || !form.city) {
@@ -90,6 +108,7 @@ export default function BuyRequests() {
         buyer_id: req.user_id,
         buyer_name: req.user_name,
         buyer_avatar: req.user_avatar,
+        hidden_for_buyer: true,
       });
       nav(`/chat/${room.id}`);
     } catch {
@@ -114,7 +133,12 @@ export default function BuyRequests() {
   };
 
   const myRequests = requests.filter((r) => r.user_id === user.id);
-  const browseRequests = requests.filter((r) => r.user_id !== user.id);
+  const browseRequests = requests.filter((r) => {
+    if (r.user_id === user.id) return false;
+    if (filterCategory && r.category !== filterCategory) return false;
+    if (filterCity && r.city !== filterCity) return false;
+    return true;
+  });
   const cities = getCities(country);
 
   return (
@@ -154,6 +178,31 @@ export default function BuyRequests() {
             {lang === "ar" ? "طلباتي" : "My Requests"} ({myRequests.length})
           </button>
         </div>
+
+        {tab === "browse" && !loading && requests.length > 0 && (
+          <div className="flex gap-2">
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="flex-1 px-3 py-2 rounded-xl bg-muted outline-none text-sm font-medium"
+            >
+              <option value="">{lang === "ar" ? "كل الأقسام" : "All categories"}</option>
+              {CATEGORIES.filter((c) => c.id !== "all").map((c) => (
+                <option key={c.id} value={c.id}>{lang === "ar" ? c.ar : c.en}</option>
+              ))}
+            </select>
+            <select
+              value={filterCity}
+              onChange={(e) => setFilterCity(e.target.value)}
+              className="flex-1 px-3 py-2 rounded-xl bg-muted outline-none text-sm font-medium"
+            >
+              <option value="">{lang === "ar" ? "كل المدن" : "All cities"}</option>
+              {cities.map((c) => (
+                <option key={c.en} value={c.en}>{lang === "ar" ? c.ar : c.en}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {loading ? (
           <div className="text-center py-20">
@@ -251,7 +300,7 @@ export default function BuyRequests() {
               <div className="space-y-3">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground block mb-1.5">
-                    {lang === "ar" ? "ماذا تبحث عن؟" : "What are you looking for?"} *
+                    {lang === "ar" ? "ما الذي تبحث عنه؟" : "What are you looking for?"} *
                   </label>
                   <input
                     value={form.title}
@@ -277,18 +326,33 @@ export default function BuyRequests() {
                   <label className="text-sm font-medium text-muted-foreground block mb-1.5">
                     {lang === "ar" ? "الميزانية" : "Budget (optional)"}
                   </label>
-                  <input
-                    type="number"
-                    value={form.budget}
-                    onChange={(e) => setForm({ ...form, budget: e.target.value })}
-                    placeholder={lang === "ar" ? "مثال: 2000" : "e.g., 2000"}
-                    className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30"
-                  />
+                  <div className="relative">
+                    <span className="absolute top-1/2 -translate-y-1/2 start-3 text-muted-foreground font-semibold pointer-events-none flex items-center">
+                      <CurrencySymbol country={country} lang={lang} size={14} />
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={form.budget}
+                      onChange={(e) => setForm({ ...form, budget: e.target.value.replace(/[^0-9.]/g, "") })}
+                      placeholder={lang === "ar" ? "مثال: 2000" : "e.g., 2000"}
+                      className="w-full ps-8 pe-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30"
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground block mb-1.5">
                     {lang === "ar" ? "المدينة" : "City"} *
                   </label>
+                  <button
+                    type="button"
+                    onClick={useCurrentLocation}
+                    disabled={locating}
+                    className="w-full mb-1.5 inline-flex items-center justify-center gap-1.5 py-2 rounded-xl bg-violet-100 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 text-sm font-semibold hover:bg-violet-200 dark:hover:bg-violet-900/40 transition disabled:opacity-50"
+                  >
+                    <LocateFixed size={15} />
+                    {locating ? (lang === "ar" ? "جاري تحديد موقعك..." : "Locating...") : (lang === "ar" ? "استخدام موقعي الحالي" : "Use my current location")}
+                  </button>
                   <select
                     value={form.city}
                     onChange={(e) => setForm({ ...form, city: e.target.value })}

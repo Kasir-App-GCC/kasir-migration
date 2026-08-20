@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Heart, MapPin, Clock, ChevronLeft, ChevronRight, Star, BadgeCheck, Sparkles, Flame } from "lucide-react";
+import { Heart, MapPin, Clock, ChevronLeft, ChevronRight, Star, BadgeCheck, Sparkles } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { timeAgo } from "@/lib/format";
@@ -7,7 +7,6 @@ import Price from "@/components/Price";
 import { getCategory, getCityName, getCondition } from "@/lib/constants";
 import { useSellerInfo } from "@/lib/useTrusted";
 import TrustedBadge from "@/components/TrustedBadge";
-import { isHotItem } from "@/lib/hotItems";
 
 export default function ItemCard({ item, onClick, promoted = false }) {
   const { lang, favorites, toggleFavorite } = useStore();
@@ -132,11 +131,6 @@ export default function ItemCard({ item, onClick, promoted = false }) {
           <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${cond.color}`}>
             {lang === "ar" ? cond.ar : cond.en}
           </span>
-          {isHotItem(item) && (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-500 text-white shrink-0">
-              <Flame size={10} /> {lang === "ar" ? "رائج" : "Hot"}
-            </span>
-          )}
           {multi && <span className="text-[10px] text-muted-foreground">{imgs.length} {t("photos")}</span>}
           {promoted && (
             <span className="ms-auto inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500 text-white shrink-0">

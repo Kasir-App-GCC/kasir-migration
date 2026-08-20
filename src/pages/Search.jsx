@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { Search as SearchIcon, SlidersHorizontal, X } from "lucide-react";
+import { Search as SearchIcon, SlidersHorizontal, X, Sparkles, ShoppingBag, Megaphone } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import ItemCard from "@/components/ItemCard";
 import SearchLocationControl from "@/components/SearchLocationControl";
@@ -179,6 +179,43 @@ export default function Search() {
   return (
     <PullToRefresh onRefresh={loadInitial}>
     <div className="pt-2 space-y-3">
+      {/* AI Shopping Assistant button */}
+      <button
+        onClick={() => nav("/assistant")}
+        className="w-full flex items-center gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg hover:shadow-xl hover:scale-[1.01] transition"
+      >
+        <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+          <ShoppingBag size={20} />
+        </div>
+        <div className="flex-1 text-start">
+          <p className="font-bold text-sm leading-tight">
+            {lang === "ar" ? "مساعد التسوق الذكي" : "AI Shopping Assistant"}
+          </p>
+          <p className="text-xs text-white/80 leading-tight mt-0.5">
+            {lang === "ar" ? "اوصف اللي تبيه وأساعدك تلاقيه" : "Describe what you need and I'll find it"}
+          </p>
+        </div>
+        <Sparkles size={18} className="shrink-0" />
+      </button>
+
+      {/* Buy Requests button */}
+      <button
+        onClick={() => nav("/buy-requests")}
+        className="w-full flex items-center gap-3 p-3.5 rounded-2xl bg-card border border-border/60 hover:shadow-lg hover:border-border transition"
+      >
+        <div className="w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-950/40 flex items-center justify-center shrink-0">
+          <Megaphone size={20} className="text-violet-600 dark:text-violet-400" />
+        </div>
+        <div className="flex-1 text-start">
+          <p className="font-bold text-sm leading-tight">
+            {lang === "ar" ? "طلبات الشراء" : "Buy Requests"}
+          </p>
+          <p className="text-xs text-muted-foreground leading-tight mt-0.5">
+            {lang === "ar" ? "أوصف اللي تدوره وانتظر العروض" : "Post what you need and wait for offers"}
+          </p>
+        </div>
+      </button>
+
       <div className="flex gap-2">
         <div className="relative flex-1">
           <SearchIcon size={18} className="absolute top-1/2 -translate-y-1/2 start-3.5 text-muted-foreground" />

@@ -13,6 +13,7 @@ import { getCountry } from "@/lib/countries";
 import RatingStars from "@/components/RatingStars";
 import ReviewTagChips from "@/components/ReviewTagChips";
 import ReportDialog from "@/components/ReportDialog";
+import FullscreenImageViewer from "@/components/FullscreenImageViewer";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { Image } from "@/components/ui/image";
 import { sendPush } from "@/lib/notify";
@@ -76,6 +77,7 @@ export default function ItemDetail() {
   const [buyerScore, setBuyerScore] = useState(5);
   const [buyerReview, setBuyerReview] = useState("");
   const [zoom, setZoom] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
   const [similar, setSimilar] = useState([]);
   const [sellerProfile, setSellerProfile] = useState(null);
   const [origin, setOrigin] = useState({ x: 50, y: 50 });
@@ -87,7 +89,6 @@ export default function ItemDetail() {
   const swipeStart = useRef(null);
   const panStart = useRef(null);
   const [pinching, setPinching] = useState(false);
-  const lastTap = useRef(0);
   const pinchScaleRef = useRef(1);
   const panRef = useRef({ x: 0, y: 0 });
   const applyZoom = (ns, np) => { pinchScaleRef.current = ns; panRef.current = np; setPinchScale(ns); setPan(np); };
@@ -327,20 +328,6 @@ export default function ItemDetail() {
             setPinching(true);
           } else if (pointers.current.size === 1) {
             setPinching(true);
-            const now = Date.now();
-            if (now - lastTap.current < 280) {
-              lastTap.current = 0;
-              const r = e.currentTarget.getBoundingClientRect();
-              const tx = e.clientX - r.left, ty = e.clientY - r.top;
-              if (pinchScaleRef.current > 1.05) {
-                resetZoom();
-              } else {
-                const target = 2.5;
-                applyZoom(target, clampPan((tx - r.width / 2) * (1 - target), (ty - r.height / 2) * (1 - target), target, r.width, r.height));
-              }
-              return;
-            }
-            lastTap.current = now;
             if (pinchScaleRef.current > 1.05) panStart.current = { x: e.clientX, y: e.clientY, px: panRef.current.x, py: panRef.current.y };
             else swipeStart.current = { x: e.clientX, y: e.clientY };
           }
@@ -378,6 +365,8 @@ export default function ItemDetail() {
             if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
               if (dx < 0) setActiveImg((i) => Math.min(i + 1, imgs.length - 1));
               else setActiveImg((i) => Math.max(i - 1, 0));
+            } else {
+              setViewerOpen(true);
             }
             return;
           }
@@ -401,6 +390,8 @@ export default function ItemDetail() {
                 if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
                   if (dx < 0) setActiveImg((i) => Math.min(i + 1, imgs.length - 1));
                   else setActiveImg((i) => Math.max(i - 1, 0));
+                } else {
+                  setViewerOpen(true);
                 }
               }
               resetZoom();
@@ -693,6 +684,10 @@ export default function ItemDetail() {
             </div>
           </div>
         </div>
+      )}
+
+      {viewerOpen && (
+        <FullscreenImageViewer images={imgs} index={activeImg} onClose={() => setViewerOpen(false)} lang={lang} />
       )}
 
       <ReportDialog open={reportOpen} onClose={() => setReportOpen(false)} seller={seller} item={item} />

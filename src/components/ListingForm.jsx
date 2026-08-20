@@ -49,7 +49,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [boostCross, setBoostCross] = useState(false);
   const ar = lang === "ar";
   const verified = !!user?.is_trusted;
-  const maxPhotos = verified ? 15 : 5;
+  const maxPhotos = verified ? 20 : 10;
   const [locating, setLocating] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
   const [mapPos, setMapPos] = useState(null);
@@ -249,37 +249,35 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
                     </Draggable>
                   );
                 })}
-                {verified ? (
-                  images.length < maxPhotos ? (
-                    <label className="w-24 h-24 rounded-xl border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-950/30 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 cursor-pointer gap-0.5 hover:bg-blue-100 dark:hover:bg-blue-900/40">
-                      {uploading ? (
-                        <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <>
-                          <ImagePlus size={20} />
-                          <span className="text-[9px] font-semibold text-center px-1 leading-tight">{ar ? "إضافة" : "Add"}</span>
-                          <span className="text-[8px] font-medium text-blue-500/80">{ar ? "حتى ١٥" : "up to 15"}</span>
-                        </>
-                      )}
-                      <input type="file" accept="image/*" multiple className="hidden" onChange={onPick} />
-                    </label>
-                  ) : (
-                    <div className="w-24 h-24 rounded-xl border-2 border-dashed border-blue-300 bg-blue-50/50 flex flex-col items-center justify-center text-blue-400 gap-0.5 opacity-60">
-                      <Check size={18} />
-                      <span className="text-[9px] font-semibold">{ar ? "الحد الأقصى 15" : "Max 15"}</span>
-                    </div>
-                  )
-                ) : (
-                  images.length >= 5 && (
-                    <button
-                      type="button"
-                      onClick={() => toast({ title: ar ? "تحقق من حسابك لإضافة حتى 10 صور إضافية" : "Verify your account to add up to 10 more photos", description: ar ? "يرفع الحد الأقصى للصور إلى 15" : "Raises the photo limit to 15" })}
-                      className="w-24 h-24 rounded-xl border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-950/30 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 gap-1"
-                    >
-                      <Lock size={18} />
-                      <span className="text-[9px] font-semibold text-center px-1 leading-tight">{ar ? "تحقق لإضافة 10 صور" : "Verify for 10 more"}</span>
-                    </button>
-                  )
+                {images.length >= 5 && images.length < maxPhotos && (
+                  <label className="w-24 h-24 rounded-xl border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-950/30 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 cursor-pointer gap-0.5 hover:bg-blue-100 dark:hover:bg-blue-900/40">
+                    {uploading ? (
+                      <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <ImagePlus size={20} />
+                        <span className="text-[9px] font-semibold text-center px-1 leading-tight">{ar ? "إضافة" : "Add"}</span>
+                        <span className="text-[8px] font-medium text-blue-500/80">{ar ? `حتى ${verified ? "٢٠" : "١٠"}` : `up to ${verified ? "20" : "10"}`}</span>
+                      </>
+                    )}
+                    <input type="file" accept="image/*" multiple className="hidden" onChange={onPick} />
+                  </label>
+                )}
+                {images.length >= maxPhotos && verified && (
+                  <div className="w-24 h-24 rounded-xl border-2 border-dashed border-blue-300 bg-blue-50/50 flex flex-col items-center justify-center text-blue-400 gap-0.5 opacity-60">
+                    <Check size={18} />
+                    <span className="text-[9px] font-semibold">{ar ? "الحد الأقصى ٢٠" : "Max 20"}</span>
+                  </div>
+                )}
+                {images.length >= maxPhotos && !verified && (
+                  <button
+                    type="button"
+                    onClick={() => setVerifyOpen(true)}
+                    className="w-24 h-24 rounded-xl border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-950/30 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 gap-1"
+                  >
+                    <Lock size={18} />
+                    <span className="text-[9px] font-semibold text-center px-1 leading-tight">{ar ? "تحقق لإضافة 10 صور" : "Verify for 10 more"}</span>
+                  </button>
                 )}
                 {provided.placeholder}
               </div>

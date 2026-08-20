@@ -1,5 +1,5 @@
 import React from "react";
-import { MapPin, Clock, Tag, MessageCircle, Trash2, CheckCircle2 } from "lucide-react";
+import { MapPin, Clock, Tag, MessageCircle, Trash2, CheckCircle2, BadgeCheck } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useSellerInfo } from "@/lib/useTrusted";
 import { CATEGORIES, getSubcategories } from "@/lib/constants";
@@ -9,7 +9,7 @@ import TrustedBadge from "@/components/TrustedBadge";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { localizeBuyRequestTag } from "@/lib/buyRequestTags";
 
-export default function BuyRequestCard({ req, tab, onChat, onClose, onDelete, onUserClick }) {
+export default function BuyRequestCard({ req, tab, canContact, onChat, onClose, onDelete, onUserClick, onVerify }) {
   const { lang } = useStore();
   const cat = CATEGORIES.find((c) => c.id === req.category);
   const subs = (req.subcategory || []).map((s) => getSubcategories(req.category).find((x) => x.en === s)).filter(Boolean);
@@ -68,27 +68,37 @@ export default function BuyRequestCard({ req, tab, onChat, onClose, onDelete, on
           {sellerInfo.trusted && <TrustedBadge size={13} />}
         </button>
         {tab === "browse" ? (
-          <div className="flex gap-2">
-            {req.whatsapp_enabled && req.whatsapp_number && (
-              <a
-                href={`https://wa.me/${req.whatsapp_number.replace(/[^0-9]/g, "")}`}
-                target="_blank"
-                rel="noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition"
-                title={lang === "ar" ? "تواصل عبر واتساب" : "Contact via WhatsApp"}
+          canContact ? (
+            <div className="flex gap-2">
+              {req.whatsapp_enabled && req.whatsapp_number && (
+                <a
+                  href={`https://wa.me/${req.whatsapp_number.replace(/[^0-9]/g, "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition"
+                  title={lang === "ar" ? "تواصل عبر واتساب" : "Contact via WhatsApp"}
+                >
+                  <WhatsAppIcon size={16} />
+                </a>
+              )}
+              <button
+                onClick={() => onChat(req)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition"
               >
-                <WhatsAppIcon size={16} />
-              </a>
-            )}
+                <MessageCircle size={14} />
+                {lang === "ar" ? "تواصل" : "Chat"}
+              </button>
+            </div>
+          ) : (
             <button
-              onClick={() => onChat(req)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition"
+              onClick={onVerify}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 text-xs font-bold hover:bg-amber-200 dark:hover:bg-amber-900/40 transition"
             >
-              <MessageCircle size={14} />
-              {lang === "ar" ? "تواصل" : "Chat"}
+              <BadgeCheck size={14} />
+              {lang === "ar" ? "وثّق للتواصل" : "Verify to contact"}
             </button>
-          </div>
+          )
         ) : (
           <div className="flex gap-2">
             <button

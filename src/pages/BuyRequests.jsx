@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Megaphone, Plus, X, MapPin, LocateFixed } from "lucide-react";
+import { Megaphone, Plus, X, MapPin, LocateFixed, Search } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
@@ -13,11 +13,14 @@ import CitySearchSelect from "@/components/CitySearchSelect";
 import BuyRequestCard from "@/components/BuyRequestCard";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { BUY_REQUEST_TAGS, BUY_REQUEST_CATEGORY_TAGS, getBuyRequestTagsForCategory } from "@/lib/buyRequestTags";
+import { useSellerInfo } from "@/lib/useTrusted";
 
 export default function BuyRequests() {
   const { user, lang, country } = useStore();
   const { toast } = useToast();
   const nav = useNavigate();
+  const myInfo = useSellerInfo(user?.id);
+  const canContact = !!myInfo.trusted;
   const PAGE_SIZE = 100;
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,13 +38,23 @@ export default function BuyRequests() {
   const [locationLabel, setLocationLabel] = useState("");
   const skipRef = useRef(0);
   const sentinelRef = useRef(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchQueryRef = useRef("");
+  const firstSearchRef = useRef(true);
+
+  const buildFilter = useCallback(() => {
+    const q = searchQueryRef.current;
+    const base = { country, status: "open" };
+    if (!q) return base;
+    return { ...base, $or: [{ title: { $regex: q, $options: "i" } }, { description: { $regex: q, $options: "i" } }] };
+  }, [country]);
 
   const load = useCallback(async () => {
     setLoading(true);
     skipRef.current = 0;
     setHasMore(true);
     try {
-      const list = await base44.entities.BuyRequest.filter({ country, status: "open" }, "-created_date", PAGE_SIZE, 0);
+      const list = await base44.entities.BuyRequest.filter(buildFilter(), "-created_date", PAGE_SIZE, 0);
       setRequests(list || []);
       setHasMore((list || []).length === PAGE_SIZE);
     } catch {
@@ -50,14 +63,14 @@ export default function BuyRequests() {
     } finally {
       setLoading(false);
     }
-  }, [country]);
+  }, [buildFilter]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
     const skip = skipRef.current + PAGE_SIZE;
     try {
-      const next = await base44.entities.BuyRequest.filter({ country, status: "open" }, "-created_date", PAGE_SIZE, skip);
+      const next = await base44.entities.BuyRequest.filter(buildFilter(), "-created_date", PAGE_SIZE, skip);
       const list = next || [];
       setRequests((prev) => {
         const seen = new Set(prev.map((x) => x.id));
@@ -70,9 +83,18 @@ export default function BuyRequests() {
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, hasMore, country]);
+  }, [loadingMore, hasMore, buildFilter]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (firstSearchRef.current) { firstSearchRef.current = false; return; }
+    const t = setTimeout(() => {
+      searchQueryRef.current = searchQuery.trim();
+      load();
+    }, 500);
+    return () => clearTimeout(t);
+  }, [searchQuery, load]);
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -244,8 +266,25 @@ export default function BuyRequests() {
           </button>
         </div>
 
-        {tab === "browse" && !loading && requests.length > 0 && (
+        {tab === "browse" && (
           <div className="space-y-2">
+            <div className="relative">
+              <Search size={16} className="absolute top-1/2 -translate-y-1/2 start-3 text-muted-foreground pointer-events-none" />
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={lang === "ar" ? "ابحث في كل الطلبات..." : "Search all requests..."}
+                className="w-full ps-9 pe-9 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute top-1/2 -translate-y-1/2 end-2 w-6 h-6 rounded-full bg-muted-foreground/15 flex items-center justify-center text-muted-foreground hover:bg-muted-foreground/25"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
             <div className="flex flex-wrap gap-1.5">
               {CATEGORIES.filter((c) => c.id !== "all").map((c) => {
                 const selected = filterCategories.includes(c.id);
@@ -338,10 +377,12 @@ export default function BuyRequests() {
                 key={req.id}
                 req={req}
                 tab={tab}
+                canContact={canContact}
                 onChat={startChat}
                 onClose={closeRequest}
                 onDelete={deleteRequest}
                 onUserClick={(uid) => nav(`/user/${uid}`)}
+                onVerify={() => nav("/profile")}
               />
             ))}
             {tab === "browse" && (

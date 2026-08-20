@@ -12,7 +12,7 @@ import PullToRefresh from "@/components/PullToRefresh";
 import CitySearchSelect from "@/components/CitySearchSelect";
 import BuyRequestCard from "@/components/BuyRequestCard";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
-import { BUY_REQUEST_TAGS } from "@/lib/buyRequestTags";
+import { BUY_REQUEST_TAGS, BUY_REQUEST_CATEGORY_TAGS, getBuyRequestTagsForCategory } from "@/lib/buyRequestTags";
 
 export default function BuyRequests() {
   const { user, lang, country } = useStore();
@@ -28,9 +28,9 @@ export default function BuyRequests() {
   const [form, setForm] = useState({ title: "", category: "", budget: "", city: "", description: "", tags: [], whatsapp_enabled: false, whatsapp_number: "" });
   const [submitting, setSubmitting] = useState(false);
   const [locating, setLocating] = useState(false);
-  const [filterCategory, setFilterCategory] = useState("");
+  const [filterCategories, setFilterCategories] = useState([]);
   const [filterCity, setFilterCity] = useState("");
-  const [filterTag, setFilterTag] = useState("");
+  const [filterTags, setFilterTags] = useState([]);
   const [locationLabel, setLocationLabel] = useState("");
   const skipRef = useRef(0);
   const sentinelRef = useRef(null);
@@ -193,12 +193,21 @@ export default function BuyRequests() {
   const myRequests = requests.filter((r) => r.user_id === user.id);
   const browseRequests = requests.filter((r) => {
     if (r.user_id === user.id) return false;
-    if (filterCategory && r.category !== filterCategory) return false;
+    if (filterCategories.length && !filterCategories.includes(r.category)) return false;
     if (filterCity && r.city !== filterCity) return false;
-    if (filterTag && !(r.tags || []).includes(filterTag)) return false;
+    if (filterTags.length && !filterTags.some((t) => (r.tags || []).includes(t))) return false;
     return true;
   });
   const cities = getCities(country);
+  const allFilterTags = (() => {
+    const cats = filterCategories.length ? filterCategories : Object.keys(BUY_REQUEST_CATEGORY_TAGS);
+    const tagSet = new Map();
+    BUY_REQUEST_TAGS.forEach((t) => tagSet.set(t.en, t));
+    cats.forEach((cat) => {
+      (BUY_REQUEST_CATEGORY_TAGS[cat] || []).forEach((t) => tagSet.set(t.en, t));
+    });
+    return Array.from(tagSet.values());
+  })();
 
   return (
     <PullToRefresh onRefresh={load}>
@@ -242,37 +251,52 @@ export default function BuyRequests() {
         </div>
 
         {tab === "browse" && !loading && requests.length > 0 && (
-          <div className="flex gap-2 flex-wrap">
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="flex-1 min-w-[120px] px-3 py-2 rounded-xl bg-muted outline-none text-sm font-medium"
-            >
-              <option value="">{lang === "ar" ? "كل الأقسام" : "All categories"}</option>
-              {CATEGORIES.filter((c) => c.id !== "all").map((c) => (
-                <option key={c.id} value={c.id}>{lang === "ar" ? c.ar : c.en}</option>
-              ))}
-            </select>
-            <select
-              value={filterCity}
-              onChange={(e) => setFilterCity(e.target.value)}
-              className="flex-1 min-w-[120px] px-3 py-2 rounded-xl bg-muted outline-none text-sm font-medium"
-            >
-              <option value="">{lang === "ar" ? "كل المدن" : "All cities"}</option>
-              {cities.map((c) => (
-                <option key={c.en} value={c.en}>{lang === "ar" ? c.ar : c.en}</option>
-              ))}
-            </select>
-            <select
-              value={filterTag}
-              onChange={(e) => setFilterTag(e.target.value)}
-              className="flex-1 min-w-[120px] px-3 py-2 rounded-xl bg-muted outline-none text-sm font-medium"
-            >
-              <option value="">{lang === "ar" ? "كل الوسوم" : "All tags"}</option>
-              {BUY_REQUEST_TAGS.map((t) => (
-                <option key={t.en} value={t.en}>{lang === "ar" ? t.ar : t.en}</option>
-              ))}
-            </select>
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-1.5">
+              {CATEGORIES.filter((c) => c.id !== "all").map((c) => {
+                const selected = filterCategories.includes(c.id);
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setFilterCategories((prev) => selected ? prev.filter((x) => x !== c.id) : [...prev, c.id])}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${selected ? "bg-violet-500 text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
+                  >
+                    {lang === "ar" ? c.ar : c.en}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {allFilterTags.map((t) => {
+                const selected = filterTags.includes(t.en);
+                return (
+                  <button
+                    key={t.en}
+                    onClick={() => setFilterTags((prev) => selected ? prev.filter((x) => x !== t.en) : [...prev, t.en])}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${selected ? "bg-violet-500 text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
+                  >
+                    {lang === "ar" ? t.ar : t.en}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="relative">
+              <CitySearchSelect
+                value={filterCity}
+                onChange={setFilterCity}
+                cities={cities}
+                lang={lang}
+                placeholder={lang === "ar" ? "ابحث عن مدينة..." : "Search city..."}
+              />
+              {filterCity && (
+                <button
+                  onClick={() => setFilterCity("")}
+                  className="absolute top-1/2 -translate-y-1/2 end-2 w-6 h-6 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/70 z-10"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -369,7 +393,7 @@ export default function BuyRequests() {
                     {lang === "ar" ? "وسوم الطلب" : "Request tags"}
                   </label>
                   <div className="flex flex-wrap gap-1.5">
-                    {BUY_REQUEST_TAGS.map((t) => {
+                    {[...BUY_REQUEST_TAGS, ...(form.category ? getBuyRequestTagsForCategory(form.category) : [])].map((t) => {
                       const selected = form.tags.includes(t.en);
                       return (
                         <button

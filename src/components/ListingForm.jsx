@@ -99,7 +99,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
     setEditQueue(files);
   };
 
-  const handleEdited = async (f) => {
+  const handleFileDone = async (f, idx) => {
     setUploading(true);
     try {
       const compressed = await compressImage(f);
@@ -107,7 +107,11 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
       setImages((prev) => [...prev, r.file_url].slice(0, 5));
     } catch {}
     setUploading(false);
-    setEditQueue((q) => q.slice(1));
+    setEditQueue((q) => q.filter((_, i) => i !== idx));
+  };
+
+  const handleSkipFile = (idx) => {
+    setEditQueue((q) => q.filter((_, i) => i !== idx));
   };
 
   const onDragEnd = (res) => {
@@ -520,13 +524,10 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
 
       {editQueue.length > 0 && (
         <ImageEditor
-          key={editQueue[0].name + "_" + editQueue[0].size}
-          file={editQueue[0]}
+          files={editQueue}
           lang={lang}
-          index={images.length}
-          total={images.length + editQueue.length}
-          onCancel={() => setEditQueue((q) => q.slice(1))}
-          onDone={handleEdited}
+          onFileDone={handleFileDone}
+          onSkipFile={handleSkipFile}
         />
       )}
     </div>

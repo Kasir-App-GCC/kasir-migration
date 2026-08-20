@@ -88,6 +88,10 @@ export default function ItemDetail() {
   const panStart = useRef(null);
   const [pinching, setPinching] = useState(false);
   const lastTap = useRef(0);
+  const pinchScaleRef = useRef(1);
+  const panRef = useRef({ x: 0, y: 0 });
+  const applyZoom = (ns, np) => { pinchScaleRef.current = ns; panRef.current = np; setPinchScale(ns); setPan(np); };
+  const resetZoom = () => { pinchScaleRef.current = 1; panRef.current = { x: 0, y: 0 }; setPinchScale(1); setPan({ x: 0, y: 0 }); };
 
   const clampPan = (x, y, s, w, h) => {
     if (s <= 1) return { x: 0, y: 0 };
@@ -96,7 +100,7 @@ export default function ItemDetail() {
     return { x: Math.min(Math.max(x, -maxX), maxX), y: Math.min(Math.max(y, -maxY), maxY) };
   };
 
-  useEffect(() => { setPinchScale(1); setPan({ x: 0, y: 0 }); }, [activeImg]);
+  useEffect(() => { resetZoom(); }, [activeImg]);
 
   useEffect(() => {
     (async () => {
@@ -321,7 +325,7 @@ export default function ItemDetail() {
           if (pointers.current.size === 2) {
             const [p1, p2] = [...pointers.current.values()];
             const r = e.currentTarget.getBoundingClientRect();
-            pinchStart.current = { dist: Math.hypot(p1.x - p2.x, p1.y - p2.y), scale: pinchScale, midX: (p1.x + p2.x) / 2 - r.left, midY: (p1.y + p2.y) / 2 - r.top, x: pan.x, y: pan.y };
+            pinchStart.current = { dist: Math.hypot(p1.x - p2.x, p1.y - p2.y), scale: pinchScaleRef.current, midX: (p1.x + p2.x) / 2 - r.left, midY: (p1.y + p2.y) / 2 - r.top, x: panRef.current.x, y: panRef.current.y };
             setPinching(true);
           } else if (pointers.current.size === 1) {
             setPinching(true);
@@ -330,17 +334,16 @@ export default function ItemDetail() {
               lastTap.current = 0;
               const r = e.currentTarget.getBoundingClientRect();
               const tx = e.clientX - r.left, ty = e.clientY - r.top;
-              if (pinchScale > 1.05) {
-                setPinchScale(1); setPan({ x: 0, y: 0 });
+              if (pinchScaleRef.current > 1.05) {
+                resetZoom();
               } else {
                 const target = 2.5;
-                setPinchScale(target);
-                setPan(clampPan((tx - r.width / 2) * (1 - target), (ty - r.height / 2) * (1 - target), target, r.width, r.height));
+                applyZoom(target, clampPan((tx - r.width / 2) * (1 - target), (ty - r.height / 2) * (1 - target), target, r.width, r.height));
               }
               return;
             }
             lastTap.current = now;
-            if (pinchScale > 1.05) panStart.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y };
+            if (pinchScaleRef.current > 1.05) panStart.current = { x: e.clientX, y: e.clientY, px: panRef.current.x, py: panRef.current.y };
             else swipeStart.current = { x: e.clientX, y: e.clientY };
           }
         }}
@@ -360,13 +363,12 @@ export default function ItemDetail() {
             let ny = my - cy - (my - cy - pinchStart.current.y) * (ns / pinchStart.current.scale);
             if (ns <= 1.05) { ns = 1; nx = 0; ny = 0; }
             else { const c = clampPan(nx, ny, ns, r.width, r.height); nx = c.x; ny = c.y; }
-            setPinchScale(ns);
-            setPan({ x: nx, y: ny });
-          } else if (pointers.current.size === 1 && panStart.current && pinchScale > 1.05) {
+            applyZoom(ns, { x: nx, y: ny });
+          } else if (pointers.current.size === 1 && panStart.current && pinchScaleRef.current > 1.05) {
             const r = e.currentTarget.getBoundingClientRect();
             const dx = e.clientX - panStart.current.x;
             const dy = e.clientY - panStart.current.y;
-            setPan(clampPan(panStart.current.px + dx, panStart.current.py + dy, pinchScale, r.width, r.height));
+            applyZoom(pinchScaleRef.current, clampPan(panStart.current.px + dx, panStart.current.py + dy, pinchScaleRef.current, r.width, r.height));
           }
         }}
         onPointerUp={(e) => {
@@ -385,7 +387,7 @@ export default function ItemDetail() {
           if (pointers.current.size < 2) pinchStart.current = null;
           if (pointers.current.size === 1) {
             const [p] = [...pointers.current.values()];
-            if (pinchScale > 1.05) panStart.current = { x: p.x, y: p.y, px: pan.x, py: pan.y };
+            if (pinchScaleRef.current > 1.05) panStart.current = { x: p.x, y: p.y, px: panRef.current.x, py: panRef.current.y };
             else { panStart.current = null; swipeStart.current = { x: p.x, y: p.y }; }
             return;
           }
@@ -394,7 +396,7 @@ export default function ItemDetail() {
             panStart.current = null;
             const start = swipeStart.current;
             swipeStart.current = null;
-            if (pinchScale <= 1.05) {
+            if (pinchScaleRef.current <= 1.05) {
               if (start) {
                 const dx = e.clientX - start.x;
                 const dy = e.clientY - start.y;
@@ -403,12 +405,11 @@ export default function ItemDetail() {
                   else setActiveImg((i) => Math.max(i - 1, 0));
                 }
               }
-              setPinchScale(1);
-              setPan({ x: 0, y: 0 });
+              resetZoom();
             }
           }
         }}
-        onPointerCancel={() => { pointers.current.clear(); pinchStart.current = null; swipeStart.current = null; panStart.current = null; setPinching(false); setPinchScale(1); setPan({ x: 0, y: 0 }); }}
+        onPointerCancel={() => { pointers.current.clear(); pinchStart.current = null; swipeStart.current = null; panStart.current = null; setPinching(false); resetZoom(); }}
       >
         <div
           className="absolute inset-0 pointer-events-none select-none"

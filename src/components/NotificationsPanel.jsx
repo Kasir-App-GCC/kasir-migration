@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { Bell, Trash2, ShieldAlert } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -6,13 +7,17 @@ import useNotifications from "@/hooks/useNotifications";
 import useAdminPending from "@/hooks/useAdminPending";
 import NotificationItem from "@/components/NotificationItem";
 
+// Rendered through a portal to document.body so the full-screen click-catcher
+// overlay escapes any ancestor containing block (e.g. the TopBar's
+// backdrop-blur, which turns `position: fixed` into a locally-scoped box and
+// would otherwise shrink the overlay to just the header bar).
 export default function NotificationsPanel({ onClose, style }) {
   const { lang } = useStore();
   const t = useT();
   const { items, loading, clearAll, markNotifRead } = useNotifications();
   const admin = useAdminPending();
 
-  return (
+  return createPortal(
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
       <div
@@ -56,6 +61,7 @@ export default function NotificationsPanel({ onClose, style }) {
           )}
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }

@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Search, Trash2, Eye, Star, Tag, Clock, X } from "lucide-react";
+import { Search, Trash2, Pencil, Star, Tag, Clock, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
 import { getCategory } from "@/lib/constants";
 import Price from "@/components/Price";
+import AdminEditListing from "@/components/admin/AdminEditListing";
 
 export default function AdminListings() {
   const { lang, country } = useStore();
@@ -19,6 +20,7 @@ export default function AdminListings() {
   const [featureItem, setFeatureItem] = useState(null);
   const [featureHours, setFeatureHours] = useState(24);
   const [featureSaving, setFeatureSaving] = useState(false);
+  const [editItem, setEditItem] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -131,12 +133,12 @@ export default function AdminListings() {
           <div className="text-center py-10 text-muted-foreground text-sm">{ar ? "لا توجد إعلانات" : "No listings found"}</div>
         ) : filtered.map((it) => (
           <div key={it.id} className="rounded-2xl bg-card border border-border/60 p-3 flex items-center gap-3">
-            <div className="w-14 h-14 rounded-xl overflow-hidden bg-muted shrink-0">
+            <button onClick={() => nav(`/item/${it.id}`)} className="w-14 h-14 rounded-xl overflow-hidden bg-muted shrink-0">
               {it.images?.[0] ? <img src={it.images[0]} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Tag size={20} className="text-muted-foreground" /></div>}
-            </div>
+            </button>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
-                <p className="font-semibold text-sm truncate">{it.title}</p>
+                <button onClick={() => nav(`/item/${it.id}`)} className="font-semibold text-sm truncate text-start hover:underline">{it.title}</button>
                 {it.featured && <Star size={12} className="text-amber-500 fill-amber-500 shrink-0" />}
               </div>
               <p className="text-xs text-muted-foreground truncate">
@@ -147,7 +149,7 @@ export default function AdminListings() {
               </span>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
-              <button onClick={() => nav(`/item/${it.id}`)} title={ar ? "عرض" : "View"} className="w-8 h-8 rounded-lg bg-muted hover:bg-muted/70 flex items-center justify-center"><Eye size={16} /></button>
+              <button onClick={() => setEditItem(it)} title={ar ? "تعديل" : "Edit"} className="w-8 h-8 rounded-lg bg-muted hover:bg-muted/70 flex items-center justify-center"><Pencil size={16} /></button>
               <button onClick={() => openFeature(it)} title={ar ? "تمييز" : "Feature"} className={`w-8 h-8 rounded-lg flex items-center justify-center transition ${it.featured ? "bg-amber-100 text-amber-600 dark:bg-amber-950/40" : "bg-muted hover:bg-muted/70"}`}><Star size={16} className={it.featured ? "fill-amber-500" : ""} /></button>
               <button onClick={() => markSold(it)} title={ar ? "تبديل الحالة" : "Toggle sold"} className="w-8 h-8 rounded-lg bg-muted hover:bg-muted/70 flex items-center justify-center"><Tag size={16} /></button>
               <button onClick={() => deleteItem(it)} title={ar ? "حذف" : "Delete"} className="w-8 h-8 rounded-lg bg-muted hover:bg-rose-100 hover:text-rose-600 dark:hover:bg-rose-950/40 flex items-center justify-center transition"><Trash2 size={16} /></button>
@@ -155,6 +157,17 @@ export default function AdminListings() {
           </div>
         ))}
       </div>
+
+      {editItem && (
+        <AdminEditListing
+          item={editItem}
+          onClose={() => setEditItem(null)}
+          onSaved={(updated) => {
+            setItems((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
+            setEditItem(null);
+          }}
+        />
+      )}
 
       {featureItem && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">

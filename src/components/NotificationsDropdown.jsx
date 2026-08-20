@@ -9,13 +9,6 @@ export default function NotificationsDropdown() {
   const [panelPos, setPanelPos] = useState(null);
   const ref = useRef(null);
 
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
-
   // Position the panel just below the bell, aligned to its end edge, but
   // clamped to the viewport so it never overflows the screen edge.
   const computePos = () => {

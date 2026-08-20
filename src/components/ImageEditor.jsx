@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { RotateCw, RotateCcw, Check, X, ZoomIn, ZoomOut, Move, Pencil, Droplets, Undo2, SlidersHorizontal } from "lucide-react";
+import { RotateCw, RotateCcw, Check, X, ZoomIn, ZoomOut, Pencil, Droplets, Undo2, SlidersHorizontal } from "lucide-react";
 
 const COLORS = ["#ffffff", "#000000", "#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#a855f7"];
 const BLUR_PX = 14; // blur radius in stage CSS px
@@ -23,7 +23,7 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
   const [rot, setRot] = useState(0);
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [tool, setTool] = useState("move"); // move | draw | blur | filter
+  const [tool, setTool] = useState(""); // "" (pan) | draw | blur | filter
   const [color, setColor] = useState("#ef4444");
   const [brush, setBrush] = useState(14);
   const [strokes, setStrokes] = useState([]); // {color,size,points:[{x,y}]} in 0..1
@@ -158,7 +158,7 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
     pointers.current.set(e.pointerId, { cx: e.clientX, cy: e.clientY, x: p.x, y: p.y, nx: p.nx, ny: p.ny });
     if (pointers.current.size === 2) { beginPinch(); return; }
     if (pointers.current.size !== 1) return;
-    if (tool === "move") {
+    if (tool !== "draw" && tool !== "blur") {
       pan.current = { x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y };
     } else if (tool === "draw") {
       const stroke = { color, size: brush / p.V, points: [{ x: p.nx, y: p.ny }] };
@@ -198,7 +198,7 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
     try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
     if (pinch.current && pointers.current.size < 2) {
       pinch.current = null;
-      if (pointers.current.size === 1 && tool === "move") {
+      if (pointers.current.size === 1 && tool !== "draw" && tool !== "blur") {
         const [r] = [...pointers.current.values()];
         pan.current = { x: r.cx, y: r.cy, ox: offset.x, oy: offset.y };
       }
@@ -278,7 +278,6 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
   };
 
   const tools = [
-    { id: "move", label: ar ? "تحريك" : "Move", Icon: Move },
     { id: "filter", label: ar ? "فلتر" : "Filter", Icon: SlidersHorizontal },
     { id: "draw", label: ar ? "رسم" : "Draw", Icon: Pencil },
     { id: "blur", label: ar ? "تمويه" : "Blur", Icon: Droplets },
@@ -293,7 +292,7 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
       </div>
 
       <div className="flex-1 flex items-center justify-center p-4 min-h-0">
-        <div className="relative aspect-square w-full max-w-md rounded-2xl overflow-hidden bg-slate-900">
+        <div className="relative h-full aspect-square max-w-full rounded-2xl overflow-hidden bg-slate-900">
           <canvas
             ref={stageRef}
             onPointerDown={onPointerDown}
@@ -301,7 +300,7 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
             className="absolute inset-0 w-full h-full"
-            style={{ touchAction: "none", cursor: tool === "move" ? "grab" : "crosshair" }}
+            style={{ touchAction: "none", cursor: tool === "draw" || tool === "blur" ? "crosshair" : "grab" }}
           />
         </div>
       </div>
@@ -309,7 +308,7 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
       <div className="p-4 space-y-3 text-white">
         <div className="flex items-center justify-center gap-2">
           {tools.map((tl) => (
-            <button key={tl.id} onClick={() => setTool(tl.id)} className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold ${tool === tl.id ? "bg-emerald-500 text-white" : "bg-white/10"}`}>
+            <button key={tl.id} onClick={() => setTool(prev => prev === tl.id ? "" : tl.id)} className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold ${tool === tl.id ? "bg-emerald-500 text-white" : "bg-white/10"}`}>
               <tl.Icon size={18} /> {tl.label}
             </button>
           ))}

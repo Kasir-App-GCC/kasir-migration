@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, X, Tag, Pencil, ArrowLeftRight, Clock } from "lucide-react";
+import { Check, X, Tag, Pencil, ArrowLeftRight, Clock, Star } from "lucide-react";
 import Price from "@/components/Price";
 
-export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, itemTitle, country, onAccept, onReject, onCounter, onModify, onNotMatch }) {
+export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, itemTitle, country, onAccept, onReject, onCounter, onModify, onNotMatch, ratedOffers, onRate }) {
   const nav = useNavigate();
   const mine = offer.direction === "buyer_offer" ? offer.buyer_id === user.id : offer.seller_id === user.id;
   const isRecipient = offer.direction === "buyer_offer" ? offer.seller_id === user.id : offer.buyer_id === user.id;
@@ -138,7 +138,14 @@ export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, 
       )}
 
       {offer.status === "accepted" && (
-        <p className="text-[11px] text-center text-muted-foreground mt-2">{t("agreedArrange")}</p>
+        <div className="mt-2 space-y-1.5">
+          <p className="text-[11px] text-center text-muted-foreground">{t("agreedArrange")}</p>
+          {onRate && !ratedOffers?.has(offer.id) && (
+            <button onClick={() => onRate(offer)} className="w-full py-2 rounded-xl bg-amber-400 text-slate-900 text-xs font-bold flex items-center justify-center gap-1.5">
+              <Star size={13} /> {t("rateNow")}
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

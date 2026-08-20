@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Heart, MapPin, Clock, ChevronLeft, ChevronRight, Star, BadgeCheck, Sparkles } from "lucide-react";
+import { Heart, MapPin, Clock, ChevronLeft, ChevronRight, Star, BadgeCheck, Sparkles, Globe } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { timeAgo } from "@/lib/format";
@@ -21,6 +21,7 @@ export default function ItemCard({ item, onClick, promoted = false }) {
   const cond = getCondition(item.condition);
   const multi = imgs.length > 1;
   const sellerInfo = useSellerInfo(item.seller_id);
+  const crossCountryActive = item.featured_cross_country && item.featured_until && new Date(item.featured_until) > new Date();
 
   const step = (d, e) => {
     e.stopPropagation();
@@ -132,6 +133,11 @@ export default function ItemCard({ item, onClick, promoted = false }) {
             {lang === "ar" ? cond.ar : cond.en}
           </span>
           {multi && <span className="text-[10px] text-muted-foreground">{imgs.length} {t("photos")}</span>}
+          {crossCountryActive && (
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-500 text-white shrink-0" title={lang === "ar" ? "دولي" : "Cross-country"}>
+              <Globe size={10} />
+            </span>
+          )}
           {promoted && (
             <span className="ms-auto inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500 text-white shrink-0">
               <Sparkles size={10} /> {lang === "ar" ? "مُميّز" : "Promoted"}

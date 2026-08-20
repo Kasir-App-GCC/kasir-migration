@@ -312,6 +312,7 @@ export default function ChatRoom() {
               return (
                 <div key={`o-${o.id}`} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                   <OfferCard offer={o} user={user} lang={lang} t={t} itemPrice={room?.item_price} itemImage={room?.item_image} itemTitle={room?.item_title} country={itemCountry}
+                    ratedOffers={ratedOffers} onRate={setRatingOffer}
                     onAccept={acceptOffer} onReject={rejectOffer} onCounter={counterOffer} onModify={modifyOffer} onNotMatch={notMatchOffer} />
                 </div>
               );

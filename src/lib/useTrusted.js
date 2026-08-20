@@ -9,6 +9,11 @@ import { base44 } from "@/api/base44Client";
 const cache = new Map();
 const CACHE_TTL = 2 * 60 * 1000; // 2 minutes
 
+// Pub-sub: userId -> Set of callbacks. When invalidateSellerCache runs,
+// every mounted useSellerInfo hook for that user re-reads the cache so
+// the verified badge appears on already-mounted cards instantly.
+const listeners = new Map();
+
 function getCached(userId) {
   if (!cache.has(userId)) return null;
   const entry = cache.get(userId);
@@ -79,11 +84,20 @@ export async function fetchTrusted(userId) {
   return (await fetchSellerInfo(userId)).trusted;
 }
 
-// Drop a seller's cached profile so the next read re-fetches fresh data.
-// Called after admin actions (e.g. verification approval) so the verified
-// badge appears instantly without waiting for the TTL to expire.
-export function invalidateSellerCache(userId) {
-  if (userId) cache.delete(userId);
+// Update a seller's cached profile and notify mounted hooks so the verified
+// badge appears instantly on already-mounted cards. If `patch` is omitted the
+// entry is deleted (next read re-fetches); otherwise the entry is updated in
+// place. Called after admin actions (e.g. verification approval).
+export function invalidateSellerCache(userId, patch) {
+  if (!userId) return;
+  if (patch) {
+    const cur = cache.get(userId) || { trusted: false, rating: null, count: 0, _ts: Date.now() };
+    cache.set(userId, { ...cur, ...patch, _ts: Date.now() });
+  } else {
+    cache.delete(userId);
+  }
+  const cbs = listeners.get(userId);
+  if (cbs) cbs.forEach((cb) => cb());
 }
 
 export function useTrusted(userId) {
@@ -100,17 +114,29 @@ export function useTrusted(userId) {
 }
 
 // Returns the full cached seller info: { trusted, rating, count }.
+// Subscribes to cache invalidations so the component re-renders the moment
+// a seller's trust status changes (e.g. admin approves verification).
 export function useSellerInfo(userId) {
   const [info, setInfo] = useState(() =>
     userId && getCached(userId) ? getCached(userId) : { trusted: false, rating: null, count: 0 }
   );
   useEffect(() => {
     if (!userId) return;
+    const apply = () => {
+      const cached = getCached(userId);
+      if (cached) setInfo(cached);
+      else fetchSellerInfo(userId).then((i) => setInfo(i));
+    };
     const cached = getCached(userId);
-    if (cached) { setInfo(cached); return; }
-    let active = true;
-    fetchSellerInfo(userId).then((i) => { if (active) setInfo(i); });
-    return () => { active = false; };
+    if (cached) { setInfo(cached); } else { let active = true; fetchSellerInfo(userId).then((i) => { if (active) setInfo(i); }); }
+    let cbs = listeners.get(userId);
+    if (!cbs) { cbs = new Set(); listeners.set(userId, cbs); }
+    cbs.add(apply);
+    return () => {
+      const s = listeners.get(userId);
+      if (s) s.delete(apply);
+      if (s && s.size === 0) listeners.delete(userId);
+    };
   }, [userId]);
   return info;
 }

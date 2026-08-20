@@ -37,7 +37,7 @@ export default function AdminVerifications() {
     try {
       await base44.entities.VerificationRequest.update(r.id, { status: "approved", reviewed_by: admin.id });
       await base44.functions.invoke("updateUser", { userId: r.user_id, is_trusted: true });
-      invalidateSellerCache(r.user_id);
+      invalidateSellerCache(r.user_id, { trusted: true });
       try {
         await base44.entities.Notification.create({
           user_id: r.user_id,

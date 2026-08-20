@@ -9,6 +9,7 @@ import { getCities, nearestCityInCountry, getCountry, convertCurrency } from "@/
 import { computeBoostPrice, existingBoostHours, BOOST_MAX_HOURS, BOOST_MIN_HOURS } from "@/lib/boostPricing";
 import MapPinPicker from "@/components/MapPinPicker";
 import { Image } from "@/components/ui/image";
+import CurrencySymbol from "@/components/CurrencySymbol";
 import { compressImage } from "@/lib/compressImage";
 import { useToast } from "@/components/ui/use-toast";
 import SheetSelect from "@/components/SheetSelect";
@@ -303,11 +304,14 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
       </div>
 
       <div className="space-y-1">
-        <label className="text-sm font-semibold">{t("price")}</label>
-        <div className={`flex items-center px-4 py-3 rounded-2xl bg-muted ${boostLocked ? "opacity-60" : ""}`}>
+        <label className="text-sm font-semibold flex items-center gap-0.5">{t("price")} <span className="text-rose-500">*</span></label>
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-2xl bg-muted ${boostLocked ? "opacity-60" : ""} ${!price ? "ring-1 ring-rose-400" : ""}`}>
           <input value={price} onChange={onPriceChange} placeholder={t("pricePlaceholder")} className="bg-transparent outline-none flex-1 disabled:cursor-not-allowed" inputMode="numeric" disabled={boostLocked} />
-          <span className="text-muted-foreground text-sm font-bold">{ar ? cur.currencyAr : cur.currency}</span>
+          <CurrencySymbol country={country || "SA"} lang={lang} size={15} className="text-muted-foreground shrink-0" />
         </div>
+        {!price && (
+          <p className="text-[11px] text-rose-500 font-semibold">{ar ? "السعر مطلوب" : "Price is required"}</p>
+        )}
         {boostLocked && (
           <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
             <Lock size={11} /> {ar ? "لا يمكن تعديل السعر أثناء تفعيل الترويج" : "Price can't be edited while the listing is promoted"}

@@ -31,6 +31,7 @@ export default function Search() {
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [condition, setCondition] = useState([]);
+  const [featuredItems, setFeaturedItems] = useState([]);
   const skipRef = useRef(0);
   const sentinelRef = useRef(null);
 
@@ -113,6 +114,18 @@ export default function Search() {
 
   useEffect(() => { loadInitial(); }, [loadInitial]);
 
+  // Fetch featured (promoted) listings to inject as sponsored slots in results.
+  const loadFeatured = useCallback(async () => {
+    try {
+      const list = await base44.entities.Item.filter({ featured: true, status: "available" }, "-featured_until", 20);
+      setFeaturedItems(list || []);
+    } catch {
+      setFeaturedItems([]);
+    }
+  }, []);
+
+  useEffect(() => { loadFeatured(); }, [loadFeatured]);
+
   // Infinite scroll: fetch the next page when the sentinel nears the viewport.
   useEffect(() => {
     const el = sentinelRef.current;
@@ -130,6 +143,32 @@ export default function Search() {
     if (locationFilter.mode !== "radius" && locationFilter.mode !== "map") return items;
     return items.filter((it) => matchLocation(it, locationFilter, country));
   }, [items, locationFilter, country]);
+
+  // Interleave promoted (sponsored) items into search results every 5 slots.
+  const { displayItems, promotedIds } = useMemo(() => {
+    const now = Date.now();
+    const promoted = featuredItems.filter((it) => {
+      if (it.featured_until && new Date(it.featured_until).getTime() < now) return false;
+      if (it.country === country) return true;
+      if (it.featured_cross_country) return true;
+      return false;
+    }).filter((it) => {
+      if (categories.length === 1 && it.category !== categories[0]) return false;
+      return true;
+    }).slice(0, 5);
+    const ids = new Set(promoted.map((p) => p.id));
+    const clean = filtered.filter((it) => !ids.has(it.id));
+    const result = [];
+    let pIdx = 0;
+    clean.forEach((it, i) => {
+      result.push(it);
+      if ((i + 1) % 5 === 0 && pIdx < promoted.length) {
+        result.push(promoted[pIdx]);
+        pIdx++;
+      }
+    });
+    return { displayItems: result, promotedIds: ids };
+  }, [filtered, featuredItems, country, categories]);
 
   const reset = () => {
     setMinPrice(""); setMaxPrice(""); setCondition([]); setSort("newest");
@@ -193,8 +232,8 @@ export default function Search() {
       ) : (
         <div className="space-y-3">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {filtered.map((it) => (
-              <ItemCard key={it.id} item={it} onClick={() => nav(`/item/${it.id}`)} sellerInfo={sellers[it.seller_id]} />
+            {displayItems.map((it) => (
+              <ItemCard key={it.id} item={it} onClick={() => nav(`/item/${it.id}`)} sellerInfo={sellers[it.seller_id]} promoted={promotedIds.has(it.id)} />
             ))}
           </div>
           <div ref={sentinelRef} className="flex flex-col items-center justify-center py-6 gap-3">

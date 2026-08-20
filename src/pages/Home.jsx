@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { Sparkles, ShoppingBag, Map as MapIcon, Eye, EyeOff } from "lucide-react";
+import { Sparkles, ShoppingBag, Map as MapIcon, Eye, EyeOff, Megaphone } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import ItemCard from "@/components/ItemCard";
 import FeaturedCarousel from "@/components/FeaturedCarousel";
@@ -197,6 +197,24 @@ export default function Home() {
         <Sparkles size={18} className="shrink-0" />
       </button>
 
+      {/* Buy Requests button */}
+      <button
+        onClick={() => nav("/buy-requests")}
+        className="w-full flex items-center gap-3 p-3.5 rounded-2xl bg-card border border-border/60 hover:shadow-lg hover:border-border transition"
+      >
+        <div className="w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-950/40 flex items-center justify-center shrink-0">
+          <Megaphone size={20} className="text-violet-600 dark:text-violet-400" />
+        </div>
+        <div className="flex-1 text-start">
+          <p className="font-bold text-sm leading-tight">
+            {lang === "ar" ? "طلبات الشراء" : "Buy Requests"}
+          </p>
+          <p className="text-xs text-muted-foreground leading-tight mt-0.5">
+            {lang === "ar" ? "أوصف اللي تدوره والباعة يوصلونك" : "Post what you need and sellers will find you"}
+          </p>
+        </div>
+      </button>
+
       {showFeatured && <FeaturedCarousel items={featured} onOpen={(iid) => nav(`/item/${iid}`)} sellers={sellers} />}
 
       <div className="flex items-baseline justify-between">
@@ -207,14 +225,20 @@ export default function Home() {
         </h2>
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground">{filtered.length} {t("items")}</span>
-          <button
-            onClick={() => setPrefs({ showSold: !prefs.showSold })}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition ${prefs.showSold ? "bg-muted hover:bg-muted/70" : "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300"}`}
-            title={prefs.showSold ? (lang === "ar" ? "إخفاء المباع" : "Hide sold") : (lang === "ar" ? "إظهار المباع" : "Show sold")}
-          >
-            {prefs.showSold ? <Eye size={16} /> : <EyeOff size={16} />}
-            <span className="hidden sm:inline">{prefs.showSold ? (lang === "ar" ? "الكل" : "All") : (lang === "ar" ? "متاح فقط" : "Available")}</span>
-          </button>
+          <div className="inline-flex items-center bg-muted rounded-xl p-0.5 text-sm font-semibold">
+            <button
+              onClick={() => setPrefs({ showSold: false })}
+              className={`px-2.5 py-1.5 rounded-lg transition ${!prefs.showSold ? "bg-emerald-500 text-white shadow-sm" : "text-muted-foreground"}`}
+            >
+              {lang === "ar" ? "متاح" : "Available"}
+            </button>
+            <button
+              onClick={() => setPrefs({ showSold: true })}
+              className={`px-2.5 py-1.5 rounded-lg transition ${prefs.showSold ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}
+            >
+              {lang === "ar" ? "الكل" : "All"}
+            </button>
+          </div>
           <button
             onClick={() => nav("/map")}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted hover:bg-muted/70 text-sm font-semibold transition"

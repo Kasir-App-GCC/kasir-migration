@@ -1,0 +1,91 @@
+{
+  "name": "BuyRequest",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "What the buyer is looking for"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional additional details about the request"
+    },
+    "category": {
+      "type": "string",
+      "description": "Item category from the standard CATEGORIES list"
+    },
+    "budget": {
+      "type": "number",
+      "description": "Optional maximum budget the buyer is willing to pay"
+    },
+    "city": {
+      "type": "string",
+      "description": "City where the buyer wants the item"
+    },
+    "country": {
+      "type": "string",
+      "default": "SA"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "The buyer who posted this request"
+    },
+    "user_name": {
+      "type": "string"
+    },
+    "user_avatar": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "fulfilled",
+        "closed"
+      ],
+      "default": "open"
+    }
+  },
+  "required": [
+    "title",
+    "user_id",
+    "city"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "created_by_id": "{{user.id}}"
+        }
+      ]
+    },
+    "read": null,
+    "update": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

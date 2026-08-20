@@ -30,6 +30,7 @@ import ShoppingAssistant from "@/pages/ShoppingAssistant";
 import EditListing from "@/pages/EditListing";
 import MapView from "@/pages/MapView";
 import Admin from "@/pages/Admin";
+import BuyRequests from "@/pages/BuyRequests";
 
 function routeDepth(pathname) {
   if (pathname === "/") return 0;
@@ -121,6 +122,7 @@ const AuthenticatedApp = () => {
         <Route path="/edit/:id" element={<EditListing />} />
         <Route path="/map" element={<MapView />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/buy-requests" element={<BuyRequests />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
       </Routes>

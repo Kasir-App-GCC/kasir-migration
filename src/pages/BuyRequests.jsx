@@ -279,10 +279,10 @@ export default function BuyRequests() {
                   })}
               </div>
             )}
-            {filterCategories.length > 0 && (
+            {filterSubcategories.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {filterCategories
-                  .flatMap((cat) => (BUY_REQUEST_CATEGORY_TAGS[cat] || []).map((t) => ({ ...t })))
+                  .flatMap((cat) => getBuyRequestTagsForCategory(cat, filterSubcategories))
                   .filter((t, i, arr) => arr.findIndex((x) => x.en === t.en) === i)
                   .map((t) => {
                     const selected = filterTags.includes(t.en);
@@ -436,12 +436,13 @@ export default function BuyRequests() {
                     </div>
                   </div>
                 )}
+                {form.subcategory.length > 0 && (
                 <div>
                   <label className="text-sm font-medium text-muted-foreground block mb-1.5">
                     {lang === "ar" ? "وسوم الطلب" : "Request tags"}
                   </label>
                   <div className="flex flex-wrap gap-1.5">
-                    {[...BUY_REQUEST_TAGS, ...(form.category ? getBuyRequestTagsForCategory(form.category, form.subcategory) : [])].map((t) => {
+                    {[...BUY_REQUEST_TAGS, ...getBuyRequestTagsForCategory(form.category, form.subcategory)].map((t) => {
                       const selected = form.tags.includes(t.en);
                       return (
                         <button
@@ -459,6 +460,7 @@ export default function BuyRequests() {
                     })}
                   </div>
                 </div>
+                )}
                 <div>
                   <label className="text-sm font-medium text-muted-foreground block mb-1.5">
                     {lang === "ar" ? "الميزانية" : "Budget (optional)"}

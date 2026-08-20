@@ -18,7 +18,7 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
       return;
     }
     if (n.type === "support_resolved") { onMarkRead?.(n); onClick?.(); return; }
-    if (n.type === "sold" || n.type === "boost_approved") { onMarkRead?.(n); if (n.itemId) nav(`/item/${n.itemId}`); }
+    if (n.type === "sold" || n.type === "boost_approved" || n.type === "rate") { onMarkRead?.(n); if (n.itemId) nav(`/item/${n.itemId}`); }
     else if (n.type === "message" || n.type === "offer") nav(`/chat/${n.roomId}`);
     else if (n.roomId) { onMarkRead?.(n); nav(`/chat/${n.roomId}`); }
     onClick?.();
@@ -80,6 +80,10 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
       ) : n.type === "support_resolved" ? (
         <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300">
           <LifeBuoy size={18} />
+        </div>
+      ) : n.type === "rate" ? (
+        <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-300">
+          <Star size={18} className="fill-amber-400 text-amber-400" />
         </div>
       ) : (
         <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${n.type === "message" ? "bg-primary/10 text-primary" : n.type === "offer" ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300" : "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-300"}`}>

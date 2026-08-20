@@ -18,6 +18,7 @@
         "verification_approved",
         "verification_rejected",
         "boost_approved",
+        "rate",
         "support_resolved"
       ],
       "default": "sold"

@@ -56,6 +56,11 @@
     "image": {
       "type": "string",
       "description": "URL of the proposed item picture (used when a seller responds to a Buy Request)"
+    },
+    "reminder_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the last inactivity reminder was sent (prevents duplicate reminders; re-notifies only after a new update)"
     }
   },
   "required": [

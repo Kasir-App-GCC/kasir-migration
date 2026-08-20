@@ -15,6 +15,7 @@
         "offer_rejected",
         "offer_countered",
         "offer_modified",
+        "offer_reminder",
         "verification_submitted",
         "verification_approved",
         "verification_rejected",

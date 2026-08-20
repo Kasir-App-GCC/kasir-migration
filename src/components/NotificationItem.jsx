@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, Star, Tag, CheckCircle, Check, X, ArrowLeftRight, Pencil, BadgeCheck, TrendingUp, Flag, LifeBuoy } from "lucide-react";
+import { MessageCircle, Star, Tag, CheckCircle, Check, X, ArrowLeftRight, Pencil, BadgeCheck, TrendingUp, Flag, LifeBuoy, Clock } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -85,6 +85,10 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
       ) : n.type === "support_resolved" ? (
         <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300">
           <LifeBuoy size={18} />
+        </div>
+      ) : n.type === "offer_reminder" ? (
+        <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-300">
+          <Clock size={18} />
         </div>
       ) : n.type === "rate" ? (
         <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-300">

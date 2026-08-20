@@ -79,6 +79,13 @@ export async function fetchTrusted(userId) {
   return (await fetchSellerInfo(userId)).trusted;
 }
 
+// Drop a seller's cached profile so the next read re-fetches fresh data.
+// Called after admin actions (e.g. verification approval) so the verified
+// badge appears instantly without waiting for the TTL to expire.
+export function invalidateSellerCache(userId) {
+  if (userId) cache.delete(userId);
+}
+
 export function useTrusted(userId) {
   const [trusted, setTrusted] = useState(() => (userId && getCached(userId) ? getCached(userId).trusted : false));
   useEffect(() => {

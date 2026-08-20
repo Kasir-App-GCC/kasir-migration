@@ -6,6 +6,7 @@ import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
 import { timeAgo } from "@/lib/format";
 import { sendPush } from "@/lib/notify";
+import { invalidateSellerCache } from "@/lib/useTrusted";
 
 const STATUS = {
   pending: { en: "Pending", ar: "قيد المراجعة", color: "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300" },
@@ -36,6 +37,7 @@ export default function AdminVerifications() {
     try {
       await base44.entities.VerificationRequest.update(r.id, { status: "approved", reviewed_by: admin.id });
       await base44.functions.invoke("updateUser", { userId: r.user_id, is_trusted: true });
+      invalidateSellerCache(r.user_id);
       try {
         await base44.entities.Notification.create({
           user_id: r.user_id,

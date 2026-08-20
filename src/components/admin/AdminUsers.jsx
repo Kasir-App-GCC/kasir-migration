@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import RatingStars from "@/components/RatingStars";
 import { findOrCreateOfficialChat } from "@/lib/officialChat";
 import SheetSelect from "@/components/SheetSelect";
+import { invalidateSellerCache } from "@/lib/useTrusted";
 
 export default function AdminUsers() {
   const { lang, user: adminUser } = useStore();
@@ -168,6 +169,7 @@ export default function AdminUsers() {
     try {
       const res = await base44.functions.invoke("updateUser", { userId: u.id, is_trusted: !u.is_trusted });
       if (!res.data?.success) throw new Error(res.data?.error || "Update failed");
+      invalidateSellerCache(u.id);
       setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, is_trusted: !u.is_trusted } : x)));
       if (selected?.id === u.id) setSelected({ ...u, is_trusted: !u.is_trusted });
       toast({ title: !u.is_trusted ? (ar ? "تم منح شارة الثقة" : "Trusted badge granted") : (ar ? "تم إزالة شارة الثقة" : "Trusted badge removed") });

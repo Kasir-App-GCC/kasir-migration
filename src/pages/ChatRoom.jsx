@@ -161,24 +161,21 @@ export default function ChatRoom() {
       offer_amount: offer.amount, actor_name: user.name,
     }).catch(() => {});
     await base44.entities.Offer.update(offer.id, { status: "accepted" });
+    // Notify both parties to rate each other — fire-and-forget BEFORE sysMsg so
+    // a system-message failure can't swallow the rating notifications.
+    base44.entities.Notification.create({
+      user_id: offer.buyer_id, type: "rate", item_id: offer.item_id, item_title: offer.item_title,
+      text: lang === "ar" ? "قيّم البائع" : "Rate the seller", actor_name: offer.seller_name, chatroom_id: id,
+    }).catch(() => {});
+    base44.entities.Notification.create({
+      user_id: offer.seller_id, type: "rate", item_id: offer.item_id, item_title: offer.item_title,
+      text: lang === "ar" ? "قيّم المشتري" : "Rate the buyer", actor_name: offer.buyer_name, chatroom_id: id,
+    }).catch(() => {});
     const txt = lang === "ar"
       ? `تم الاتفاق على السعر ${formatPrice(offer.amount, lang, itemCountry, country)} ✅`
       : `Price agreed at ${formatPrice(offer.amount, lang, itemCountry, country)} ✅`;
-    await sysMsg(txt, offer.id);
-    await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false });
-    // Notify both parties to rate each other — rating is now triggered by offer acceptance
-    try {
-      await base44.entities.Notification.create({
-        user_id: offer.buyer_id, type: "rate", item_id: offer.item_id, item_title: offer.item_title,
-        text: lang === "ar" ? "قيّم البائع" : "Rate the seller", actor_name: offer.seller_name, chatroom_id: id,
-      });
-    } catch {}
-    try {
-      await base44.entities.Notification.create({
-        user_id: offer.seller_id, type: "rate", item_id: offer.item_id, item_title: offer.item_title,
-        text: lang === "ar" ? "قيّم المشتري" : "Rate the buyer", actor_name: offer.buyer_name, chatroom_id: id,
-      });
-    } catch {}
+    try { await sysMsg(txt, offer.id); } catch {}
+    try { await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false }); } catch {}
   };
 
   const rejectOffer = async (offer) => {

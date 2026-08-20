@@ -176,12 +176,6 @@ export default function ItemDetail() {
     setSellerTags([]);
     const rs = await base44.entities.Rating.filter({ rated_user_id: item.seller_id }, "-created_date", 20);
     setRatings(rs || []);
-    sendPush({
-      user_id: item.seller_id,
-      title: t("appName"),
-      content: lang === "ar" ? "تلقيت تقييماً جديداً ⭐" : "You received a new rating ⭐",
-      action_url: `/item/${item.id}`,
-    });
   };
 
   const isOwner = user && item && item.seller_id === user.id;

@@ -14,6 +14,10 @@
       "type": "string",
       "description": "Item category from the standard CATEGORIES list"
     },
+    "subcategory": {
+      "type": "string",
+      "description": "Optional subcategory from the standard SUBCATEGORIES list"
+    },
     "budget": {
       "type": "number",
       "description": "Optional maximum budget the buyer is willing to pay"

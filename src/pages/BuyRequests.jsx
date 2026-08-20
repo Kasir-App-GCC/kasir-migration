@@ -4,7 +4,7 @@ import { Megaphone, Plus, X, MapPin, LocateFixed } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
-import { CATEGORIES } from "@/lib/constants";
+import { CATEGORIES, SUBCATEGORIES, getSubcategories } from "@/lib/constants";
 import { getCities, nearestCityInCountry } from "@/lib/countries";
 import Price from "@/components/Price";
 import CurrencySymbol from "@/components/CurrencySymbol";
@@ -25,12 +25,13 @@ export default function BuyRequests() {
   const [hasMore, setHasMore] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [tab, setTab] = useState("browse");
-  const [form, setForm] = useState({ title: "", category: "", budget: "", city: "", description: "", tags: [], whatsapp_enabled: false, whatsapp_number: "" });
+  const [form, setForm] = useState({ title: "", category: "", budget: "", city: "", description: "", subcategory: "", tags: [], whatsapp_enabled: false, whatsapp_number: "" });
   const [submitting, setSubmitting] = useState(false);
   const [locating, setLocating] = useState(false);
   const [filterCategories, setFilterCategories] = useState([]);
   const [filterCity, setFilterCity] = useState("");
   const [filterTags, setFilterTags] = useState([]);
+  const [filterSubcategories, setFilterSubcategories] = useState([]);
   const [locationLabel, setLocationLabel] = useState("");
   const skipRef = useRef(0);
   const sentinelRef = useRef(null);
@@ -111,6 +112,7 @@ export default function BuyRequests() {
         title: form.title.trim(),
         description: form.description.trim(),
         category: form.category || "other",
+        subcategory: form.subcategory || "",
         budget: form.budget ? Number(form.budget) : undefined,
         city: form.city,
         country,
@@ -122,7 +124,7 @@ export default function BuyRequests() {
         tags: form.tags || [],
         status: "open",
       });
-      setForm({ title: "", category: "", budget: "", city: "", description: "", tags: [], whatsapp_enabled: false, whatsapp_number: "" });
+      setForm({ title: "", category: "", budget: "", city: "", description: "", subcategory: "", tags: [], whatsapp_enabled: false, whatsapp_number: "" });
       setShowForm(false);
       toast({ title: lang === "ar" ? "تم نشر طلبك" : "Request posted!" });
       load();
@@ -194,6 +196,7 @@ export default function BuyRequests() {
   const browseRequests = requests.filter((r) => {
     if (r.user_id === user.id) return false;
     if (filterCategories.length && !filterCategories.includes(r.category)) return false;
+    if (filterSubcategories.length && !filterSubcategories.includes(r.subcategory)) return false;
     if (filterCity && r.city !== filterCity) return false;
     if (filterTags.length && !filterTags.some((t) => (r.tags || []).includes(t))) return false;
     return true;
@@ -257,6 +260,25 @@ export default function BuyRequests() {
                 );
               })}
             </div>
+            {filterCategories.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {filterCategories
+                  .flatMap((cat) => (SUBCATEGORIES[cat] || []).map((s) => ({ ...s })))
+                  .filter((s, i, arr) => arr.findIndex((x) => x.en === s.en) === i)
+                  .map((s) => {
+                    const selected = filterSubcategories.includes(s.en);
+                    return (
+                      <button
+                        key={s.en}
+                        onClick={() => setFilterSubcategories((prev) => selected ? prev.filter((x) => x !== s.en) : [...prev, s.en])}
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${selected ? "bg-violet-500 text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
+                      >
+                        {lang === "ar" ? s.ar : s.en}
+                      </button>
+                    );
+                  })}
+              </div>
+            )}
             {filterCategories.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {filterCategories
@@ -384,6 +406,28 @@ export default function BuyRequests() {
                     ))}
                   </select>
                 </div>
+                {form.category && getSubcategories(form.category).length > 0 && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground block mb-1.5">
+                      {lang === "ar" ? "القسم الفرعي" : "Subcategory"}
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {getSubcategories(form.category).map((s) => {
+                        const selected = form.subcategory === s.en;
+                        return (
+                          <button
+                            key={s.en}
+                            type="button"
+                            onClick={() => setForm((prev) => ({ ...prev, subcategory: selected ? "" : s.en }))}
+                            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${selected ? "bg-violet-500 text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
+                          >
+                            {lang === "ar" ? s.ar : s.en}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
                 <div>
                   <label className="text-sm font-medium text-muted-foreground block mb-1.5">
                     {lang === "ar" ? "وسوم الطلب" : "Request tags"}

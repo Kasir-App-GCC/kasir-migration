@@ -2,7 +2,7 @@ import React from "react";
 import { MapPin, Clock, Tag, MessageCircle, Trash2, CheckCircle2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useSellerInfo } from "@/lib/useTrusted";
-import { CATEGORIES } from "@/lib/constants";
+import { CATEGORIES, getSubcategories } from "@/lib/constants";
 import { timeAgo } from "@/lib/format";
 import Price from "@/components/Price";
 import TrustedBadge from "@/components/TrustedBadge";
@@ -12,6 +12,7 @@ import { localizeBuyRequestTag } from "@/lib/buyRequestTags";
 export default function BuyRequestCard({ req, tab, onChat, onClose, onDelete, onUserClick }) {
   const { lang } = useStore();
   const cat = CATEGORIES.find((c) => c.id === req.category);
+  const sub = req.subcategory ? getSubcategories(req.category).find((s) => s.en === req.subcategory) : null;
   const sellerInfo = useSellerInfo(req.user_id);
 
   return (
@@ -41,6 +42,12 @@ export default function BuyRequestCard({ req, tab, onChat, onClose, onDelete, on
           <span className="inline-flex items-center gap-1">
             <Tag size={12} />
             {lang === "ar" ? cat.ar : cat.en}
+          </span>
+        )}
+        {sub && (
+          <span className="inline-flex items-center gap-1">
+            <Tag size={12} />
+            {lang === "ar" ? sub.ar : sub.en}
           </span>
         )}
         <span className="inline-flex items-center gap-1">

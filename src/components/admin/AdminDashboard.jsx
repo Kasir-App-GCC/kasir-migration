@@ -20,7 +20,10 @@ export default function AdminDashboard() {
           base44.entities.SupportTicket.list("-created_date", 200),
           base44.entities.Rating.list("-created_date", 500),
         ]);
-        const soldItems = (items || []).filter((i) => i.status === "sold");
+        // Exclude generated seed/test listings (seller_id starts with "seed-")
+        // so dashboard stats reflect real marketplace activity only.
+        const realItems = (items || []).filter((i) => !(i.seller_id || "").startsWith("seed-"));
+        const soldItems = realItems.filter((i) => i.status === "sold");
         const revenue = soldItems.reduce((s, i) => s + (i.price || 0), 0);
         const trusted = (users || []).filter((u) => u.is_trusted).length;
         const banned = (users || []).filter((u) => u.is_banned).length;
@@ -31,7 +34,7 @@ export default function AdminDashboard() {
           : "—";
         setStats({
           users: users?.length || 0,
-          items: items?.length || 0,
+          items: realItems.length,
           sold: soldItems.length,
           revenue,
           trusted,

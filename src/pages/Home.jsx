@@ -8,6 +8,7 @@ import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { getCategory, getCityName } from "@/lib/constants";
 import { matchLocation } from "@/lib/location";
+import { fetchSellerInfos } from "@/lib/useTrusted";
 import PullToRefresh from "@/components/PullToRefresh";
 
 function Skeleton() {
@@ -27,9 +28,10 @@ export default function Home() {
   const { locationFilter, lang, prefs, country } = useStore();
   const t = useT();
   const nav = useNavigate();
-  const PAGE_SIZE = 24;
+  const PAGE_SIZE = 60;
   const [items, setItems] = useState([]);
   const [featuredItems, setFeaturedItems] = useState([]);
+  const [sellers, setSellers] = useState({});
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -43,6 +45,12 @@ export default function Home() {
     try {
       const first = await base44.entities.Item.filter({ country }, "-created_date", PAGE_SIZE, 0);
       const list = first || [];
+      // Fetch all seller profiles in ONE batched call before cards mount, so
+      // the per-card useSellerInfo hook hits the cache instead of firing N
+      // individual getPublicProfile requests (the old N+1 that hung phones).
+      const ids = [...new Set(list.map((i) => i.seller_id).filter(Boolean))];
+      const sMap = ids.length ? await fetchSellerInfos(ids) : {};
+      setSellers((prev) => ({ ...prev, ...sMap }));
       setItems(list);
       setHasMore(list.length === PAGE_SIZE);
     } catch {
@@ -61,6 +69,9 @@ export default function Home() {
   const loadFeatured = useCallback(async () => {
     try {
       const list = await base44.entities.Item.filter({ featured: true }, "-featured_until", 100);
+      const ids = [...new Set((list || []).map((i) => i.seller_id).filter(Boolean))];
+      const sMap = ids.length ? await fetchSellerInfos(ids) : {};
+      setSellers((prev) => ({ ...prev, ...sMap }));
       setFeaturedItems(list || []);
     } catch {
       setFeaturedItems([]);
@@ -75,6 +86,9 @@ export default function Home() {
     try {
       const next = await base44.entities.Item.filter({ country }, "-created_date", PAGE_SIZE, skip);
       const list = next || [];
+      const ids = [...new Set(list.map((i) => i.seller_id).filter(Boolean))];
+      const sMap = ids.length ? await fetchSellerInfos(ids) : {};
+      setSellers((prev) => ({ ...prev, ...sMap }));
       setItems((prev) => {
         const seen = new Set(prev.map((x) => x.id));
         return [...prev, ...list.filter((x) => !seen.has(x.id))];
@@ -183,7 +197,7 @@ export default function Home() {
         <Sparkles size={18} className="shrink-0" />
       </button>
 
-      {showFeatured && <FeaturedCarousel items={featured} onOpen={(iid) => nav(`/item/${iid}`)} />}
+      {showFeatured && <FeaturedCarousel items={featured} onOpen={(iid) => nav(`/item/${iid}`)} sellers={sellers} />}
 
       <div className="flex items-baseline justify-between">
         <h2 className="font-bold text-lg">
@@ -215,7 +229,7 @@ export default function Home() {
         <div className="space-y-3">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {filtered.map((it) => (
-              <ItemCard key={it.id} item={it} onClick={() => nav(`/item/${it.id}`)} />
+              <ItemCard key={it.id} item={it} onClick={() => nav(`/item/${it.id}`)} sellerInfo={sellers[it.seller_id]} />
             ))}
           </div>
           <div ref={sentinelRef} className="flex flex-col items-center justify-center py-6 gap-3">

@@ -8,7 +8,7 @@ import { getCategory, getCityName, getCondition } from "@/lib/constants";
 import { useSellerInfo } from "@/lib/useTrusted";
 import TrustedBadge from "@/components/TrustedBadge";
 
-export default function ItemCard({ item, onClick }) {
+export default function ItemCard({ item, onClick, sellerInfo: sellerInfoProp }) {
   const { lang, favorites, toggleFavorite } = useStore();
   const t = useT();
   const [idx, setIdx] = useState(0);
@@ -20,7 +20,8 @@ export default function ItemCard({ item, onClick }) {
     : ["https://picsum.photos/seed/" + encodeURIComponent(item.title || item.id) + "/600/600"];
   const cond = getCondition(item.condition);
   const multi = imgs.length > 1;
-  const sellerInfo = useSellerInfo(item.seller_id);
+  const hookInfo = useSellerInfo(item.seller_id);
+  const sellerInfo = sellerInfoProp !== undefined ? sellerInfoProp : hookInfo;
 
   const step = (d, e) => {
     e.stopPropagation();

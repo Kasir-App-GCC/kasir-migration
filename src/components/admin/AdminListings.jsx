@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Search, Trash2, Pencil, Star, Tag, Clock, X } from "lucide-react";
+import { Search, Trash2, Pencil, Star, Tag, Clock, X, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -22,16 +22,31 @@ export default function AdminListings() {
   const [featureSaving, setFeatureSaving] = useState(false);
   const [editItem, setEditItem] = useState(null);
 
+  const reload = async () => {
+    try {
+      const list = await base44.entities.Item.list("-created_date", 500);
+      setItems(list || []);
+    } catch {}
+  };
+
   useEffect(() => {
-    (async () => {
-      try {
-        const list = await base44.entities.Item.list("-created_date", 500);
-        setItems(list || []);
-      } catch {
-      } finally {
-        setLoading(false);
+    reload().finally(() => setLoading(false));
+    // Live updates: new/changed/deleted listings appear without a manual refresh,
+    // so a newly created (non-featured) listing shows up immediately.
+    const unsub = base44.entities.Item.subscribe((event) => {
+      if (!event) return;
+      const it = event.data;
+      if (event.type === "delete") {
+        setItems((prev) => prev.filter((x) => x.id !== it?.id));
+      } else if (it) {
+        setItems((prev) => {
+          const idx = prev.findIndex((x) => x.id === it.id);
+          if (idx === -1) return [it, ...prev];
+          const copy = [...prev]; copy[idx] = it; return copy;
+        });
       }
-    })();
+    });
+    return () => unsub?.();
   }, []);
 
   const filtered = useMemo(() => {
@@ -126,6 +141,7 @@ export default function AdminListings() {
             <button key={f.id} onClick={() => setFilter(f.id)} className={`px-3 py-1.5 rounded-lg font-semibold transition ${filter === f.id ? "bg-card shadow-sm" : "text-muted-foreground"}`}>{f.label}</button>
           ))}
         </div>
+        <button onClick={reload} title={ar ? "تحديث" : "Refresh"} className="px-3 py-2 rounded-xl bg-muted hover:bg-muted/70 flex items-center justify-center text-sm font-semibold shrink-0"><RefreshCw size={16} /></button>
       </div>
 
       <div className="space-y-2">

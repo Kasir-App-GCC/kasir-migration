@@ -3,7 +3,7 @@ import { Sparkles } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import ItemCard from "@/components/ItemCard";
 
-export default function FeaturedCarousel({ items, onOpen }) {
+export default function FeaturedCarousel({ items, onOpen, sellers }) {
   const t = useT();
   const containerRef = useRef(null);
   const rowRef = useRef(null);
@@ -97,7 +97,7 @@ export default function FeaturedCarousel({ items, onOpen }) {
         <div ref={rowRef} className="flex gap-3 w-max pb-1" style={{ willChange: "transform" }}>
           {items.map((it) => (
             <div key={it.id} className="shrink-0 w-40 pointer-events-auto">
-              <ItemCard item={it} onClick={() => onOpen(it.id)} />
+              <ItemCard item={it} onClick={() => onOpen(it.id)} sellerInfo={sellers?.[it.seller_id]} />
             </div>
           ))}
         </div>

@@ -45,8 +45,8 @@ export default function AdminListings() {
 
   const loadMore = async () => {
     if (loadingMore) return;
-    // Search mode paginates the server-filtered results.
-    if (q.trim()) {
+    // Server-query mode (search or stale) paginates the server-filtered results.
+    if (q.trim() || filter === "stale") {
       if (!searchHasMore) return;
       setLoadingMore(true);
       const skip = searchSkipRef.current + PAGE_SIZE;
@@ -87,11 +87,19 @@ export default function AdminListings() {
     if (filter === "available") query.status = "available";
     else if (filter === "sold") query.status = "sold";
     else if (filter === "featured") query.featured = true;
+    else if (filter === "stale") {
+      // Unsold listings older than 3 months — queried from the server so
+      // stale inventory buried deep in pagination is still surfaced.
+      query.status = "available";
+      query.created_date = { $lt: new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString() };
+    }
     return query;
   }, [q, filter]);
 
   useEffect(() => {
-    if (!q.trim()) { setSearchItems(null); setSearching(false); return; }
+    // Server-side query path is used for text search AND the "stale" filter
+    // (which needs a server date query, not client filtering of loaded pages).
+    if (!q.trim() && filter !== "stale") { setSearchItems(null); setSearching(false); return; }
     setSearching(true);
     searchSkipRef.current = 0;
     let alive = true;
@@ -127,10 +135,10 @@ export default function AdminListings() {
   }, []);
 
   const filtered = useMemo(() => {
-    // Search mode: results already came from the server filtered by the
-    // query — only refine "featured" for liveness (expired boosts still
-    // carry featured:true). Browse mode applies the filter to loaded pages.
-    if (q.trim()) {
+    // Server-query mode (text search or stale filter): results already came
+    // from the server filtered by the query — only refine "featured" for
+    // liveness (expired boosts still carry featured:true).
+    if (q.trim() || filter === "stale") {
       let r = searchItems || [];
       if (filter === "featured") r = r.filter((i) => isLiveFeatured(i));
       return r;
@@ -218,6 +226,7 @@ export default function AdminListings() {
             { id: "available", label: ar ? "متاح" : "Available" },
             { id: "sold", label: ar ? "مباع" : "Sold" },
             { id: "featured", label: ar ? "مميز" : "Featured" },
+            { id: "stale", label: ar ? "راكد +٣شهر" : "Stale >3mo" },
           ].map((f) => (
             <button key={f.id} onClick={() => setFilter(f.id)} className={`px-3 py-1.5 rounded-lg font-semibold transition ${filter === f.id ? "bg-card shadow-sm" : "text-muted-foreground"}`}>{f.label}</button>
           ))}
@@ -255,7 +264,7 @@ export default function AdminListings() {
         ))}
       </div>
 
-      {q.trim()
+      {(q.trim() || filter === "stale")
         ? searchHasMore && (searchItems?.length || 0) > 0 ? (
             <div className="flex justify-center py-4">
               <button onClick={loadMore} disabled={loadingMore} className="px-6 py-2.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-50">

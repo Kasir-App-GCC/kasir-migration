@@ -18,6 +18,10 @@ export default function AdminUsers() {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState("all");
   const [ratings, setRatings] = useState({});
+  // Aggregate rating averages per user (rated_user_id -> { avg, count }),
+  // computed once on load so the "low ratings" filter can surface bad sellers
+  // without opening each user individually.
+  const [ratingMap, setRatingMap] = useState({});
   const [selected, setSelected] = useState(null);
   const [editForm, setEditForm] = useState({ username: "", phone: "", country_code: "+966", avatar: "" });
   const [saving, setSaving] = useState(false);
@@ -95,9 +99,26 @@ export default function AdminUsers() {
   useEffect(() => {
     (async () => {
       try {
-        const list = await base44.entities.User.list("-created_date", 500);
+        const [list, allRatings] = await Promise.all([
+          base44.entities.User.list("-created_date", 500),
+          base44.entities.Rating.list("-created_date", 500),
+        ]);
         // Filter out soft-deleted (disabled) users so they don't reappear after deletion
         setUsers((list || []).filter((u) => !u.disabled));
+        // Build per-user aggregate ratings to power the "low ratings" filter.
+        const map = {};
+        (allRatings || []).forEach((r) => {
+          const uid = r.rated_user_id;
+          if (!uid) return;
+          if (!map[uid]) map[uid] = { sum: 0, count: 0 };
+          map[uid].sum += r.score || 0;
+          map[uid].count += 1;
+        });
+        const agg = {};
+        Object.entries(map).forEach(([uid, v]) => {
+          agg[uid] = { avg: v.sum / v.count, count: v.count };
+        });
+        setRatingMap(agg);
       } catch {
       } finally {
         setLoading(false);
@@ -110,6 +131,14 @@ export default function AdminUsers() {
     if (filter === "trusted") r = r.filter((u) => u.is_trusted);
     else if (filter === "banned") r = r.filter((u) => u.is_banned);
     else if (filter === "admin") r = r.filter((u) => u.role === "admin");
+    else if (filter === "low") {
+      // Sellers whose average rating is below 3.5 (with at least one rating) —
+      // the ones an admin should keep an eye on as potentially bad sellers.
+      r = r.filter((u) => {
+        const r1 = ratingMap[u.id];
+        return r1 && r1.count > 0 && r1.avg < 3.5;
+      });
+    }
     if (q.trim()) {
       const s = q.trim().toLowerCase();
       r = r.filter((u) =>
@@ -250,6 +279,7 @@ export default function AdminUsers() {
             { id: "trusted", label: ar ? "موثوق" : "Trusted" },
             { id: "banned", label: ar ? "محظور" : "Banned" },
             { id: "admin", label: ar ? "أدمن" : "Admin" },
+            { id: "low", label: ar ? "تقييم منخفض" : "Low Ratings" },
           ].map((f) => (
             <button
               key={f.id}
@@ -276,6 +306,12 @@ export default function AdminUsers() {
                 {u.is_trusted && <ShieldCheck size={14} className="text-cyan-500 shrink-0" />}
                 {u.is_banned && <Ban size={14} className="text-rose-500 shrink-0" />}
                 {u.role === "admin" && <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary text-primary-foreground">ADMIN</span>}
+                {filter === "low" && ratingMap[u.id] && (
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 shrink-0">
+                    <Star size={10} className="fill-rose-500 text-rose-500" />
+                    {ratingMap[u.id].avg.toFixed(1)} ({ratingMap[u.id].count})
+                  </span>
+                )}
               </div>
               <p className="text-xs text-muted-foreground truncate">@{u.username || "—"} · {u.email}</p>
             </button>

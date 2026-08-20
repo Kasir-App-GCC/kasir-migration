@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Users, Tag, Flag, LifeBuoy, TrendingUp, DollarSign, ShoppingBag, AlertTriangle, Wallet } from "lucide-react";
+import { Users, Tag, Flag, LifeBuoy, DollarSign, ShoppingBag, AlertTriangle, Wallet } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { formatPrice } from "@/lib/format";
@@ -42,9 +42,6 @@ export default function AdminDashboard() {
         const banned = (users || []).filter((u) => u.is_banned).length;
         const openTickets = (tickets || []).filter((t) => t.status === "open").length;
         const openReports = (reports || []).filter((r) => !r.resolved).length;
-        const avgRating = ratings?.length
-          ? (ratings.reduce((s, r) => s + r.score, 0) / ratings.length).toFixed(1)
-          : "—";
         setStats({
           users: users?.length || 0,
           items: realItems.length,
@@ -55,8 +52,6 @@ export default function AdminDashboard() {
           banned,
           reports: openReports,
           tickets: openTickets,
-          avgRating,
-          ratings: ratings?.length || 0,
         });
       } catch {
       } finally {
@@ -74,7 +69,6 @@ export default function AdminDashboard() {
     { icon: Tag, label: ar ? "إجمالي المبيعات" : "Total Sales", value: stats.sold, color: "text-amber-500 bg-amber-50 dark:bg-amber-950/30" },
     { icon: Wallet, label: ar ? "إجمالي المنفق" : "Total Spent", value: formatPrice(stats.totalSpent, country), color: "text-indigo-500 bg-indigo-50 dark:bg-indigo-950/30" },
     { icon: DollarSign, label: ar ? "إيرادات المنصة" : "Platform Revenue", value: formatPrice(stats.revenue, country), color: "text-green-500 bg-green-50 dark:bg-green-950/30" },
-    { icon: TrendingUp, label: ar ? "متوسط التقييم" : "Avg Rating", value: `${stats.avgRating} ★`, color: "text-purple-500 bg-purple-50 dark:bg-purple-950/30" },
     { icon: AlertTriangle, label: ar ? "موثوقون" : "Trusted", value: stats.trusted, color: "text-cyan-500 bg-cyan-50 dark:bg-cyan-950/30" },
     { icon: Flag, label: ar ? "بلاغات مفتوحة" : "Open Reports", value: stats.reports, color: "text-rose-500 bg-rose-50 dark:bg-rose-950/30" },
     { icon: LifeBuoy, label: ar ? "تذاكر مفتوحة" : "Open Tickets", value: stats.tickets, color: "text-orange-500 bg-orange-50 dark:bg-orange-950/30" },

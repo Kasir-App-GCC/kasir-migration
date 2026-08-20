@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { secrets } from 'base44:runtime';
 
 export default async function(req) {
   try {
@@ -13,28 +14,32 @@ export default async function(req) {
       return Response.json({ error: 'Phone and code are required' }, { status: 400 });
     }
 
-    const records = await base44.entities.PhoneOtp.filter({ phone, user_id: user.id }, '-created_date', 5);
-    const latest = records?.[0];
-    if (!latest) return Response.json({ error: 'No code sent. Request a new code.' }, { status: 404 });
-    if (latest.verified) return Response.json({ error: 'Already verified' }, { status: 400 });
-    if (new Date(latest.expires_at).getTime() < Date.now()) {
-      return Response.json({ error: 'Code expired. Request a new code.' }, { status: 410 });
-    }
-    if ((latest.attempts || 0) >= 5) {
-      return Response.json({ error: 'Too many attempts. Request a new code.' }, { status: 429 });
+    const sid = secrets.get('TWILIO_ACCOUNT_SID');
+    const token = secrets.get('TWILIO_AUTH_TOKEN');
+    const serviceSid = secrets.get('TWILIO_VERIFY_SERVICE_SID');
+    if (!sid || !token || !serviceSid) {
+      return Response.json({ error: 'Twilio credentials not configured' }, { status: 500 });
     }
 
-    const encoder = new TextEncoder();
-    const hashBuf = await crypto.subtle.digest('SHA-256', encoder.encode(code + ':' + phone));
-    const codeHash = [...new Uint8Array(hashBuf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+    const authHeader = 'Basic ' + btoa(`${sid}:${token}`);
+    const params = new URLSearchParams();
+    params.append('To', phone);
+    params.append('Code', code);
 
-    if (codeHash !== latest.code_hash) {
-      await base44.entities.PhoneOtp.update(latest.id, { attempts: (latest.attempts || 0) + 1 });
-      return Response.json({ error: 'Invalid code' }, { status: 400 });
+    const twRes = await fetch(`https://verify.twilio.com/v2/Services/${serviceSid}/VerificationCheck`, {
+      method: 'POST',
+      headers: { Authorization: authHeader, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    });
+    const twData = await twRes.json().catch(() => ({}));
+    if (!twRes.ok) {
+      return Response.json({ error: 'Twilio error: ' + (twData.message || twRes.status) }, { status: 502 });
     }
 
-    await base44.entities.PhoneOtp.update(latest.id, { verified: true });
-    return Response.json({ ok: true, verified: true });
+    if (twData.status === 'approved') {
+      return Response.json({ ok: true, verified: true });
+    }
+    return Response.json({ error: 'Invalid code' }, { status: 400 });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

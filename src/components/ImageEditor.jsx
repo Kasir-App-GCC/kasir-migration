@@ -222,11 +222,12 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
       drawRef.current.stroke.points.push({ x: p.nx, y: p.ny });
       drawRef.current.kind === "draw" ? setStrokes((s) => [...s]) : setBlurStrokes((s) => [...s]);
     } else if (dragText.current) {
-      const dx = p.nx - dragText.current.sx;
-      const dy = p.ny - dragText.current.sy;
-      if (Math.abs(dx) > 0.004 || Math.abs(dy) > 0.004) dragText.current.moved = true;
-      const i = dragText.current.index;
-      setTexts((s) => s.map((t, j) => (j === i ? { ...t, x: dragText.current.ox + dx, y: dragText.current.oy + dy } : t)));
+      const dt = dragText.current;
+      const dx = p.nx - dt.sx;
+      const dy = p.ny - dt.sy;
+      if (Math.abs(dx) > 0.004 || Math.abs(dy) > 0.004) dt.moved = true;
+      const i = dt.index;
+      setTexts((s) => s.map((t, j) => (j === i ? { ...t, x: dt.ox + dx, y: dt.oy + dy } : t)));
     }
   };
 

@@ -65,7 +65,7 @@ function parseResultsRequests(toolCalls) {
   return items.filter((it) => (seen.has(it.id) ? false : (seen.add(it.id), true)));
 }
 
-function MessageBubble({ message, onItemClick, reqMap, parsedByMsg }) {
+function MessageBubble({ message, onItemClick, onUserClick, onVerify, canContact, reqMap, parsedByMsg }) {
   const isUser = message.role === "user";
   if (isUser) {
     return (
@@ -116,10 +116,10 @@ function MessageBubble({ message, onItemClick, reqMap, parsedByMsg }) {
                 key={r.id}
                 req={r}
                 tab="browse"
-                canContact={false}
+                canContact={canContact}
                 onChat={(req) => onItemClick?.(req)}
-                onUserClick={() => {}}
-                onVerify={() => {}}
+                onUserClick={(uid) => onUserClick?.(uid)}
+                onVerify={() => onVerify?.()}
               />
             ))}
           </div>
@@ -341,14 +341,18 @@ export default function BuyRequestAssistant({ onClose }) {
                 message={m}
                 reqMap={reqCache}
                 parsedByMsg={parsedByMsg}
+                canContact={canContactState}
                 onItemClick={(req) => {
                   if (!canContactState) {
-                    setOfferDialogReq(null);
                     nav("/profile");
                     return;
                   }
                   setOfferDialogReq(req);
                 }}
+                onUserClick={(uid) => {
+                  if (canContactState) nav(`/user/${uid}`);
+                }}
+                onVerify={() => nav("/profile")}
               />
             ))}
             {sending && (

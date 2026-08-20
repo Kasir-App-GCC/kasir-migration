@@ -15,8 +15,11 @@
       "description": "Item category from the standard CATEGORIES list"
     },
     "subcategory": {
-      "type": "string",
-      "description": "Optional subcategory from the standard SUBCATEGORIES list"
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Optional subcategories from the standard SUBCATEGORIES list (multi-select)"
     },
     "budget": {
       "type": "number",

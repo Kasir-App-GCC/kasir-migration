@@ -25,7 +25,7 @@ export default function BuyRequests() {
   const [hasMore, setHasMore] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [tab, setTab] = useState("browse");
-  const [form, setForm] = useState({ title: "", category: "", budget: "", city: "", description: "", subcategory: "", tags: [], whatsapp_enabled: false, whatsapp_number: "" });
+  const [form, setForm] = useState({ title: "", category: "", budget: "", city: "", description: "", subcategory: [], tags: [], whatsapp_enabled: false, whatsapp_number: "" });
   const [submitting, setSubmitting] = useState(false);
   const [locating, setLocating] = useState(false);
   const [filterCategories, setFilterCategories] = useState([]);
@@ -112,7 +112,7 @@ export default function BuyRequests() {
         title: form.title.trim(),
         description: form.description.trim(),
         category: form.category || "other",
-        subcategory: form.subcategory || "",
+        subcategory: form.subcategory || [],
         budget: form.budget ? Number(form.budget) : undefined,
         city: form.city,
         country,
@@ -124,7 +124,7 @@ export default function BuyRequests() {
         tags: form.tags || [],
         status: "open",
       });
-      setForm({ title: "", category: "", budget: "", city: "", description: "", subcategory: "", tags: [], whatsapp_enabled: false, whatsapp_number: "" });
+      setForm({ title: "", category: "", budget: "", city: "", description: "", subcategory: [], tags: [], whatsapp_enabled: false, whatsapp_number: "" });
       setShowForm(false);
       toast({ title: lang === "ar" ? "تم نشر طلبك" : "Request posted!" });
       load();
@@ -196,7 +196,7 @@ export default function BuyRequests() {
   const browseRequests = requests.filter((r) => {
     if (r.user_id === user.id) return false;
     if (filterCategories.length && !filterCategories.includes(r.category)) return false;
-    if (filterSubcategories.length && !filterSubcategories.includes(r.subcategory)) return false;
+    if (filterSubcategories.length && !(r.subcategory || []).some((s) => filterSubcategories.includes(s))) return false;
     if (filterCity && r.city !== filterCity) return false;
     if (filterTags.length && !filterTags.some((t) => (r.tags || []).includes(t))) return false;
     return true;
@@ -399,8 +399,8 @@ export default function BuyRequests() {
                     value={form.category}
                     onChange={(e) => setForm((prev) => {
                       const newCat = e.target.value;
-                      const available = new Set([...BUY_REQUEST_TAGS, ...getBuyRequestTagsForCategory(newCat, "")].map((t) => t.en));
-                      return { ...prev, category: newCat, subcategory: "", tags: prev.tags.filter((t) => available.has(t)) };
+                      const available = new Set([...BUY_REQUEST_TAGS, ...getBuyRequestTagsForCategory(newCat, [])].map((t) => t.en));
+                      return { ...prev, category: newCat, subcategory: [], tags: prev.tags.filter((t) => available.has(t)) };
                     })}
                     className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none"
                   >
@@ -417,15 +417,15 @@ export default function BuyRequests() {
                     </label>
                     <div className="flex flex-wrap gap-1.5">
                       {getSubcategories(form.category).map((s) => {
-                        const selected = form.subcategory === s.en;
+                        const selected = form.subcategory.includes(s.en);
                         return (
                           <button
                             key={s.en}
                             type="button"
                             onClick={() => setForm((prev) => {
-                              const newSub = selected ? "" : s.en;
-                              const available = new Set([...BUY_REQUEST_TAGS, ...getBuyRequestTagsForCategory(prev.category, newSub)].map((t) => t.en));
-                              return { ...prev, subcategory: newSub, tags: prev.tags.filter((t) => available.has(t)) };
+                              const newSubs = selected ? prev.subcategory.filter((x) => x !== s.en) : [...prev.subcategory, s.en];
+                              const available = new Set([...BUY_REQUEST_TAGS, ...newSubs.flatMap((sub) => getBuyRequestTagsForCategory(prev.category, sub))].map((t) => t.en));
+                              return { ...prev, subcategory: newSubs, tags: prev.tags.filter((t) => available.has(t)) };
                             })}
                             className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${selected ? "bg-violet-500 text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
                           >

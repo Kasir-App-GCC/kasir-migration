@@ -545,12 +545,240 @@ export const BUY_REQUEST_SUBCATEGORY_TAGS = {
     { en: "Original", ar: "أصلي" },
     { en: "Unworn", ar: "غير ملبوس" },
   ],
+  "families|Natural Products": [
+    { en: "Fresh", ar: "طازج" },
+    { en: "Family-made", ar: "منتج أسري" },
+    { en: "Natural", ar: "طبيعي" },
+    { en: "No preservatives", ar: "بلا مواد حافظة" },
+  ],
+  "electronics|Cameras & Photography": [
+    { en: "With lens", ar: "مع العدسة" },
+    { en: "Original box", ar: "بالعلبة الأصلية" },
+    { en: "With bag", ar: "مع الحقيبة" },
+    { en: "Sealed", ar: "مختوم" },
+  ],
+  "electronics|Smart Watches & Wearables": [
+    { en: "Original charger", ar: "الشاحن الأصلي" },
+    { en: "Original box", ar: "بالعلبة الأصلية" },
+    { en: "With straps", ar: "مع الأحزمة" },
+    { en: "Sealed", ar: "مختوم" },
+  ],
+  "electronics|Computer Components": [
+    { en: "Original", ar: "أصلي" },
+    { en: "With warranty", ar: "مع ضمان" },
+    { en: "Sealed", ar: "مختوم" },
+    { en: "Compatible", ar: "متوافق" },
+  ],
+  "cars|Hatchback": [
+    { en: "GCC specs", ar: "مواصفات خليجية" },
+    { en: "Low mileage", ar: "ممشور قليل" },
+    { en: "No accidents", ar: "بلا حوادث" },
+    { en: "Full service history", ar: "سجل صيانة كامل" },
+  ],
+  "cars|Coupe": [
+    { en: "GCC specs", ar: "مواصفات خليجية" },
+    { en: "Low mileage", ar: "ممشور قليل" },
+    { en: "No accidents", ar: "بلا حوادث" },
+    { en: "Full service history", ar: "سجل صيانة كامل" },
+  ],
+  "cars|Sports Car": [
+    { en: "GCC specs", ar: "مواصفات خليجية" },
+    { en: "Low mileage", ar: "ممشور قليل" },
+    { en: "No accidents", ar: "بلا حوادث" },
+    { en: "Full service history", ar: "سجل صيانة كامل" },
+  ],
+  "cars|Convertible": [
+    { en: "GCC specs", ar: "مواصفات خليجية" },
+    { en: "Low mileage", ar: "ممشور قليل" },
+    { en: "No accidents", ar: "بلا حوادث" },
+    { en: "Full service history", ar: "سجل صيانة كامل" },
+  ],
+  "cars|Pickup Truck": [
+    { en: "GCC specs", ar: "مواصفات خليجية" },
+    { en: "Low mileage", ar: "ممشور قليل" },
+    { en: "No accidents", ar: "بلا حوادث" },
+    { en: "Full service history", ar: "سجل صيانة كامل" },
+  ],
+  "cars|Vans & Minivans": [
+    { en: "GCC specs", ar: "مواصفات خليجية" },
+    { en: "Low mileage", ar: "ممشور قليل" },
+    { en: "No accidents", ar: "بلا حوادث" },
+    { en: "Full service history", ar: "سجل صيانة كامل" },
+  ],
+  "cars|Boats & Watercraft": [
+    { en: "With trailer", ar: "مع المقطورة" },
+    { en: "Low hours", ar: "ساعات تشغيل قليلة" },
+    { en: "No accidents", ar: "بلا حوادث" },
+    { en: "Well maintained", ar: "معتنى به" },
+  ],
+  "furniture|Office Furniture": [
+    { en: "Smoke-free", ar: "بيت بلا تدخين" },
+    { en: "Well maintained", ar: "معتنى به" },
+    { en: "Disassembly available", ar: "تفكيك متاح" },
+  ],
+  "furniture|Outdoor Furniture": [
+    { en: "Weather resistant", ar: "مقاوم للطقس" },
+    { en: "Well maintained", ar: "معتنى به" },
+    { en: "All cushions", ar: "كل الوسائد" },
+  ],
+  "furniture|Kids Furniture": [
+    { en: "Smoke-free", ar: "بيت بلا تدخين" },
+    { en: "Well maintained", ar: "معتنى به" },
+    { en: "Safety certified", ar: "معتمد آمن" },
+  ],
+  "fashion|Watches": [
+    { en: "Authentic", ar: "أصلي" },
+    { en: "Original box", ar: "بالعلبة الأصلية" },
+    { en: "With papers", ar: "مع الأوراق" },
+    { en: "Unworn", ar: "غير ملبوس" },
+  ],
+  "fashion|Jewelry": [
+    { en: "Authentic", ar: "أصلي" },
+    { en: "With certificate", ar: "مع شهادة" },
+    { en: "Original box", ar: "بالعلبة الأصلية" },
+    { en: "Unworn", ar: "غير ملبوس" },
+  ],
+  "fashion|Traditional Wear": [
+    { en: "Authentic", ar: "أصلي" },
+    { en: "Original tags", ar: "بالعلامة الأصلية" },
+    { en: "Unworn", ar: "غير ملبوس" },
+    { en: "Handmade", ar: "صناعة يدوية" },
+  ],
+  "realestate|Commercial": [
+    { en: "Direct owner", ar: "من المالك مباشرة" },
+    { en: "No commission", ar: "بدون عمولة" },
+    { en: "Available now", ar: "متاح الآن" },
+    { en: "Furnished", ar: "مفروش" },
+  ],
+  "realestate|Shared Room": [
+    { en: "Furnished", ar: "مفروش" },
+    { en: "Bills included", ar: "الفواتير مشمولة" },
+    { en: "Available now", ar: "متاح الآن" },
+    { en: "No commission", ar: "بدون عمولة" },
+  ],
+  "services|Beauty & Grooming": [
+    { en: "Licensed", ar: "مرخّص" },
+    { en: "Mobile service", ar: "خدمة متنقلة" },
+    { en: "Same-day", ar: "بنفس اليوم" },
+    { en: "Home visit", ar: "زيارة منزلية" },
+  ],
+  "services|Health & Wellness": [
+    { en: "Licensed", ar: "مرخّص" },
+    { en: "Certified", ar: "معتمد" },
+    { en: "Mobile service", ar: "خدمة متنقلة" },
+    { en: "Home visit", ar: "زيارة منزلية" },
+  ],
+  "services|IT & Tech Support": [
+    { en: "Certified", ar: "معتمد" },
+    { en: "Same-day", ar: "بنفس اليوم" },
+    { en: "Remote ok", ar: "عن بُعد" },
+    { en: "Warranty", ar: "ضمان" },
+  ],
+  "toys|Video Games": [
+    { en: "All controllers", ar: "كل أذرع التحكم" },
+    { en: "With games", ar: "مع الألعاب" },
+    { en: "Sealed", ar: "مختوم" },
+    { en: "Original box", ar: "بالعلبة الأصلية" },
+  ],
+  "toys|Outdoor Toys": [
+    { en: "All pieces", ar: "كل القطع" },
+    { en: "Well maintained", ar: "معتنى به" },
+    { en: "Age-appropriate", ar: "مناسب للعمر" },
+  ],
+  "toys|Educational Toys": [
+    { en: "All pieces", ar: "كل القطع" },
+    { en: "Complete set", ar: "طقم كامل" },
+    { en: "Age-appropriate", ar: "مناسب للعمر" },
+  ],
+  "sports|Water Sports": [
+    { en: "All accessories", ar: "كل الملحقات" },
+    { en: "Well maintained", ar: "معتنى به" },
+    { en: "With safety gear", ar: "مع معدات الأمان" },
+  ],
+  "sports|Martial Arts": [
+    { en: "All accessories", ar: "كل الملحقات" },
+    { en: "Well maintained", ar: "معتنى به" },
+    { en: "With safety gear", ar: "مع معدات الأمان" },
+  ],
+  "books|Magazines": [
+    { en: "No highlights", ar: "بلا تظليل" },
+    { en: "Clean pages", ar: "صفحات نظيفة" },
+    { en: "Complete set", ar: "مجموعة كاملة" },
+  ],
+  "books|Comics": [
+    { en: "No highlights", ar: "بلا تظليل" },
+    { en: "Clean pages", ar: "صفحات نظيفة" },
+    { en: "Original packaging", ar: "بالتغليف الأصلي" },
+    { en: "First edition", ar: "طبعة أولى" },
+  ],
+  "animals|Reptiles": [
+    { en: "Healthy", ar: "سليم" },
+    { en: "With supplies", ar: "مع المستلزمات" },
+    { en: "With terrarium", ar: "مع الحوض" },
+  ],
+  "jobs|Internship": [
+    { en: "Remote ok", ar: "عن بُعد" },
+    { en: "Immediate start", ar: "بدء فوري" },
+    { en: "Flexible hours", ar: "ساعات مرنة" },
+    { en: "Paid", ar: "مدفوع" },
+  ],
+  "jobs|Remote": [
+    { en: "Remote ok", ar: "عن بُعد" },
+    { en: "Immediate start", ar: "بدء فوري" },
+    { en: "Flexible hours", ar: "ساعات مرنة" },
+    { en: "Visa provided", ar: "إقامة مشمولة" },
+  ],
+  "education|Languages": [
+    { en: "Certified", ar: "معتمد" },
+    { en: "Free trial", ar: "تجربة مجانية" },
+    { en: "One-on-one", ar: "خصوصي" },
+    { en: "Beginner friendly", ar: "للمبتدئين" },
+  ],
+  "education|Online Classes": [
+    { en: "Certified", ar: "معتمد" },
+    { en: "Free trial", ar: "تجربة مجانية" },
+    { en: "Recorded sessions", ar: "جلسات مسجلة" },
+    { en: "Beginner friendly", ar: "للمبتدئين" },
+  ],
+  "occasions|Decorations": [
+    { en: "All-inclusive", ar: "شامل الكل" },
+    { en: "Customizable", ar: "حسب الطلب" },
+    { en: "Setup included", ar: "تركيب مشمول" },
+    { en: "Available on date", ar: "متاح بالتاريخ" },
+  ],
+  "occasions|Photography": [
+    { en: "Licensed", ar: "مرخّص" },
+    { en: "Same-day", ar: "بنفس اليوم" },
+    { en: "With album", ar: "مع الألبوم" },
+    { en: "Available on date", ar: "متاح بالتاريخ" },
+  ],
+  "antiques|Antique Furniture": [
+    { en: "Authentic", ar: "أصلي" },
+    { en: "With certificate", ar: "مع شهادة" },
+    { en: "Rare", ar: "نادر" },
+    { en: "Well maintained", ar: "معتنى به" },
+  ],
+  "arts|Sculptures": [
+    { en: "Signed", ar: "موقّع" },
+    { en: "Handmade", ar: "صناعة يدوية" },
+    { en: "Original", ar: "أصلي" },
+    { en: "With base", ar: "مع القاعدة" },
+  ],
+  "arts|Digital Art": [
+    { en: "Original", ar: "أصلي" },
+    { en: "Limited edition", ar: "إصدار محدود" },
+    { en: "High resolution", ar: "دقة عالية" },
+    { en: "Customizable", ar: "حسب الطلب" },
+  ],
 };
 
 export function getBuyRequestTagsForCategory(category, subcategory) {
-  if (subcategory && BUY_REQUEST_SUBCATEGORY_TAGS[`${category}|${subcategory}`]) {
-    return BUY_REQUEST_SUBCATEGORY_TAGS[`${category}|${subcategory}`];
-  }
+  const subs = Array.isArray(subcategory) ? subcategory : (subcategory ? [subcategory] : []);
+  const tagMap = new Map();
+  subs.forEach((sub) => {
+    (BUY_REQUEST_SUBCATEGORY_TAGS[`${category}|${sub}`] || []).forEach((t) => tagMap.set(t.en, t));
+  });
+  if (tagMap.size > 0) return Array.from(tagMap.values());
   return BUY_REQUEST_CATEGORY_TAGS[category] || [];
 }
 

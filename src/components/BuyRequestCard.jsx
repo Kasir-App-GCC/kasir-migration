@@ -12,7 +12,7 @@ import { localizeBuyRequestTag } from "@/lib/buyRequestTags";
 export default function BuyRequestCard({ req, tab, onChat, onClose, onDelete, onUserClick }) {
   const { lang } = useStore();
   const cat = CATEGORIES.find((c) => c.id === req.category);
-  const sub = req.subcategory ? getSubcategories(req.category).find((s) => s.en === req.subcategory) : null;
+  const subs = (req.subcategory || []).map((s) => getSubcategories(req.category).find((x) => x.en === s)).filter(Boolean);
   const sellerInfo = useSellerInfo(req.user_id);
 
   return (
@@ -44,12 +44,12 @@ export default function BuyRequestCard({ req, tab, onChat, onClose, onDelete, on
             {lang === "ar" ? cat.ar : cat.en}
           </span>
         )}
-        {sub && (
-          <span className="inline-flex items-center gap-1">
+        {subs.map((sub) => (
+          <span key={sub.en} className="inline-flex items-center gap-1">
             <Tag size={12} />
             {lang === "ar" ? sub.ar : sub.en}
           </span>
-        )}
+        ))}
         <span className="inline-flex items-center gap-1">
           <MapPin size={12} />
           {req.city || (lang === "ar" ? "كل المدن" : "Any city")}

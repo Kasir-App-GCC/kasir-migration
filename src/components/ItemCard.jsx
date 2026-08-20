@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Heart, MapPin, Clock, ChevronLeft, ChevronRight, Star, BadgeCheck } from "lucide-react";
+import { Heart, MapPin, Clock, ChevronLeft, ChevronRight, Star, BadgeCheck, Sparkles } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { timeAgo } from "@/lib/format";
@@ -8,7 +8,7 @@ import { getCategory, getCityName, getCondition } from "@/lib/constants";
 import { useSellerInfo } from "@/lib/useTrusted";
 import TrustedBadge from "@/components/TrustedBadge";
 
-export default function ItemCard({ item, onClick }) {
+export default function ItemCard({ item, onClick, promoted = false }) {
   const { lang, favorites, toggleFavorite } = useStore();
   const t = useT();
   const [idx, setIdx] = useState(0);
@@ -132,6 +132,11 @@ export default function ItemCard({ item, onClick }) {
             {lang === "ar" ? cond.ar : cond.en}
           </span>
           {multi && <span className="text-[10px] text-muted-foreground">{imgs.length} {t("photos")}</span>}
+          {promoted && (
+            <span className="ms-auto inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500 text-white shrink-0">
+              <Sparkles size={10} /> {lang === "ar" ? "مُميّز" : "Promoted"}
+            </span>
+          )}
         </div>
         <h3 className="text-sm font-semibold line-clamp-1 leading-snug">{item.title}</h3>
         {item.seller_name && (

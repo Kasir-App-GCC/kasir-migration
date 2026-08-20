@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { playBeep } from "@/lib/beep";
+import { onNotifsRead } from "@/lib/notifSignal";
 import useUnreadChats from "@/hooks/useUnreadChats";
 import useAdminPending from "@/hooks/useAdminPending";
 
@@ -32,6 +33,11 @@ export default function useUnreadBell() {
     };
     compute();
 
+    // Bulk updateMany (mark-all-read from the notifications panel) doesn't fire
+    // per-record realtime events, so the subscription alone can't clear the
+    // badge. The notifSignal bridges that gap.
+    const unsubSignal = onNotifsRead(() => { if (!cancelled) compute(); });
+
     const unsub = base44.entities.Notification.subscribe((event) => {
       const n = event && event.data;
       if (!n || n.user_id !== user.id) return;
@@ -51,6 +57,7 @@ export default function useUnreadBell() {
       cancelled = true;
       if (timer) clearTimeout(timer);
       if (unsub) unsub();
+      if (unsubSignal) unsubSignal();
     };
   }, [user]);
 

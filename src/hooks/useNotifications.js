@@ -4,6 +4,7 @@ import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { toDate } from "@/lib/format";
 import { fetchMyChatData } from "@/lib/chatData";
+import { emitNotifsRead } from "@/lib/notifSignal";
 
 // Shared notification fetching + realtime updates, used by both the
 // Notifications page and the bell dropdown.
@@ -79,9 +80,11 @@ export default function useNotifications() {
           .filter((n) => toDate(n.date).getTime() > clearedAt);
         setItems(all);
         setLoading(false);
-        // Acknowledge system notifications in the background so it doesn't
-        // delay the panel rendering.
-        base44.entities.Notification.updateMany({ user_id: user.id, read: false }, { $set: { read: true } }).catch(() => {});
+        // Acknowledge system notifications, then signal the bell to recompute
+        // (updateMany doesn't fire per-record realtime events on its own).
+        base44.entities.Notification.updateMany({ user_id: user.id, read: false }, { $set: { read: true } })
+          .then(() => emitNotifsRead())
+          .catch(() => {});
       } catch {
         setItems([]);
         setLoading(false);
@@ -91,7 +94,7 @@ export default function useNotifications() {
 
   useEffect(() => {
     let timer = null;
-    const bump = () => { if (timer) clearTimeout(timer); timer = setTimeout(() => setTick((x) => x + 1), 500); };
+    const bump = () => { if (timer) clearTimeout(timer); timer = setTimeout(() => setTick((x) => x + 1), 150); };
     const unsub = base44.entities.Notification.subscribe((e) => { if (e?.type === "create") bump(); });
     const unsubM = base44.entities.Message.subscribe((e) => { if (e?.type === "create") bump(); });
     const unsubO = base44.entities.Offer.subscribe((e) => { if (e?.type === "create") bump(); });

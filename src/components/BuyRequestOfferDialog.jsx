@@ -8,7 +8,7 @@ export default function BuyRequestOfferDialog({ req, user, lang, country, onClos
   const { toast } = useToast();
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState(req.budget != null ? String(req.budget) : "");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -70,14 +70,17 @@ export default function BuyRequestOfferDialog({ req, user, lang, country, onClos
         image: file_url,
       });
 
-      const introText = message.trim() || (lang === "ar" ? "أقدر أساعدك في هذا الطلب 🔧" : "I can help you with this! 🔧");
-      await base44.entities.Message.create({
-        chatroom_id: roomId,
-        sender_id: user.id,
-        sender_name: user.name,
-        text: introText,
-      });
-      await base44.entities.ChatRoom.update(roomId, { last_message: introText, hidden_for_buyer: false, hidden_for_seller: false });
+      const customMsg = message.trim();
+      if (customMsg) {
+        await base44.entities.Message.create({
+          chatroom_id: roomId,
+          sender_id: user.id,
+          sender_name: user.name,
+          text: customMsg,
+        });
+      }
+      const lastMsg = customMsg || (lang === "ar" ? "تم إرسال عرض" : "Offer sent");
+      await base44.entities.ChatRoom.update(roomId, { last_message: lastMsg, hidden_for_buyer: false, hidden_for_seller: false });
 
       onSent(roomId);
     } catch {
@@ -125,6 +128,11 @@ export default function BuyRequestOfferDialog({ req, user, lang, country, onClos
             <label className="text-sm font-medium block mb-1.5">
               {lang === "ar" ? "السعر" : "Price"} *
             </label>
+            {req.budget != null && (
+              <p className="text-xs text-muted-foreground mb-1.5">
+                {lang === "ar" ? "ميزانية المشتري معروضة — يمكنك رفعها أو خفضها" : "Buyer's budget is shown — you can raise or lower it"}
+              </p>
+            )}
             <div className="relative">
               <input
                 type="text"

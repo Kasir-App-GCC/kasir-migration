@@ -21,9 +21,10 @@ export default async function(req) {
     }
 
     const authHeader = 'Basic ' + btoa(`${sid}:${token}`);
+    const channel = (body?.channel || 'call').trim();
     const params = new URLSearchParams();
     params.append('To', phone);
-    params.append('Channel', 'call');
+    params.append('Channel', channel);
 
     const twRes = await fetch(`https://verify.twilio.com/v2/Services/${serviceSid}/Verifications`, {
       method: 'POST',

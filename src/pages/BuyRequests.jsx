@@ -11,6 +11,8 @@ import Price from "@/components/Price";
 import CurrencySymbol from "@/components/CurrencySymbol";
 import PullToRefresh from "@/components/PullToRefresh";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
+import CitySearchSelect from "@/components/CitySearchSelect";
+import MapPinPicker from "@/components/MapPinPicker";
 
 export default function BuyRequests() {
   const { user, lang, country } = useStore();
@@ -25,6 +27,8 @@ export default function BuyRequests() {
   const [locating, setLocating] = useState(false);
   const [filterCategory, setFilterCategory] = useState("");
   const [filterCity, setFilterCity] = useState("");
+  const [locationLabel, setLocationLabel] = useState("");
+  const [showMap, setShowMap] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -46,12 +50,24 @@ export default function BuyRequests() {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const city = nearestCityInCountry(pos.coords.latitude, pos.coords.longitude, country);
-        if (city) setForm((prev) => ({ ...prev, city: city.en }));
+        if (city) {
+          setForm((prev) => ({ ...prev, city: city.en }));
+          setLocationLabel(lang === "ar" ? city.ar : city.en);
+        }
         setLocating(false);
       },
       () => setLocating(false),
       { enableHighAccuracy: true, timeout: 10000 }
     );
+  };
+
+  const handleMapPick = (p) => {
+    const city = nearestCityInCountry(p.lat, p.lng, country);
+    if (city) {
+      setForm((prev) => ({ ...prev, city: city.en }));
+      setLocationLabel(lang === "ar" ? city.ar : city.en);
+    }
+    setShowMap(false);
   };
 
   const submit = async () => {
@@ -154,7 +170,7 @@ export default function BuyRequests() {
           </h1>
           <button
             onClick={() => {
-              setForm((prev) => ({ ...prev, whatsapp_enabled: !!user.whatsapp_enabled, whatsapp_number: user.whatsapp_number || "" }));
+              setForm((prev) => ({ ...prev, whatsapp_enabled: !!user.whatsapp_enabled, whatsapp_number: user.whatsapp_number ? (user.whatsapp_number.startsWith("+") ? user.whatsapp_number : "+" + user.whatsapp_number) : "" }));
               setShowForm(true);
             }}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-500 text-white text-sm font-bold hover:bg-violet-600 transition"
@@ -166,7 +182,7 @@ export default function BuyRequests() {
 
         <p className="text-sm text-muted-foreground">
           {lang === "ar"
-            ? "أوصف اللي تدوره وحط ميزانيتك، والباعة يوصلونك بعروضهم"
+            ? "أوصف اللي تدوره وحط ميزانيتك، والناس يوصلونك بعروضهم"
             : "Post what you're looking for with your budget, and sellers will come to you with offers."}
         </p>
 
@@ -232,7 +248,7 @@ export default function BuyRequests() {
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <h3 className="font-bold text-sm leading-snug">{req.title}</h3>
                     {req.budget != null && (
-                      <span className="shrink-0 px-2 py-1 rounded-lg bg-violet-100 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 text-xs font-bold">
+                      <span className="shrink-0 px-2 py-1 rounded-lg bg-violet-500 text-white text-xs font-bold">
                         <Price value={req.budget} lang={lang} country={req.country} />
                       </span>
                     )}
@@ -330,6 +346,18 @@ export default function BuyRequests() {
                   />
                 </div>
                 <div>
+                  <label className="text-sm font-medium text-muted-foreground block mb-1.5">
+                    {lang === "ar" ? "تفاصيل إضافية" : "Details (optional)"}
+                  </label>
+                  <textarea
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    placeholder={lang === "ar" ? "أي تفاصيل إضافية..." : "Any additional details..."}
+                    rows={2}
+                    className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 resize-none"
+                  />
+                </div>
+                <div>
                   <label className="text-sm font-medium text-muted-foreground block mb-1.5">{lang === "ar" ? "القسم" : "Category"}</label>
                   <select
                     value={form.category}
@@ -347,54 +375,55 @@ export default function BuyRequests() {
                     {lang === "ar" ? "الميزانية" : "Budget (optional)"}
                   </label>
                   <div className="relative">
-                    <span className="absolute top-1/2 -translate-y-1/2 start-3 text-muted-foreground font-semibold pointer-events-none flex items-center">
-                      <CurrencySymbol country={country} lang={lang} size={14} />
-                    </span>
                     <input
                       type="text"
                       inputMode="decimal"
                       value={form.budget}
                       onChange={(e) => setForm({ ...form, budget: e.target.value.replace(/[^0-9.]/g, "") })}
                       placeholder={lang === "ar" ? "مثال: 2000" : "e.g., 2000"}
-                      className="w-full ps-8 pe-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30"
+                      className="w-full ps-3 pe-8 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30"
                     />
+                    <span className="absolute top-1/2 -translate-y-1/2 end-3 text-muted-foreground font-semibold pointer-events-none flex items-center">
+                      <CurrencySymbol country={country} lang={lang} size={14} />
+                    </span>
                   </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground block mb-1.5">
                     {lang === "ar" ? "المدينة" : "City"} *
                   </label>
-                  <button
-                    type="button"
-                    onClick={useCurrentLocation}
-                    disabled={locating}
-                    className="w-full mb-1.5 inline-flex items-center justify-center gap-1.5 py-2 rounded-xl bg-violet-100 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 text-sm font-semibold hover:bg-violet-200 dark:hover:bg-violet-900/40 transition disabled:opacity-50"
-                  >
-                    <LocateFixed size={15} />
-                    {locating ? (lang === "ar" ? "جاري تحديد موقعك..." : "Locating...") : (lang === "ar" ? "استخدام موقعي الحالي" : "Use my current location")}
-                  </button>
-                  <select
+                  <div className="flex gap-1.5 mb-1.5">
+                    <button
+                      type="button"
+                      onClick={useCurrentLocation}
+                      disabled={locating}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-xl bg-violet-100 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 text-sm font-semibold hover:bg-violet-200 dark:hover:bg-violet-900/40 transition disabled:opacity-50"
+                    >
+                      <LocateFixed size={15} />
+                      {locating ? "..." : (lang === "ar" ? "موقعي" : "My location")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowMap(true)}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-xl bg-muted text-sm font-semibold hover:bg-muted/70 transition"
+                    >
+                      <MapPin size={15} />
+                      {lang === "ar" ? "الخريطة" : "Map"}
+                    </button>
+                  </div>
+                  <CitySearchSelect
                     value={form.city}
-                    onChange={(e) => setForm({ ...form, city: e.target.value })}
-                    className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none"
-                  >
-                    <option value="">{lang === "ar" ? "اختر المدينة" : "Select city"}</option>
-                    {cities.map((c) => (
-                      <option key={c.en} value={c.en}>{lang === "ar" ? c.ar : c.en}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground block mb-1.5">
-                    {lang === "ar" ? "تفاصيل إضافية" : "Details (optional)"}
-                  </label>
-                  <textarea
-                    value={form.description}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    placeholder={lang === "ar" ? "أي تفاصيل إضافية..." : "Any additional details..."}
-                    rows={2}
-                    className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 resize-none"
+                    onChange={(city) => { setForm((prev) => ({ ...prev, city })); setLocationLabel(""); }}
+                    cities={cities}
+                    lang={lang}
+                    placeholder={lang === "ar" ? "ابحث عن مدينة..." : "Search city..."}
                   />
+                  {locationLabel && (
+                    <div className="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-semibold">
+                      <MapPin size={12} />
+                      {locationLabel}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground block mb-1.5">
@@ -419,7 +448,7 @@ export default function BuyRequests() {
                         type="tel"
                         value={form.whatsapp_number}
                         onChange={(e) => setForm({ ...form, whatsapp_number: e.target.value })}
-                        placeholder={lang === "ar" ? "رقمك (مثال: 966512345678+)" : "Your number (e.g., +966512345678)"}
+                        placeholder="+966 5X XXX XXXX"
                         className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30"
                       />
                       <p className="text-xs text-muted-foreground mt-1">
@@ -436,6 +465,23 @@ export default function BuyRequests() {
               >
                 {submitting ? (lang === "ar" ? "جاري النشر..." : "Posting...") : (lang === "ar" ? "نشر الطلب" : "Post Request")}
               </button>
+            </div>
+          </div>
+        )}
+
+        {showMap && (
+          <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowMap(false)} />
+            <div className="relative w-full sm:max-w-md bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl p-5 animate-in fade-in slide-in-from-bottom-[100%] duration-300 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-lg">{lang === "ar" ? "اختر الموقع على الخريطة" : "Pick location on map"}</h3>
+                <button onClick={() => setShowMap(false)} className="p-1.5 rounded-full hover:bg-muted"><X size={20} /></button>
+              </div>
+              <MapPinPicker
+                center={cities[0] ? { lat: cities[0].lat, lng: cities[0].lng } : { lat: 24.7136, lng: 46.6753 }}
+                radius={0}
+                onPick={handleMapPick}
+              />
             </div>
           </div>
         )}

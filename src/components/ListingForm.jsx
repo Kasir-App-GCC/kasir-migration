@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ImagePlus, X, Sparkles, LocateFixed, MapPin, GripVertical, Globe } from "lucide-react";
+import { ImagePlus, X, Sparkles, LocateFixed, MapPin, GripVertical, Globe, Lock, Check } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -46,6 +46,8 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [boostHours, setBoostHours] = useState(0);
   const [boostCross, setBoostCross] = useState(false);
   const ar = lang === "ar";
+  const verified = !!user?.is_trusted;
+  const maxPhotos = verified ? 15 : 5;
   const [locating, setLocating] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
   const [mapPos, setMapPos] = useState(null);
@@ -93,7 +95,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   }, []);
 
   const onPick = (e) => {
-    const files = Array.from(e.target.files || []).slice(0, 5 - images.length);
+    const files = Array.from(e.target.files || []).slice(0, maxPhotos - images.length);
     e.target.value = "";
     if (!files.length) return;
     setEditQueue(files);
@@ -104,7 +106,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
     try {
       const compressed = await compressImage(f);
       const r = await base44.integrations.Core.UploadFile({ file: compressed });
-      setImages((prev) => [...prev, r.file_url].slice(0, 5));
+      setImages((prev) => [...prev, r.file_url].slice(0, maxPhotos));
     } catch {}
     setUploading(false);
     setEditQueue((q) => q.filter((_, i) => i !== idx));
@@ -194,35 +196,33 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
           <Droppable droppableId="photos" direction="horizontal">
             {(provided) => (
               <div ref={provided.innerRef} {...provided.droppableProps} className="flex gap-2">
-                {Array.from({ length: 5 }).map((_, i) => {
-                  const url = images[i];
-                  if (url) {
-                    return (
-                      <Draggable key={url} draggableId={url} index={i}>
-                        {(prov, snap) => (
-                          <div
-                            ref={prov.innerRef}
-                            {...prov.draggableProps}
-                            {...prov.dragHandleProps}
-                            className={`relative aspect-square rounded-xl overflow-hidden flex-1 select-none ${snap.isDragging ? "opacity-70 ring-2 ring-primary" : ""}`}
-                          >
-                            <Image src={url} fittingType="fill" className="w-full h-full pointer-events-none" style={{ display: "block" }} />
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/25 transition pointer-events-none">
-                              <GripVertical size={18} className="text-white opacity-70 drop-shadow" />
-                            </div>
-                            <button
-                              onClick={() => setImages(images.filter((_, idx) => idx !== i))}
-                              className="absolute top-1 end-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center z-10"
-                            >
-                              <X size={14} />
-                            </button>
-                            {i === 0 && <span className="absolute bottom-0 inset-x-0 bg-black/55 text-white text-[10px] text-center py-0.5">{t("cover")}</span>}
-                          </div>
-                        )}
-                      </Draggable>
-                    );
-                  }
-                  const isUploading = uploading && i === images.length;
+                {images.map((url, i) => (
+                  <Draggable key={url} draggableId={url} index={i}>
+                    {(prov, snap) => (
+                      <div
+                        ref={prov.innerRef}
+                        {...prov.draggableProps}
+                        {...prov.dragHandleProps}
+                        className={`relative aspect-square rounded-xl overflow-hidden flex-1 select-none ${snap.isDragging ? "opacity-70 ring-2 ring-primary" : ""}`}
+                      >
+                        <Image src={url} fittingType="fill" className="w-full h-full pointer-events-none" style={{ display: "block" }} />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/25 transition pointer-events-none">
+                          <GripVertical size={18} className="text-white opacity-70 drop-shadow" />
+                        </div>
+                        <button
+                          onClick={() => setImages(images.filter((_, idx) => idx !== i))}
+                          className="absolute top-1 end-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center z-10"
+                        >
+                          <X size={14} />
+                        </button>
+                        {i === 0 && <span className="absolute bottom-0 inset-x-0 bg-black/55 text-white text-[10px] text-center py-0.5">{t("cover")}</span>}
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {Array.from({ length: Math.max(0, 5 - images.length) }).map((_, j) => {
+                  const i = images.length + j;
+                  const isUploading = uploading && j === 0;
                   return (
                     <Draggable key={`empty-${i}`} draggableId={`empty-${i}`} index={i} isDragDisabled>
                       {(prov) => (
@@ -243,12 +243,48 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
                     </Draggable>
                   );
                 })}
+                {images.length >= 5 && (
+                  verified ? (
+                    images.length < maxPhotos ? (
+                      <label className="aspect-square rounded-xl border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-950/30 flex-1 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 cursor-pointer gap-1 hover:bg-blue-100 dark:hover:bg-blue-900/40">
+                        {uploading ? (
+                          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <>
+                            <ImagePlus size={20} />
+                            <span className="text-[9px] font-semibold text-center px-1 leading-tight">{ar ? "إضافة صور" : "Add photos"}</span>
+                          </>
+                        )}
+                        <input type="file" accept="image/*" multiple className="hidden" onChange={onPick} />
+                      </label>
+                    ) : (
+                      <div className="aspect-square rounded-xl border-2 border-dashed border-blue-300 bg-blue-50/50 flex-1 flex flex-col items-center justify-center text-blue-400 gap-1 opacity-60">
+                        <Check size={18} />
+                        <span className="text-[9px] font-semibold">{ar ? "الحد الأقصى 15" : "Max 15"}</span>
+                      </div>
+                    )
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => toast({ title: ar ? "تحقق من حسابك لإضافة حتى 10 صور إضافية" : "Verify your account to add up to 10 more photos", description: ar ? "يرفع الحد الأقصى للصور إلى 15" : "Raises the photo limit to 15" })}
+                      className="aspect-square rounded-xl border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-950/30 flex-1 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 gap-1"
+                    >
+                      <Lock size={18} />
+                      <span className="text-[9px] font-semibold text-center px-1 leading-tight">{ar ? "تحقق لإضافة 10 صور" : "Verify for 10 more"}</span>
+                    </button>
+                  )
+                )}
                 {provided.placeholder}
               </div>
             )}
           </Droppable>
         </DragDropContext>
         <p className="text-[11px] text-muted-foreground mt-1.5">{t("dragToReorder")}</p>
+        {!verified && (
+          <p className="text-[11px] text-blue-600 dark:text-blue-400 mt-1 flex items-center gap-1">
+            <Lock size={11} /> {ar ? "تحقق من حسابك لإضافة حتى 15 صورة" : "Verify your account to add up to 15 photos"}
+          </p>
+        )}
         {images.length === 0 && (
           <p className="text-[11px] text-rose-500 font-semibold mt-1">{ar ? "صورة واحدة على الأقل مطلوبة" : "At least one photo is required"}</p>
         )}

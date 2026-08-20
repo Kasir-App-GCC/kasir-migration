@@ -172,6 +172,20 @@ export default function ChatRoom() {
     await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false });
   };
 
+  const notMatchOffer = async (offer) => {
+    setOffers((prev) => prev.map((o) => (o.id === offer.id ? { ...o, status: "not_match" } : o)));
+    const otherId = offer.direction === "buyer_offer" ? offer.buyer_id : offer.seller_id;
+    const ntxt = lang === "ar" ? "ليس ما أبحث عنه" : "Not what I'm looking for";
+    base44.entities.Notification.create({
+      user_id: otherId, type: "offer_rejected", text: ntxt,
+      item_id: offer.item_id, item_title: offer.item_title, chatroom_id: id,
+      offer_amount: offer.amount, actor_name: user.name,
+    }).catch(() => {});
+    await base44.entities.Offer.update(offer.id, { status: "not_match" });
+    await sysMsg(ntxt, offer.id);
+    await base44.entities.ChatRoom.update(id, { last_message: ntxt, hidden_for_buyer: false, hidden_for_seller: false });
+  };
+
   const counterOffer = async (offer, amount) => {
     setOffers((prev) => prev.map((o) => (o.id === offer.id ? { ...o, status: "countered" } : o)));
     const otherId = isSeller ? offer.buyer_id : offer.seller_id;
@@ -277,7 +291,7 @@ export default function ChatRoom() {
               return (
                 <div key={`o-${o.id}`} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                   <OfferCard offer={o} user={user} lang={lang} t={t} itemPrice={room?.item_price} itemImage={room?.item_image} itemTitle={room?.item_title} country={itemCountry}
-                    onAccept={acceptOffer} onReject={rejectOffer} onCounter={counterOffer} onModify={modifyOffer} />
+                    onAccept={acceptOffer} onReject={rejectOffer} onCounter={counterOffer} onModify={modifyOffer} onNotMatch={notMatchOffer} />
                 </div>
               );
             }

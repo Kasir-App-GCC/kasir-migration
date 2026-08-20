@@ -1,5 +1,5 @@
 import React from "react";
-import { MapPin, Clock, Tag, MessageCircle, Trash2, CheckCircle2, BadgeCheck } from "lucide-react";
+import { MapPin, Clock, Tag, MessageCircle, Trash2, CheckCircle2, BadgeCheck, Pencil } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useSellerInfo } from "@/lib/useTrusted";
 import { CATEGORIES, getSubcategories } from "@/lib/constants";
@@ -9,7 +9,7 @@ import TrustedBadge from "@/components/TrustedBadge";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { localizeBuyRequestTag } from "@/lib/buyRequestTags";
 
-export default function BuyRequestCard({ req, tab, canContact, onChat, onClose, onDelete, onUserClick, onVerify }) {
+export default function BuyRequestCard({ req, tab, canContact, onChat, onClose, onDelete, onEdit, onUserClick, onVerify }) {
   const { lang } = useStore();
   const cat = CATEGORIES.find((c) => c.id === req.category);
   const subs = (req.subcategory || []).map((s) => getSubcategories(req.category).find((x) => x.en === s)).filter(Boolean);
@@ -60,13 +60,20 @@ export default function BuyRequestCard({ req, tab, canContact, onChat, onClose, 
         </span>
       </div>
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/40">
-        <button
-          onClick={() => onUserClick(req.user_id)}
-          className="text-xs font-semibold hover:underline inline-flex items-center gap-1"
-        >
-          {req.user_name?.split(" ")[0]}
-          {sellerInfo.trusted && <TrustedBadge size={13} />}
-        </button>
+        {canContact ? (
+          <button
+            onClick={() => onUserClick(req.user_id)}
+            className="text-xs font-semibold hover:underline inline-flex items-center gap-1"
+          >
+            {req.user_name?.split(" ")[0]}
+            {sellerInfo.trusted && <TrustedBadge size={13} />}
+          </button>
+        ) : (
+          <span className="text-xs font-semibold inline-flex items-center gap-1 cursor-default">
+            {req.user_name?.split(" ")[0]}
+            {sellerInfo.trusted && <TrustedBadge size={13} />}
+          </span>
+        )}
         {tab === "browse" ? (
           canContact ? (
             <div className="flex gap-2">
@@ -101,6 +108,13 @@ export default function BuyRequestCard({ req, tab, canContact, onChat, onClose, 
           )
         ) : (
           <div className="flex gap-2">
+            <button
+              onClick={() => onEdit(req)}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-muted text-xs font-semibold hover:bg-muted/70 transition"
+            >
+              <Pencil size={13} />
+              {lang === "ar" ? "تعديل" : "Edit"}
+            </button>
             <button
               onClick={() => onClose(req.id)}
               className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-muted text-xs font-semibold hover:bg-muted/70 transition"

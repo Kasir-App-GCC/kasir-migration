@@ -11,6 +11,7 @@ import CurrencySymbol from "@/components/CurrencySymbol";
 import PullToRefresh from "@/components/PullToRefresh";
 import CitySearchSelect from "@/components/CitySearchSelect";
 import BuyRequestCard from "@/components/BuyRequestCard";
+import BuyRequestOfferDialog from "@/components/BuyRequestOfferDialog";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { BUY_REQUEST_TAGS, BUY_REQUEST_CATEGORY_TAGS, getBuyRequestTagsForCategory } from "@/lib/buyRequestTags";
 import { useSellerInfo } from "@/lib/useTrusted";
@@ -27,6 +28,8 @@ export default function BuyRequests() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [offerDialogReq, setOfferDialogReq] = useState(null);
   const [tab, setTab] = useState("browse");
   const [form, setForm] = useState({ title: "", category: "", budget: "", city: "", description: "", subcategory: [], tags: [], whatsapp_enabled: false, whatsapp_number: "" });
   const [submitting, setSubmitting] = useState(false);
@@ -130,25 +133,41 @@ export default function BuyRequests() {
     }
     setSubmitting(true);
     try {
-      await base44.entities.BuyRequest.create({
-        title: form.title.trim(),
-        description: form.description.trim(),
-        category: form.category || "other",
-        subcategory: form.subcategory || [],
-        budget: form.budget ? Number(form.budget) : undefined,
-        city: form.city,
-        country,
-        user_id: user.id,
-        user_name: user.name,
-        user_avatar: user.avatar,
-        whatsapp_enabled: form.whatsapp_enabled,
-        whatsapp_number: form.whatsapp_enabled ? form.whatsapp_number.trim() : "",
-        tags: form.tags || [],
-        status: "open",
-      });
+      if (editingId) {
+        await base44.entities.BuyRequest.update(editingId, {
+          title: form.title.trim(),
+          description: form.description.trim(),
+          category: form.category || "other",
+          subcategory: form.subcategory || [],
+          budget: form.budget ? Number(form.budget) : undefined,
+          city: form.city,
+          tags: form.tags || [],
+          whatsapp_enabled: form.whatsapp_enabled,
+          whatsapp_number: form.whatsapp_enabled ? form.whatsapp_number.trim() : "",
+        });
+        toast({ title: lang === "ar" ? "تم التحديث" : "Updated" });
+      } else {
+        await base44.entities.BuyRequest.create({
+          title: form.title.trim(),
+          description: form.description.trim(),
+          category: form.category || "other",
+          subcategory: form.subcategory || [],
+          budget: form.budget ? Number(form.budget) : undefined,
+          city: form.city,
+          country,
+          user_id: user.id,
+          user_name: user.name,
+          user_avatar: user.avatar,
+          whatsapp_enabled: form.whatsapp_enabled,
+          whatsapp_number: form.whatsapp_enabled ? form.whatsapp_number.trim() : "",
+          tags: form.tags || [],
+          status: "open",
+        });
+        toast({ title: lang === "ar" ? "تم نشر طلبك" : "Request posted!" });
+      }
       setForm({ title: "", category: "", budget: "", city: "", description: "", subcategory: [], tags: [], whatsapp_enabled: false, whatsapp_number: "" });
+      setEditingId(null);
       setShowForm(false);
-      toast({ title: lang === "ar" ? "تم نشر طلبك" : "Request posted!" });
       load();
     } catch {
       toast({ title: lang === "ar" ? "فشل" : "Failed", variant: "destructive" });
@@ -157,45 +176,28 @@ export default function BuyRequests() {
     }
   };
 
-  const startChat = async (req) => {
+  const openEdit = (req) => {
+    setEditingId(req.id);
+    setForm({
+      title: req.title || "",
+      category: req.category || "",
+      budget: req.budget != null ? String(req.budget) : "",
+      city: req.city || "",
+      description: req.description || "",
+      subcategory: req.subcategory || [],
+      tags: req.tags || [],
+      whatsapp_enabled: !!req.whatsapp_enabled,
+      whatsapp_number: req.whatsapp_number || "",
+    });
+    setShowForm(true);
+  };
+
+  const startChat = (req) => {
     if (req.user_id === user.id) {
       toast({ title: lang === "ar" ? "هذا طلبك" : "This is your own request" });
       return;
     }
-    try {
-      const existing = await base44.entities.ChatRoom.filter({
-        item_id: req.id,
-        seller_id: user.id,
-        buyer_id: req.user_id,
-      });
-      if (existing.length > 0) {
-        nav(`/chat/${existing[0].id}`);
-        return;
-      }
-      const room = await base44.entities.ChatRoom.create({
-        item_id: req.id,
-        item_title: req.title,
-        item_price: req.budget || 0,
-        seller_id: user.id,
-        seller_name: user.name,
-        seller_avatar: user.avatar,
-        buyer_id: req.user_id,
-        buyer_name: req.user_name,
-        buyer_avatar: req.user_avatar,
-        hidden_for_buyer: true,
-      });
-      const introText = lang === "ar" ? "أقدر أساعدك في هذا الطلب 🔧" : "I can help you with this! 🔧";
-      await base44.entities.Message.create({
-        chatroom_id: room.id,
-        sender_id: user.id,
-        sender_name: user.name,
-        text: introText,
-      });
-      await base44.entities.ChatRoom.update(room.id, { last_message: introText, hidden_for_buyer: false, hidden_for_seller: false });
-      nav(`/chat/${room.id}`);
-    } catch {
-      toast({ title: lang === "ar" ? "فشل" : "Failed", variant: "destructive" });
-    }
+    setOfferDialogReq(req);
   };
 
   const closeRequest = async (id) => {
@@ -235,7 +237,8 @@ export default function BuyRequests() {
           </h1>
           <button
             onClick={() => {
-              setForm((prev) => ({ ...prev, whatsapp_enabled: !!user.whatsapp_enabled, whatsapp_number: user.whatsapp_number ? (user.whatsapp_number.startsWith("+") ? user.whatsapp_number : "+" + user.whatsapp_number) : "" }));
+              setEditingId(null);
+              setForm({ title: "", category: "", budget: "", city: "", description: "", subcategory: [], tags: [], whatsapp_enabled: !!user.whatsapp_enabled, whatsapp_number: user.whatsapp_number ? (user.whatsapp_number.startsWith("+") ? user.whatsapp_number : "+" + user.whatsapp_number) : "" });
               setShowForm(true);
             }}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-500 text-white text-sm font-bold hover:bg-violet-600 transition"
@@ -381,6 +384,7 @@ export default function BuyRequests() {
                 onChat={startChat}
                 onClose={closeRequest}
                 onDelete={deleteRequest}
+                onEdit={openEdit}
                 onUserClick={(uid) => nav(`/user/${uid}`)}
                 onVerify={() => nav("/profile")}
               />
@@ -407,7 +411,7 @@ export default function BuyRequests() {
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowForm(false)} />
             <div className="relative w-full sm:max-w-md bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl p-5 animate-in fade-in slide-in-from-bottom-[100%] duration-300 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-lg">{lang === "ar" ? "طلب شراء جديد" : "New Buy Request"}</h3>
+                <h3 className="font-bold text-lg">{editingId ? (lang === "ar" ? "تعديل الطلب" : "Edit Request") : (lang === "ar" ? "طلب شراء جديد" : "New Buy Request")}</h3>
                 <button onClick={() => setShowForm(false)} className="p-1.5 rounded-full hover:bg-muted"><X size={20} /></button>
               </div>
               <div className="space-y-3">
@@ -585,10 +589,20 @@ export default function BuyRequests() {
                 disabled={submitting}
                 className="w-full mt-5 py-3 rounded-xl bg-violet-500 text-white font-bold disabled:opacity-50 hover:bg-violet-600 transition"
               >
-                {submitting ? (lang === "ar" ? "جاري النشر..." : "Posting...") : (lang === "ar" ? "نشر الطلب" : "Post Request")}
+                {submitting ? (lang === "ar" ? "جاري الحفظ..." : "Saving...") : (editingId ? (lang === "ar" ? "حفظ التعديلات" : "Save Changes") : (lang === "ar" ? "نشر الطلب" : "Post Request"))}
               </button>
             </div>
           </div>
+        )}
+        {offerDialogReq && (
+          <BuyRequestOfferDialog
+            req={offerDialogReq}
+            user={user}
+            lang={lang}
+            country={country}
+            onClose={() => setOfferDialogReq(null)}
+            onSent={(chatId) => { setOfferDialogReq(null); nav(`/chat/${chatId}`); }}
+          />
         )}
       </div>
     </PullToRefresh>

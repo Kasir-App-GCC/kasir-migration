@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Check, X, Tag, Pencil, ArrowLeftRight, Clock } from "lucide-react";
 import Price from "@/components/Price";
 
-export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, itemTitle, country, onAccept, onReject, onCounter, onModify }) {
+export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, itemTitle, country, onAccept, onReject, onCounter, onModify, onNotMatch }) {
   const nav = useNavigate();
   const mine = offer.direction === "buyer_offer" ? offer.buyer_id === user.id : offer.seller_id === user.id;
   const isRecipient = offer.direction === "buyer_offer" ? offer.seller_id === user.id : offer.buyer_id === user.id;
@@ -42,6 +42,8 @@ export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, 
       return <span className="text-xs font-bold text-muted-foreground flex items-center gap-1"><ArrowLeftRight size={13} /> {t("offerCountered")}</span>;
     if (offer.status === "completed")
       return <span className="text-xs font-bold text-emerald-600 flex items-center gap-1"><Check size={13} /> {t("completed")}</span>;
+    if (offer.status === "not_match")
+      return <span className="text-xs font-bold text-muted-foreground flex items-center gap-1"><X size={13} /> {lang === "ar" ? "ليس ما أبحث عنه" : "Not what I want"}</span>;
     return <span className="text-xs font-bold text-amber-600 flex items-center gap-1"><Clock size={13} /> {t("offerPending")}</span>;
   };
 
@@ -51,7 +53,10 @@ export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, 
         <span className="text-[11px] font-semibold text-muted-foreground truncate">{whoLabel}</span>
         {statusBadge()}
       </div>
-      {(itemImage || itemTitle) && (
+      {offer.image && (
+        <img src={offer.image} alt="" className="w-full h-40 rounded-xl object-cover mb-2" />
+      )}
+      {!offer.image && (itemImage || itemTitle) && (
         <button
           type="button"
           onClick={() => offer.item_id && nav(`/item/${offer.item_id}`)}
@@ -76,7 +81,7 @@ export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, 
       </div>
 
       {offer.status === "pending" && isRecipient && !counterOpen && (
-        <div className="grid grid-cols-3 gap-1.5 mt-2.5">
+        <div className={`grid ${offer.direction === "seller_counter" ? "grid-cols-2" : "grid-cols-3"} gap-1.5 mt-2.5`}>
           <button disabled={busy} onClick={() => run(() => onAccept(offer))} className="py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1 disabled:opacity-50">
             <Check size={13} /> {t("accept")}
           </button>
@@ -86,6 +91,11 @@ export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, 
           <button disabled={busy} onClick={() => setCounterOpen(true)} className="py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center gap-1 disabled:opacity-50">
             <ArrowLeftRight size={13} /> {t("counter")}
           </button>
+          {offer.direction === "seller_counter" && onNotMatch && (
+            <button disabled={busy} onClick={() => run(() => onNotMatch(offer))} className="py-2 rounded-xl bg-muted text-muted-foreground text-xs font-bold flex items-center justify-center gap-1 disabled:opacity-50">
+              <X size={13} /> {lang === "ar" ? "ليس ما أبحث عنه" : "Not it"}
+            </button>
+          )}
         </div>
       )}
 

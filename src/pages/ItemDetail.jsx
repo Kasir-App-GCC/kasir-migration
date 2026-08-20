@@ -235,12 +235,6 @@ export default function ItemDetail() {
       item_id: item.id,
       role: "seller",
     });
-    sendPush({
-      user_id: item.sold_to,
-      title: t("appName"),
-      content: lang === "ar" ? "تلقيت تقييماً جديداً ⭐" : "You received a new rating ⭐",
-      action_url: `/item/${item.id}`,
-    });
     setRateBuyerOpen(false);
     setBuyerTags([]);
   };

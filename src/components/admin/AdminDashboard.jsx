@@ -11,6 +11,10 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showRevenue, setShowRevenue] = useState(false);
+  const RESETS_KEY = "admin_dashboard_resets";
+  const getResets = () => {
+    try { return JSON.parse(localStorage.getItem(RESETS_KEY) || "{}"); } catch { return {}; }
+  };
 
   const fetchStats = async () => {
     setLoading(true);
@@ -47,12 +51,13 @@ export default function AdminDashboard() {
         const banned = (users || []).filter((u) => u.is_banned).length;
         const openTickets = (tickets || []).filter((t) => t.status === "open").length;
         const openReports = (reports || []).filter((r) => !r.resolved).length;
+        const resets = getResets();
         setStats({
           users: users?.length || 0,
           items: realItems.length,
-          sold: soldOffers.length,
-          totalSpent,
-          revenue,
+          sold: resets.sold != null ? resets.sold : soldOffers.length,
+          totalSpent: resets.totalSpent != null ? resets.totalSpent : totalSpent,
+          revenue: resets.revenue != null ? resets.revenue : revenue,
           boostRevenue,
           boostUsers,
           verificationRevenue,
@@ -99,7 +104,12 @@ export default function AdminDashboard() {
           );
           const resetBtn = c.resetField && (
             <button
-              onClick={(e) => { e.stopPropagation(); setStats((s) => ({ ...s, [c.resetField]: 0 })); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                const next = { ...getResets(), [c.resetField]: 0 };
+                localStorage.setItem(RESETS_KEY, JSON.stringify(next));
+                setStats((s) => ({ ...s, [c.resetField]: 0 }));
+              }}
               className="absolute top-2 end-2 w-7 h-7 rounded-full bg-muted/60 hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition"
               title={ar ? "تصفير" : "Reset to zero"}
             >

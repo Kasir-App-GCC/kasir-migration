@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { Search, Trash2, Pencil, Star, Tag, Clock, X, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
@@ -8,58 +8,99 @@ import { getCategory } from "@/lib/constants";
 import Price from "@/components/Price";
 import AdminEditListing from "@/components/admin/AdminEditListing";
 
+const isLiveFeatured = (it) => !!it?.featured && (!it.featured_until || new Date(it.featured_until).getTime() > Date.now());
+
 export default function AdminListings() {
   const { lang, country } = useStore();
   const ar = lang === "ar";
   const { toast } = useToast();
   const nav = useNavigate();
+  const PAGE_SIZE = 24;
   const [items, setItems] = useState([]);
+  const [allItems, setAllItems] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [searching, setSearching] = useState(false);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState("all");
   const [featureItem, setFeatureItem] = useState(null);
   const [featureHours, setFeatureHours] = useState(24);
   const [featureSaving, setFeatureSaving] = useState(false);
   const [editItem, setEditItem] = useState(null);
+  const skipRef = useRef(0);
 
-  const reload = async () => {
-    try {
-      const list = await base44.entities.Item.list("-created_date", 500);
-      setItems(list || []);
-    } catch {}
+  const loadInitial = async () => {
+    const list = await base44.entities.Item.filter({}, "-created_date", PAGE_SIZE, 0);
+    setItems(list || []);
+    skipRef.current = PAGE_SIZE;
+    setHasMore((list || []).length === PAGE_SIZE);
   };
 
+  const reload = async () => {
+    try { await loadInitial(); } catch {}
+  };
+
+  const loadMore = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const list = await base44.entities.Item.filter({}, "-created_date", PAGE_SIZE, skipRef.current);
+      const arr = list || [];
+      setItems((prev) => [...prev, ...arr.filter((x) => !prev.some((p) => p.id === x.id))]);
+      skipRef.current += PAGE_SIZE;
+      setHasMore(arr.length === PAGE_SIZE);
+    } catch { setHasMore(false); }
+    finally { setLoadingMore(false); }
+  };
+
+  // The search bar fetches a large batch so it can find any listing — even ones
+  // not yet loaded into the paginated view. Debounced so typing doesn't spam.
   useEffect(() => {
-    reload().finally(() => setLoading(false));
-    // Live updates: new/changed/deleted listings appear without a manual refresh,
-    // so a newly created (non-featured) listing shows up immediately.
+    if (!q.trim()) { setAllItems(null); setSearching(false); return; }
+    setSearching(true);
+    let alive = true;
+    const t = setTimeout(async () => {
+      try {
+        const list = await base44.entities.Item.filter({}, "-created_date", 500, 0);
+        if (alive) setAllItems(list || []);
+      } catch { if (alive) setAllItems([]); }
+      finally { if (alive) setSearching(false); }
+    }, 300);
+    return () => { alive = false; clearTimeout(t); };
+  }, [q]);
+
+  useEffect(() => {
+    loadInitial().finally(() => setLoading(false));
+    // Live updates: new/changed/deleted listings appear without a manual refresh.
+    const patch = (prev, it, type) => {
+      if (!prev) return prev;
+      if (type === "delete") return prev.filter((x) => x.id !== it?.id);
+      const idx = prev.findIndex((x) => x.id === it.id);
+      if (idx === -1) return type === "create" ? [it, ...prev] : prev;
+      const copy = [...prev]; copy[idx] = it; return copy;
+    };
     const unsub = base44.entities.Item.subscribe((event) => {
       if (!event) return;
       const it = event.data;
-      if (event.type === "delete") {
-        setItems((prev) => prev.filter((x) => x.id !== it?.id));
-      } else if (it) {
-        setItems((prev) => {
-          const idx = prev.findIndex((x) => x.id === it.id);
-          if (idx === -1) return [it, ...prev];
-          const copy = [...prev]; copy[idx] = it; return copy;
-        });
-      }
+      setItems((prev) => patch(prev, it, event.type));
+      setAllItems((prev) => (prev === null ? prev : patch(prev, it, event.type)));
     });
     return () => unsub?.();
   }, []);
 
   const filtered = useMemo(() => {
-    let r = items;
+    const searchMode = !!q.trim();
+    let r = searchMode ? (allItems || []) : items;
     if (filter === "sold") r = r.filter((i) => i.status === "sold");
     else if (filter === "available") r = r.filter((i) => i.status === "available");
-    else if (filter === "featured") r = r.filter((i) => i.featured);
-    if (q.trim()) {
+    else if (filter === "featured") r = r.filter((i) => isLiveFeatured(i));
+    if (searchMode) {
       const s = q.trim().toLowerCase();
       r = r.filter((i) => (i.title || "").toLowerCase().includes(s) || (i.seller_name || "").toLowerCase().includes(s));
     }
     return r;
-  }, [items, q, filter]);
+  }, [items, allItems, q, filter]);
 
   const deleteItem = async (it) => {
     if (!window.confirm(ar ? `حذف "${it.title}"؟` : `Delete "${it.title}"?`)) return;
@@ -146,7 +187,7 @@ export default function AdminListings() {
 
       <div className="space-y-2">
         {filtered.length === 0 ? (
-          <div className="text-center py-10 text-muted-foreground text-sm">{ar ? "لا توجد إعلانات" : "No listings found"}</div>
+          <div className="text-center py-10 text-muted-foreground text-sm">{searching ? (ar ? "جارٍ البحث…" : "Searching…") : (ar ? "لا توجد إعلانات" : "No listings found")}</div>
         ) : filtered.map((it) => (
           <div key={it.id} className="rounded-2xl bg-card border border-border/60 p-3 flex items-center gap-3">
             <button onClick={() => nav(`/item/${it.id}`)} className="w-14 h-14 rounded-xl overflow-hidden bg-muted shrink-0">
@@ -155,7 +196,7 @@ export default function AdminListings() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
                 <button onClick={() => nav(`/item/${it.id}`)} className="font-semibold text-sm truncate text-start hover:underline">{it.title}</button>
-                {it.featured && <Star size={12} className="text-amber-500 fill-amber-500 shrink-0" />}
+                {isLiveFeatured(it) && <Star size={12} className="text-amber-500 fill-amber-500 shrink-0" />}
               </div>
               <p className="text-xs text-muted-foreground truncate">
                 <Price value={it.price} lang={lang} country={it.country} /> · {it.seller_name || "—"} · {getCategory(it.category)?.[ar ? "ar" : "en"] || it.category}
@@ -166,13 +207,21 @@ export default function AdminListings() {
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               <button onClick={() => setEditItem(it)} title={ar ? "تعديل" : "Edit"} className="w-8 h-8 rounded-lg bg-muted hover:bg-muted/70 flex items-center justify-center"><Pencil size={16} /></button>
-              <button onClick={() => openFeature(it)} title={ar ? "تمييز" : "Feature"} className={`w-8 h-8 rounded-lg flex items-center justify-center transition ${it.featured ? "bg-amber-100 text-amber-600 dark:bg-amber-950/40" : "bg-muted hover:bg-muted/70"}`}><Star size={16} className={it.featured ? "fill-amber-500" : ""} /></button>
+              <button onClick={() => openFeature(it)} title={ar ? "تمييز" : "Feature"} className={`w-8 h-8 rounded-lg flex items-center justify-center transition ${isLiveFeatured(it) ? "bg-amber-100 text-amber-600 dark:bg-amber-950/40" : "bg-muted hover:bg-muted/70"}`}><Star size={16} className={isLiveFeatured(it) ? "fill-amber-500" : ""} /></button>
               <button onClick={() => markSold(it)} title={ar ? "تبديل الحالة" : "Toggle sold"} className="w-8 h-8 rounded-lg bg-muted hover:bg-muted/70 flex items-center justify-center"><Tag size={16} /></button>
               <button onClick={() => deleteItem(it)} title={ar ? "حذف" : "Delete"} className="w-8 h-8 rounded-lg bg-muted hover:bg-rose-100 hover:text-rose-600 dark:hover:bg-rose-950/40 flex items-center justify-center transition"><Trash2 size={16} /></button>
             </div>
           </div>
         ))}
       </div>
+
+      {q.trim() ? null : hasMore ? (
+        <div className="flex justify-center py-4">
+          <button onClick={loadMore} disabled={loadingMore} className="px-6 py-2.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-50">
+            {loadingMore ? "…" : (ar ? "عرض المزيد" : "See more")}
+          </button>
+        </div>
+      ) : null}
 
       {editItem && (
         <AdminEditListing

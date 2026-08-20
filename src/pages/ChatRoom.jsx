@@ -9,6 +9,7 @@ import Price from "@/components/Price";
 import OfferCard from "@/components/OfferCard";
 import TrustedBadge from "@/components/TrustedBadge";
 import PullToRefreshScroll from "@/components/PullToRefreshScroll";
+import RatingDialog from "@/components/RatingDialog";
 
 export default function ChatRoom() {
   const { id } = useParams();
@@ -24,6 +25,8 @@ export default function ChatRoom() {
   const [loading, setLoading] = useState(true);
   const [otherTrusted, setOtherTrusted] = useState(false);
   const [otherAvatar, setOtherAvatar] = useState(null);
+  const [ratedOffers, setRatedOffers] = useState(new Set());
+  const [ratingOffer, setRatingOffer] = useState(null);
   const endRef = useRef(null);
 
   const loadAll = useCallback(async () => {
@@ -33,7 +36,14 @@ export default function ChatRoom() {
     ]);
     setMessages(ms || []);
     setOffers(ofs || []);
-  }, [id]);
+    if (ofs && ofs.length && user?.id) {
+      try {
+        const offerIds = ofs.map((o) => o.id);
+        const ratings = await base44.entities.Rating.filter({ rater_user_id: user.id, offer_id: { $in: offerIds } }, "-created_date", 100);
+        setRatedOffers(new Set((ratings || []).map((r) => r.offer_id)));
+      } catch {}
+    }
+  }, [id, user?.id]);
 
   useEffect(() => {
     (async () => {
@@ -154,7 +164,21 @@ export default function ChatRoom() {
     const txt = lang === "ar"
       ? `تم الاتفاق على السعر ${formatPrice(offer.amount, lang, itemCountry, country)} ✅`
       : `Price agreed at ${formatPrice(offer.amount, lang, itemCountry, country)} ✅`;
+    await sysMsg(txt, offer.id);
     await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false });
+    // Notify both parties to rate each other — rating is now triggered by offer acceptance
+    try {
+      await base44.entities.Notification.create({
+        user_id: offer.buyer_id, type: "rate", item_id: offer.item_id, item_title: offer.item_title,
+        text: lang === "ar" ? "قيّم البائع" : "Rate the seller", actor_name: offer.seller_name, chatroom_id: id,
+      });
+    } catch {}
+    try {
+      await base44.entities.Notification.create({
+        user_id: offer.seller_id, type: "rate", item_id: offer.item_id, item_title: offer.item_title,
+        text: lang === "ar" ? "قيّم المشتري" : "Rate the buyer", actor_name: offer.buyer_name, chatroom_id: id,
+      });
+    } catch {}
   };
 
   const rejectOffer = async (offer) => {
@@ -182,7 +206,6 @@ export default function ChatRoom() {
       offer_amount: offer.amount, actor_name: user.name,
     }).catch(() => {});
     await base44.entities.Offer.update(offer.id, { status: "not_match" });
-    await sysMsg(ntxt, offer.id);
     await base44.entities.ChatRoom.update(id, { last_message: ntxt, hidden_for_buyer: false, hidden_for_seller: false });
   };
 
@@ -301,7 +324,7 @@ export default function ChatRoom() {
               const isBuyer = room?.buyer_id === user.id;
               const needsConfirm = offer && offer.status === "accepted" && !offer.received_confirmed && isBuyer;
               const waiting = offer && offer.status === "accepted" && !offer.received_confirmed && !isBuyer;
-              const done = offer && offer.status === "completed";
+              const canRate = offer && (offer.status === "accepted" || offer.status === "completed") && !ratedOffers.has(offer.id);
               const displayText = waiting ? t("agreedWaitingReceipt") : m.text;
               return (
                 <div key={`s-${i}`} className="flex justify-center">
@@ -315,8 +338,8 @@ export default function ChatRoom() {
                         <Check size={14} /> {t("confirmReceipt")}
                       </button>
                     )}
-                    {done && (
-                      <button onClick={() => nav(`/item/${offer.item_id}`)} className="mt-2.5 px-4 py-2 rounded-xl bg-amber-400 text-slate-900 text-xs font-bold flex items-center justify-center gap-1.5 mx-auto">
+                    {canRate && (
+                      <button onClick={() => setRatingOffer(offer)} className="mt-2.5 px-4 py-2 rounded-xl bg-amber-400 text-slate-900 text-xs font-bold flex items-center justify-center gap-1.5 mx-auto">
                         <Star size={14} /> {t("rateNow")}
                       </button>
                     )}
@@ -374,6 +397,18 @@ export default function ChatRoom() {
           <Send size={18} className="rtl:rotate-180" />
         </button>
       </div>
+      {ratingOffer && (
+        <RatingDialog
+          offer={ratingOffer}
+          user={user}
+          lang={lang}
+          onClose={() => setRatingOffer(null)}
+          onDone={() => {
+            setRatedOffers((prev) => new Set(prev).add(ratingOffer.id));
+            setRatingOffer(null);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { LayoutDashboard, Users, Tag, Flag, LifeBuoy, ArrowLeft, MessageSquare, ShieldX, BadgeCheck, TrendingUp, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Users, Tag, Flag, LifeBuoy, ArrowLeft, MessageSquare, ShieldX, BadgeCheck, TrendingUp, ShieldCheck, Megaphone } from "lucide-react";
 import { useStore } from "@/lib/store";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminUsers from "@/components/admin/AdminUsers";
@@ -11,6 +11,7 @@ import AdminMessages from "@/components/admin/AdminMessages";
 import AdminBlacklist from "@/components/admin/AdminBlacklist";
 import AdminVerifications from "@/components/admin/AdminVerifications";
 import AdminBoosts from "@/components/admin/AdminBoosts";
+import AdminBuyRequests from "@/components/admin/AdminBuyRequests";
 import AdminOtpTest from "@/components/admin/AdminOtpTest";
 import { base44 } from "@/api/base44Client";
 
@@ -61,6 +62,7 @@ export default function Admin() {
     { id: "users", icon: Users, label: ar ? "المستخدمون" : "Users" },
     { id: "messages", icon: MessageSquare, label: ar ? "الرسائل" : "Messages" },
     { id: "listings", icon: Tag, label: ar ? "الإعلانات" : "Listings" },
+    { id: "buy_requests", icon: Megaphone, label: ar ? "طلبات الشراء" : "Buy Requests" },
     { id: "reports", icon: Flag, label: ar ? "البلاغات" : "Reports" },
     { id: "tickets", icon: LifeBuoy, label: ar ? "التذاكر" : "Tickets" },
     { id: "blacklist", icon: ShieldX, label: ar ? "الحظر" : "Blacklist" },
@@ -98,6 +100,7 @@ export default function Admin() {
       {tab === "users" && <AdminUsers />}
       {tab === "messages" && <AdminMessages />}
       {tab === "listings" && <AdminListings />}
+      {tab === "buy_requests" && <AdminBuyRequests />}
       {tab === "reports" && <AdminReports />}
       {tab === "tickets" && <AdminTickets />}
       {tab === "blacklist" && <AdminBlacklist />}

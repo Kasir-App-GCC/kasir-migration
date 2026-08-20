@@ -23,6 +23,10 @@
     "item_id": {
       "type": "string"
     },
+    "offer_id": {
+      "type": "string",
+      "description": "The accepted offer that triggered this rating (one rating per accepted offer per rater)"
+    },
     "role": {
       "type": "string",
       "enum": [

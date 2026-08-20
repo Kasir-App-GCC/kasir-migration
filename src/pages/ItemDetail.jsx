@@ -278,21 +278,6 @@ export default function ItemDetail() {
             text,
           });
         } catch {}
-        // Prompt both parties to rate each other after the sale.
-        try {
-          const rateSellerText = lang === "ar" ? "قيّم البائع" : "Rate the seller";
-          await base44.entities.Notification.create({
-            user_id: buyer.id, type: "rate", item_id: item.id, item_title: item.title,
-            item_image: item.images?.[0] || null, text: rateSellerText, actor_name: item.seller_name,
-          });
-        } catch {}
-        try {
-          const rateBuyerText = lang === "ar" ? "قيّم المشتري" : "Rate the buyer";
-          await base44.entities.Notification.create({
-            user_id: item.seller_id, type: "rate", item_id: item.id, item_title: item.title,
-            item_image: item.images?.[0] || null, text: rateBuyerText, actor_name: buyer.name,
-          });
-        } catch {}
       }
     } catch {}
     setSoldOpen(false);
@@ -570,19 +555,6 @@ export default function ItemDetail() {
         </div>
       )}
 
-      {/* Rate seller (only the confirmed buyer) */}
-      {user && !isOwner && item.status === "sold" && item.sold_to === user.id && (
-        <button onClick={() => setRateOpen(true)} className="mt-3 w-full py-3 rounded-2xl border border-border bg-card text-sm font-semibold flex items-center justify-center gap-2 hover:bg-muted/50">
-          <Star size={16} className="fill-amber-400 text-amber-400" /> {t("rateSeller")}
-        </button>
-      )}
-      {/* Rate buyer (only the seller of a sold item) */}
-      {isOwner && item.status === "sold" && item.sold_to && (
-        <button onClick={() => setRateBuyerOpen(true)} className="mt-3 w-full py-3 rounded-2xl border border-border bg-card text-sm font-semibold flex items-center justify-center gap-2 hover:bg-muted/50">
-          <Star size={16} className="fill-amber-400 text-amber-400" /> {t("rateBuyer")}
-        </button>
-      )}
-
       {/* Action bar */}
       <div className="fixed inset-x-0 z-40 bg-background/90 backdrop-blur-xl border-t border-border/60" style={{ bottom: "calc(64px + env(safe-area-inset-bottom))" }}>
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
@@ -725,40 +697,6 @@ export default function ItemDetail() {
 
       <ReportDialog open={reportOpen} onClose={() => setReportOpen(false)} seller={seller} item={item} />
 
-      {rateOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setRateOpen(false)} />
-          <div className="relative w-full sm:max-w-sm bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 animate-in fade-in slide-in-from-bottom-[100%] duration-300">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-lg">{t("rateSeller")}</h3>
-              <button onClick={() => setRateOpen(false)} className="p-1.5 rounded-full hover:bg-muted"><X size={20} /></button>
-            </div>
-            <p className="text-sm text-muted-foreground mb-2">{t("yourRating")}</p>
-            <RatingStars value={myScore} size={34} interactive onChange={setMyScore} />
-            <p className="text-xs text-muted-foreground mt-4 mb-2">{lang === "ar" ? "إضافة سريعة" : "Quick tags"}</p>
-            <ReviewTagChips options={SELLER_TAG_OPTIONS} selected={sellerTags} onToggle={(k) => setSellerTags((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k]))} lang={lang} />
-            <textarea value={myReview} onChange={(e) => setMyReview(e.target.value)} placeholder={t("reviewPlaceholder")} rows={3} className="mt-3 w-full px-3.5 py-3 rounded-xl bg-muted text-sm outline-none resize-none" />
-            <button onClick={submitRating} className="mt-4 w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold">{t("submitRating")}</button>
-          </div>
-        </div>
-      )}
-      {rateBuyerOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setRateBuyerOpen(false)} />
-          <div className="relative w-full sm:max-w-sm bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 animate-in fade-in slide-in-from-bottom-[100%] duration-300">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-lg">{t("rateBuyer")}</h3>
-              <button onClick={() => setRateBuyerOpen(false)} className="p-1.5 rounded-full hover:bg-muted"><X size={20} /></button>
-            </div>
-            <p className="text-sm text-muted-foreground mb-2">{t("yourRating")}</p>
-            <RatingStars value={buyerScore} size={34} interactive onChange={setBuyerScore} />
-            <p className="text-xs text-muted-foreground mt-4 mb-2">{lang === "ar" ? "إضافة سريعة" : "Quick tags"}</p>
-            <ReviewTagChips options={BUYER_TAG_OPTIONS} selected={buyerTags} onToggle={(k) => setBuyerTags((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k]))} lang={lang} />
-            <textarea value={buyerReview} onChange={(e) => setBuyerReview(e.target.value)} placeholder={t("reviewPlaceholder")} rows={3} className="mt-3 w-full px-3.5 py-3 rounded-xl bg-muted text-sm outline-none resize-none" />
-            <button onClick={submitBuyerRating} className="mt-4 w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold">{t("submitRating")}</button>
-          </div>
-        </div>
-      )}
       {similar.length > 0 && (
         <div className="mt-6">
           <h3 className="font-bold mb-3">{t("similarItems")}</h3>

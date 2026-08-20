@@ -79,7 +79,7 @@ export default function BuyRequestCard({ req, tab, canContact, onChat, onClose, 
             <div className="flex gap-2">
               {req.whatsapp_enabled && req.whatsapp_number && (
                 <a
-                  href={`https://wa.me/${req.whatsapp_number.replace(/[^0-9]/g, "")}`}
+                  href={`https://wa.me/${req.whatsapp_number.replace(/[^0-9]/g, "")}?text=${encodeURIComponent((lang === "ar" ? "أقدر أساعدك في هذا الطلب: " : "I can help you with this order: ") + (req.title || ""))}`}
                   target="_blank"
                   rel="noreferrer"
                   onClick={(e) => e.stopPropagation()}

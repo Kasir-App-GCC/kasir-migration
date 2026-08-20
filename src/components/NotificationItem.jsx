@@ -18,7 +18,8 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
       return;
     }
     if (n.type === "support_resolved") { onMarkRead?.(n); onClick?.(); return; }
-    if (n.type === "sold" || n.type === "boost_approved" || n.type === "rate") { onMarkRead?.(n); if (n.itemId) nav(`/item/${n.itemId}`); }
+    if (n.type === "rate") { onMarkRead?.(n); if (n.roomId) nav(`/chat/${n.roomId}`); else if (n.itemId) nav(`/item/${n.itemId}`); }
+    else if (n.type === "sold" || n.type === "boost_approved") { onMarkRead?.(n); if (n.itemId) nav(`/item/${n.itemId}`); }
     else if (n.type === "message" || n.type === "offer") nav(`/chat/${n.roomId}`);
     else if (n.roomId) { onMarkRead?.(n); nav(`/chat/${n.roomId}`); }
     onClick?.();

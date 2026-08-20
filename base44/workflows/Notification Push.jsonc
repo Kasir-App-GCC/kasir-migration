@@ -26,6 +26,7 @@
             "function_name": "pushToUser",
             "args": {
               "user_id": "${ .trigger.data.user_id }",
+              "title": "${ .trigger.data.actor_name // \"\" }",
               "content": "${ .trigger.data.text }",
               "item_id": "${ .trigger.data.item_id // \"\" }",
               "chatroom_id": "${ .trigger.data.chatroom_id // \"\" }"

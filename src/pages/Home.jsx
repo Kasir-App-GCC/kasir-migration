@@ -210,7 +210,7 @@ export default function Home() {
             {lang === "ar" ? "طلبات الشراء" : "Buy Requests"}
           </p>
           <p className="text-xs text-muted-foreground leading-tight mt-0.5">
-            {lang === "ar" ? "أوصف اللي تدوره والباعة يوصلونك" : "Post what you need and sellers will find you"}
+            {lang === "ar" ? "أوصف اللي تدوره وانتظر العروض" : "Post what you need and wait for offers"}
           </p>
         </div>
       </button>

@@ -36,6 +36,13 @@
     "user_avatar": {
       "type": "string"
     },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Buy intent tags selected by the buyer to help sellers filter"
+    },
     "whatsapp_enabled": {
       "type": "boolean",
       "default": false,

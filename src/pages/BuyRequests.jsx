@@ -1,48 +1,87 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Megaphone, Plus, X, MapPin, Clock, Tag, MessageCircle, Trash2, CheckCircle2, LocateFixed } from "lucide-react";
+import { Megaphone, Plus, X, MapPin, LocateFixed } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
 import { CATEGORIES } from "@/lib/constants";
 import { getCities, nearestCityInCountry } from "@/lib/countries";
-import { timeAgo } from "@/lib/format";
 import Price from "@/components/Price";
 import CurrencySymbol from "@/components/CurrencySymbol";
 import PullToRefresh from "@/components/PullToRefresh";
-import WhatsAppIcon from "@/components/WhatsAppIcon";
 import CitySearchSelect from "@/components/CitySearchSelect";
-import MapPinPicker from "@/components/MapPinPicker";
+import BuyRequestCard from "@/components/BuyRequestCard";
+import WhatsAppIcon from "@/components/WhatsAppIcon";
+import { BUY_REQUEST_TAGS } from "@/lib/buyRequestTags";
 
 export default function BuyRequests() {
   const { user, lang, country } = useStore();
   const { toast } = useToast();
   const nav = useNavigate();
+  const PAGE_SIZE = 100;
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [tab, setTab] = useState("browse");
-  const [form, setForm] = useState({ title: "", category: "", budget: "", city: "", description: "", whatsapp_enabled: false, whatsapp_number: "" });
+  const [form, setForm] = useState({ title: "", category: "", budget: "", city: "", description: "", tags: [], whatsapp_enabled: false, whatsapp_number: "" });
   const [submitting, setSubmitting] = useState(false);
   const [locating, setLocating] = useState(false);
   const [filterCategory, setFilterCategory] = useState("");
   const [filterCity, setFilterCity] = useState("");
+  const [filterTag, setFilterTag] = useState("");
   const [locationLabel, setLocationLabel] = useState("");
-  const [showMap, setShowMap] = useState(false);
+  const skipRef = useRef(0);
+  const sentinelRef = useRef(null);
 
   const load = useCallback(async () => {
     setLoading(true);
+    skipRef.current = 0;
+    setHasMore(true);
     try {
-      const list = await base44.entities.BuyRequest.filter({ country, status: "open" }, "-created_date", 100);
+      const list = await base44.entities.BuyRequest.filter({ country, status: "open" }, "-created_date", PAGE_SIZE, 0);
       setRequests(list || []);
+      setHasMore((list || []).length === PAGE_SIZE);
     } catch {
       setRequests([]);
+      setHasMore(false);
     } finally {
       setLoading(false);
     }
   }, [country]);
 
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const skip = skipRef.current + PAGE_SIZE;
+    try {
+      const next = await base44.entities.BuyRequest.filter({ country, status: "open" }, "-created_date", PAGE_SIZE, skip);
+      const list = next || [];
+      setRequests((prev) => {
+        const seen = new Set(prev.map((x) => x.id));
+        return [...prev, ...list.filter((x) => !seen.has(x.id))];
+      });
+      skipRef.current = skip;
+      setHasMore(list.length === PAGE_SIZE);
+    } catch {
+      setHasMore(false);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, country]);
+
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) loadMore();
+    }, { rootMargin: "600px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [loadMore]);
 
   const useCurrentLocation = () => {
     if (!navigator.geolocation) return;
@@ -59,15 +98,6 @@ export default function BuyRequests() {
       () => setLocating(false),
       { enableHighAccuracy: true, timeout: 10000 }
     );
-  };
-
-  const handleMapPick = (p) => {
-    const city = nearestCityInCountry(p.lat, p.lng, country);
-    if (city) {
-      setForm((prev) => ({ ...prev, city: city.en }));
-      setLocationLabel(lang === "ar" ? city.ar : city.en);
-    }
-    setShowMap(false);
   };
 
   const submit = async () => {
@@ -89,9 +119,10 @@ export default function BuyRequests() {
         user_avatar: user.avatar,
         whatsapp_enabled: form.whatsapp_enabled,
         whatsapp_number: form.whatsapp_enabled ? form.whatsapp_number.trim() : "",
+        tags: form.tags || [],
         status: "open",
       });
-      setForm({ title: "", category: "", budget: "", city: "", description: "", whatsapp_enabled: false, whatsapp_number: "" });
+      setForm({ title: "", category: "", budget: "", city: "", description: "", tags: [], whatsapp_enabled: false, whatsapp_number: "" });
       setShowForm(false);
       toast({ title: lang === "ar" ? "تم نشر طلبك" : "Request posted!" });
       load();
@@ -129,6 +160,14 @@ export default function BuyRequests() {
         buyer_avatar: req.user_avatar,
         hidden_for_buyer: true,
       });
+      const introText = lang === "ar" ? "أقدر أساعدك في هذا الطلب 🔧" : "I can help you with this! 🔧";
+      await base44.entities.Message.create({
+        chatroom_id: room.id,
+        sender_id: user.id,
+        sender_name: user.name,
+        text: introText,
+      });
+      await base44.entities.ChatRoom.update(room.id, { last_message: introText, hidden_for_buyer: false, hidden_for_seller: false });
       nav(`/chat/${room.id}`);
     } catch {
       toast({ title: lang === "ar" ? "فشل" : "Failed", variant: "destructive" });
@@ -156,6 +195,7 @@ export default function BuyRequests() {
     if (r.user_id === user.id) return false;
     if (filterCategory && r.category !== filterCategory) return false;
     if (filterCity && r.city !== filterCity) return false;
+    if (filterTag && !(r.tags || []).includes(filterTag)) return false;
     return true;
   });
   const cities = getCities(country);
@@ -182,8 +222,8 @@ export default function BuyRequests() {
 
         <p className="text-sm text-muted-foreground">
           {lang === "ar"
-            ? "أوصف اللي تدوره وحط ميزانيتك، والناس يوصلونك بعروضهم"
-            : "Post what you're looking for with your budget, and sellers will come to you with offers."}
+            ? "أوصف اللي تدوره وحط ميزانيتك، وانتظر العروض المناسبة لك"
+            : "Post what you're looking for with your budget, and wait for suitable offers."}
         </p>
 
         <div className="flex gap-1 p-1 bg-muted rounded-xl text-sm">
@@ -202,11 +242,11 @@ export default function BuyRequests() {
         </div>
 
         {tab === "browse" && !loading && requests.length > 0 && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              className="flex-1 px-3 py-2 rounded-xl bg-muted outline-none text-sm font-medium"
+              className="flex-1 min-w-[120px] px-3 py-2 rounded-xl bg-muted outline-none text-sm font-medium"
             >
               <option value="">{lang === "ar" ? "كل الأقسام" : "All categories"}</option>
               {CATEGORIES.filter((c) => c.id !== "all").map((c) => (
@@ -216,11 +256,21 @@ export default function BuyRequests() {
             <select
               value={filterCity}
               onChange={(e) => setFilterCity(e.target.value)}
-              className="flex-1 px-3 py-2 rounded-xl bg-muted outline-none text-sm font-medium"
+              className="flex-1 min-w-[120px] px-3 py-2 rounded-xl bg-muted outline-none text-sm font-medium"
             >
               <option value="">{lang === "ar" ? "كل المدن" : "All cities"}</option>
               {cities.map((c) => (
                 <option key={c.en} value={c.en}>{lang === "ar" ? c.ar : c.en}</option>
+              ))}
+            </select>
+            <select
+              value={filterTag}
+              onChange={(e) => setFilterTag(e.target.value)}
+              className="flex-1 min-w-[120px] px-3 py-2 rounded-xl bg-muted outline-none text-sm font-medium"
+            >
+              <option value="">{lang === "ar" ? "كل الوسوم" : "All tags"}</option>
+              {BUY_REQUEST_TAGS.map((t) => (
+                <option key={t.en} value={t.en}>{lang === "ar" ? t.ar : t.en}</option>
               ))}
             </select>
           </div>
@@ -241,87 +291,31 @@ export default function BuyRequests() {
           </div>
         ) : (
           <div className="space-y-3">
-            {(tab === "browse" ? browseRequests : myRequests).map((req) => {
-              const cat = CATEGORIES.find((c) => c.id === req.category);
-              return (
-                <div key={req.id} className="rounded-2xl bg-card border border-border/60 p-4">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3 className="font-bold text-sm leading-snug">{req.title}</h3>
-                    {req.budget != null && (
-                      <span className="shrink-0 px-2 py-1 rounded-lg bg-violet-500 text-white text-xs font-bold">
-                        <Price value={req.budget} lang={lang} country={req.country} />
-                      </span>
-                    )}
-                  </div>
-                  {req.description && (
-                    <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{req.description}</p>
-                  )}
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-                    {cat && (
-                      <span className="inline-flex items-center gap-1">
-                        <Tag size={12} />
-                        {lang === "ar" ? cat.ar : cat.en}
-                      </span>
-                    )}
-                    <span className="inline-flex items-center gap-1">
-                      <MapPin size={12} />
-                      {req.city || (lang === "ar" ? "كل المدن" : "Any city")}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <Clock size={12} />
-                      {timeAgo(req.created_date, lang)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/40">
-                    <button
-                      onClick={() => nav(`/user/${req.user_id}`)}
-                      className="text-xs font-semibold hover:underline"
-                    >
-                      {req.user_name?.split(" ")[0]}
-                    </button>
-                    {tab === "browse" ? (
-                      <div className="flex gap-2">
-                        {req.whatsapp_enabled && req.whatsapp_number && (
-                          <a
-                            href={`https://wa.me/${req.whatsapp_number.replace(/[^0-9]/g, "")}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition"
-                            title={lang === "ar" ? "تواصل عبر واتساب" : "Contact via WhatsApp"}
-                          >
-                            <WhatsAppIcon size={16} />
-                          </a>
-                        )}
-                        <button
-                          onClick={() => startChat(req)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition"
-                        >
-                          <MessageCircle size={14} />
-                          {lang === "ar" ? "تواصل" : "Chat"}
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => closeRequest(req.id)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-muted text-xs font-semibold hover:bg-muted/70 transition"
-                        >
-                          <CheckCircle2 size={13} />
-                          {lang === "ar" ? "إغلاق" : "Close"}
-                        </button>
-                        <button
-                          onClick={() => deleteRequest(req.id)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-semibold hover:bg-rose-200 transition"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {(tab === "browse" ? browseRequests : myRequests).map((req) => (
+              <BuyRequestCard
+                key={req.id}
+                req={req}
+                tab={tab}
+                onChat={startChat}
+                onClose={closeRequest}
+                onDelete={deleteRequest}
+                onUserClick={(uid) => nav(`/user/${uid}`)}
+              />
+            ))}
+            {tab === "browse" && (
+              <div ref={sentinelRef} className="flex flex-col items-center justify-center py-6 gap-3">
+                {loadingMore ? (
+                  <div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+                ) : hasMore ? (
+                  <button
+                    onClick={loadMore}
+                    className="px-6 py-3 rounded-2xl bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition"
+                  >
+                    {lang === "ar" ? "تحميل المزيد" : "Load more"}
+                  </button>
+                ) : null}
+              </div>
+            )}
           </div>
         )}
 
@@ -372,6 +366,29 @@ export default function BuyRequests() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground block mb-1.5">
+                    {lang === "ar" ? "وسوم الطلب" : "Request tags"}
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {BUY_REQUEST_TAGS.map((t) => {
+                      const selected = form.tags.includes(t.en);
+                      return (
+                        <button
+                          key={t.en}
+                          type="button"
+                          onClick={() => setForm((prev) => ({
+                            ...prev,
+                            tags: selected ? prev.tags.filter((x) => x !== t.en) : [...prev.tags, t.en],
+                          }))}
+                          className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${selected ? "bg-violet-500 text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
+                        >
+                          {lang === "ar" ? t.ar : t.en}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground block mb-1.5">
                     {lang === "ar" ? "الميزانية" : "Budget (optional)"}
                   </label>
                   <div className="relative">
@@ -392,25 +409,15 @@ export default function BuyRequests() {
                   <label className="text-sm font-medium text-muted-foreground block mb-1.5">
                     {lang === "ar" ? "المدينة" : "City"} *
                   </label>
-                  <div className="flex gap-1.5 mb-1.5">
-                    <button
-                      type="button"
-                      onClick={useCurrentLocation}
-                      disabled={locating}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-xl bg-violet-100 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 text-sm font-semibold hover:bg-violet-200 dark:hover:bg-violet-900/40 transition disabled:opacity-50"
-                    >
-                      <LocateFixed size={15} />
-                      {locating ? "..." : (lang === "ar" ? "موقعي" : "My location")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowMap(true)}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-xl bg-muted text-sm font-semibold hover:bg-muted/70 transition"
-                    >
-                      <MapPin size={15} />
-                      {lang === "ar" ? "الخريطة" : "Map"}
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={useCurrentLocation}
+                    disabled={locating}
+                    className="w-full mb-1.5 inline-flex items-center justify-center gap-1.5 py-2 rounded-xl bg-violet-100 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 text-sm font-semibold hover:bg-violet-200 dark:hover:bg-violet-900/40 transition disabled:opacity-50"
+                  >
+                    <LocateFixed size={15} />
+                    {locating ? "..." : (lang === "ar" ? "استخدام موقعي الحالي" : "Use my current location")}
+                  </button>
                   <CitySearchSelect
                     value={form.city}
                     onChange={(city) => { setForm((prev) => ({ ...prev, city })); setLocationLabel(""); }}
@@ -452,7 +459,7 @@ export default function BuyRequests() {
                         className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30"
                       />
                       <p className="text-xs text-muted-foreground mt-1">
-                        {lang === "ar" ? "تأكد من الرقم — سيظهر للباعة للتواصل معك مباشرة" : "Make sure the number is correct — sellers will see it to reach you directly"}
+                        {lang === "ar" ? "تأكد من الرقم — سيظهر للبائع للتواصل معك مباشرة" : "Make sure the number is correct — sellers will see it to reach you directly"}
                       </p>
                     </div>
                   )}
@@ -465,23 +472,6 @@ export default function BuyRequests() {
               >
                 {submitting ? (lang === "ar" ? "جاري النشر..." : "Posting...") : (lang === "ar" ? "نشر الطلب" : "Post Request")}
               </button>
-            </div>
-          </div>
-        )}
-
-        {showMap && (
-          <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowMap(false)} />
-            <div className="relative w-full sm:max-w-md bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl p-5 animate-in fade-in slide-in-from-bottom-[100%] duration-300 max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-lg">{lang === "ar" ? "اختر الموقع على الخريطة" : "Pick location on map"}</h3>
-                <button onClick={() => setShowMap(false)} className="p-1.5 rounded-full hover:bg-muted"><X size={20} /></button>
-              </div>
-              <MapPinPicker
-                center={cities[0] ? { lat: cities[0].lat, lng: cities[0].lng } : { lat: 24.7136, lng: 46.6753 }}
-                radius={0}
-                onPick={handleMapPick}
-              />
             </div>
           </div>
         )}

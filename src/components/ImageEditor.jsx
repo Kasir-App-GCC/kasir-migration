@@ -155,7 +155,8 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
   const onPointerUp = () => {
     if (tool === "crop") { dragRef.current = null; return; }
     if (drawRef.current) {
-      setLog((l) => [...l, { type: drawRef.current.kind }]);
+      const kind = drawRef.current.kind;
+      setLog((l) => [...l, { type: kind }]);
       drawRef.current = null;
     }
   };

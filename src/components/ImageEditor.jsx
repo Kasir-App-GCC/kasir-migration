@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { RotateCw, RotateCcw, Check, X, ZoomIn, ZoomOut, Pencil, Droplets, Undo2, SlidersHorizontal } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 const COLORS = ["#ffffff", "#000000", "#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#a855f7"];
 const clampZoom = (z) => Math.min(Math.max(z, 1), 5);
@@ -64,6 +65,11 @@ export default function ImageEditor({ files, lang, onFileDone, onSkipFile }) {
   const [log, setLog] = useState([]);
   const [box, setBox] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const { toast } = useToast();
+  // True when the current photo has any unconfirmed edits — used to warn the
+  // user to hit ✓ before switching to another photo in the queue (otherwise
+  // switching discards the edits).
+  const hasEdits = rot !== 0 || zoom !== 1 || offset.x !== 0 || offset.y !== 0 || strokes.length > 0 || blurStrokes.length > 0 || filterIdx !== 0;
   const stageRef = useRef(null);
   const wrapRef = useRef(null);
   const pointers = useRef(new Map());
@@ -408,18 +414,29 @@ export default function ImageEditor({ files, lang, onFileDone, onSkipFile }) {
       </div>
 
       {files.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto no-scrollbar px-4 pb-2">
-          {files.map((f, i) => (
-            <button
-              key={i}
-              onClick={() => setRawIdx(i)}
-              className={`relative w-14 h-14 rounded-lg overflow-hidden shrink-0 ring-2 ${i === activeIdx ? "ring-emerald-400" : "ring-white/15"}`}
-            >
-              <img src={thumbs[i]} alt="" className="w-full h-full object-cover" />
-              {i === activeIdx && <span className="absolute bottom-0 inset-x-0 bg-emerald-500/80 text-white text-[9px] text-center py-0.5">{ar ? "تعديل" : "Edit"}</span>}
-            </button>
-          ))}
-        </div>
+        <>
+          <p className="text-center text-[11px] text-white/70 px-4 pb-1">
+            {ar ? "أكمل الصورة الحالية بضغط ✓ ثم حرّر الصورة التالية" : "Finish this photo with ✓ then edit the next one"}
+          </p>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar px-4 pb-2">
+            {files.map((f, i) => (
+              <button
+                key={i}
+                onClick={() => {
+                  if (i !== activeIdx && hasEdits) {
+                    toast({ title: ar ? "اضغط ✓ لإنهاء هذه الصورة أولاً" : "Hit ✓ to finish this photo first", variant: "destructive" });
+                    return;
+                  }
+                  setRawIdx(i);
+                }}
+                className={`relative w-14 h-14 rounded-lg overflow-hidden shrink-0 ring-2 ${i === activeIdx ? "ring-emerald-400" : "ring-white/15"}`}
+              >
+                <img src={thumbs[i]} alt="" className="w-full h-full object-cover" />
+                {i === activeIdx && <span className="absolute bottom-0 inset-x-0 bg-emerald-500/80 text-white text-[9px] text-center py-0.5">{ar ? "تعديل" : "Edit"}</span>}
+              </button>
+            ))}
+          </div>
+        </>
       )}
 
       <div className="p-4 space-y-3 text-white">

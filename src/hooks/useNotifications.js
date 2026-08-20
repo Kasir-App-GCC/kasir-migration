@@ -17,16 +17,22 @@ export default function useNotifications() {
     (async () => {
       if (!user) { setLoading(false); return; }
       try {
-        const rooms = await base44.entities.ChatRoom.list("-updated_date", 100);
+        // Fetch all sources in parallel — the previous sequential chain
+        // (rooms → msgs/offers → ratings → notifications) made the bell
+        // feel slow. None of the fetches depend on each other; roomMap is
+        // only used for client-side filtering after everything resolves.
+        const [rooms, msgs, offers, rs, ns] = await Promise.all([
+          base44.entities.ChatRoom.list("-updated_date", 100),
+          base44.entities.Message.list("-created_date", 100),
+          base44.entities.Offer.list("-created_date", 100),
+          base44.entities.Rating.filter({ rated_user_id: user.id }, "-created_date", 10).catch(() => []),
+          base44.entities.Notification.filter({ user_id: user.id }, "-created_date", 30).catch(() => []),
+        ]);
         const mine = (rooms || []).filter((r) => {
           if (r.buyer_id !== user.id && r.seller_id !== user.id) return false;
           return r.buyer_id === user.id ? !r.hidden_for_buyer : !r.hidden_for_seller;
         });
         const roomMap = new Map(mine.map((r) => [r.id, r]));
-        const [msgs, offers] = await Promise.all([
-          base44.entities.Message.list("-created_date", 100),
-          base44.entities.Offer.list("-created_date", 100),
-        ]);
         const isIncoming = (o) =>
           o && ((o.direction === "buyer_offer" && o.seller_id === user.id) || (o.direction === "seller_counter" && o.buyer_id === user.id));
         const roomSince = (roomId) => {
@@ -54,41 +60,32 @@ export default function useNotifications() {
             };
           });
 
-        let ratings = [];
-        try {
-          const rs = await base44.entities.Rating.filter({ rated_user_id: user.id }, "-created_date", 10);
-          ratings = (rs || []).map((r) => ({
-            id: r.id, type: "rating", text: r.review || "", name: r.rater_name,
-            score: r.score, date: r.created_date, unread: false,
-          }));
-        } catch {}
+        const ratings = (rs || []).map((r) => ({
+          id: r.id, type: "rating", text: r.review || "", name: r.rater_name,
+          score: r.score, date: r.created_date, unread: false,
+        }));
 
-        let systemNotifs = [];
-        try {
-          const ns = await base44.entities.Notification.filter({ user_id: user.id }, "-created_date", 30);
-          systemNotifs = (ns || []).map((n) => {
-            if (n.type === "sold") {
-              return { id: n.id, type: "sold", text: n.text, name: n.item_title, image: n.item_image, itemId: n.item_id, date: n.created_date, unread: !n.read };
-            }
-            if (n.type === "boost_approved") {
-              return { id: n.id, type: "boost_approved", text: n.text, name: n.item_title, itemId: n.item_id, date: n.created_date, unread: !n.read };
-            }
-            return { id: n.id, type: n.type, text: n.text, name: n.actor_name, roomId: n.chatroom_id, amount: n.offer_amount, date: n.created_date, unread: !n.read };
-          });
-        } catch {}
+        const systemNotifs = (ns || []).map((n) => {
+          if (n.type === "sold") {
+            return { id: n.id, type: "sold", text: n.text, name: n.item_title, image: n.item_image, itemId: n.item_id, date: n.created_date, unread: !n.read };
+          }
+          if (n.type === "boost_approved") {
+            return { id: n.id, type: "boost_approved", text: n.text, name: n.item_title, itemId: n.item_id, date: n.created_date, unread: !n.read };
+          }
+          return { id: n.id, type: n.type, text: n.text, name: n.actor_name, roomId: n.chatroom_id, amount: n.offer_amount, date: n.created_date, unread: !n.read };
+        });
 
         const clearedAt = notifsClearedAt ? toDate(notifsClearedAt).getTime() : 0;
         const all = [...notifs, ...offerNotifs, ...ratings, ...systemNotifs]
           .sort((a, b) => toDate(b.date) - toDate(a.date))
           .filter((n) => toDate(n.date).getTime() > clearedAt);
         setItems(all);
-        // Acknowledge system notifications so the badge clears for the user.
-        try {
-          await base44.entities.Notification.updateMany({ user_id: user.id, read: false }, { $set: { read: true } });
-        } catch {}
+        setLoading(false);
+        // Acknowledge system notifications in the background so it doesn't
+        // delay the panel rendering.
+        base44.entities.Notification.updateMany({ user_id: user.id, read: false }, { $set: { read: true } }).catch(() => {});
       } catch {
         setItems([]);
-      } finally {
         setLoading(false);
       }
     })();

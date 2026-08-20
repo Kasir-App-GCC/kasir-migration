@@ -191,7 +191,10 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   return (
     <div className="space-y-5">
       <div>
-        <label className="text-sm font-semibold mb-2 block">{t("photos")}</label>
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-sm font-semibold block">{t("photos")}</label>
+          <span className="text-[11px] text-muted-foreground font-medium">{images.length}/{maxPhotos}</span>
+        </div>
         <DragDropContext onDragEnd={onDragEnd}>
           <Droppable droppableId="photos" direction="horizontal">
             {(provided) => (
@@ -243,27 +246,28 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
                     </Draggable>
                   );
                 })}
-                {images.length >= 5 && (
-                  verified ? (
-                    images.length < maxPhotos ? (
-                      <label className="aspect-square rounded-xl border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-950/30 flex-1 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 cursor-pointer gap-1 hover:bg-blue-100 dark:hover:bg-blue-900/40">
-                        {uploading ? (
-                          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <>
-                            <ImagePlus size={20} />
-                            <span className="text-[9px] font-semibold text-center px-1 leading-tight">{ar ? "إضافة صور" : "Add photos"}</span>
-                          </>
-                        )}
-                        <input type="file" accept="image/*" multiple className="hidden" onChange={onPick} />
-                      </label>
-                    ) : (
-                      <div className="aspect-square rounded-xl border-2 border-dashed border-blue-300 bg-blue-50/50 flex-1 flex flex-col items-center justify-center text-blue-400 gap-1 opacity-60">
-                        <Check size={18} />
-                        <span className="text-[9px] font-semibold">{ar ? "الحد الأقصى 15" : "Max 15"}</span>
-                      </div>
-                    )
+                {verified ? (
+                  images.length < maxPhotos ? (
+                    <label className="aspect-square rounded-xl border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-950/30 flex-1 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 cursor-pointer gap-0.5 hover:bg-blue-100 dark:hover:bg-blue-900/40">
+                      {uploading ? (
+                        <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <ImagePlus size={20} />
+                          <span className="text-[9px] font-semibold text-center px-1 leading-tight">{ar ? "إضافة" : "Add"}</span>
+                          <span className="text-[8px] font-medium text-blue-500/80">{ar ? "حتى ١٥" : "up to 15"}</span>
+                        </>
+                      )}
+                      <input type="file" accept="image/*" multiple className="hidden" onChange={onPick} />
+                    </label>
                   ) : (
+                    <div className="aspect-square rounded-xl border-2 border-dashed border-blue-300 bg-blue-50/50 flex-1 flex flex-col items-center justify-center text-blue-400 gap-0.5 opacity-60">
+                      <Check size={18} />
+                      <span className="text-[9px] font-semibold">{ar ? "الحد الأقصى 15" : "Max 15"}</span>
+                    </div>
+                  )
+                ) : (
+                  images.length >= 5 && (
                     <button
                       type="button"
                       onClick={() => toast({ title: ar ? "تحقق من حسابك لإضافة حتى 10 صور إضافية" : "Verify your account to add up to 10 more photos", description: ar ? "يرفع الحد الأقصى للصور إلى 15" : "Raises the photo limit to 15" })}

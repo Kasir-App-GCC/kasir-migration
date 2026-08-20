@@ -75,8 +75,8 @@ export default function AdminDashboard() {
   const cards = [
     { icon: Users, label: ar ? "المستخدمين" : "Users", value: stats.users, color: "text-blue-500 bg-blue-50 dark:bg-blue-950/30" },
     { icon: ShoppingBag, label: ar ? "الإعلانات" : "Listings", value: stats.items, color: "text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30" },
-    { icon: Tag, label: ar ? "إجمالي المبيعات" : "Total Sales", value: stats.sold, color: "text-amber-500 bg-amber-50 dark:bg-amber-950/30" },
-    { icon: Wallet, label: ar ? "إجمالي المنفق" : "Total Spent", value: formatPrice(stats.totalSpent, country), color: "text-indigo-500 bg-indigo-50 dark:bg-indigo-950/30" },
+    { icon: Tag, label: ar ? "إجمالي العروض المقبولة" : "Total Accepted Offers", value: stats.sold, color: "text-amber-500 bg-amber-50 dark:bg-amber-950/30" },
+    { icon: Wallet, label: ar ? "إجمالي إنفاق العملاء" : "Total Spent by Customers", value: formatPrice(stats.totalSpent, country), color: "text-indigo-500 bg-indigo-50 dark:bg-indigo-950/30" },
     { icon: DollarSign, label: ar ? "إيرادات المنصة" : "Platform Revenue", value: formatPrice(stats.revenue, country), color: "text-green-500 bg-green-50 dark:bg-green-950/30", onClick: () => setShowRevenue(true) },
     { icon: AlertTriangle, label: ar ? "موثوقون" : "Trusted", value: stats.trusted, color: "text-cyan-500 bg-cyan-50 dark:bg-cyan-950/30" },
     { icon: Flag, label: ar ? "بلاغات مفتوحة" : "Open Reports", value: stats.reports, color: "text-rose-500 bg-rose-50 dark:bg-rose-950/30" },

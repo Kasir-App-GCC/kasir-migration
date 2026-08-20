@@ -76,9 +76,9 @@ export default function AdminDashboard() {
   const cards = [
     { icon: Users, label: ar ? "المستخدمين" : "Users", value: stats.users, color: "text-blue-500 bg-blue-50 dark:bg-blue-950/30" },
     { icon: ShoppingBag, label: ar ? "الإعلانات" : "Listings", value: stats.items, color: "text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30" },
-    { icon: Tag, label: ar ? "إجمالي العروض المقبولة" : "Total Accepted Offers", value: stats.sold, color: "text-amber-500 bg-amber-50 dark:bg-amber-950/30", reset: true },
-    { icon: Wallet, label: ar ? "إجمالي إنفاق العملاء" : "Total Spent by Customers", value: formatPrice(stats.totalSpent, country), color: "text-indigo-500 bg-indigo-50 dark:bg-indigo-950/30", reset: true },
-    { icon: DollarSign, label: ar ? "إيرادات المنصة" : "Platform Revenue", value: formatPrice(stats.revenue, country), color: "text-green-500 bg-green-50 dark:bg-green-950/30", onClick: () => setShowRevenue(true), reset: true },
+    { icon: Tag, label: ar ? "إجمالي العروض المقبولة" : "Total Accepted Offers", value: stats.sold, color: "text-amber-500 bg-amber-50 dark:bg-amber-950/30", resetField: "sold" },
+    { icon: Wallet, label: ar ? "إجمالي إنفاق العملاء" : "Total Spent by Customers", value: formatPrice(stats.totalSpent, country), color: "text-indigo-500 bg-indigo-50 dark:bg-indigo-950/30", resetField: "totalSpent" },
+    { icon: DollarSign, label: ar ? "إيرادات المنصة" : "Platform Revenue", value: formatPrice(stats.revenue, country), color: "text-green-500 bg-green-50 dark:bg-green-950/30", onClick: () => setShowRevenue(true), resetField: "revenue" },
     { icon: AlertTriangle, label: ar ? "موثوقون" : "Trusted", value: stats.trusted, color: "text-cyan-500 bg-cyan-50 dark:bg-cyan-950/30" },
     { icon: Flag, label: ar ? "بلاغات مفتوحة" : "Open Reports", value: stats.reports, color: "text-rose-500 bg-rose-50 dark:bg-rose-950/30" },
     { icon: LifeBuoy, label: ar ? "تذاكر مفتوحة" : "Open Tickets", value: stats.tickets, color: "text-orange-500 bg-orange-50 dark:bg-orange-950/30" },
@@ -97,11 +97,11 @@ export default function AdminDashboard() {
               <p className="text-xs text-muted-foreground mt-0.5">{c.label}</p>
             </>
           );
-          const resetBtn = c.reset && (
+          const resetBtn = c.resetField && (
             <button
-              onClick={(e) => { e.stopPropagation(); fetchStats(); }}
+              onClick={(e) => { e.stopPropagation(); setStats((s) => ({ ...s, [c.resetField]: 0 })); }}
               className="absolute top-2 end-2 w-7 h-7 rounded-full bg-muted/60 hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition"
-              title={ar ? "تحديث" : "Refresh"}
+              title={ar ? "تصفير" : "Reset to zero"}
             >
               <RotateCcw size={13} />
             </button>

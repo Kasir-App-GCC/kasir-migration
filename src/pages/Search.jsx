@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { Search as SearchIcon, SlidersHorizontal, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -7,9 +7,12 @@ import SearchLocationControl from "@/components/SearchLocationControl";
 import UserSearchDropdown from "@/components/UserSearchDropdown";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
-import { CATEGORIES, CONDITIONS, SAUDI_CITIES } from "@/lib/constants";
+import { CATEGORIES, CONDITIONS } from "@/lib/constants";
 import { matchLocation } from "@/lib/location";
+import { fetchSellerInfos } from "@/lib/useTrusted";
 import PullToRefresh from "@/components/PullToRefresh";
+
+const PAGE_SIZE = 60;
 
 export default function Search() {
   const { categories, setCategories, subcategories, setSubcategories } = useOutletContext();
@@ -17,44 +20,116 @@ export default function Search() {
   const t = useT();
   const nav = useNavigate();
   const [q, setQ] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
   const [items, setItems] = useState([]);
+  const [sellers, setSellers] = useState({});
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [sort, setSort] = useState("newest");
   const [showFilters, setShowFilters] = useState(false);
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [condition, setCondition] = useState([]);
+  const skipRef = useRef(0);
+  const sentinelRef = useRef(null);
 
-  const reload = useCallback(async () => {
+  // Debounce the text query so each keystroke doesn't fire a server request.
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedQ(q.trim()), 350);
+    return () => clearTimeout(id);
+  }, [q]);
+
+  const sortKey = sort === "priceLowHigh" ? "price" : sort === "priceHighLow" ? "-price" : "-created_date";
+
+  // Build the server-side filter query — push every structured filter (and
+  // the text search via $regex) to the server so we don't have to load the
+  // whole catalog to find matches.
+  const buildQuery = useCallback(() => {
+    const query = { country };
+    if (categories.length === 1) query.category = categories[0];
+    else if (categories.length > 1) query.category = { $in: categories };
+    if (subcategories.length) query.subcategory = { $in: subcategories };
+    if (condition.length) query.condition = { $in: condition };
+    if (minPrice || maxPrice) {
+      query.price = {};
+      if (minPrice) query.price.$gte = Number(minPrice);
+      if (maxPrice) query.price.$lte = Number(maxPrice);
+    }
+    if (!prefs.showSold) query.status = "available";
+    if (locationFilter.mode === "city" && locationFilter.city) query.city = locationFilter.city;
+    if (debouncedQ) {
+      query.$or = [
+        { title: { $regex: debouncedQ, $options: "i" } },
+        { description: { $regex: debouncedQ, $options: "i" } },
+      ];
+    }
+    return query;
+  }, [country, categories, subcategories, condition, minPrice, maxPrice, prefs.showSold, locationFilter.mode, locationFilter.city, debouncedQ]);
+
+  const loadInitial = useCallback(async () => {
     setLoading(true);
+    skipRef.current = 0;
+    setHasMore(true);
     try {
-      const all = await base44.entities.Item.list("-created_date", 100);
-      setItems(all || []);
+      const first = await base44.entities.Item.filter(buildQuery(), sortKey, PAGE_SIZE, 0);
+      const list = first || [];
+      const ids = [...new Set(list.map((i) => i.seller_id).filter(Boolean))];
+      const sMap = ids.length ? await fetchSellerInfos(ids) : {};
+      setSellers(sMap);
+      setItems(list);
+      setHasMore(list.length === PAGE_SIZE);
     } catch {
       setItems([]);
+      setHasMore(false);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [buildQuery, sortKey]);
 
-  useEffect(() => { reload(); }, [reload]);
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const skip = skipRef.current + PAGE_SIZE;
+    skipRef.current = skip;
+    try {
+      const next = await base44.entities.Item.filter(buildQuery(), sortKey, PAGE_SIZE, skip);
+      const list = next || [];
+      const ids = [...new Set(list.map((i) => i.seller_id).filter(Boolean))];
+      const sMap = ids.length ? await fetchSellerInfos(ids) : {};
+      setSellers((prev) => ({ ...prev, ...sMap }));
+      setItems((prev) => {
+        const seen = new Set(prev.map((x) => x.id));
+        return [...prev, ...list.filter((x) => !seen.has(x.id))];
+      });
+      setHasMore(list.length === PAGE_SIZE);
+    } catch {
+      skipRef.current = skip - PAGE_SIZE;
+      setHasMore(false);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, buildQuery, sortKey]);
 
-  const results = useMemo(() => {
-    let r = items.filter((it) => {
-      if (categories.length && !categories.includes(it.category)) return false;
-      if (subcategories.length && !(Array.isArray(it.subcategory) ? it.subcategory.some((s) => subcategories.includes(s)) : subcategories.includes(it.subcategory))) return false;
-      if (!prefs.showSold && it.status === "sold") return false;
-      if (!matchLocation(it, locationFilter, country)) return false;
-      if (q && !(`${it.title} ${it.description}`.toLowerCase().includes(q.toLowerCase()))) return false;
-      if (condition.length && !condition.includes(it.condition)) return false;
-      if (minPrice && Number(it.price) < Number(minPrice)) return false;
-      if (maxPrice && Number(it.price) > Number(maxPrice)) return false;
-      return true;
-    });
-    if (sort === "priceLowHigh") r = [...r].sort((a, b) => a.price - b.price);
-    if (sort === "priceHighLow") r = [...r].sort((a, b) => b.price - a.price);
-    return r;
-  }, [items, categories, subcategories, locationFilter, q, condition, minPrice, maxPrice, sort, prefs.showSold]);
+  useEffect(() => { loadInitial(); }, [loadInitial]);
+
+  // Infinite scroll: fetch the next page when the sentinel nears the viewport.
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) loadMore();
+    }, { rootMargin: "600px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [loadMore]);
+
+  // Radius/map location can't be expressed server-side, so narrow the loaded
+  // pages client-side. City mode is already handled by the server query.
+  const filtered = useMemo(() => {
+    if (locationFilter.mode !== "radius" && locationFilter.mode !== "map") return items;
+    return items.filter((it) => matchLocation(it, locationFilter, country));
+  }, [items, locationFilter, country]);
 
   const reset = () => {
     setMinPrice(""); setMaxPrice(""); setCondition([]); setSort("newest");
@@ -63,7 +138,7 @@ export default function Search() {
   };
 
   return (
-    <PullToRefresh onRefresh={reload}>
+    <PullToRefresh onRefresh={loadInitial}>
     <div className="pt-2 space-y-3">
       <div className="flex gap-2">
         <div className="relative flex-1">
@@ -89,7 +164,7 @@ export default function Search() {
       </div>
 
       <div className="flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">{results.length} {t("results")}</span>
+        <span className="text-muted-foreground">{filtered.length} {t("results")}</span>
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value)}
@@ -110,16 +185,30 @@ export default function Search() {
             </div>
           ))}
         </div>
-      ) : results.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="text-center py-20 text-muted-foreground">
           <p className="font-semibold text-lg">{t("noResults")}</p>
           <p className="text-sm mt-1">{t("noResultsDesc")}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {results.map((it) => (
-            <ItemCard key={it.id} item={it} onClick={() => nav(`/item/${it.id}`)} />
-          ))}
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {filtered.map((it) => (
+              <ItemCard key={it.id} item={it} onClick={() => nav(`/item/${it.id}`)} sellerInfo={sellers[it.seller_id]} />
+            ))}
+          </div>
+          <div ref={sentinelRef} className="flex flex-col items-center justify-center py-6 gap-3">
+            {loadingMore ? (
+              <div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+            ) : hasMore ? (
+              <button
+                onClick={loadMore}
+                className="px-6 py-3 rounded-2xl bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition"
+              >
+                {lang === "ar" ? "تحميل المزيد" : "Load more"}
+              </button>
+            ) : null}
+          </div>
         </div>
       )}
 

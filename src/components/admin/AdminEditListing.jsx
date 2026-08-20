@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { X, Save, Lock } from "lucide-react";
+import { X, Save, Lock, ImagePlus } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
 import { CATEGORIES, CONDITIONS } from "@/lib/constants";
 import { getCities } from "@/lib/countries";
+import { compressImage } from "@/lib/compressImage";
 import CurrencySymbol from "@/components/CurrencySymbol";
 
 // Convert Arabic-Indic (٠-٩) and Eastern Arabic (۰-۹) digits to ASCII 0-9
@@ -30,10 +31,30 @@ export default function AdminEditListing({ item, onClose, onSaved }) {
   const [city, setCity] = useState(item.city || "");
   const [description, setDescription] = useState(item.description || "");
   const [status, setStatus] = useState(item.status || "available");
+  const [images, setImages] = useState(Array.isArray(item.images) ? item.images : []);
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const isPromoted = !!item.featured && item.featured_until && new Date(item.featured_until) > new Date();
   const cities = getCities(item.country || country || "SA");
+
+  const onPick = async (e) => {
+    const files = Array.from(e.target.files || []).slice(0, 15 - images.length);
+    e.target.value = "";
+    if (!files.length) return;
+    setUploading(true);
+    try {
+      for (const f of files) {
+        const compressed = await compressImage(f);
+        const r = await base44.integrations.Core.UploadFile({ file: compressed });
+        setImages((prev) => [...prev, r.file_url]);
+      }
+    } catch {
+      toast({ title: ar ? "فشل رفع الصورة" : "Image upload failed", variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const save = async () => {
     if (!title || !price) {
@@ -50,6 +71,7 @@ export default function AdminEditListing({ item, onClose, onSaved }) {
         city,
         description,
         status,
+        images,
       };
       await base44.entities.Item.update(item.id, updates);
       toast({ title: ar ? "تم حفظ التعديلات" : "Changes saved" });
@@ -73,6 +95,27 @@ export default function AdminEditListing({ item, onClose, onSaved }) {
         </div>
 
         <div className="space-y-3">
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-semibold">{ar ? "الصور" : "Photos"}</label>
+              <span className="text-[11px] text-muted-foreground font-medium">{images.length}/15</span>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {images.map((url, i) => (
+                <div key={url + i} className="relative w-16 h-16 rounded-xl overflow-hidden bg-muted shrink-0">
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  <button type="button" onClick={() => setImages(images.filter((_, idx) => idx !== i))} className="absolute top-0.5 end-0.5 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center"><X size={12} /></button>
+                </div>
+              ))}
+              {images.length < 15 && (
+                <label className="w-16 h-16 rounded-xl border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:bg-muted text-muted-foreground">
+                  {uploading ? <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" /> : <ImagePlus size={18} />}
+                  <input type="file" accept="image/*" multiple className="hidden" onChange={onPick} disabled={uploading} />
+                </label>
+              )}
+            </div>
+          </div>
+
           <div className="space-y-1">
             <label className="text-sm font-semibold">{ar ? "العنوان" : "Title"} <span className="text-rose-500">*</span></label>
             <input value={title} onChange={(e) => setTitle(e.target.value.slice(0, 50))} maxLength={50} className={selectCls} />

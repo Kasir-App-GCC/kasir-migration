@@ -9,6 +9,7 @@ import Price from "@/components/Price";
 import OfferCard from "@/components/OfferCard";
 import { sendPush } from "@/lib/notify";
 import TrustedBadge from "@/components/TrustedBadge";
+import PullToRefreshScroll from "@/components/PullToRefreshScroll";
 
 export default function ChatRoom() {
   const { id } = useParams();
@@ -270,7 +271,7 @@ export default function ChatRoom() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+      <PullToRefreshScroll onRefresh={loadAll} className="px-4 py-4 space-y-2">
         {loading ? (
           <div className="text-center text-muted-foreground text-sm py-10"><div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin mx-auto" /></div>
         ) : timeline.length === 0 ? (
@@ -352,7 +353,7 @@ export default function ChatRoom() {
           })
         )}
         <div ref={endRef} />
-      </div>
+      </PullToRefreshScroll>
 
       <div className="p-3 border-t border-border/60 flex items-center gap-2 pb-[env(safe-area-inset-bottom)] shrink-0">
         <input

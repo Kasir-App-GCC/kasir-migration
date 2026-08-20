@@ -45,8 +45,8 @@ export default function AdminListings() {
 
   const loadMore = async () => {
     if (loadingMore) return;
-    // Server-query mode (search or stale) paginates the server-filtered results.
-    if (q.trim() || filter === "stale") {
+    // Server-query mode (search, stale, or featured) paginates the server-filtered results.
+    if (q.trim() || filter === "stale" || filter === "featured") {
       if (!searchHasMore) return;
       setLoadingMore(true);
       const skip = searchSkipRef.current + PAGE_SIZE;
@@ -99,7 +99,7 @@ export default function AdminListings() {
   useEffect(() => {
     // Server-side query path is used for text search AND the "stale" filter
     // (which needs a server date query, not client filtering of loaded pages).
-    if (!q.trim() && filter !== "stale") { setSearchItems(null); setSearching(false); return; }
+    if (!q.trim() && filter !== "stale" && filter !== "featured") { setSearchItems(null); setSearching(false); return; }
     setSearching(true);
     searchSkipRef.current = 0;
     let alive = true;
@@ -135,10 +135,10 @@ export default function AdminListings() {
   }, []);
 
   const filtered = useMemo(() => {
-    // Server-query mode (text search or stale filter): results already came
-    // from the server filtered by the query — only refine "featured" for
-    // liveness (expired boosts still carry featured:true).
-    if (q.trim() || filter === "stale") {
+    // Server-query mode (text search, stale, or featured filter): results
+    // already came from the server filtered by the query — only refine
+    // "featured" for liveness (expired boosts still carry featured:true).
+    if (q.trim() || filter === "stale" || filter === "featured") {
       let r = searchItems || [];
       if (filter === "featured") r = r.filter((i) => isLiveFeatured(i));
       return r;
@@ -264,7 +264,7 @@ export default function AdminListings() {
         ))}
       </div>
 
-      {(q.trim() || filter === "stale")
+      {(q.trim() || filter === "stale" || filter === "featured")
         ? searchHasMore && (searchItems?.length || 0) > 0 ? (
             <div className="flex justify-center py-4">
               <button onClick={loadMore} disabled={loadingMore} className="px-6 py-2.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-50">

@@ -12,7 +12,9 @@ import PullToRefresh from "@/components/PullToRefresh";
 import CitySearchSelect from "@/components/CitySearchSelect";
 import BuyRequestCard from "@/components/BuyRequestCard";
 import BuyRequestOfferDialog from "@/components/BuyRequestOfferDialog";
+import BuyRequestAssistant from "@/components/BuyRequestAssistant";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
+import { Sparkles } from "lucide-react";
 import { BUY_REQUEST_TAGS, BUY_REQUEST_CATEGORY_TAGS, getBuyRequestTagsForCategory } from "@/lib/buyRequestTags";
 import { useSellerInfo } from "@/lib/useTrusted";
 
@@ -30,6 +32,7 @@ export default function BuyRequests() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [offerDialogReq, setOfferDialogReq] = useState(null);
+  const [showAssistant, setShowAssistant] = useState(false);
   const [tab, setTab] = useState("browse");
   const [form, setForm] = useState({ title: "", category: "", budget: "", city: "", description: "", subcategory: [], tags: [], whatsapp_enabled: false, whatsapp_number: "" });
   const [submitting, setSubmitting] = useState(false);
@@ -235,17 +238,26 @@ export default function BuyRequests() {
             <Megaphone size={22} className="text-violet-500" />
             {lang === "ar" ? "طلبات الشراء" : "Buy Requests"}
           </h1>
-          <button
-            onClick={() => {
-              setEditingId(null);
-              setForm({ title: "", category: "", budget: "", city: "", description: "", subcategory: [], tags: [], whatsapp_enabled: !!user.whatsapp_enabled, whatsapp_number: user.whatsapp_number ? (user.whatsapp_number.startsWith("+") ? user.whatsapp_number : "+" + user.whatsapp_number) : "" });
-              setShowForm(true);
-            }}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-500 text-white text-sm font-bold hover:bg-violet-600 transition"
-          >
-            <Plus size={18} />
-            <span className="hidden sm:inline">{lang === "ar" ? "أضف طلب" : "New Request"}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowAssistant(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white text-sm font-bold hover:opacity-90 transition"
+            >
+              <Sparkles size={16} />
+              <span className="hidden sm:inline">{lang === "ar" ? "مساعد ذكي" : "AI Assistant"}</span>
+            </button>
+            <button
+              onClick={() => {
+                setEditingId(null);
+                setForm({ title: "", category: "", budget: "", city: "", description: "", subcategory: [], tags: [], whatsapp_enabled: !!user.whatsapp_enabled, whatsapp_number: user.whatsapp_number ? (user.whatsapp_number.startsWith("+") ? user.whatsapp_number : "+" + user.whatsapp_number) : "" });
+                setShowForm(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-500 text-white text-sm font-bold hover:bg-violet-600 transition"
+            >
+              <Plus size={18} />
+              <span className="hidden sm:inline">{lang === "ar" ? "أضف طلب" : "New Request"}</span>
+            </button>
+          </div>
         </div>
 
         <p className="text-sm text-muted-foreground">
@@ -603,6 +615,9 @@ export default function BuyRequests() {
             onClose={() => setOfferDialogReq(null)}
             onSent={(chatId) => { setOfferDialogReq(null); nav(`/chat/${chatId}`); }}
           />
+        )}
+        {showAssistant && (
+          <BuyRequestAssistant onClose={() => setShowAssistant(false)} />
         )}
       </div>
     </PullToRefresh>

@@ -140,11 +140,15 @@ export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, 
       {offer.status === "accepted" && (
         <div className="mt-2 space-y-1.5">
           <p className="text-[11px] text-center text-muted-foreground">{t("agreedArrange")}</p>
-          {onRate && !ratedOffers?.has(offer.id) && (
-            <button onClick={() => onRate(offer)} className="w-full py-2 rounded-xl bg-amber-400 text-slate-900 text-xs font-bold flex items-center justify-center gap-1.5">
-              <Star size={13} /> {t("rateNow")}
-            </button>
-          )}
+          {onRate && !ratedOffers?.has(offer.id) && (() => {
+            const isBuyer = offer.buyer_id === user.id;
+            const rateLabel = isBuyer ? (lang === "ar" ? "قيّم البائع" : "Rate the seller") : (lang === "ar" ? "قيّم المشتري" : "Rate the buyer");
+            return (
+              <button onClick={() => onRate(offer)} className="w-full py-2 rounded-xl bg-amber-400 text-slate-900 text-xs font-bold flex items-center justify-center gap-1.5">
+                <Star size={13} /> {rateLabel}
+              </button>
+            );
+          })()}
         </div>
       )}
     </div>

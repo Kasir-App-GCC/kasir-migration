@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { toDate } from "@/lib/format";
+import { fetchMyChatData } from "@/lib/chatData";
 
 // Shared notification fetching + realtime updates, used by both the
 // Notifications page and the bell dropdown.
@@ -21,18 +22,12 @@ export default function useNotifications() {
         // (rooms → msgs/offers → ratings → notifications) made the bell
         // feel slow. None of the fetches depend on each other; roomMap is
         // only used for client-side filtering after everything resolves.
-        const [rooms, msgs, offers, rs, ns] = await Promise.all([
-          base44.entities.ChatRoom.list("-updated_date", 100),
-          base44.entities.Message.list("-created_date", 100),
-          base44.entities.Offer.list("-created_date", 100),
+        const [chatData, rs, ns] = await Promise.all([
+          fetchMyChatData(user, { messageLimit: 100, offerLimit: 100 }),
           base44.entities.Rating.filter({ rated_user_id: user.id }, "-created_date", 10).catch(() => []),
           base44.entities.Notification.filter({ user_id: user.id }, "-created_date", 30).catch(() => []),
         ]);
-        const mine = (rooms || []).filter((r) => {
-          if (r.buyer_id !== user.id && r.seller_id !== user.id) return false;
-          return r.buyer_id === user.id ? !r.hidden_for_buyer : !r.hidden_for_seller;
-        });
-        const roomMap = new Map(mine.map((r) => [r.id, r]));
+        const { rooms: mine, messages: msgs, offers, roomMap } = chatData;
         const isIncoming = (o) =>
           o && ((o.direction === "buyer_offer" && o.seller_id === user.id) || (o.direction === "seller_counter" && o.buyer_id === user.id));
         const roomSince = (roomId) => {

@@ -7,6 +7,7 @@ import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { timeAgo } from "@/lib/format";
 import Price from "@/components/Price";
+import { fetchMyChatData } from "@/lib/chatData";
 
 export default function Chats() {
   const { user, lang } = useStore();
@@ -39,20 +40,13 @@ export default function Chats() {
     // Only show skeletons on the very first load; later refetches update silently.
     if (!roomsRef.current.length) setLoading(true);
     try {
-      const all = await base44.entities.ChatRoom.list("-updated_date", 100);
-      const mine = (all || []).filter((r) => {
-        if (!(r.buyer_id === user.id || r.seller_id === user.id)) return false;
-        if (r.buyer_id === user.id && r.hidden_for_buyer) return false;
-        if (r.seller_id === user.id && r.hidden_for_seller) return false;
-        return true;
-      });
+      // Server-side: fetch only this user's rooms and their messages/offers.
+      // The old global list + client-filter broke at scale (a user's rooms fell
+      // outside the newest 100 globally and never appeared).
+      const { rooms: mine, messages: msgs, offers } = await fetchMyChatData(user);
       roomsRef.current = mine;
       setRooms(mine);
       try {
-        const [msgs, offers] = await Promise.all([
-          base44.entities.Message.list("-created_date", 200),
-          base44.entities.Offer.list("-created_date", 200),
-        ]);
         // Unread is per-room, based on each room's own last-seen timestamp
         // (same model as the bottom-nav badge and WhatsApp/Telegram).
         const map = {};

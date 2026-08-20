@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { playBeep } from "@/lib/beep";
+import { fetchMyChatData } from "@/lib/chatData";
 
 // Is this offer directed at the given user (i.e. incoming, not self-created)?
 function offerIsIncoming(o, userId) {
@@ -32,17 +33,8 @@ export default function useUnreadChats() {
       if (inFlight) return;
       inFlight = true;
       try {
-        const rooms = await base44.entities.ChatRoom.list("-updated_date", 100);
-        const mine = (rooms || []).filter((r) => {
-          if (r.buyer_id !== user.id && r.seller_id !== user.id) return false;
-          // Skip rooms the user has deleted (hidden on their side).
-          return r.buyer_id === user.id ? !r.hidden_for_buyer : !r.hidden_for_seller;
-        });
+        const { rooms: mine, messages: msgs, offers } = await fetchMyChatData(user);
         roomIds.current = new Set(mine.map((r) => r.id));
-        const [msgs, offers] = await Promise.all([
-          base44.entities.Message.list("-created_date", 200),
-          base44.entities.Offer.list("-created_date", 200),
-        ]);
         let total = 0;
         mine.forEach((r) => {
           const myLastSeen = r.seller_id === user.id ? r.seller_last_seen : r.buyer_last_seen;

@@ -286,13 +286,13 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
           </Droppable>
         </DragDropContext>
         <p className="text-[11px] text-muted-foreground mt-1.5">{t("dragToReorder")}</p>
-        {!verified && (
-          <button type="button" onClick={() => setVerifyOpen(true)} className="text-[11px] text-blue-600 dark:text-blue-400 mt-1 flex items-center gap-1 hover:underline">
-            <Lock size={11} /> {ar ? "تحقق من حسابك لإضافة 10 صور إضافية" : "Verify your account to add 10 more photos"}
-          </button>
-        )}
         {images.length === 0 && (
           <p className="text-[11px] text-rose-500 font-semibold mt-1">{ar ? "صورة واحدة على الأقل مطلوبة" : "At least one photo is required"}</p>
+        )}
+        {!verified && (
+          <button type="button" onClick={() => setVerifyOpen(true)} className="text-[11px] text-blue-600 dark:text-blue-400 mt-1 flex items-center gap-1 hover:underline">
+            <Lock size={11} /> {ar ? "وثق حسابك لإضافة 10 صور إضافية" : "Verify your account to add 10 more photos"}
+          </button>
         )}
       </div>
 

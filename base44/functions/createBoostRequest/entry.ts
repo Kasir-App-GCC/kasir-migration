@@ -26,7 +26,7 @@ export default async function (req) {
       return Response.json({ error: "Not allowed" }, { status: 403 });
     }
 
-    const { amount } = computeBoostPrice(Number(item.price) || 0, hours);
+    const { amount } = computeBoostPrice(Number(item.price) || 0, hours, crossCountry);
 
     const created = await base44.entities.BoostRequest.create({
       item_id: item.id,

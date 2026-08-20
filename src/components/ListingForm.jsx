@@ -176,9 +176,13 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const existingHours = existingBoostHours(initial?.featured_until);
   const maxBoost = Math.max(0, BOOST_MAX_HOURS - existingHours);
   const itemPrice = Number(price) || 0;
-  const boostAmount = boostHours > 0 ? computeBoostPrice(itemPrice, boostHours).amount : 0;
+  const baseAmount = boostHours > 0 ? computeBoostPrice(itemPrice, boostHours).amount : 0;
+  const boostAmount = boostHours > 0 ? computeBoostPrice(itemPrice, boostHours, boostCross).amount : 0;
+  const crossSurcharge = boostCross ? Math.round((boostAmount - baseAmount) * 100) / 100 : 0;
   const cur = getCountry(country || "SA");
   const boostDisplay = convertCurrency(boostAmount, "SA", country || "SA");
+  const baseDisplay = convertCurrency(baseAmount, "SA", country || "SA");
+  const surchargeDisplay = convertCurrency(crossSurcharge, "SA", country || "SA");
   const fmt = (n) => Number(n).toLocaleString(ar ? "ar-SA" : "en-US", { maximumFractionDigits: 2 });
   const subs = category ? getSubcategories(category) : [];
 
@@ -433,9 +437,15 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             <div className="mt-2.5 space-y-1 text-xs">
               <div className="flex items-center justify-between pt-1 border-t border-border/60">
                 <span className="text-muted-foreground">{ar ? "الإجمالي بعد التعزيز" : "Total after boost"}</span>
-                <span className="font-semibold">{fmt(boostDisplay)} {ar ? cur.currencyAr : cur.currency}</span>
+                <span className="font-semibold">{fmt(baseDisplay)} {ar ? cur.currencyAr : cur.currency}</span>
               </div>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">{ar ? <>سيظهر إعلانك في قسم المميز طوال هذه المدة لجميع المدن في دولتك {cur.flag}</> : <>Your listing will appear in the Featured section for this duration across all cities in your country {cur.flag}</>}</p>
+              {boostCross && (
+                <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400">
+                  <span>{ar ? "إضافة كل دول الخليج (+75%)" : "Gulf countries add-on (+75%)"}</span>
+                  <span className="font-semibold">+{fmt(surchargeDisplay)} {ar ? cur.currencyAr : cur.currency}</span>
+                </div>
+              )}
+              <p className="text-[11px] text-muted-foreground leading-relaxed">{boostCross ? (ar ? <>سيظهر إعلانك في قسم المميز طوال هذه المدة في كل دول الخليج</> : <>Your listing will appear in the Featured section for this duration across all Gulf countries</>) : (ar ? <>سيظهر إعلانك في قسم المميز طوال هذه المدة لجميع المدن في دولتك {cur.flag}</> : <>Your listing will appear in the Featured section for this duration across all cities in your country {cur.flag}</>)}</p>
             </div>
           )}
         </div>

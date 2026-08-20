@@ -31,20 +31,23 @@ export default function UserProfile() {
           const p = await base44.functions.invoke("getPublicProfile", { user_id: id });
           setProfile(p?.data || null);
         } catch {}
-        const all = await base44.entities.Item.list("-created_date", 200);
-        setItems((all || []).filter((it) => it.seller_id === id));
-        const rs = await base44.entities.Rating.filter({ rated_user_id: id }, "-created_date", 50);
+        // Server-side query by seller_id — the old code loaded the newest 200
+        // listings globally and filtered client-side, so with a large catalog a
+        // seller's listings fell outside that window and showed as 0.
+        const [mine, rs] = await Promise.all([
+          base44.entities.Item.filter({ seller_id: id }, "-created_date", 200),
+          base44.entities.Rating.filter({ rated_user_id: id }, "-created_date", 50),
+        ]);
+        setItems(mine || []);
         setRatings(rs || []);
         const itemIds = [...new Set((rs || []).map((r) => r.item_id).filter(Boolean))];
-        const itemMap = {};
-        await Promise.all(
-          itemIds.map(async (iid) => {
-            try {
-              const it = await base44.entities.Item.get(iid);
-              if (it) itemMap[iid] = it;
-            } catch {}
-          })
-        );
+        let itemMap = {};
+        if (itemIds.length) {
+          try {
+            const reviewIts = await base44.entities.Item.filter({ id: { $in: itemIds } }, "-created_date", itemIds.length);
+            (reviewIts || []).forEach((it) => { itemMap[it.id] = it; });
+          } catch {}
+        }
         setReviewItems(itemMap);
       } catch {
       } finally {

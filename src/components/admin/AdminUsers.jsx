@@ -317,7 +317,13 @@ export default function AdminUsers() {
                   {selected.is_trusted && <ShieldCheck size={16} className="text-cyan-500" />}
                   {selected.is_banned && <Ban size={16} className="text-rose-500" />}
                 </div>
-                <p className="text-sm text-muted-foreground truncate">@{selected.username || "—"}</p>
+                <button
+                  onClick={() => nav(`/user/${selected.id}?name=${encodeURIComponent(`${selected.first_name || ""} ${selected.last_name || ""}`.trim())}&avatar=${encodeURIComponent(selected.avatar || "")}`)}
+                  className="text-sm text-muted-foreground truncate hover:text-primary hover:underline text-start w-full"
+                  title={ar ? "عرض الملف الشخصي" : "View profile"}
+                >
+                  @{selected.username || "—"}
+                </button>
                 <p className="text-xs text-muted-foreground truncate">{selected.email}</p>
               </div>
             </div>

@@ -223,17 +223,23 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
                   }
                   const isUploading = uploading && i === images.length;
                   return (
-                    <label key={i} className="aspect-square rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:bg-muted cursor-pointer gap-1 flex-1">
-                      {isUploading ? (
-                        <div className="w-5 h-5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <>
-                          <ImagePlus size={20} />
-                          <span className="text-[10px] font-medium">{t("addPhotos")}</span>
-                        </>
+                    <Draggable key={`empty-${i}`} draggableId={`empty-${i}`} index={i} isDragDisabled>
+                      {(prov) => (
+                        <div ref={prov.innerRef} {...prov.draggableProps} className="aspect-square rounded-xl border-2 border-dashed border-border flex-1">
+                          <label className="w-full h-full flex flex-col items-center justify-center text-muted-foreground hover:bg-muted cursor-pointer gap-1">
+                            {isUploading ? (
+                              <div className="w-5 h-5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <>
+                                <ImagePlus size={20} />
+                                <span className="text-[10px] font-medium">{t("addPhotos")}</span>
+                              </>
+                            )}
+                            <input type="file" accept="image/*" multiple className="hidden" onChange={onPick} />
+                          </label>
+                        </div>
                       )}
-                      <input type="file" accept="image/*" multiple className="hidden" onChange={onPick} />
-                    </label>
+                    </Draggable>
                   );
                 })}
                 {provided.placeholder}

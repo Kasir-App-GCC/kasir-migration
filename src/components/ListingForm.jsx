@@ -15,6 +15,7 @@ import SheetSelect from "@/components/SheetSelect";
 import ReviewTagChips from "@/components/ReviewTagChips";
 import { getListingTags } from "@/lib/listingTags";
 import ImageEditor from "@/components/ImageEditor";
+import VerificationDialog from "@/components/VerificationDialog";
 
 // Convert Arabic-Indic (٠-٩) and Eastern Arabic (۰-۹) digits to ASCII 0-9
 function normalizeDigits(s) {
@@ -54,6 +55,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [uploading, setUploading] = useState(false);
   const [posting, setPosting] = useState(false);
   const [editQueue, setEditQueue] = useState([]);
+  const [verifyOpen, setVerifyOpen] = useState(false);
 
   // Reverse-geocode coordinates to an accurate place name for display.
   const reverseGeocode = async (la, ln) => {
@@ -285,9 +287,9 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         </DragDropContext>
         <p className="text-[11px] text-muted-foreground mt-1.5">{t("dragToReorder")}</p>
         {!verified && (
-          <p className="text-[11px] text-blue-600 dark:text-blue-400 mt-1 flex items-center gap-1">
-            <Lock size={11} /> {ar ? "تحقق من حسابك لإضافة حتى 15 صورة" : "Verify your account to add up to 15 photos"}
-          </p>
+          <button type="button" onClick={() => setVerifyOpen(true)} className="text-[11px] text-blue-600 dark:text-blue-400 mt-1 flex items-center gap-1 hover:underline">
+            <Lock size={11} /> {ar ? "تحقق من حسابك لإضافة 10 صور إضافية" : "Verify your account to add 10 more photos"}
+          </button>
         )}
         {images.length === 0 && (
           <p className="text-[11px] text-rose-500 font-semibold mt-1">{ar ? "صورة واحدة على الأقل مطلوبة" : "At least one photo is required"}</p>
@@ -571,6 +573,8 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
           onSkipFile={handleSkipFile}
         />
       )}
+
+      <VerificationDialog open={verifyOpen} onClose={() => setVerifyOpen(false)} />
     </div>
   );
 }

@@ -160,7 +160,10 @@ export default function ImageEditor({ files, lang, onFileDone, onSkipFile }) {
         mctx.stroke();
       });
       // Blurred image via downscale-upscale (reliable on mobile, no ctx.filter).
-      const scale = 0.1;
+      // Scale is proportional to canvas size so the blur radius is a consistent
+      // ~0.83% of the canvas — otherwise the larger export canvas gets a much
+      // weaker proportional blur than the small editor stage.
+      const scale = Math.max(0.03, Math.min(0.2, 60 / (V * dpr)));
       const small = document.createElement("canvas");
       small.width = Math.max(1, Math.round(V * dpr * scale));
       small.height = Math.max(1, Math.round(V * dpr * scale));
@@ -347,7 +350,7 @@ export default function ImageEditor({ files, lang, onFileDone, onSkipFile }) {
           s.points.forEach((p, i) => { const x = p.x * C, y = p.y * C; i ? mctx.lineTo(x, y) : mctx.moveTo(x, y); });
           mctx.stroke();
         });
-        const scale = 0.1;
+        const scale = Math.max(0.03, Math.min(0.2, 60 / C));
         const small = document.createElement("canvas");
         small.width = Math.max(1, Math.round(C * scale));
         small.height = Math.max(1, Math.round(C * scale));

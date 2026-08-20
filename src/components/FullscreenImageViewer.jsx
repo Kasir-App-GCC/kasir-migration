@@ -92,8 +92,6 @@ export default function FullscreenImageViewer({ images, index, onClose, lang }) 
           // RTL: invert so swiping toward the reading-start feels natural
           if (ar) { if (dx < 0) goPrev(); else goNext(); }
           else { if (dx < 0) goNext(); else goPrev(); }
-        } else if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
-          onClose();
         }
       }
     }

@@ -28,7 +28,9 @@ export default function AdminDashboard() {
         // Exclude generated seed/test listings (seller_id starts with "seed-")
         // so dashboard stats reflect real marketplace activity only.
         const realItems = (items || []).filter((i) => !(i.seller_id || "").startsWith("seed-"));
-        const soldItems = realItems.filter((i) => i.status === "sold");
+        // Total Sales = count of agreed (accepted/completed) offers, not item
+        // status — so deleting the item or chat doesn't change the sales count.
+        const soldOffers = (offers || []).filter((o) => (o.status === "accepted" || o.status === "completed") && !(o.seller_id || "").startsWith("seed-"));
         // Platform revenue = approved boost fees + approved verification fees.
         // Sold items' prices are the sellers' GMV, NOT the platform's revenue.
         const approvedBoosts = (boosts || []).filter((b) => b.status === "approved");
@@ -40,9 +42,7 @@ export default function AdminDashboard() {
         const revenue = boostRevenue + verificationRevenue;
         // Total money spent = sum of agreed (accepted/completed) offer amounts,
         // i.e. the actual transaction value buyers paid, not the listing price.
-        const totalSpent = (offers || [])
-          .filter((o) => (o.status === "accepted" || o.status === "completed") && !(o.seller_id || "").startsWith("seed-"))
-          .reduce((s, o) => s + (o.amount || 0), 0);
+        const totalSpent = soldOffers.reduce((s, o) => s + (o.amount || 0), 0);
         const trusted = (users || []).filter((u) => u.is_trusted).length;
         const banned = (users || []).filter((u) => u.is_banned).length;
         const openTickets = (tickets || []).filter((t) => t.status === "open").length;
@@ -50,7 +50,7 @@ export default function AdminDashboard() {
         setStats({
           users: users?.length || 0,
           items: realItems.length,
-          sold: soldItems.length,
+          sold: soldOffers.length,
           totalSpent,
           revenue,
           boostRevenue,

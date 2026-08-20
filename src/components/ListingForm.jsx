@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ImagePlus, X, Sparkles, LocateFixed, MapPin, GripVertical, Globe, Lock, Check } from "lucide-react";
+import { ImagePlus, X, Sparkles, LocateFixed, MapPin, GripVertical, Globe, Lock, Check, Camera, Wand2 } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -16,6 +16,7 @@ import SheetSelect from "@/components/SheetSelect";
 import ReviewTagChips from "@/components/ReviewTagChips";
 import { getListingTags } from "@/lib/listingTags";
 import ImageEditor from "@/components/ImageEditor";
+import CameraCapture from "@/components/CameraCapture";
 import VerificationDialog from "@/components/VerificationDialog";
 
 // Convert Arabic-Indic (٠-٩) and Eastern Arabic (۰-۹) digits to ASCII 0-9
@@ -57,6 +58,8 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [posting, setPosting] = useState(false);
   const [editQueue, setEditQueue] = useState([]);
   const [verifyOpen, setVerifyOpen] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
 
   // Reverse-geocode coordinates to an accurate place name for display.
   const reverseGeocode = async (la, ln) => {
@@ -117,6 +120,47 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
 
   const handleSkipFile = (idx) => {
     setEditQueue((q) => q.filter((_, i) => i !== idx));
+  };
+
+  const onCameraDone = (files) => {
+    setCameraOpen(false);
+    const remaining = maxPhotos - images.length;
+    const accepted = Array.from(files).slice(0, remaining);
+    if (accepted.length) setEditQueue(accepted);
+  };
+
+  // AI photo analysis: sends the cover photos to a vision LLM and auto-fills
+  // the listing details (title, category, condition, subcategory, description,
+  // and a price estimate when the price is still empty).
+  const analyze = async () => {
+    if (!images.length || analyzing) return;
+    setAnalyzing(true);
+    try {
+      const res = await base44.functions.invoke("analyzeListingImage", { image_urls: images.slice(0, 5), lang });
+      const s = res?.data?.suggestion;
+      if (s) {
+        if (s.title) setTitle(String(s.title).slice(0, 50));
+        if (s.category && CATEGORIES.find((c) => c.id === s.category)) {
+          setCategory(s.category);
+          setSubcats([]);
+          setTags([]);
+          if (s.subcategory) {
+            const subs = getSubcategories(s.category);
+            const m = subs.find((x) => x.en === s.subcategory || x.ar === s.subcategory);
+            if (m) setSubcats([m.en]);
+          }
+        }
+        if (s.condition && CONDITIONS.find((c) => c.id === s.condition)) setCondition(s.condition);
+        if (s.description) setDescription(String(s.description).slice(0, 500));
+        if (s.price_estimate && !price) setPrice(String(s.price_estimate));
+        toast({ title: ar ? "تم تحليل الصور وتعبئة التفاصيل" : "Photos analyzed — details filled in" });
+      } else {
+        toast({ title: ar ? "لم يتمكن الذكاء الاصطناعي من تحليل الصور" : "AI couldn't analyze the photos", variant: "destructive" });
+      }
+    } catch (e) {
+      toast({ title: ar ? "تعذّر التحليل" : "Couldn't analyze photos", variant: "destructive" });
+    }
+    setAnalyzing(false);
   };
 
   const onDragEnd = (res) => {
@@ -196,7 +240,16 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="text-sm font-semibold block">{t("photos")}</label>
-          <span className="text-[11px] text-muted-foreground font-medium">{images.length}/{maxPhotos}</span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCameraOpen(true)}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 active:scale-95 transition"
+            >
+              <Camera size={12} /> {ar ? "كاميرا" : "Camera"}
+            </button>
+            <span className="text-[11px] text-muted-foreground font-medium">{images.length}/{maxPhotos}</span>
+          </div>
         </div>
         <DragDropContext onDragEnd={onDragEnd}>
           <Droppable droppableId="photos" direction="horizontal">
@@ -293,6 +346,25 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
               : (ar ? "يمكنك إضافة حتى ١٠ صور فقط" : "You can upload up to 10 photos only")}
           </span>
         </div>
+        {images.length > 0 && (
+          <button
+            type="button"
+            onClick={analyze}
+            disabled={analyzing}
+            className="mt-2 w-full py-2.5 rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] transition"
+          >
+            {analyzing ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                {ar ? "جارٍ تحليل الصور…" : "Analyzing photos…"}
+              </>
+            ) : (
+              <>
+                <Wand2 size={16} /> {ar ? "تحليل الصور بالذكاء الاصطناعي" : "AI Analyze Photos"}
+              </>
+            )}
+          </button>
+        )}
         {images.length === 0 && (
           <p className="text-[11px] text-rose-500 font-semibold mt-1">{ar ? "صورة واحدة على الأقل مطلوبة" : "At least one photo is required"}</p>
         )}
@@ -578,6 +650,15 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             </button>
           </div>
         </div>
+      )}
+
+      {cameraOpen && (
+        <CameraCapture
+          lang={lang}
+          max={Math.max(1, maxPhotos - images.length)}
+          onDone={onCameraDone}
+          onClose={() => setCameraOpen(false)}
+        />
       )}
 
       {editQueue.length > 0 && (

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { TrendingUp, X, CheckCircle2, ExternalLink } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { TrendingUp, X, CheckCircle2, ExternalLink, Users, ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -21,6 +21,22 @@ export default function AdminBoosts() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(null);
+  const [showBuyers, setShowBuyers] = useState(false);
+
+  // Aggregate approved boosts per buyer to track who purchased boosts.
+  const buyers = useMemo(() => {
+    const map = new Map();
+    (requests || []).filter((r) => r.status === "approved").forEach((r) => {
+      const key = r.user_id || r.user_name || "unknown";
+      const cur = map.get(key) || { user_id: r.user_id, user_name: r.user_name || "—", count: 0, total: 0 };
+      cur.count += 1;
+      cur.total += Number(r.amount || 0);
+      map.set(key, cur);
+    });
+    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+  }, [requests]);
+
+  const buyersRevenue = useMemo(() => buyers.reduce((s, b) => s + b.total, 0), [buyers]);
 
   const load = async () => {
     try {
@@ -70,6 +86,33 @@ export default function AdminBoosts() {
 
   return (
     <div className="space-y-3">
+      {buyers.length > 0 && (
+        <div className="rounded-2xl bg-card border border-border/60 overflow-hidden">
+          <button onClick={() => setShowBuyers((v) => !v)} className="w-full flex items-center justify-between p-3.5 hover:bg-muted/50 transition">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center"><Users size={18} /></div>
+              <div className="text-start">
+                <p className="font-bold text-sm">{ar ? "مشترو التعزيز" : "Boost Buyers"}</p>
+                <p className="text-xs text-muted-foreground">{buyers.length} {ar ? "بائع" : "sellers"} · {buyersRevenue.toLocaleString(ar ? "ar-SA" : "en-US")} {ar ? "ر.س" : "SAR"}</p>
+              </div>
+            </div>
+            {showBuyers ? <ChevronUp size={18} className="text-muted-foreground" /> : <ChevronDown size={18} className="text-muted-foreground" />}
+          </button>
+          {showBuyers && (
+            <div className="divide-y divide-border/40 border-t border-border/40">
+              {buyers.map((b) => (
+                <div key={b.user_id || b.user_name} className="flex items-center justify-between p-3">
+                  <button onClick={() => b.user_id && nav(`/user/${b.user_id}`)} className="font-semibold text-sm truncate hover:underline text-start">{b.user_name}</button>
+                  <div className="flex items-center gap-3 text-xs shrink-0">
+                    <span className="text-muted-foreground">{b.count} {ar ? "تعزيز" : "boosts"}</span>
+                    <span className="font-bold">{b.total.toLocaleString(ar ? "ar-SA" : "en-US")} {ar ? "ر.س" : "SAR"}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       {requests.length === 0 ? (
         <div className="text-center py-10 text-muted-foreground">
           <TrendingUp size={32} className="mx-auto mb-2 opacity-40" />

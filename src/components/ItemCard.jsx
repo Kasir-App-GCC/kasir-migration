@@ -1,5 +1,8 @@
 import React, { useState, useRef } from "react";
-import { Heart, MapPin, Clock, ChevronLeft, ChevronRight, Star, BadgeCheck, Sparkles, Earth } from "lucide-react";
+import { Heart, MapPin, Clock, ChevronLeft, ChevronRight, Star, BadgeCheck, Sparkles } from "lucide-react";
+import { Image } from "@/components/ui/image";
+
+const CROSS_COUNTRY_ICON = "https://media.base44.com/images/public/6a81368f876e0b385d3684d3/9666433b3_image.png";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { timeAgo } from "@/lib/format";
@@ -134,9 +137,12 @@ export default function ItemCard({ item, onClick, promoted = false }) {
           </span>
           {multi && <span className="text-[10px] text-muted-foreground">{imgs.length} {t("photos")}</span>}
           {crossCountryActive && (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-500 text-white shrink-0" title={lang === "ar" ? "دولي" : "Cross-country"}>
-              <Earth size={10} />
-            </span>
+            <Image
+              src={CROSS_COUNTRY_ICON}
+              alt={lang === "ar" ? "دولي" : "Cross-country"}
+              className="w-3.5 h-3.5 rounded-sm shrink-0"
+              fittingType="fit"
+            />
           )}
           {promoted && (
             <span className="ms-auto inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500 text-white shrink-0">

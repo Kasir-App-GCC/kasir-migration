@@ -201,7 +201,7 @@ export default function Profile() {
                 <div key={it.id} className="relative">
                   <ItemCard item={it} onClick={() => nav(`/item/${it.id}`)} />
                   {promoted && (
-                    <span className="absolute top-2 left-1/2 -translate-x-1/2 z-20 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-500 text-white shadow-lg ring-1 ring-amber-300/50 pointer-events-none">
+                    <span className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-500 text-white shadow-lg ring-1 ring-amber-300/50 pointer-events-none">
                       <Sparkles size={11} /> {ar ? "مُميّز" : "Promoted"}
                     </span>
                   )}

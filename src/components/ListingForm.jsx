@@ -201,7 +201,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         <DragDropContext onDragEnd={onDragEnd}>
           <Droppable droppableId="photos" direction="horizontal">
             {(provided) => (
-              <div ref={provided.innerRef} {...provided.droppableProps} className="flex gap-2">
+              <div ref={provided.innerRef} {...provided.droppableProps} className="flex flex-wrap gap-2">
                 {images.map((url, i) => (
                   <Draggable key={url} draggableId={url} index={i}>
                     {(prov, snap) => (
@@ -209,7 +209,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
                         ref={prov.innerRef}
                         {...prov.draggableProps}
                         {...prov.dragHandleProps}
-                        className={`relative aspect-square rounded-xl overflow-hidden flex-1 select-none ${snap.isDragging ? "opacity-70 ring-2 ring-primary" : ""}`}
+                        className={`relative w-24 h-24 rounded-xl overflow-hidden select-none ${snap.isDragging ? "opacity-70 ring-2 ring-primary" : ""}`}
                       >
                         <Image src={url} fittingType="fill" className="w-full h-full pointer-events-none" style={{ display: "block" }} />
                         <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/25 transition pointer-events-none">
@@ -232,7 +232,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
                   return (
                     <Draggable key={`empty-${i}`} draggableId={`empty-${i}`} index={i} isDragDisabled>
                       {(prov) => (
-                        <div ref={prov.innerRef} {...prov.draggableProps} className="aspect-square rounded-xl border-2 border-dashed border-border flex-1">
+                        <div ref={prov.innerRef} {...prov.draggableProps} className="w-24 h-24 rounded-xl border-2 border-dashed border-border">
                           <label className="w-full h-full flex flex-col items-center justify-center text-muted-foreground hover:bg-muted cursor-pointer gap-1">
                             {isUploading ? (
                               <div className="w-5 h-5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
@@ -251,7 +251,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
                 })}
                 {verified ? (
                   images.length < maxPhotos ? (
-                    <label className="aspect-square rounded-xl border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-950/30 flex-1 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 cursor-pointer gap-0.5 hover:bg-blue-100 dark:hover:bg-blue-900/40">
+                    <label className="w-24 h-24 rounded-xl border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-950/30 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 cursor-pointer gap-0.5 hover:bg-blue-100 dark:hover:bg-blue-900/40">
                       {uploading ? (
                         <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                       ) : (
@@ -264,7 +264,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
                       <input type="file" accept="image/*" multiple className="hidden" onChange={onPick} />
                     </label>
                   ) : (
-                    <div className="aspect-square rounded-xl border-2 border-dashed border-blue-300 bg-blue-50/50 flex-1 flex flex-col items-center justify-center text-blue-400 gap-0.5 opacity-60">
+                    <div className="w-24 h-24 rounded-xl border-2 border-dashed border-blue-300 bg-blue-50/50 flex flex-col items-center justify-center text-blue-400 gap-0.5 opacity-60">
                       <Check size={18} />
                       <span className="text-[9px] font-semibold">{ar ? "الحد الأقصى 15" : "Max 15"}</span>
                     </div>
@@ -274,7 +274,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
                     <button
                       type="button"
                       onClick={() => toast({ title: ar ? "تحقق من حسابك لإضافة حتى 10 صور إضافية" : "Verify your account to add up to 10 more photos", description: ar ? "يرفع الحد الأقصى للصور إلى 15" : "Raises the photo limit to 15" })}
-                      className="aspect-square rounded-xl border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-950/30 flex-1 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 gap-1"
+                      className="w-24 h-24 rounded-xl border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-950/30 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 gap-1"
                     >
                       <Lock size={18} />
                       <span className="text-[9px] font-semibold text-center px-1 leading-tight">{ar ? "تحقق لإضافة 10 صور" : "Verify for 10 more"}</span>

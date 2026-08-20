@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck } from "lucide-react";
+import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck, Sparkles } from "lucide-react";
 import VerificationDialog from "@/components/VerificationDialog";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -179,18 +179,26 @@ export default function Profile() {
       {tab === "listings" && (
         myListings.length ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {myListings.map((it) => (
-              <div key={it.id} className="relative">
-                <ItemCard item={it} onClick={() => nav(`/item/${it.id}`)} />
-                <button
-                  onClick={() => deleteListing(it.id)}
-                  className="absolute top-2 end-2 z-20 w-8 h-8 rounded-full bg-rose-600 text-white shadow flex items-center justify-center hover:scale-110 transition"
-                  title={t("deleteListing")}
-                >
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            ))}
+            {myListings.map((it) => {
+              const promoted = !!(it.featured && it.featured_until && new Date(it.featured_until) > new Date());
+              return (
+                <div key={it.id} className="relative">
+                  <ItemCard item={it} onClick={() => nav(`/item/${it.id}`)} />
+                  {promoted && (
+                    <span className="absolute top-2 left-1/2 -translate-x-1/2 z-20 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-500 text-white shadow-lg ring-1 ring-amber-300/50 pointer-events-none">
+                      <Sparkles size={11} /> {ar ? "مُميّز" : "Promoted"}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => deleteListing(it.id)}
+                    className="absolute top-2 end-2 z-20 w-8 h-8 rounded-full bg-rose-600 text-white shadow flex items-center justify-center hover:scale-110 transition"
+                    title={t("deleteListing")}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-16 text-muted-foreground">

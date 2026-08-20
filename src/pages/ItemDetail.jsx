@@ -201,7 +201,17 @@ export default function ItemDetail() {
       });
       const text = (lang === "ar" ? "أبي أعرض عليك بسعر " : "I'd like to offer ") + formatPrice(offerPrice, lang, item.country);
       await base44.entities.ChatRoom.update(room.id, { last_message: text, hidden_for_buyer: false, hidden_for_seller: false });
-      sendPush({ user_id: item.seller_id, title: user?.name || t("appName"), content: text, action_url: `/chat/${room.id}` });
+      base44.entities.Notification.create({
+        user_id: item.seller_id,
+        type: "offer_received",
+        text,
+        item_id: item.id,
+        item_title: item.title,
+        item_image: item.images?.[0] || null,
+        chatroom_id: room.id,
+        offer_amount: offerPrice,
+        actor_name: user.name,
+      }).catch(() => {});
       nav(`/chat/${room.id}`);
     } catch {
       setSending(false);

@@ -3,6 +3,7 @@ import { X, ImagePlus, Send } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useToast } from "@/components/ui/use-toast";
 import CurrencySymbol from "@/components/CurrencySymbol";
+import { formatPrice } from "@/lib/format";
 
 export default function BuyRequestOfferDialog({ req, user, lang, country, onClose, onSent }) {
   const { toast } = useToast();
@@ -81,6 +82,20 @@ export default function BuyRequestOfferDialog({ req, user, lang, country, onClos
       }
       const lastMsg = customMsg || (lang === "ar" ? "تم إرسال عرض" : "Offer sent");
       await base44.entities.ChatRoom.update(roomId, { last_message: lastMsg, hidden_for_buyer: false, hidden_for_seller: false });
+
+      const notifText = lang === "ar"
+        ? `عرض جديد من ${user.name} على طلبك (${formatPrice(Number(amount), lang, country)})`
+        : `New offer from ${user.name} (${formatPrice(Number(amount), lang, country)})`;
+      base44.entities.Notification.create({
+        user_id: req.user_id,
+        type: "offer_received",
+        text: notifText,
+        item_id: req.id,
+        item_title: req.title,
+        chatroom_id: roomId,
+        offer_amount: Number(amount),
+        actor_name: user.name,
+      }).catch(() => {});
 
       onSent(roomId);
     } catch {

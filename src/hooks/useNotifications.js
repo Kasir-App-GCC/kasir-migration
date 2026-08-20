@@ -28,9 +28,7 @@ export default function useNotifications() {
           base44.entities.Rating.filter({ rated_user_id: user.id }, "-created_date", 10).catch(() => []),
           base44.entities.Notification.filter({ user_id: user.id }, "-created_date", 30).catch(() => []),
         ]);
-        const { rooms: mine, messages: msgs, offers, roomMap } = chatData;
-        const isIncoming = (o) =>
-          o && ((o.direction === "buyer_offer" && o.seller_id === user.id) || (o.direction === "seller_counter" && o.buyer_id === user.id));
+        const { rooms: mine, messages: msgs, roomMap } = chatData;
         const roomSince = (roomId) => {
           const r = roomMap.get(roomId);
           if (!r) return 0;
@@ -44,17 +42,6 @@ export default function useNotifications() {
             roomId: m.chatroom_id, date: m.created_date,
             unread: toDate(m.created_date).getTime() > roomSince(m.chatroom_id),
           }));
-        const offerNotifs = (offers || [])
-          .filter((o) => roomMap.has(o.chatroom_id) && isIncoming(o))
-          .map((o) => {
-            const who = o.direction === "buyer_offer" ? o.buyer_name : o.seller_name;
-            return {
-              id: o.id, type: "offer",
-              text: `${t("offerMessage")} · ${o.amount} ${lang === "ar" ? "ر.س" : "SAR"}`,
-              name: who, roomId: o.chatroom_id, date: o.created_date,
-              unread: toDate(o.created_date).getTime() > roomSince(o.chatroom_id),
-            };
-          });
 
         const ratings = (rs || []).map((r) => ({
           id: r.id, type: "rating", text: r.review || "", name: r.rater_name,
@@ -75,7 +62,7 @@ export default function useNotifications() {
         });
 
         const clearedAt = notifsClearedAt ? toDate(notifsClearedAt).getTime() : 0;
-        const all = [...notifs, ...offerNotifs, ...ratings, ...systemNotifs]
+        const all = [...notifs, ...ratings, ...systemNotifs]
           .sort((a, b) => toDate(b.date) - toDate(a.date))
           .filter((n) => toDate(n.date).getTime() > clearedAt);
         setItems(all);

@@ -37,6 +37,10 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
             <CheckCircle size={18} />
           </div>
         )
+      ) : n.type === "offer_received" ? (
+        <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-300">
+          <Tag size={18} />
+        </div>
       ) : n.type === "offer_accepted" ? (
         <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300">
           <Check size={18} />

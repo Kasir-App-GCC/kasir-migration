@@ -6,7 +6,7 @@ import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { CATEGORIES, CONDITIONS, getSubcategories, getCityName } from "@/lib/constants";
 import { getCities, nearestCityInCountry, getCountry, convertCurrency } from "@/lib/countries";
-import { computeBoostCost, buildBoostSegments, existingBoostHours, BOOST_MAX_HOURS, BOOST_MIN_HOURS } from "@/lib/boostPricing";
+import { computeBoostPrice, existingBoostHours, BOOST_MAX_HOURS, BOOST_MIN_HOURS } from "@/lib/boostPricing";
 import MapPinPicker from "@/components/MapPinPicker";
 import { Image } from "@/components/ui/image";
 import { compressImage } from "@/lib/compressImage";
@@ -171,15 +171,12 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   };
 
   const valid = title && price && category && city && images.length > 0;
-  // Cumulative tiered boost pricing: each new hour is priced by where it lands
-  // in the 0–168h accumulated range (existing boost + new hours), so stacking
-  // short boosts can't re-earn the cheapest tier every time.
-  //   0–24h → 5/hr (+3), 24–48h → 4/hr (+2), 48–72h → 3/hr (+1), 72h–1wk → 1/hr (+1).
+  // Featured-listing promotion price: basePrice = 5 + 20·ln(1 + P/500), then
+  // × (H/24)^0.70, floored at SAR 5. P is the item price, H the selected hours.
   const existingHours = existingBoostHours(initial?.featured_until);
   const maxBoost = Math.max(0, BOOST_MAX_HOURS - existingHours);
-  const boostAmount = boostHours > 0 ? computeBoostCost(existingHours, boostHours, boostCross).amount : 0;
-  const boostSegments = boostHours > 0 ? buildBoostSegments(existingHours, boostHours) : [];
-  const totalAfter = Math.min(existingHours + boostHours, BOOST_MAX_HOURS);
+  const itemPrice = Number(price) || 0;
+  const boostAmount = boostHours > 0 ? computeBoostPrice(itemPrice, boostHours).amount : 0;
   const cur = getCountry(country || "SA");
   const boostDisplay = convertCurrency(boostAmount, "SA", country || "SA");
   const fmt = (n) => Number(n).toLocaleString(ar ? "ar-SA" : "en-US", { maximumFractionDigits: 2 });
@@ -432,14 +429,8 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
           {maxBoost === 0 && (
             <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">{ar ? "وصلت للحد الأقصى (أسبوع واحد)" : "Max boost reached (1 week)"}</p>
           )}
-          {boostHours > 0 && boostSegments.length > 0 && (
+          {boostHours > 0 && (
             <div className="mt-2.5 space-y-1 text-xs">
-              {boostSegments.map((seg, i) => (
-                <div key={i} className="flex items-center justify-between text-muted-foreground">
-                  <span>{seg.hours}{ar ? "س" : "h"} × {fmt(convertCurrency(seg.base, "SA", country || "SA"))} {ar ? cur.currencyAr : cur.currency}</span>
-                  <span className="font-semibold text-foreground">{fmt(convertCurrency(seg.hours * seg.base, "SA", country || "SA"))}</span>
-                </div>
-              ))}
               <div className="flex items-center justify-between pt-1 border-t border-border/60">
                 <span className="text-muted-foreground">{ar ? "الإجمالي بعد التعزيز" : "Total after boost"}</span>
                 <span className="font-semibold">{fmt(boostDisplay)} {ar ? cur.currencyAr : cur.currency}</span>
@@ -465,12 +456,6 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
                 <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${boostCross ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
               </span>
             </button>
-            {boostCross && boostSegments.length > 0 && (
-              <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 text-xs">
-                <span className="text-emerald-700 dark:text-emerald-300 font-semibold">{ar ? "إضافة عرض كل دول الخليج" : "Gulf countries add-on"}</span>
-                <span className="font-bold text-emerald-700 dark:text-emerald-300">+{fmt(convertCurrency(boostSegments.reduce((s, seg) => s + seg.hours * seg.cross, 0), "SA", country || "SA"))} {ar ? cur.currencyAr : cur.currency}</span>
-              </div>
-            )}
             <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900">
               <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">{ar ? "الإجمالي" : "Total"}</span>
               <span className="text-lg font-extrabold text-amber-700 dark:text-amber-300">{fmt(boostDisplay)} {ar ? cur.currencyAr : cur.currency}</span>

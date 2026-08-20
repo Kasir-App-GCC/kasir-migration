@@ -29,15 +29,10 @@ export default function Sell() {
     });
     if (boosted) {
       try {
-        await base44.entities.BoostRequest.create({
+        await base44.functions.invoke("createBoostRequest", {
           item_id: item.id,
-          item_title: item.title,
-          user_id: user?.id,
-          user_name: user?.name,
           hours: boost_hours,
           cross_country: !!boost_cross_country,
-          amount: boost_amount || 0,
-          status: "pending",
         });
       } catch {}
       toast({

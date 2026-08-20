@@ -1,59 +1,25 @@
-// Cumulative tiered boost pricing based on total accumulated boost time.
-// Each new hour is priced by where it lands in the 0–168h accumulated range
-// (existing boost + new hours), so stacking short boosts can't re-earn the
-// cheapest first-tier rate every time — that's the whole point of the model.
-//
-// Tiers (base SAR/hr + cross-country SAR/hr add-on):
-//   0–24h   → 5 + 3
-//   24–48h  → 4 + 2
-//   48–72h  → 3 + 1
-//   72h–1wk → 1 + 1
-// Total accumulated boost is capped at 1 week (168h); minimum purchase is 2h.
+// Featured-listing promotion pricing.
+//   basePrice       = 5 + 20 * ln(1 + P / 500)        (P = item price in SAR)
+//   calculatedPrice = basePrice * (H / 24) ^ 0.70     (H = promotion hours)
+//   finalPrice      = max(5, calculatedPrice)         (minimum charge SAR 5)
+// The sub-linear exponent (< 1) makes longer durations cheaper per hour.
+// Min duration 2h, max 168h (1 week). The identical formula runs server-side in
+// base44/shared/boostPricing.ts so the stored amount can't be tampered with.
 
 export const BOOST_MAX_HOURS = 168;
 export const BOOST_MIN_HOURS = 2;
 
-const TIERS = [
-  { upTo: 24, base: 5, cross: 3 },
-  { upTo: 48, base: 4, cross: 2 },
-  { upTo: 72, base: 3, cross: 1 },
-  { upTo: 168, base: 1, cross: 1 },
-];
-
-function tierAt(hour) {
-  for (const t of TIERS) if (hour < t.upTo) return t;
-  return null;
-}
-
-// Cost of adding `hours` new boost hours on top of `startHour` already-accumulated hours.
-export function computeBoostCost(startHour, hours, cross) {
-  const start = Math.max(0, Math.min(startHour, BOOST_MAX_HOURS));
-  const end = Math.min(start + Math.max(0, hours), BOOST_MAX_HOURS);
-  let baseAmount = 0;
-  let crossAmount = 0;
-  for (let h = start; h < end; h++) {
-    const tier = tierAt(h);
-    if (!tier) break;
-    baseAmount += tier.base;
-    if (cross) crossAmount += tier.cross;
-  }
-  return { amount: baseAmount + crossAmount, baseAmount, crossAmount, effectiveHours: end - start };
-}
-
-// Breakdown of the new hours by tier segment, for display.
-export function buildBoostSegments(startHour, hours) {
-  const start = Math.max(0, Math.min(startHour, BOOST_MAX_HOURS));
-  const end = Math.min(start + Math.max(0, hours), BOOST_MAX_HOURS);
-  const segments = [];
-  let h = start;
-  while (h < end) {
-    const tier = tierAt(h);
-    if (!tier) break;
-    const segEnd = Math.min(end, tier.upTo);
-    segments.push({ base: tier.base, cross: tier.cross, hours: segEnd - h });
-    h = segEnd;
-  }
-  return segments;
+export function computeBoostPrice(price, hours) {
+  const P = Math.max(0, Number(price) || 0);
+  const H = Math.max(0, Math.min(BOOST_MAX_HOURS, Number(hours) || 0));
+  const basePrice = 5 + 20 * Math.log(1 + P / 500);
+  const calculatedPrice = basePrice * Math.pow(H / 24, 0.70);
+  const finalPrice = Math.max(5, calculatedPrice);
+  return {
+    basePrice,
+    calculatedPrice,
+    amount: Math.round(finalPrice * 100) / 100,
+  };
 }
 
 // Remaining accumulated boost hours from a featured_until ISO string.

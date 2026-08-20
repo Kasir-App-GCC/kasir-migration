@@ -10,6 +10,7 @@ import { timeAgo } from "@/lib/format";
 import Price from "@/components/Price";
 import CurrencySymbol from "@/components/CurrencySymbol";
 import PullToRefresh from "@/components/PullToRefresh";
+import WhatsAppIcon from "@/components/WhatsAppIcon";
 
 export default function BuyRequests() {
   const { user, lang, country } = useStore();
@@ -19,7 +20,7 @@ export default function BuyRequests() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [tab, setTab] = useState("browse");
-  const [form, setForm] = useState({ title: "", category: "", budget: "", city: "", description: "" });
+  const [form, setForm] = useState({ title: "", category: "", budget: "", city: "", description: "", whatsapp_enabled: false, whatsapp_number: "" });
   const [submitting, setSubmitting] = useState(false);
   const [locating, setLocating] = useState(false);
   const [filterCategory, setFilterCategory] = useState("");
@@ -70,9 +71,11 @@ export default function BuyRequests() {
         user_id: user.id,
         user_name: user.name,
         user_avatar: user.avatar,
+        whatsapp_enabled: form.whatsapp_enabled,
+        whatsapp_number: form.whatsapp_enabled ? form.whatsapp_number.trim() : "",
         status: "open",
       });
-      setForm({ title: "", category: "", budget: "", city: "", description: "" });
+      setForm({ title: "", category: "", budget: "", city: "", description: "", whatsapp_enabled: false, whatsapp_number: "" });
       setShowForm(false);
       toast({ title: lang === "ar" ? "تم نشر طلبك" : "Request posted!" });
       load();
@@ -150,7 +153,10 @@ export default function BuyRequests() {
             {lang === "ar" ? "طلبات الشراء" : "Buy Requests"}
           </h1>
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => {
+              setForm((prev) => ({ ...prev, whatsapp_enabled: !!user.whatsapp_enabled, whatsapp_number: user.whatsapp_number || "" }));
+              setShowForm(true);
+            }}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-500 text-white text-sm font-bold hover:bg-violet-600 transition"
           >
             <Plus size={18} />
@@ -258,13 +264,27 @@ export default function BuyRequests() {
                       {req.user_name?.split(" ")[0]}
                     </button>
                     {tab === "browse" ? (
-                      <button
-                        onClick={() => startChat(req)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition"
-                      >
-                        <MessageCircle size={14} />
-                        {lang === "ar" ? "تواصل" : "Chat"}
-                      </button>
+                      <div className="flex gap-2">
+                        {req.whatsapp_enabled && req.whatsapp_number && (
+                          <a
+                            href={`https://wa.me/${req.whatsapp_number.replace(/[^0-9]/g, "")}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition"
+                            title={lang === "ar" ? "تواصل عبر واتساب" : "Contact via WhatsApp"}
+                          >
+                            <WhatsAppIcon size={16} />
+                          </a>
+                        )}
+                        <button
+                          onClick={() => startChat(req)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition"
+                        >
+                          <MessageCircle size={14} />
+                          {lang === "ar" ? "تواصل" : "Chat"}
+                        </button>
+                      </div>
                     ) : (
                       <div className="flex gap-2">
                         <button
@@ -375,6 +395,38 @@ export default function BuyRequests() {
                     rows={2}
                     className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 resize-none"
                   />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground block mb-1.5">
+                    {lang === "ar" ? "التواصل عبر واتساب" : "Reach me via WhatsApp"}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, whatsapp_enabled: !prev.whatsapp_enabled }))}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition ${form.whatsapp_enabled ? "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800" : "bg-muted border border-border/60"}`}
+                  >
+                    <span className="flex items-center gap-2 text-sm font-semibold">
+                      <WhatsAppIcon size={16} className={form.whatsapp_enabled ? "text-emerald-600" : "text-muted-foreground"} />
+                      {form.whatsapp_enabled ? (lang === "ar" ? "مفعّل" : "Enabled") : (lang === "ar" ? "غير مفعّل" : "Disabled")}
+                    </span>
+                    <span className={`w-10 h-6 rounded-full transition relative ${form.whatsapp_enabled ? "bg-emerald-500" : "bg-muted-foreground/30"}`}>
+                      <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${form.whatsapp_enabled ? "start-[18px]" : "start-0.5"}`} />
+                    </span>
+                  </button>
+                  {form.whatsapp_enabled && (
+                    <div className="mt-2">
+                      <input
+                        type="tel"
+                        value={form.whatsapp_number}
+                        onChange={(e) => setForm({ ...form, whatsapp_number: e.target.value })}
+                        placeholder={lang === "ar" ? "رقمك (مثال: 966512345678+)" : "Your number (e.g., +966512345678)"}
+                        className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {lang === "ar" ? "تأكد من الرقم — سيظهر للباعة للتواصل معك مباشرة" : "Make sure the number is correct — sellers will see it to reach you directly"}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
               <button

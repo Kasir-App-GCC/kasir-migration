@@ -168,23 +168,23 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     const p = rel(e);
-    pointers.set(e.pointerId, { cx: e.clientX, cy: e.clientY, x: p.x, y: p.y, nx: p.nx, ny: p.ny });
+    pointers.current.set(e.pointerId, { cx: e.clientX, cy: e.clientY, x: p.x, y: p.y, nx: p.nx, ny: p.ny });
     if (tool === "crop") {
-      if (pointers.size === 1) pan.current = { x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y };
-      if (pointers.size === 2) {
+      if (pointers.current.size === 1) pan.current = { x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y };
+      if (pointers.current.size === 2) {
         pan.current = null;
-        const [a, b] = [...pointers.values()];
+        const [a, b] = [...pointers.current.values()];
         pinch.current = { dist: dist(a, b), scale, mid: midOf(a, b), ox: offset.x, oy: offset.y };
       }
-    } else if (tool === "draw" && pointers.size === 1) {
+    } else if (tool === "draw" && pointers.current.size === 1) {
       const stroke = { color, size: brush / p.V, points: [{ x: p.nx, y: p.ny }] };
       drawRef.current = { kind: "draw", stroke };
       setStrokes((s) => [...s, stroke]);
-    } else if (tool === "blur" && pointers.size === 1) {
+    } else if (tool === "blur" && pointers.current.size === 1) {
       const stroke = { size: brush / p.V, points: [{ x: p.nx, y: p.ny }] };
       drawRef.current = { kind: "blur", stroke };
       setBlurStrokes((s) => [...s, stroke]);
-    } else if (tool === "text" && pointers.size === 1) {
+    } else if (tool === "text" && pointers.current.size === 1) {
       const hi = hitText(p.nx, p.ny);
       if (hi >= 0) {
         dragText.current = { index: hi, moved: false, ox: texts[hi].x, oy: texts[hi].y, sx: p.nx, sy: p.ny };
@@ -197,12 +197,12 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
   };
 
   const onPointerMove = (e) => {
-    if (!pointers.has(e.pointerId)) return;
+    if (!pointers.current.has(e.pointerId)) return;
     const p = rel(e);
-    pointers.set(e.pointerId, { cx: e.clientX, cy: e.clientY, x: p.x, y: p.y, nx: p.nx, ny: p.ny });
+    pointers.current.set(e.pointerId, { cx: e.clientX, cy: e.clientY, x: p.x, y: p.y, nx: p.nx, ny: p.ny });
     if (tool === "crop") {
-      if (pinch.current && pointers.size >= 2) {
-        const [a, b] = [...pointers.values()];
+      if (pinch.current && pointers.current.size >= 2) {
+        const [a, b] = [...pointers.current.values()];
         const d = dist(a, b);
         const ns = clampScale((pinch.current.scale * d) / pinch.current.dist);
         const m = midOf(a, b);
@@ -227,16 +227,16 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
   };
 
   const onPointerUp = (e) => {
-    const had = pointers.get(e.pointerId);
-    pointers.delete(e.pointerId);
+    const had = pointers.current.get(e.pointerId);
+    pointers.current.delete(e.pointerId);
     try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
     if (tool === "crop") {
-      if (pointers.size < 2) pinch.current = null;
-      if (pointers.size === 1) {
-        const [r] = [...pointers.values()];
+      if (pointers.current.size < 2) pinch.current = null;
+      if (pointers.current.size === 1) {
+        const [r] = [...pointers.current.values()];
         pan.current = { x: r.cx, y: r.cy, ox: offset.x, oy: offset.y };
       }
-      if (pointers.size === 0) pan.current = null;
+      if (pointers.current.size === 0) pan.current = null;
     } else if (drawRef.current) {
       const kind = drawRef.current.kind;
       setLog((l) => [...l, { type: kind }]);

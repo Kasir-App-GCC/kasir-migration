@@ -62,7 +62,6 @@ export default function AdminBoosts() {
           text: ar ? "تم تفعيل تعزيز إعلانك ⭐" : "Your listing has been promoted ⭐",
         });
       } catch {}
-      sendPush({ user_id: r.user_id, title: ar ? "كاشر" : "Kasir", content: ar ? "تمت الموافقة على تعزيز إعلانك ⭐" : "Your boost was approved ⭐", action_url: `/item/${r.item_id}` });
       setRequests((prev) => prev.map((x) => (x.id === r.id ? { ...x, status: "approved" } : x)));
       toast({ title: ar ? "تم تفعيل التعزيز" : "Boost activated" });
     } catch {

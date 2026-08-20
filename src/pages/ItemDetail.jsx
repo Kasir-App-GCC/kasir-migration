@@ -266,7 +266,6 @@ export default function ItemDetail() {
             item_image: item.images?.[0] || null,
             text,
           });
-          sendPush({ user_id: buyer.id, title: t("appName"), content: text, action_url: `/item/${item.id}` });
         } catch {}
         // Prompt both parties to rate each other after the sale.
         try {
@@ -275,7 +274,6 @@ export default function ItemDetail() {
             user_id: buyer.id, type: "rate", item_id: item.id, item_title: item.title,
             item_image: item.images?.[0] || null, text: rateSellerText, actor_name: item.seller_name,
           });
-          sendPush({ user_id: buyer.id, title: t("appName"), content: rateSellerText, action_url: `/item/${item.id}` });
         } catch {}
         try {
           const rateBuyerText = lang === "ar" ? "قيّم المشتري" : "Rate the buyer";
@@ -283,7 +281,6 @@ export default function ItemDetail() {
             user_id: item.seller_id, type: "rate", item_id: item.id, item_title: item.title,
             item_image: item.images?.[0] || null, text: rateBuyerText, actor_name: buyer.name,
           });
-          sendPush({ user_id: item.seller_id, title: t("appName"), content: rateBuyerText, action_url: `/item/${item.id}` });
         } catch {}
       }
     } catch {}

@@ -7,7 +7,6 @@ import { useT } from "@/lib/i18n";
 import { formatPrice } from "@/lib/format";
 import Price from "@/components/Price";
 import OfferCard from "@/components/OfferCard";
-import { sendPush } from "@/lib/notify";
 import TrustedBadge from "@/components/TrustedBadge";
 import PullToRefreshScroll from "@/components/PullToRefreshScroll";
 
@@ -133,8 +132,6 @@ export default function ChatRoom() {
     try {
       await base44.entities.Message.create(msg);
       await base44.entities.ChatRoom.update(id, { last_message: msg.text, hidden_for_buyer: false, hidden_for_seller: false });
-      const otherId = isSeller ? room?.buyer_id : room?.seller_id;
-      if (otherId) sendPush({ user_id: otherId, title: isOfficial ? officialLabel : (user?.name || t("appName")), content: body, action_url: `/chat/${id}` });
     } catch {}
   };
 
@@ -153,7 +150,6 @@ export default function ChatRoom() {
       item_id: offer.item_id, item_title: offer.item_title, chatroom_id: id,
       offer_amount: offer.amount, actor_name: user.name,
     }).catch(() => {});
-    sendPush({ user_id: otherId, title: t("appName"), content: ntxt, action_url: `/chat/${id}` });
     await base44.entities.Offer.update(offer.id, { status: "accepted" });
     const txt = lang === "ar"
       ? `تم الاتفاق على السعر ${formatPrice(offer.amount, lang, itemCountry, country)} ✅`
@@ -170,7 +166,6 @@ export default function ChatRoom() {
       item_id: offer.item_id, item_title: offer.item_title, chatroom_id: id,
       offer_amount: offer.amount, actor_name: user.name,
     }).catch(() => {});
-    sendPush({ user_id: otherId, title: t("appName"), content: ntxt, action_url: `/chat/${id}` });
     await base44.entities.Offer.update(offer.id, { status: "rejected" });
     const txt = lang === "ar" ? "تم رفض العرض" : "Offer rejected";
     await sysMsg(txt, offer.id);
@@ -188,7 +183,6 @@ export default function ChatRoom() {
       item_id: offer.item_id, item_title: offer.item_title, chatroom_id: id,
       offer_amount: amount, actor_name: user.name,
     }).catch(() => {});
-    sendPush({ user_id: otherId, title: t("appName"), content: ntxt, action_url: `/chat/${id}` });
     await base44.entities.Offer.update(offer.id, { status: "countered" });
     const direction = isSeller ? "seller_counter" : "buyer_offer";
     await base44.entities.Offer.create({
@@ -221,7 +215,6 @@ export default function ChatRoom() {
       item_id: offer.item_id, item_title: offer.item_title, chatroom_id: id,
       offer_amount: amount, actor_name: user.name,
     }).catch(() => {});
-    sendPush({ user_id: otherId, title: t("appName"), content: ntxt, action_url: `/chat/${id}` });
     await base44.entities.Offer.update(offer.id, { amount });
     const txt = lang === "ar" ? `تم تعديل العرض إلى ${formatPrice(amount, lang, itemCountry, country)}` : `Offer updated to ${formatPrice(amount, lang, itemCountry, country)}`;
     await sysMsg(txt, offer.id);

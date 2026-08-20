@@ -58,8 +58,8 @@ export default function useUnreadChats() {
       timer = setTimeout(() => { if (!cancelled) compute(); }, 400);
     };
 
-    const maybeBeep = () => {
-      if (window.location.pathname.startsWith("/chat/")) return;
+    const maybeBeep = (chatroomId) => {
+      if (window.location.pathname.startsWith("/chat/" + chatroomId)) return;
       playBeep();
     };
 
@@ -67,7 +67,7 @@ export default function useUnreadChats() {
       const m = event && event.data;
       if (!m || m.sender_id === user.id) return;
       if (event.type === "create" && roomIds.current.has(m.chatroom_id)) {
-        maybeBeep();
+        maybeBeep(m.chatroom_id);
         // Bump the badge instantly when a message lands in one of my rooms
         // and I'm not currently viewing that exact conversation.
         if (!window.location.pathname.startsWith("/chat/" + m.chatroom_id)) {
@@ -83,7 +83,7 @@ export default function useUnreadChats() {
       const o = event && event.data;
       if (!o) return;
       if (event.type === "create" && offerIsIncoming(o, user.id) && roomIds.current.has(o.chatroom_id)) {
-        maybeBeep();
+        maybeBeep(o.chatroom_id);
         if (!window.location.pathname.startsWith("/chat/" + o.chatroom_id)) {
           setCount((c) => c + 1);
         }

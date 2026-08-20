@@ -5,7 +5,6 @@ import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
 import { timeAgo } from "@/lib/format";
-import { sendPush } from "@/lib/notify";
 import { invalidateSellerCache } from "@/lib/useTrusted";
 
 const STATUS = {
@@ -45,7 +44,6 @@ export default function AdminVerifications() {
           text: ar ? "تمت الموافقة على طلب التوثيق! حصلت على شارة الثقة." : "Your verification was approved! You now have the trusted badge.",
         });
       } catch {}
-      sendPush({ user_id: r.user_id, title: ar ? "كاشر" : "Kasir", content: ar ? "تم توثيق حسابك ✓" : "Your account is verified ✓" });
       setRequests((prev) => prev.map((x) => (x.id === r.id ? { ...x, status: "approved" } : x)));
       toast({ title: ar ? "تمت الموافقة ومنح الشارة" : "Approved & badge granted" });
     } catch {
@@ -64,7 +62,6 @@ export default function AdminVerifications() {
           text: ar ? "تم رفض طلب التوثيق. لتفاصيل أكثر تواصل مع الدعم." : "Your verification request was declined. Contact support for details.",
         });
       } catch {}
-      sendPush({ user_id: r.user_id, title: ar ? "كاشر" : "Kasir", content: ar ? "تم رفض طلب التوثيق" : "Verification request declined" });
       setRequests((prev) => prev.map((x) => (x.id === r.id ? { ...x, status: "rejected" } : x)));
       toast({ title: ar ? "تم الرفض" : "Rejected" });
     } catch {

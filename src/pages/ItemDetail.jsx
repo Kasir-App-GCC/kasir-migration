@@ -112,7 +112,7 @@ export default function ItemDetail() {
         const [ratingsRes, profileRes, simRes] = await Promise.allSettled([
           it?.seller_id ? base44.entities.Rating.filter({ rated_user_id: it.seller_id }, "-created_date", 20) : Promise.resolve(null),
           it?.seller_id ? base44.functions.invoke("getPublicProfile", { user_id: it.seller_id }) : Promise.resolve(null),
-          it?.category ? base44.entities.Item.filter({ category: it.category, status: "available" }, "-created_date", 7) : Promise.resolve(null),
+          it?.category ? base44.entities.Item.filter({ category: it.category, country: it.country, status: "available" }, "-created_date", 7) : Promise.resolve(null),
         ]);
         if (ratingsRes.status === "fulfilled") setRatings(ratingsRes.value || []);
         if (profileRes.status === "fulfilled") setSellerProfile(profileRes.value?.data || null);

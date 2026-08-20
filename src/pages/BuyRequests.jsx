@@ -397,7 +397,11 @@ export default function BuyRequests() {
                   <label className="text-sm font-medium text-muted-foreground block mb-1.5">{lang === "ar" ? "القسم" : "Category"}</label>
                   <select
                     value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    onChange={(e) => setForm((prev) => {
+                      const newCat = e.target.value;
+                      const available = new Set([...BUY_REQUEST_TAGS, ...getBuyRequestTagsForCategory(newCat, "")].map((t) => t.en));
+                      return { ...prev, category: newCat, subcategory: "", tags: prev.tags.filter((t) => available.has(t)) };
+                    })}
                     className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none"
                   >
                     <option value="">{lang === "ar" ? "اختر القسم" : "Select category"}</option>
@@ -418,7 +422,11 @@ export default function BuyRequests() {
                           <button
                             key={s.en}
                             type="button"
-                            onClick={() => setForm((prev) => ({ ...prev, subcategory: selected ? "" : s.en }))}
+                            onClick={() => setForm((prev) => {
+                              const newSub = selected ? "" : s.en;
+                              const available = new Set([...BUY_REQUEST_TAGS, ...getBuyRequestTagsForCategory(prev.category, newSub)].map((t) => t.en));
+                              return { ...prev, subcategory: newSub, tags: prev.tags.filter((t) => available.has(t)) };
+                            })}
                             className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${selected ? "bg-violet-500 text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
                           >
                             {lang === "ar" ? s.ar : s.en}
@@ -433,7 +441,7 @@ export default function BuyRequests() {
                     {lang === "ar" ? "وسوم الطلب" : "Request tags"}
                   </label>
                   <div className="flex flex-wrap gap-1.5">
-                    {[...BUY_REQUEST_TAGS, ...(form.category ? getBuyRequestTagsForCategory(form.category) : [])].map((t) => {
+                    {[...BUY_REQUEST_TAGS, ...(form.category ? getBuyRequestTagsForCategory(form.category, form.subcategory) : [])].map((t) => {
                       const selected = form.tags.includes(t.en);
                       return (
                         <button

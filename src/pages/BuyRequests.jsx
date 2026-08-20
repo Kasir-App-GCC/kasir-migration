@@ -199,15 +199,6 @@ export default function BuyRequests() {
     return true;
   });
   const cities = getCities(country);
-  const allFilterTags = (() => {
-    const cats = filterCategories.length ? filterCategories : Object.keys(BUY_REQUEST_CATEGORY_TAGS);
-    const tagSet = new Map();
-    BUY_REQUEST_TAGS.forEach((t) => tagSet.set(t.en, t));
-    cats.forEach((cat) => {
-      (BUY_REQUEST_CATEGORY_TAGS[cat] || []).forEach((t) => tagSet.set(t.en, t));
-    });
-    return Array.from(tagSet.values());
-  })();
 
   return (
     <PullToRefresh onRefresh={load}>
@@ -266,20 +257,25 @@ export default function BuyRequests() {
                 );
               })}
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {allFilterTags.map((t) => {
-                const selected = filterTags.includes(t.en);
-                return (
-                  <button
-                    key={t.en}
-                    onClick={() => setFilterTags((prev) => selected ? prev.filter((x) => x !== t.en) : [...prev, t.en])}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${selected ? "bg-violet-500 text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
-                  >
-                    {lang === "ar" ? t.ar : t.en}
-                  </button>
-                );
-              })}
-            </div>
+            {filterCategories.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {filterCategories
+                  .flatMap((cat) => (BUY_REQUEST_CATEGORY_TAGS[cat] || []).map((t) => ({ ...t })))
+                  .filter((t, i, arr) => arr.findIndex((x) => x.en === t.en) === i)
+                  .map((t) => {
+                    const selected = filterTags.includes(t.en);
+                    return (
+                      <button
+                        key={t.en}
+                        onClick={() => setFilterTags((prev) => selected ? prev.filter((x) => x !== t.en) : [...prev, t.en])}
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${selected ? "bg-violet-500 text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
+                      >
+                        {lang === "ar" ? t.ar : t.en}
+                      </button>
+                    );
+                  })}
+              </div>
+            )}
             <div className="relative">
               <CitySearchSelect
                 value={filterCity}

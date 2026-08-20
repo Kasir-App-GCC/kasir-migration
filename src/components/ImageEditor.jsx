@@ -430,7 +430,6 @@ export default function ImageEditor({ files, lang, onFileDone, onSkipFile }) {
           <input type="range" min={1} max={5} step={0.01} value={zoom} onChange={(e) => onZoom(Number(e.target.value))} className="flex-1 accent-emerald-400" />
           <ZoomIn size={18} className="shrink-0" />
         </div>
-        <p className="text-center text-xs text-white/50">{ar ? "اسحب للتحريك · قرّص للتكبير والقص · ما يظهر هنا يُنشر" : "Drag to move · pinch to zoom & crop · what you see is what gets posted"}</p>
 
         <button onClick={confirm} disabled={!img || submitting} className="w-full py-3.5 rounded-2xl bg-emerald-500 text-white font-bold disabled:opacity-50">{submitting ? (ar ? "جارٍ الحفظ…" : "Saving…") : (ar ? "تم" : "Done")}</button>
       </div>

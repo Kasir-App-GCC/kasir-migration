@@ -68,7 +68,28 @@ export default function Search() {
     return query;
   }, [country, categories, subcategories, condition, minPrice, maxPrice, prefs.showSold, locationFilter.mode, locationFilter.city, debouncedQ]);
 
+  // Only fetch when the user has specified some search criteria — otherwise
+  // the search page would just duplicate the home feed.
+  const hasActiveFilter = !!(
+    debouncedQ ||
+    categories.length ||
+    subcategories.length ||
+    condition.length ||
+    minPrice ||
+    maxPrice ||
+    (locationFilter.mode === "city" && locationFilter.city) ||
+    locationFilter.mode === "radius" ||
+    locationFilter.mode === "map"
+  );
+
   const loadInitial = useCallback(async () => {
+    if (!hasActiveFilter) {
+      setItems([]);
+      setSellers({});
+      setHasMore(false);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     skipRef.current = 0;
     setHasMore(true);
@@ -86,7 +107,7 @@ export default function Search() {
     } finally {
       setLoading(false);
     }
-  }, [buildQuery, sortKey]);
+  }, [buildQuery, sortKey, hasActiveFilter]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
@@ -260,6 +281,12 @@ export default function Search() {
               <div className="p-2.5 h-10" />
             </div>
           ))}
+        </div>
+      ) : !hasActiveFilter ? (
+        <div className="text-center py-20 text-muted-foreground">
+          <SearchIcon size={40} className="mx-auto mb-3 opacity-30" />
+          <p className="font-semibold text-lg">{lang === "ar" ? "ابحث أو اختر فلتر" : "Search or apply filters"}</p>
+          <p className="text-sm mt-1">{lang === "ar" ? "اكتب كلمة بحث، اختر قسم، أو حدد موقع لعرض النتائج" : "Type a search, pick a category, or set a location to see results"}</p>
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-20 text-muted-foreground">

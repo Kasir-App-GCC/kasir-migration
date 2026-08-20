@@ -29,6 +29,7 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
   const drawRef = useRef(null);
   const dragText = useRef(null);
   const rafRef = useRef(null);
+  const inputRef = useRef(null);
   const tf = useRef({ scale, offset });
   tf.current = { scale, offset };
 
@@ -109,19 +110,21 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
       s.points.forEach((p, i) => { const x = p.x * V, y = p.y * V; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
       ctx.stroke();
     });
-    texts.forEach((t) => {
+    texts.forEach((t, i) => {
+      if (editing && editing.index === i) return;
       ctx.fillStyle = t.color;
       ctx.font = `bold ${Math.round(t.size * V)}px ui-sans-serif, system-ui, sans-serif`;
       ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.fillText(t.text, t.x * V, t.y * V);
     });
-  }, [img, rot, scale, offset, strokes, blurStrokes, texts]);
+  }, [img, rot, scale, offset, strokes, blurStrokes, texts, editing]);
 
   const schedule = useCallback(() => {
     if (rafRef.current) return;
     rafRef.current = requestAnimationFrame(() => { rafRef.current = null; render(); });
   }, [render]);
   useEffect(() => { schedule(); }, [schedule]);
+  useEffect(() => { if (editing && inputRef.current) { const t = setTimeout(() => inputRef.current.focus(), 0); return () => clearTimeout(t); } }, [editing]);
 
   // Native non-passive wheel listener so we can preventDefault and zoom under the cursor.
   useEffect(() => {
@@ -364,14 +367,14 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
           {editing && editingText && stageSize > 0 && (
             <div className="absolute z-10 flex flex-col items-center" style={{ left: editingText.x * stageSize, top: editingText.y * stageSize, transform: "translate(-50%,-50%)" }}>
               <input
-                autoFocus
+                ref={inputRef}
                 value={editingText.text}
                 onChange={(e) => setTexts((s) => s.map((t, j) => (j === editing.index ? { ...t, text: e.target.value.slice(0, 40) } : t)))}
                 onBlur={commitText}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
                 placeholder={ar ? "اكتب…" : "Type…"}
-                className="bg-black/30 text-center font-bold outline-none border-2 border-dashed border-white/80 rounded-md px-2 py-0.5 whitespace-nowrap"
-                style={{ color: "transparent", caretColor: editingText.color, fontSize: Math.round(editingText.size * stageSize), maxWidth: stageSize * 0.9 }}
+                className="bg-black/40 text-center font-bold outline-none border-2 border-dashed border-white/80 rounded-md px-2 py-0.5 whitespace-nowrap"
+                style={{ color: editingText.color, fontSize: Math.round(editingText.size * stageSize), maxWidth: stageSize * 0.9 }}
               />
               <button onClick={removeEditingText} className="mt-1 px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-bold flex items-center gap-1"><Trash2 size={11} /> {ar ? "حذف" : "Delete"}</button>
             </div>
@@ -415,7 +418,6 @@ export default function ImageEditor({ file, lang, onCancel, onDone }) {
           <ZoomIn size={18} className="shrink-0" />
         </div>
         <p className="text-center text-xs text-white/50">{ar ? "اسحب للتحريك · قرّص أو عجلة الفأرة للتكبير · ما يظهر هنا يُنشر" : "Drag to move · pinch or mouse-wheel to zoom · what you see is what gets posted"}</p>
-        {tool === "text" && <p className="text-center text-xs text-white/60">{ar ? "اضغط لإضافة نص · اسحب النص لنقله · اضغط عليه لتعديله" : "Tap to add text · drag to move · tap again to edit"}</p>}
         {tool === "draw" && <p className="text-center text-xs text-white/60">{ar ? "ارسم بإصبعك أو بالماوس" : "Draw with your finger or mouse"}</p>}
         {tool === "blur" && <p className="text-center text-xs text-white/60">{ar ? "مرّر فوق المنطقة لتمويهها" : "Brush over areas to blur them"}</p>}
 

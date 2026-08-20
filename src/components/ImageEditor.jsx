@@ -13,11 +13,39 @@ const FILTERS = [
   { id: "vintage", ar: "كلاسيكي", en: "Vintage", css: "sepia(0.3) contrast(1.1) brightness(1.05) saturate(1.2)" },
 ];
 
+const clampByte = (v) => (v < 0 ? 0 : v > 255 ? 255 : v);
+// Apply a filter by manipulating pixels directly (canvas ctx.filter is unreliable on mobile).
+function applyPixelFilter(d, id) {
+  for (let i = 0; i < d.length; i += 4) {
+    let r = d[i], g = d[i + 1], b = d[i + 2];
+    if (id === "bw") {
+      const y = 0.299 * r + 0.587 * g + 0.114 * b;
+      const c = (y - 128) * 1.08 + 128;
+      r = g = b = c;
+    } else if (id === "warm") {
+      r = r * 1.08 + 16; g = g * 1.03 + 6; b = b * 0.9 - 8;
+    } else if (id === "cool") {
+      r = r * 0.9 - 6; g = g * 1.0 + 2; b = b * 1.12 + 14;
+    } else if (id === "vivid") {
+      const avg = (r + g + b) / 3;
+      r = avg + (r - avg) * 1.5; g = avg + (g - avg) * 1.5; b = avg + (b - avg) * 1.5;
+      r = (r - 128) * 1.12 + 128; g = (g - 128) * 1.12 + 128; b = (b - 128) * 1.12 + 128;
+    } else if (id === "vintage") {
+      const sr = 0.393 * r + 0.769 * g + 0.189 * b;
+      const sg = 0.349 * r + 0.686 * g + 0.168 * b;
+      const sb = 0.272 * r + 0.534 * g + 0.131 * b;
+      r = sr + 10; g = sg + 5; b = sb - 5;
+    }
+    d[i] = clampByte(r); d[i + 1] = clampByte(g); d[i + 2] = clampByte(b);
+  }
+}
+
 // Pre-upload editor (Instagram/WhatsApp style): the full original photo is shown
-// first (contained, with a blurred background fill) — pinch/drag to zoom & crop,
-// plus filters, draw, and blur. When multiple photos are queued, a horizontal
-// thumbnail strip lets the user pick which to edit (Signal-style). What you see
-// is what gets posted (1080×1080 JPEG).
+// contained on a solid dark background — pinch/drag to zoom & crop, plus filters,
+// draw, and blur. When multiple photos are queued, a horizontal thumbnail strip
+// lets the user pick which to edit (Signal-style). What you see is what gets
+// posted (1080×1080 JPEG). Filters are baked via pixel manipulation (no ctx.filter)
+// so they work reliably on mobile.
 export default function ImageEditor({ files, lang, onFileDone, onSkipFile }) {
   const ar = lang === "ar";
   const [rawIdx, setRawIdx] = useState(0);
@@ -43,9 +71,10 @@ export default function ImageEditor({ files, lang, onFileDone, onSkipFile }) {
   const pinch = useRef(null);
   const drawRef = useRef(null);
   const rafRef = useRef(null);
+  const renderRef = useRef(() => {});
+  const filteredRef = useRef(null);
   const tf = useRef({ zoom, offset });
   tf.current = { zoom, offset };
-  const filterCss = FILTERS[filterIdx].css;
 
   // Object URLs for the thumbnail strip.
   const thumbs = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
@@ -106,23 +135,16 @@ export default function ImageEditor({ files, lang, onFileDone, onSkipFile }) {
     const ctx = canvas.getContext("2d");
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, V, V);
+    ctx.fillStyle = "#0b0b0b";
+    ctx.fillRect(0, 0, V, V);
+    const src = filteredRef.current || img;
     const { iw, ih } = dims();
     const fit = Math.min(V / iw, V / ih);
-    const bgCover = Math.max(V / iw, V / ih) * 1.12;
-    const bgFilter = (filterCss && filterCss !== "none" ? filterCss + " " : "") + `blur(${Math.round(V * 0.05)}px)`;
     ctx.save();
-    ctx.filter = bgFilter;
-    ctx.translate(V / 2, V / 2);
-    ctx.rotate((rot * Math.PI) / 180);
-    ctx.scale(bgCover, bgCover);
-    ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
-    ctx.restore();
-    ctx.save();
-    ctx.filter = filterCss;
     ctx.translate(V / 2 + offset.x, V / 2 + offset.y);
     ctx.rotate((rot * Math.PI) / 180);
     ctx.scale(fit * zoom, fit * zoom);
-    ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+    ctx.drawImage(src, -src.width / 2, -src.height / 2);
     ctx.restore();
     if (blurStrokes.length) {
       const mask = document.createElement("canvas");
@@ -160,13 +182,32 @@ export default function ImageEditor({ files, lang, onFileDone, onSkipFile }) {
       s.points.forEach((p, i) => { const x = p.x * V, y = p.y * V; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
       ctx.stroke();
     });
-  }, [img, rot, zoom, offset, strokes, blurStrokes, filterCss, box]);
+  }, [img, rot, zoom, offset, strokes, blurStrokes, box, filterIdx]);
 
+  renderRef.current = render;
   const schedule = useCallback(() => {
     if (rafRef.current) return;
-    rafRef.current = requestAnimationFrame(() => { rafRef.current = null; render(); });
-  }, [render]);
-  useEffect(() => { schedule(); }, [schedule]);
+    rafRef.current = requestAnimationFrame(() => { rafRef.current = null; renderRef.current(); });
+  }, []);
+  useEffect(() => { schedule(); }, [schedule, render]);
+
+  // Bake the selected filter into an offscreen canvas via pixel manipulation
+  // (canvas ctx.filter is unreliable on mobile Safari/Chrome).
+  useEffect(() => {
+    if (!img) return;
+    const c = document.createElement("canvas");
+    c.width = img.naturalWidth; c.height = img.naturalHeight;
+    const cx = c.getContext("2d");
+    cx.drawImage(img, 0, 0);
+    const id = FILTERS[filterIdx].id;
+    if (id !== "original") {
+      const data = cx.getImageData(0, 0, c.width, c.height);
+      applyPixelFilter(data.data, id);
+      cx.putImageData(data, 0, 0);
+    }
+    filteredRef.current = c;
+    schedule();
+  }, [img, filterIdx, schedule]);
 
   useEffect(() => {
     const el = stageRef.current; if (!el) return;
@@ -284,23 +325,16 @@ export default function ImageEditor({ files, lang, onFileDone, onSkipFile }) {
       const canvas = document.createElement("canvas");
       canvas.width = C; canvas.height = C;
       const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#0b0b0b";
+      ctx.fillRect(0, 0, C, C);
+      const src = filteredRef.current || img;
       const { iw, ih } = dims();
       const fit = Math.min(C / iw, C / ih);
-      const bgCover = Math.max(C / iw, C / ih) * 1.12;
-      const bgFilter = (filterCss && filterCss !== "none" ? filterCss + " " : "") + `blur(${Math.round(C * 0.05)}px)`;
       ctx.save();
-      ctx.filter = bgFilter;
-      ctx.translate(C / 2, C / 2);
-      ctx.rotate((rot * Math.PI) / 180);
-      ctx.scale(bgCover, bgCover);
-      ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
-      ctx.restore();
-      ctx.save();
-      ctx.filter = filterCss;
       ctx.translate(C / 2 + offset.x * k, C / 2 + offset.y * k);
       ctx.rotate((rot * Math.PI) / 180);
       ctx.scale(fit * zoom, fit * zoom);
-      ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+      ctx.drawImage(src, -src.width / 2, -src.height / 2);
       ctx.restore();
       if (blurStrokes.length) {
         const mask = document.createElement("canvas"); mask.width = C; mask.height = C;

@@ -67,6 +67,10 @@
     "banned_reason": {
       "type": "string",
       "description": "Optional reason recorded when a user is banned"
+    },
+    "followers_override": {
+      "type": "number",
+      "description": "Optional admin-set floor for the displayed follower count (used when higher than the real follow-record count)"
     }
   },
   "required": [

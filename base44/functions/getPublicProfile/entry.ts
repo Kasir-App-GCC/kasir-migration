@@ -42,6 +42,7 @@ export default async function (req) {
       rating_avg,
       rating_count,
       created_date: u.created_date || null,
+      followers_override: typeof u.followers_override === "number" ? u.followers_override : null,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

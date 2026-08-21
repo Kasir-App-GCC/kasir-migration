@@ -56,6 +56,7 @@ export default async function (req) {
         rating_avg: r ? Math.round((r.sum / r.count) * 10) / 10 : 0,
         rating_count: r ? r.count : 0,
         created_date: u?.created_date || null,
+        followers_override: typeof u?.followers_override === "number" ? u.followers_override : null,
       };
     }
     return Response.json({ results });

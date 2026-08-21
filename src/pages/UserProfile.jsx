@@ -147,7 +147,7 @@ export default function UserProfile() {
             <p className="text-[11px] opacity-80">{t("soldTab")}</p>
           </div>
           <div className="rounded-2xl bg-white/15 py-2.5">
-            <p className="font-extrabold text-lg">{followersCount}</p>
+            <p className="font-extrabold text-lg">{Math.max(followersCount, profile?.followers_override || 0).toLocaleString(ar ? "ar-SA" : "en-US")}</p>
             <p className="text-[11px] opacity-80">{t("followers")}</p>
           </div>
         </div>

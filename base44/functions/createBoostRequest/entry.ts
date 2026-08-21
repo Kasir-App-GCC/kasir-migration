@@ -28,11 +28,15 @@ export default async function (req) {
 
     const { amount } = computeBoostPrice(Number(item.price) || 0, hours, crossCountry);
 
+    // auth.me() returns first_name/last_name/username/full_name — no `name`
+    // field — so build the display name the same way the client store does.
+    const userName = [user.first_name, user.last_name].filter(Boolean).join(" ") || user.username || user.full_name || user.email || "";
+
     const created = await base44.entities.BoostRequest.create({
       item_id: item.id,
       item_title: item.title,
       user_id: user.id,
-      user_name: user.name,
+      user_name: userName,
       hours,
       cross_country: crossCountry,
       amount,

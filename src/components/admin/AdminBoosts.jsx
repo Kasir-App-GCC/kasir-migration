@@ -22,6 +22,7 @@ export default function AdminBoosts() {
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(null);
   const [showBuyers, setShowBuyers] = useState(false);
+  const [buyerNames, setBuyerNames] = useState({});
 
   // Aggregate approved boosts per buyer to track who purchased boosts.
   const buyers = useMemo(() => {
@@ -37,6 +38,27 @@ export default function AdminBoosts() {
   }, [requests]);
 
   const buyersRevenue = useMemo(() => buyers.reduce((s, b) => s + b.total, 0), [buyers]);
+
+  // Existing boost records were created with an empty user_name (auth.me() has
+  // no `name` field), so resolve each buyer's display name from their user_id.
+  useEffect(() => {
+    const ids = buyers.map((b) => b.user_id).filter(Boolean);
+    if (!ids.length) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await base44.functions.invoke("getPublicProfiles", { user_ids: ids });
+        if (!cancelled) setBuyerNames(res?.data?.results || {});
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [buyers]);
+
+  const resolveBuyerName = (b) => {
+    const p = b.user_id ? buyerNames[b.user_id] : null;
+    if (p) return [p.first_name, p.last_name].filter(Boolean).join(" ") || p.username || p.full_name || b.user_name || "—";
+    return b.user_name || "—";
+  };
 
   const load = async () => {
     try {
@@ -101,7 +123,7 @@ export default function AdminBoosts() {
             <div className="divide-y divide-border/40 border-t border-border/40">
               {buyers.map((b) => (
                 <div key={b.user_id || b.user_name} className="flex items-center justify-between p-3">
-                  <button onClick={() => b.user_id && nav(`/user/${b.user_id}`)} className="font-semibold text-sm truncate hover:underline text-start">{b.user_name}</button>
+                  <button onClick={() => b.user_id && nav(`/user/${b.user_id}`)} className="font-semibold text-sm truncate hover:underline text-start">{resolveBuyerName(b)}</button>
                   <div className="flex items-center gap-3 text-xs shrink-0">
                     <span className="text-muted-foreground">{b.count} {ar ? "تعزيز" : "boosts"}</span>
                     <span className="font-bold">{b.total.toLocaleString(ar ? "ar-SA" : "en-US")} {ar ? "ر.س" : "SAR"}</span>

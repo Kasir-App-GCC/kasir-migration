@@ -1,12 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { secrets } from 'base44:runtime';
 
-// Verifies an OTP locally against the hashed code stored by sendPhoneOtp
-// (Zavu is a messaging API, so the code is generated and hashed client-side).
-async function sha256Hex(text) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
-}
-
+// Verifies the user-entered OTP against Telesign's verify endpoint using the
+// reference_id stored by sendPhoneOtp (kept in the code_hash field).
 const MAX_ATTEMPTS = 5;
 
 export default async function(req) {
@@ -22,7 +18,6 @@ export default async function(req) {
       return Response.json({ error: 'Phone and code are required' }, { status: 400 });
     }
 
-    // Find the latest pending OTP for this user + phone.
     const records = await base44.entities.PhoneOtp.filter(
       { user_id: user.id, phone },
       '-created_date',
@@ -32,21 +27,41 @@ export default async function(req) {
     if (!pending) {
       return Response.json({ error: 'No pending code' }, { status: 400 });
     }
-
     if (new Date(pending.expires_at) < new Date()) {
       return Response.json({ error: 'Code expired' }, { status: 400 });
     }
-
     if ((pending.attempts || 0) >= MAX_ATTEMPTS) {
       return Response.json({ error: 'Too many attempts' }, { status: 400 });
     }
 
-    // Bump attempts before checking so brute-force attempts are throttled
-    // regardless of whether this guess matches.
+    const customerId = secrets.get('TELESIGN_CUSTOMER_ID');
+    const apiKey = secrets.get('TELESIGN_API_KEY');
+    if (!customerId || !apiKey) {
+      return Response.json({ error: 'Telesign not configured' }, { status: 500 });
+    }
+
     await base44.entities.PhoneOtp.update(pending.id, { attempts: (pending.attempts || 0) + 1 });
 
-    const hash = await sha256Hex(code + phone);
-    if (hash === pending.code_hash) {
+    const form = new URLSearchParams();
+    form.append('verify_code', code);
+
+    const res = await fetch(`https://rest-ww.telesign.com/v1/verify/${pending.code_hash}`, {
+      method: 'POST',
+      headers: {
+        Authorization: 'Basic ' + btoa(`${customerId}:${apiKey}`),
+        accept: 'application/json',
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      body: form.toString(),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = data?.errors?.[0]?.description || data?.errors?.[0]?.code || data?.message || ('HTTP ' + res.status);
+      return Response.json({ error: 'Telesign error: ' + msg }, { status: 502 });
+    }
+
+    if (data?.verify_state === 'valid') {
       await base44.entities.PhoneOtp.update(pending.id, { verified: true });
       return Response.json({ ok: true, verified: true });
     }

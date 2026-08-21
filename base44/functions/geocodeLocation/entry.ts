@@ -65,7 +65,7 @@ async function reverseGeocodeArcGIS(lat, lng, lang) {
   const a = data?.address;
   if (!a) return null;
   // Prefer a concise locality-level label; fall back to longer labels.
-  return a.Match_addr || a.ShortLabel || a.LongLabel || null;
+  return { name: a.Match_addr || a.ShortLabel || a.LongLabel || null, city: a.City || "", state: a.Region || a.Subregion || "" };
 }
 
 async function reverseGeocodeNominatim(lat, lng, lang) {
@@ -87,7 +87,8 @@ async function reverseGeocodeNominatim(lat, lng, lang) {
   let name = parts.length > 1 && parts[0] !== parts[1] ? parts.join(", ") : (parts[0] || data.display_name || "");
   // If we only got one part, fall back to a trimmed display_name (first 3 components).
   if (!name && data.display_name) name = data.display_name.split(",").slice(0, 3).join(",").trim();
-  return name || null;
+  if (!name) return null;
+  return { name, city: a.city || a.town || a.village || "", state: a.state || a.state_district || "" };
 }
 
 export default async function (req) {
@@ -106,12 +107,14 @@ export default async function (req) {
     const lat = parseFloat(body?.lat);
     const lng = parseFloat(body?.lng);
     if (!isNaN(lat) && !isNaN(lng) && !body?.query) {
-      let name = null;
-      try { name = await reverseGeocodeNominatim(lat, lng, lang); } catch {}
-      if (!name || name.length < 4) {
-        try { name = await reverseGeocodeArcGIS(lat, lng, lang); } catch {}
+      let result = null;
+      try { result = await reverseGeocodeNominatim(lat, lng, lang); } catch {}
+      if (!result || !result.name || result.name.length < 4) {
+        try { const r2 = await reverseGeocodeArcGIS(lat, lng, lang); if (r2) result = r2; } catch {}
       }
-      return Response.json({ name });
+      return Response.json(result
+        ? { name: result.name, city: result.city || null, state: result.state || null }
+        : { name: null, city: null, state: null });
     }
 
     const query = String(body?.query || "").trim().slice(0, 200);

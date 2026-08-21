@@ -70,8 +70,24 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
       const res = await base44.functions.invoke("geocodeLocation", {
         lat: la, lng: ln, country: country || "SA", lang,
       });
-      const name = res?.data?.name;
-      if (name) setLocationName(String(name).slice(0, 120));
+      const d = res?.data;
+      if (d?.name) setLocationName(String(d.name).slice(0, 120));
+      // Override the nearest-static-city guess with the reverse-geocoded
+      // region/city when it matches a standard city. Prefer the region
+      // (maps to major cities, e.g. "Riyadh Region" → "Riyadh") so a
+      // neighborhood in Diriyah governorate resolves to Riyadh, not Diriyah.
+      const cities = getCities(country || "SA") || [];
+      const norm = (s) => (s || "").toLowerCase().replace(/region|منطقة/gi, "").replace(/[^a-z0-9\u0600-\u06ff]/g, "");
+      const tryMatch = (val) => {
+        const raw = norm(val);
+        if (raw.length < 3) return null;
+        return cities.find((c) => {
+          const ce = norm(c.en), ca = norm(c.ar);
+          return raw === ce || raw === ca || raw.includes(ce) || raw.includes(ca);
+        });
+      };
+      const match = tryMatch(d?.state) || tryMatch(d?.city);
+      if (match) setCity(match.en);
     } catch {}
   };
 

@@ -178,7 +178,6 @@ export default function ChatRoom() {
     // Now persist the status, system message, and chat room — each in its own
     // try/catch so a failure in one can't block the others.
     try { await base44.entities.Offer.update(offer.id, { status: "accepted" }); } catch {}
-    try { await sysMsg(agreeTxt, offer.id); } catch {}
     try { await base44.entities.ChatRoom.update(id, { last_message: agreeTxt, hidden_for_buyer: false, hidden_for_seller: false }); } catch {}
   };
 
@@ -193,7 +192,6 @@ export default function ChatRoom() {
     }).catch(() => {});
     await base44.entities.Offer.update(offer.id, { status: "rejected" });
     const txt = lang === "ar" ? "تم رفض العرض" : "Offer rejected";
-    await sysMsg(txt, offer.id);
     await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false });
   };
 
@@ -255,7 +253,6 @@ export default function ChatRoom() {
     }).catch(() => {});
     await base44.entities.Offer.update(offer.id, { amount });
     const txt = lang === "ar" ? `تم تعديل العرض إلى ${formatPrice(amount, lang, itemCountry, country)}` : `Offer updated to ${formatPrice(amount, lang, itemCountry, country)}`;
-    await sysMsg(txt, offer.id);
     await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false });
   };
 
@@ -268,7 +265,7 @@ export default function ChatRoom() {
 
   const timeline = useMemo(
     () => [
-      ...messages.map((m) => ({ type: "message", ...m })),
+      ...messages.filter((m) => m.sender_id !== "system").map((m) => ({ type: "message", ...m })),
       ...offers.map((o) => ({ type: "offer", ...o })),
     ].sort((a, b) => new Date(a.created_date) - new Date(b.created_date)),
     [messages, offers]

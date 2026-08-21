@@ -9,10 +9,22 @@ import { base44 } from "@/api/base44Client";
 const cache = new Map();
 const CACHE_TTL = 2 * 60 * 1000; // 2 minutes
 
+// In-flight request dedup: userId -> Promise<info>. When the feed's batched
+// fetchSellerInfos call is running, per-card useSellerInfo hooks share that
+// same promise instead of each firing their own getPublicProfile (the N+1 that
+// saturated phones and let transient individual-call failures drop the
+// verified badge even though the batch succeeded).
+const inflight = new Map();
+
 // Pub-sub: userId -> Set of callbacks. When invalidateSellerCache runs,
 // every mounted useSellerInfo hook for that user re-reads the cache so
 // the verified badge appears on already-mounted cards instantly.
 const listeners = new Map();
+
+function notify(userId) {
+  const cbs = listeners.get(userId);
+  if (cbs) cbs.forEach((cb) => cb());
+}
 
 function getCached(userId) {
   if (!cache.has(userId)) return null;
@@ -24,29 +36,49 @@ function getCached(userId) {
   return entry;
 }
 
+const EMPTY = { trusted: false, rating: null, count: 0 };
+
 export async function fetchSellerInfo(userId) {
-  if (!userId) return { trusted: false, rating: null, count: 0 };
+  if (!userId) return { ...EMPTY };
   const cached = getCached(userId);
   if (cached) return cached;
-  try {
-    const p = await base44.functions.invoke("getPublicProfile", { user_id: userId });
-    const info = {
-      trusted: !!p?.data?.is_trusted,
-      rating: p?.data?.rating_count ? Number(p.data.rating_avg) : null,
-      count: p?.data?.rating_count || 0,
-      _ts: Date.now(),
-    };
-    cache.set(userId, info);
-    return info;
-  } catch {
-    return { trusted: false, rating: null, count: 0 };
-  }
+  // Share an in-flight batch (fetchSellerInfos) if one is running for this
+  // user — avoids the per-card N+1 and picks up the batch's result even
+  // when a standalone individual call would have failed.
+  if (inflight.has(userId)) return inflight.get(userId);
+  const p = (async () => {
+    try {
+      const res = await base44.functions.invoke("getPublicProfile", { user_id: userId });
+      const info = {
+        trusted: !!res?.data?.is_trusted,
+        rating: res?.data?.rating_count ? Number(res.data.rating_avg) : null,
+        count: res?.data?.rating_count || 0,
+        _ts: Date.now(),
+      };
+      cache.set(userId, info);
+      return info;
+    } catch {
+      // Someone else (the batched fetch) may have populated the cache while
+      // we were in flight; prefer their result over the failure. Don't cache
+      // the failure so a later read retries.
+      const nowCached = getCached(userId);
+      if (nowCached) return nowCached;
+      return { ...EMPTY };
+    } finally {
+      inflight.delete(userId);
+    }
+  })();
+  inflight.set(userId, p);
+  return p;
 }
 
 // Batched fetch: returns a map of userId -> { trusted, rating, count } for many
 // sellers in one backend call (getPublicProfiles). Populates the shared cache so
 // the per-card useSellerInfo hook hits the cache instead of firing N individual
 // getPublicProfile requests — the old N+1 that saturated phones and hung the feed.
+// Registers each fetched id as in-flight so concurrent per-card hooks share this
+// request, and notifies mounted hooks once the cache is populated so the verified
+// badge appears even when a hook's own standalone fetch had failed.
 export async function fetchSellerInfos(userIds) {
   const unique = Array.from(new Set((userIds || []).filter(Boolean)));
   if (!unique.length) return {};
@@ -57,7 +89,9 @@ export async function fetchSellerInfos(userIds) {
     if (cached) out[id] = cached;
     else toFetch.push(id);
   }
-  if (toFetch.length) {
+  if (!toFetch.length) return out;
+
+  const batch = (async () => {
     try {
       const res = await base44.functions.invoke("getPublicProfiles", { user_ids: toFetch });
       const results = res?.data?.results || {};
@@ -65,17 +99,27 @@ export async function fetchSellerInfos(userIds) {
         const p = results[id];
         const info = p
           ? { trusted: !!p.is_trusted, rating: p.rating_count ? Number(p.rating_avg) : null, count: p.rating_count || 0, _ts: Date.now() }
-          : { trusted: false, rating: null, count: 0, _ts: Date.now() };
+          : { ...EMPTY, _ts: Date.now() };
         cache.set(id, info);
-        out[id] = info;
       }
     } catch {
-      for (const id of toFetch) {
-        const info = { trusted: false, rating: null, count: 0, _ts: Date.now() };
-        cache.set(id, info);
-        out[id] = info;
-      }
+      // Don't poison the cache on a transient batch failure — leave it empty
+      // so the next read (e.g. a refresh) retries instead of showing a stuck
+      // unverified badge for CACHE_TTL.
     }
+  })();
+
+  // Register each id as in-flight so concurrent fetchSellerInfo calls share
+  // this batch instead of firing their own getPublicProfile.
+  for (const id of toFetch) {
+    inflight.set(id, batch.then(() => getCached(id) || { ...EMPTY }));
+  }
+
+  await batch;
+  for (const id of toFetch) {
+    inflight.delete(id);
+    out[id] = getCached(id) || { ...EMPTY };
+    notify(id);
   }
   return out;
 }
@@ -91,13 +135,12 @@ export async function fetchTrusted(userId) {
 export function invalidateSellerCache(userId, patch) {
   if (!userId) return;
   if (patch) {
-    const cur = cache.get(userId) || { trusted: false, rating: null, count: 0, _ts: Date.now() };
+    const cur = cache.get(userId) || { ...EMPTY, _ts: Date.now() };
     cache.set(userId, { ...cur, ...patch, _ts: Date.now() });
   } else {
     cache.delete(userId);
   }
-  const cbs = listeners.get(userId);
-  if (cbs) cbs.forEach((cb) => cb());
+  notify(userId);
 }
 
 export function useTrusted(userId) {
@@ -115,10 +158,11 @@ export function useTrusted(userId) {
 
 // Returns the full cached seller info: { trusted, rating, count }.
 // Subscribes to cache invalidations so the component re-renders the moment
-// a seller's trust status changes (e.g. admin approves verification).
+// a seller's trust status changes (e.g. admin approves verification, or the
+// batched feed fetch lands and notifies listeners).
 export function useSellerInfo(userId) {
   const [info, setInfo] = useState(() =>
-    userId && getCached(userId) ? getCached(userId) : { trusted: false, rating: null, count: 0 }
+    userId && getCached(userId) ? getCached(userId) : { ...EMPTY }
   );
   useEffect(() => {
     if (!userId) return;

@@ -44,8 +44,10 @@ export default async function(req) {
     });
 
     // Map the requested delivery channel to sms.to's channel names. Default to
-    // a voice call (SMS delivery was unreliable with the previous provider).
-    const channel = (body?.channel || 'call').trim() === 'sms' ? 'sms' : 'voice';
+    // WhatsApp (priority 1) since SMS delivery was unreliable with the previous
+    // provider; fall back to a voice call if whatsapp isn't requested.
+    const requested = (body?.channel || 'whatsapp').trim();
+    const channel = requested === 'sms' ? 'sms' : requested === 'call' ? 'voice' : 'whatsapp';
 
     const res = await fetch('https://verifyapi.sms.to/api/v1/verifications/create', {
       method: 'POST',

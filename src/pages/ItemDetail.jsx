@@ -570,7 +570,7 @@ export default function ItemDetail() {
       )}
 
       {/* Action bar */}
-      <div className="fixed inset-x-0 z-40 bg-background/90 backdrop-blur-xl border-t border-border/60" style={{ bottom: "calc(64px + env(safe-area-inset-bottom))" }}>
+      <div className="fixed inset-x-0 z-40 bg-background/90 backdrop-blur-xl border-t border-border/60" style={{ bottom: "calc(64px + 1.5rem + env(safe-area-inset-bottom))" }}>
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
           {isOwner ? (
             <>
@@ -608,7 +608,7 @@ export default function ItemDetail() {
       </div>
 
       {offerOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center pb-[calc(64px+env(safe-area-inset-bottom))]">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center pb-[calc(64px+1.5rem+env(safe-area-inset-bottom))]">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setOfferOpen(false)} />
           <div className="relative w-full sm:max-w-sm bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 animate-in fade-in slide-in-from-bottom-[100%] duration-300">
             <div className="flex items-center justify-between mb-3">
@@ -663,7 +663,7 @@ export default function ItemDetail() {
       )}
 
       {soldOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center pb-[calc(64px+env(safe-area-inset-bottom))]">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center pb-[calc(64px+1.5rem+env(safe-area-inset-bottom))]">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSoldOpen(false)} />
           <div className="relative w-full sm:max-w-sm bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 animate-in fade-in slide-in-from-bottom-[100%] duration-300">
             <div className="flex items-center justify-between mb-4">

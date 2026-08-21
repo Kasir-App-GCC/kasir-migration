@@ -1,10 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { secrets } from 'base44:runtime';
 
-// Zavu (zavu.dev) is a messaging API, not a hosted-verify service, so we use a
-// client-generated OTP: generate a 6-digit code, hash it, persist the hash to
-// the PhoneOtp entity, and ask Zavu to deliver the code over SMS. Verification
-// is then done locally in verifyPhoneOtp by comparing the hash.
+// Infobip is used as a plain SMS transport: we generate a 6-digit code, hash it,
+// persist the hash to the PhoneOtp entity, and ask Infobip to deliver the code
+// over SMS. Verification is done locally in verifyPhoneOtp by comparing the hash.
 async function sha256Hex(text) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
@@ -22,10 +21,12 @@ export default async function(req) {
       return Response.json({ error: 'Invalid phone. Use E.164 format e.g. +9665XXXXXXXX' }, { status: 400 });
     }
 
-    const apiKey = secrets.get('ZAVU_API_KEY');
-    if (!apiKey) {
-      return Response.json({ error: 'Zavu API key not configured' }, { status: 500 });
+    const apiKey = secrets.get('INFOBIP_API_KEY');
+    let baseUrl = (secrets.get('INFOBIP_BASE_URL') || '').trim().replace(/\/+$/, '');
+    if (!apiKey || !baseUrl) {
+      return Response.json({ error: 'Infobip not configured' }, { status: 500 });
     }
+    if (!/^https?:\/\//.test(baseUrl)) baseUrl = 'https://' + baseUrl;
 
     // Generate a 6-digit code and persist its hash so verifyPhoneOtp can check
     // it locally without a second round-trip to the provider.
@@ -44,24 +45,31 @@ export default async function(req) {
       attempts: 0,
     });
 
-    const res = await fetch('https://api.zavu.dev/v1/messages', {
+    const res = await fetch(`${baseUrl}/sms/2/text/advanced`, {
       method: 'POST',
       headers: {
-        Authorization: 'Bearer ' + apiKey,
+        Authorization: 'App ' + apiKey,
         'Content-Type': 'application/json',
-        'Zavu-Sender': 'kd72mt46604env48vy501m233d8cwk4q',
+        Accept: 'application/json',
       },
       body: JSON.stringify({
-        to: phone,
-        channel: 'sms',
-        text: `Your verification code is ${code}`,
+        messages: [
+          {
+            destinations: [{ to: phone }],
+            from: 'InfoSMS',
+            text: `Your verification code is ${code}`,
+          },
+        ],
       }),
     });
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const msg = data?.error?.message || data?.message || data?.error || ('HTTP ' + res.status);
-      return Response.json({ error: 'Zavu error: ' + msg }, { status: 502 });
+      const msg = data?.requestError?.serviceException?.text
+        || data?.message
+        || data?.requestError?.serviceException?.message
+        || ('HTTP ' + res.status);
+      return Response.json({ error: 'Infobip error: ' + msg }, { status: 502 });
     }
 
     return Response.json({ ok: true });

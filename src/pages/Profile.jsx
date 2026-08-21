@@ -156,8 +156,6 @@ export default function Profile() {
         </div>
       </div>
 
-      <SellerDashboard myListings={myListings} ratings={ratings} />
-
       {/* Verification status */}
       <div className="rounded-2xl bg-card border border-border/60 p-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
@@ -171,6 +169,8 @@ export default function Profile() {
           <button onClick={() => setVerificationOpen(true)} className="px-4 py-2.5 rounded-xl bg-sky-500 text-white text-sm font-bold shrink-0">{ar ? "توثيق" : "Verify"}</button>
         )}
       </div>
+
+      <SellerDashboard myListings={myListings} ratings={ratings} />
 
       {/* Tabs */}
       <div className="flex gap-1 p-1 bg-muted rounded-2xl">

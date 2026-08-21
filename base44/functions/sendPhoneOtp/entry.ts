@@ -21,7 +21,7 @@ export default async function(req) {
     }
 
     const authHeader = 'Basic ' + btoa(`${sid}:${token}`);
-    const channel = (body?.channel || 'sms').trim();
+    const channel = (body?.channel || 'call').trim();
     const params = new URLSearchParams();
     params.append('To', phone);
     params.append('Channel', channel);

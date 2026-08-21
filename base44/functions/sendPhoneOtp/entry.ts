@@ -49,6 +49,7 @@ export default async function(req) {
       headers: {
         Authorization: 'Bearer ' + apiKey,
         'Content-Type': 'application/json',
+        'Zavu-Sender': 'kd72mt46604env48vy501m233d8cwk4q',
       },
       body: JSON.stringify({
         to: phone,

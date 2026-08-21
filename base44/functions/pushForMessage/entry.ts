@@ -4,10 +4,15 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 // Message is created. Called from the MessagePush workflow. Looks up the
 // ChatRoom to find the recipient, uses the sender's name as the push title.
 // Skips system messages (sender_id === "system" or kind === "system").
+const WORKFLOW_SECRET = "kasir-wf-7f3a9c2e1b8d";
+
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
+    if (String(body?.workflow_secret || "") !== WORKFLOW_SECRET) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
     const chatroomId = String(body?.chatroom_id || "").trim();
     const senderId = String(body?.sender_id || "").trim();
     const senderName = String(body?.sender_name || "").trim();

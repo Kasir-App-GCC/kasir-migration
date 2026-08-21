@@ -28,10 +28,15 @@ function matchSearch(s, item) {
   return true;
 }
 
+const WORKFLOW_SECRET = "kasir-wf-7f3a9c2e1b8d";
+
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
+    if (String(body?.workflow_secret || "") !== WORKFLOW_SECRET) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
     const itemId = String(body?.item_id || "").trim();
     if (!itemId) return Response.json({ error: "No item_id" }, { status: 400 });
 

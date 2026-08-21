@@ -8,9 +8,15 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 // restarts the 2-day clock. reminder_sent_at prevents duplicate reminders
 // (only re-notifies if the offer was touched since the last reminder).
 // Called from a scheduled workflow — no user auth (trusted server-side).
+const WORKFLOW_SECRET = "kasir-wf-7f3a9c2e1b8d";
+
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
+    const body = await req.json().catch(() => ({}));
+    if (String(body?.workflow_secret || "") !== WORKFLOW_SECRET) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
     const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
     const now = Date.now();
 

@@ -29,8 +29,7 @@
               "sender_id": "${ .trigger.data.sender_id }",
               "sender_name": "${ .trigger.data.sender_name // \"\" }",
               "text": "${ .trigger.data.text }",
-              "kind": "${ .trigger.data.kind // \"text\" }",
-              "workflow_secret": "kasir-wf-7f3a9c2e1b8d"
+              "kind": "${ .trigger.data.kind // \"text\" }"
             }
           },
           "then": "end",

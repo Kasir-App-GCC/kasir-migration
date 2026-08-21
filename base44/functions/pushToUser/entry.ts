@@ -5,15 +5,10 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 // creation — no auth check because workflows are trusted server-side
 // processes. The push itself is a no-op when no credentialed native build
 // exists (web preview / unconfigured), so it never blocks.
-const WORKFLOW_SECRET = "kasir-wf-7f3a9c2e1b8d";
-
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
-    if (String(body?.workflow_secret || "") !== WORKFLOW_SECRET) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
     const userId = String(body?.user_id || "").trim();
     const content = String(body?.content || "").slice(0, 200);
     const title = String(body?.title || "Kasir").slice(0, 100);

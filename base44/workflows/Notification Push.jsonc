@@ -29,8 +29,7 @@
               "title": "${ .trigger.data.actor_name // \"\" }",
               "content": "${ .trigger.data.text }",
               "item_id": "${ .trigger.data.item_id // \"\" }",
-              "chatroom_id": "${ .trigger.data.chatroom_id // \"\" }",
-              "workflow_secret": "kasir-wf-7f3a9c2e1b8d"
+              "chatroom_id": "${ .trigger.data.chatroom_id // \"\" }"
             }
           },
           "then": "end",

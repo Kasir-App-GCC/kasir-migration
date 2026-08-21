@@ -1,10 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { secrets } from 'base44:runtime';
 
-// Twilio Verify API — voice ("call") channel. Twilio generates and owns the
-// OTP code; we only initiate the verification here and let verifyPhoneOtp
-// check it via Twilio's VerificationCheck endpoint. A PhoneOtp record is kept
-// for audit and per-user rate limiting.
+// Zavu (zavu.dev) is a messaging API, not a hosted-verify service, so we use a
+// client-generated OTP: generate a 6-digit code, hash it, persist the hash to
+// the PhoneOtp entity, and ask Zavu to deliver the code over SMS. Verification
+// is then done locally in verifyPhoneOtp by comparing the hash.
+async function sha256Hex(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -17,43 +22,46 @@ export default async function(req) {
       return Response.json({ error: 'Invalid phone. Use E.164 format e.g. +9665XXXXXXXX' }, { status: 400 });
     }
 
-    const accountSid = secrets.get('TWILIO_ACCOUNT_SID');
-    const authToken = secrets.get('TWILIO_AUTH_TOKEN');
-    const serviceSid = secrets.get('TWILIO_VERIFY_SERVICE_SID');
-    if (!accountSid || !authToken || !serviceSid) {
-      return Response.json({ error: 'Twilio credentials not configured' }, { status: 500 });
+    const apiKey = secrets.get('ZAVU_API_KEY');
+    if (!apiKey) {
+      return Response.json({ error: 'Zavu API key not configured' }, { status: 500 });
     }
 
-    // Always use the voice ("call") channel for delivery reliability.
-    const res = await fetch(
-      `https://verify.twilio.com/v2/Services/${serviceSid}/Verifications`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: 'Basic ' + btoa(`${accountSid}:${authToken}`),
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({ To: phone, Channel: 'call' }).toString(),
-      }
-    );
-
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const msg = data?.message || data?.error || ('HTTP ' + res.status);
-      return Response.json({ error: 'Twilio error: ' + msg }, { status: 502 });
-    }
-
-    // Persist a record for audit + rate limiting. Twilio owns the code, so the
-    // hash field is just a marker.
+    // Generate a 6-digit code and persist its hash so verifyPhoneOtp can check
+    // it locally without a second round-trip to the provider.
+    const arr = new Uint32Array(1);
+    crypto.getRandomValues(arr);
+    const code = String(arr[0] % 1000000).padStart(6, '0');
+    const codeHash = await sha256Hex(code + phone);
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
     await base44.entities.PhoneOtp.create({
       phone,
-      code_hash: 'twilio-managed',
+      code_hash: codeHash,
       user_id: user.id,
       expires_at: expiresAt,
       verified: false,
       attempts: 0,
     });
+
+    const res = await fetch('https://api.zavu.dev/v1/messages', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        to: phone,
+        channel: 'sms',
+        text: `Your verification code is ${code}`,
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = data?.error?.message || data?.message || data?.error || ('HTTP ' + res.status);
+      return Response.json({ error: 'Zavu error: ' + msg }, { status: 502 });
+    }
 
     return Response.json({ ok: true });
   } catch (error) {

@@ -1,8 +1,12 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { secrets } from 'base44:runtime';
 
-// Verifies an OTP via Twilio Verify's VerificationCheck endpoint (voice channel).
-// A PhoneOtp record is used only for per-user attempt throttling and audit.
+// Verifies an OTP locally against the hashed code stored by sendPhoneOtp
+// (Zavu is a messaging API, so the code is generated and hashed client-side).
+async function sha256Hex(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 const MAX_ATTEMPTS = 5;
 
 export default async function(req) {
@@ -41,32 +45,8 @@ export default async function(req) {
     // regardless of whether this guess matches.
     await base44.entities.PhoneOtp.update(pending.id, { attempts: (pending.attempts || 0) + 1 });
 
-    const accountSid = secrets.get('TWILIO_ACCOUNT_SID');
-    const authToken = secrets.get('TWILIO_AUTH_TOKEN');
-    const serviceSid = secrets.get('TWILIO_VERIFY_SERVICE_SID');
-    if (!accountSid || !authToken || !serviceSid) {
-      return Response.json({ error: 'Twilio credentials not configured' }, { status: 500 });
-    }
-
-    const res = await fetch(
-      `https://verify.twilio.com/v2/Services/${serviceSid}/VerificationCheck`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: 'Basic ' + btoa(`${accountSid}:${authToken}`),
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({ To: phone, Code: code }).toString(),
-      }
-    );
-
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const msg = data?.message || data?.error || ('HTTP ' + res.status);
-      return Response.json({ error: 'Twilio error: ' + msg }, { status: 400 });
-    }
-
-    if (data?.status === 'approved') {
+    const hash = await sha256Hex(code + phone);
+    if (hash === pending.code_hash) {
       await base44.entities.PhoneOtp.update(pending.id, { verified: true });
       return Response.json({ ok: true, verified: true });
     }

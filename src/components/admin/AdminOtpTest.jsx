@@ -61,10 +61,10 @@ export default function AdminOtpTest() {
 
   return (
     <div className="space-y-4 max-w-md">
-      <div className="rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 p-3 text-xs text-amber-700 dark:text-amber-300">
+      <div className="rounded-2xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900 p-3 text-xs text-sky-700 dark:text-sky-300">
         {ar
-          ? "حساب تجريبي: يجب إضافة الرقم المستلم وتوثيقه في Twilio (Phone Numbers → Verified Caller IDs) قبل الإرسال إليه."
-          : "Trial account: add and verify the destination number in Twilio (Phone Numbers → Verified Caller IDs) before sending to it."}
+          ? "يتم الإرسال عبر sms.to. أدخل رقمك بصيغة E.164 (مثال: +9665XXXXXXXX) ثم اضغط إرسال."
+          : "Codes are sent via sms.to. Enter your number in E.164 format (e.g. +9665XXXXXXXX) and press Send."}
       </div>
 
       <div className="rounded-2xl bg-card border border-border/60 p-4 space-y-3">

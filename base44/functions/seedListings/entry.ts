@@ -136,6 +136,10 @@ export default async function(req) {
     if (!CITIES[country]) return Response.json({ error: "Unknown country: " + country }, { status: 400 });
 
     const base44 = createClientFromRequest(req);
+    const me = await base44.auth.me().catch(() => null);
+    if (!me || me.role !== "admin") {
+      return Response.json({ error: "Admin access required" }, { status: 403 });
+    }
     const created = [];
     let total = 0;
     for (let off = 0; off < count; off += batchSize) {

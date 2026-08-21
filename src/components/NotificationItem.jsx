@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, Star, Tag, CheckCircle, Check, X, ArrowLeftRight, Pencil, BadgeCheck, TrendingUp, Flag, LifeBuoy, Clock } from "lucide-react";
+import { MessageCircle, Star, Tag, CheckCircle, Check, X, ArrowLeftRight, Pencil, BadgeCheck, TrendingUp, Flag, LifeBuoy, Clock, Radar } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -19,7 +19,7 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
     }
     if (n.type === "support_resolved") { onMarkRead?.(n); onClick?.(); return; }
     if (n.type === "rate") { onMarkRead?.(n); if (n.roomId) nav(`/chat/${n.roomId}`); else if (n.itemId) nav(`/item/${n.itemId}`); }
-    else if (n.type === "sold" || n.type === "boost_approved") { onMarkRead?.(n); if (n.itemId) nav(`/item/${n.itemId}`); }
+    else if (n.type === "sold" || n.type === "boost_approved" || n.type === "saved_search_match") { onMarkRead?.(n); if (n.itemId) nav(`/item/${n.itemId}`); }
     else if (n.type === "message" || n.type === "offer") nav(`/chat/${n.roomId}`);
     else if (n.roomId) { onMarkRead?.(n); nav(`/chat/${n.roomId}`); }
     onClick?.();
@@ -90,6 +90,14 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
         <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-300">
           <Clock size={18} />
         </div>
+      ) : n.type === "saved_search_match" ? (
+        n.image ? (
+          <Image src={n.image} alt={n.name} fittingType="fill" className="w-10 h-10 rounded-xl shrink-0" />
+        ) : (
+          <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-300 shrink-0 flex items-center justify-center">
+            <Radar size={18} />
+          </div>
+        )
       ) : n.type === "rate" ? (
         <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-300">
           <Star size={18} className="fill-amber-400 text-amber-400" />

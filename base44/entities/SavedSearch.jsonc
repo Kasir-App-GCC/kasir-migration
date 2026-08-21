@@ -1,0 +1,95 @@
+{
+  "name": "SavedSearch",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "The buyer who saved this search"
+    },
+    "name": {
+      "type": "string",
+      "description": "Auto-generated human-readable label shown on the chip"
+    },
+    "query": {
+      "type": "string",
+      "description": "Free-text search term"
+    },
+    "category": {
+      "type": "string",
+      "description": "Single category id, or empty/'all' for any"
+    },
+    "subcategory": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "city": {
+      "type": "string"
+    },
+    "country": {
+      "type": "string"
+    },
+    "price_min": {
+      "type": "number"
+    },
+    "price_max": {
+      "type": "number"
+    },
+    "condition": {
+      "type": "string",
+      "description": "Single condition id, or empty for any"
+    }
+  },
+  "required": [
+    "user_id"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "created_by_id": "{{user.id}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

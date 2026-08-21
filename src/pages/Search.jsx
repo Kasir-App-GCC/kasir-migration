@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { Search as SearchIcon, SlidersHorizontal, X, Sparkles, ShoppingBag, Megaphone } from "lucide-react";
+import { Search as SearchIcon, SlidersHorizontal, X, Sparkles, ShoppingBag, Megaphone, Bookmark } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import ItemCard from "@/components/ItemCard";
 import SearchLocationControl from "@/components/SearchLocationControl";
@@ -11,13 +11,16 @@ import { CATEGORIES, CONDITIONS } from "@/lib/constants";
 import { matchLocation } from "@/lib/location";
 import { fetchSellerInfos } from "@/lib/useTrusted";
 import PullToRefresh from "@/components/PullToRefresh";
+import SavedSearchChips from "@/components/SavedSearchChips";
+import { useToast } from "@/components/ui/use-toast";
 
 const PAGE_SIZE = 60;
 
 export default function Search() {
   const { categories, setCategories, subcategories, setSubcategories } = useOutletContext();
-  const { locationFilter, setLocationFilter, lang, prefs, country } = useStore();
+  const { user, locationFilter, setLocationFilter, lang, prefs, country } = useStore();
   const t = useT();
+  const { toast } = useToast();
   const nav = useNavigate();
   const [q, setQ] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
@@ -197,6 +200,46 @@ export default function Search() {
     setLocationFilter({ mode: "city", city: null, radius: 25 });
   };
 
+  const saveSearch = async () => {
+    if (!user || !hasActiveFilter) return;
+    try {
+      const cat = categories.length === 1 ? categories[0] : "";
+      const catObj = CATEGORIES.find((c) => c.id === cat);
+      const parts = [];
+      if (debouncedQ) parts.push(debouncedQ);
+      if (catObj) parts.push(lang === "ar" ? catObj.ar : catObj.en);
+      if (locationFilter.mode === "city" && locationFilter.city) parts.push(locationFilter.city);
+      if (minPrice || maxPrice) parts.push(`${minPrice || "0"}–${maxPrice || "∞"}`);
+      const name = parts.join(" · ") || (lang === "ar" ? "بحث محفوظ" : "Saved search");
+      await base44.entities.SavedSearch.create({
+        user_id: user.id,
+        name,
+        query: debouncedQ || "",
+        category: cat,
+        subcategory: subcategories,
+        city: locationFilter.mode === "city" ? locationFilter.city || "" : "",
+        country,
+        price_min: minPrice ? Number(minPrice) : null,
+        price_max: maxPrice ? Number(maxPrice) : null,
+        condition: condition.length === 1 ? condition[0] : "",
+      });
+      toast({ title: lang === "ar" ? "تم حفظ البحث — سننبّهك عند ظهور نتائج جديدة" : "Search saved — we'll alert you when new matches appear" });
+    } catch {
+      toast({ title: lang === "ar" ? "تعذّر حفظ البحث" : "Couldn't save search", variant: "destructive" });
+    }
+  };
+
+  const applySaved = (s) => {
+    setQ(s.query || "");
+    setDebouncedQ(s.query || "");
+    setCategories(s.category && s.category !== "all" ? [s.category] : []);
+    setSubcategories(Array.isArray(s.subcategory) ? s.subcategory : []);
+    setMinPrice(s.price_min ? String(s.price_min) : "");
+    setMaxPrice(s.price_max ? String(s.price_max) : "");
+    setCondition(s.condition ? [s.condition] : []);
+    if (s.city) setLocationFilter({ mode: "city", city: s.city, radius: locationFilter.radius || 25 });
+  };
+
   return (
     <PullToRefresh onRefresh={loadInitial}>
     <div className="pt-2 space-y-3">
@@ -260,17 +303,26 @@ export default function Search() {
         </button>
       </div>
 
+      <SavedSearchChips onApply={applySaved} />
+
       <div className="flex items-center justify-between text-xs">
         <span className="text-muted-foreground">{filtered.length} {t("results")}</span>
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value)}
-          className="bg-transparent text-foreground font-medium outline-none"
-        >
-          <option value="newest">{t("newest")}</option>
-          <option value="priceLowHigh">{t("priceLowHigh")}</option>
-          <option value="priceHighLow">{t("priceHighLow")}</option>
-        </select>
+        <div className="flex items-center gap-3">
+          {hasActiveFilter && (
+            <button onClick={saveSearch} className="inline-flex items-center gap-1 text-primary font-semibold active:scale-95 transition">
+              <Bookmark size={13} /> {lang === "ar" ? "حفظ البحث" : "Save search"}
+            </button>
+          )}
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            className="bg-transparent text-foreground font-medium outline-none"
+          >
+            <option value="newest">{t("newest")}</option>
+            <option value="priceLowHigh">{t("priceLowHigh")}</option>
+            <option value="priceHighLow">{t("priceHighLow")}</option>
+          </select>
+        </div>
       </div>
 
       {loading ? (

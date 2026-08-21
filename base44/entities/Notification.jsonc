@@ -21,7 +21,8 @@
         "verification_rejected",
         "boost_approved",
         "rate",
-        "support_resolved"
+        "support_resolved",
+        "saved_search_match"
       ],
       "default": "sold"
     },

@@ -22,7 +22,8 @@
         "boost_approved",
         "rate",
         "support_resolved",
-        "saved_search_match"
+        "saved_search_match",
+        "new_follower"
       ],
       "default": "sold"
     },
@@ -46,6 +47,10 @@
     },
     "actor_name": {
       "type": "string"
+    },
+    "actor_id": {
+      "type": "string",
+      "description": "The user id of the actor who triggered this notification (e.g. the follower)"
     },
     "read": {
       "type": "boolean",

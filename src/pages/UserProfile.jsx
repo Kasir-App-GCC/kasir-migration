@@ -82,6 +82,17 @@ export default function UserProfile() {
         const r = await base44.entities.UserFollow.create({ follower_id: user.id, followed_id: id });
         setIsFollowing(true); setFollowId(r?.id || null);
         setFollowersCount((c) => c + 1);
+        // Notify the followed user so the follow has a real effect.
+        try {
+          const me = [user.first_name, user.last_name].filter(Boolean).join(" ") || user.username || "—";
+          await base44.entities.Notification.create({
+            user_id: id,
+            type: "new_follower",
+            actor_id: user.id,
+            actor_name: me,
+            text: ar ? `بدأ ${me} بمتابعتك` : `${me} started following you`,
+          });
+        } catch {}
       }
     } catch {}
     setFollowBusy(false);
@@ -104,7 +115,7 @@ export default function UserProfile() {
         <ArrowLeft size={16} className="rtl:rotate-180" /> {t("back")}
       </button>
 
-      <div className="rounded-3xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground p-5">
+      <div className="rounded-3xl bg-gradient-to-br from-slate-900 to-slate-700 text-white p-5">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full overflow-hidden bg-white/20 ring-2 ring-white/30 shrink-0">
             {(profile?.avatar || avatarParam) ? <img src={profile?.avatar || avatarParam} className="w-full h-full object-cover" /> : <span className="w-full h-full flex items-center justify-center text-2xl font-bold">{displayName?.[0]}</span>}
@@ -146,13 +157,13 @@ export default function UserProfile() {
             <button
               onClick={toggleFollow}
               disabled={followBusy}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 transition disabled:opacity-60 ${isFollowing ? "bg-white/15 text-primary-foreground" : "bg-white text-primary"}`}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 transition disabled:opacity-60 ${isFollowing ? "bg-white/15 text-white ring-1 ring-white/30" : "bg-white text-slate-900"}`}
             >
               {isFollowing ? <><UserCheck size={16} /> {t("followingBtn")}</> : <><UserPlus size={16} /> {t("follow")}</>}
             </button>
             <button
               onClick={toggleBlock}
-              className={`px-3 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 transition ${blockedByMe ? "bg-rose-500 text-white" : "bg-white/15 text-primary-foreground"}`}
+              className={`px-3 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 transition ${blockedByMe ? "bg-rose-500 text-white" : "bg-white/15 text-white ring-1 ring-white/30"}`}
             >
               <Ban size={16} /> {blockedByMe ? t("unblockUser") : t("blockUser")}
             </button>

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "@/lib/AuthContext";
+import { base44 } from "@/api/base44Client";
 
 const StoreContext = createContext(null);
 
@@ -91,8 +92,14 @@ export function StoreProvider({ children }) {
 
   const setTheme = (t) => setThemeState(t);
   const setLang = (l) => setLangState(l);
-  const toggleFavorite = (id) =>
+  const toggleFavorite = (id) => {
     setFavorites((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]));
+    // Best-effort per-listing save count for the seller analytics dashboard.
+    // Fire-and-forget so the UI never waits on it; a failed update just means
+    // the count drifts slightly until the next toggle corrects it.
+    const isFav = favorites.includes(id);
+    base44.entities.Item.updateMany({ id }, { $inc: { favorites_count: isFav ? -1 : 1 } }).catch(() => {});
+  };
   const setPrefs = (patch) => setPrefsState((p) => ({ ...p, ...patch }));
   const clearFavorites = () => setFavorites([]);
   const setLastChatsSeen = (val) => setLastChatsSeenState(val);

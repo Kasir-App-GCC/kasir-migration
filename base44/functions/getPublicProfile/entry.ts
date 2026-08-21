@@ -41,6 +41,7 @@ export default async function (req) {
       is_trusted: !!u.is_trusted,
       rating_avg,
       rating_count,
+      created_date: u.created_date || null,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

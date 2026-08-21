@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Heart, MapPin, Clock, ChevronLeft, ChevronRight, Star, BadgeCheck, Sparkles, Earth } from "lucide-react";
+import { Heart, MapPin, Clock, ChevronLeft, ChevronRight, Star, BadgeCheck, Sparkles, Earth, Truck } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { timeAgo } from "@/lib/format";
@@ -132,6 +132,11 @@ export default function ItemCard({ item, onClick, promoted = false }) {
           <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${cond.color}`}>
             {lang === "ar" ? cond.ar : cond.en}
           </span>
+          {item.willing_to_ship && (
+            <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" title={t("willingToShip")}>
+              <Truck size={9} />
+            </span>
+          )}
           {multi && <span className="text-[10px] text-muted-foreground">{imgs.length} {t("photos")}</span>}
           {crossCountryActive && (
             <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-500 text-white shrink-0" title={lang === "ar" ? "دولي" : "Cross-country"}>

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Flag, MessageCircle, Star, Share2, ChevronRight, X, Tag, Trash2, CheckCircle, Pencil, BadgeCheck, RotateCcw, Sparkles } from "lucide-react";
+import { ArrowLeft, MapPin, Flag, MessageCircle, Star, Share2, ChevronRight, X, Tag, Trash2, CheckCircle, Pencil, BadgeCheck, RotateCcw, Sparkles, Truck, Ban } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -17,6 +17,7 @@ import FullscreenImageViewer from "@/components/FullscreenImageViewer";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { Image } from "@/components/ui/image";
 import { sendPush } from "@/lib/notify";
+import { useBlockStatus } from "@/lib/useBlockStatus";
 
 const SELLER_TAG_OPTIONS = [
   { en: "Fast replies", ar: "ردود سريعة" },
@@ -83,6 +84,7 @@ export default function ItemDetail() {
   const [origin, setOrigin] = useState({ x: 50, y: 50 });
   const [pinchScale, setPinchScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const { blockedByMe, blockedMe } = useBlockStatus(item?.seller_id, user?.id);
   const [canHover] = useState(() => typeof window !== "undefined" && window.matchMedia("(hover: hover) and (pointer: fine)").matches);
   const pointers = useRef(new Map());
   const pinchStart = useRef(null);
@@ -156,6 +158,7 @@ export default function ItemDetail() {
   const messageSeller = async () => {
     if (!user || !item) return;
     if (item.seller_id === user.id) { nav("/chats"); return; }
+    if (blockedByMe || blockedMe) { setOfferOpen(false); return; }
     const room = await getOrCreateRoom();
     nav(`/chat/${room.id}`);
   };
@@ -184,6 +187,7 @@ export default function ItemDetail() {
 
   const sendOffer = async (pct) => {
     if (!user || !item) return;
+    if (blockedByMe || blockedMe) { setOfferOpen(false); return; }
     const offerPrice = Math.round(item.price * (1 - pct / 100));
     setSending(true);
     try {
@@ -449,6 +453,25 @@ export default function ItemDetail() {
           <span>· {lang === "ar" ? cat?.ar : cat?.en}</span>
           <span>· {timeAgo(item.created_date, lang)}</span>
         </div>
+        {(item.willing_to_ship || item.delivers_within_city) && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {item.willing_to_ship && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                <Truck size={13} /> {t("willingToShip")}{item.shipping_fee ? ` · ${formatPrice(item.shipping_fee, lang, item.country)}` : ""}
+              </span>
+            )}
+            {item.delivers_within_city && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
+                <MapPin size={13} /> {t("deliversWithinCity")}
+              </span>
+            )}
+          </div>
+        )}
+        {(blockedByMe || blockedMe) && !isOwner && (
+          <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 text-sm font-bold">
+            <Ban size={15} /> {blockedByMe ? t("blockedUserMsg") : t("blockedByThem")}
+          </div>
+        )}
         {item.status === "sold" && (
           <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 text-sm font-bold">
             <CheckCircle size={15} /> {t("sold")}
@@ -573,10 +596,10 @@ export default function ItemDetail() {
                 <p className="text-xs text-muted-foreground">{t("price")}</p>
                 <p className="font-extrabold text-lg"><Price value={item.price} lang={lang} country={item.country} /></p>
               </div>
-              <button onClick={() => setOfferOpen(true)} className="px-4 py-3.5 rounded-2xl border-2 border-primary text-primary font-bold flex items-center justify-center gap-2">
+              <button onClick={() => setOfferOpen(true)} disabled={blockedByMe || blockedMe} className="px-4 py-3.5 rounded-2xl border-2 border-primary text-primary font-bold flex items-center justify-center gap-2 disabled:opacity-40">
                 <Tag size={18} /> {t("makeOffer")}
               </button>
-              <button onClick={messageSeller} className="flex-1 py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold flex items-center justify-center gap-2">
+              <button onClick={messageSeller} disabled={blockedByMe || blockedMe} className="flex-1 py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold flex items-center justify-center gap-2 disabled:opacity-40">
                 <MessageCircle size={18} /> {t("startChat")}
               </button>
             </>

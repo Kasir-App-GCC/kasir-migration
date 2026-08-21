@@ -104,6 +104,25 @@
     "views": {
       "type": "number",
       "default": 0
+    },
+    "favorites_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Best-effort count of users who saved this listing (incremented on favorite)"
+    },
+    "willing_to_ship": {
+      "type": "boolean",
+      "default": false,
+      "description": "Seller is willing to ship the item (not just face-to-face)"
+    },
+    "shipping_fee": {
+      "type": "number",
+      "description": "Shipping fee in the item's currency (used when willing_to_ship is true)"
+    },
+    "delivers_within_city": {
+      "type": "boolean",
+      "default": false,
+      "description": "Seller offers delivery within the buyer's city"
     }
   },
   "required": [

@@ -55,6 +55,7 @@ export default async function (req) {
         is_trusted: !!u?.is_trusted,
         rating_avg: r ? Math.round((r.sum / r.count) * 10) / 10 : 0,
         rating_count: r ? r.count : 0,
+        created_date: u?.created_date || null,
       };
     }
     return Response.json({ results });

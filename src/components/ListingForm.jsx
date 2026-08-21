@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ImagePlus, X, Sparkles, LocateFixed, MapPin, GripVertical, Globe, Lock, Check, Camera, Wand2 } from "lucide-react";
+import { ImagePlus, X, Sparkles, LocateFixed, MapPin, GripVertical, Globe, Lock, Check, Camera, Wand2, Truck } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -60,6 +60,9 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [willingToShip, setWillingToShip] = useState(!!initial?.willing_to_ship);
+  const [shippingFee, setShippingFee] = useState(initial?.shipping_fee != null ? String(initial.shipping_fee) : "");
+  const [deliversWithinCity, setDeliversWithinCity] = useState(!!initial?.delivers_within_city);
 
   // Reverse-geocode coordinates to an accurate place name for display.
   const reverseGeocode = async (la, ln) => {
@@ -209,6 +212,9 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         lat,
         lng,
         description,
+        willing_to_ship: willingToShip,
+        shipping_fee: willingToShip && shippingFee ? Number(shippingFee) : null,
+        delivers_within_city: deliversWithinCity,
         featured: false,
         boost_hours: boostHours,
         boost_cross_country: boostCross,
@@ -488,6 +494,34 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             </button>
           </div>
         </div>
+      </div>
+
+      <div className="p-3.5 rounded-2xl border border-border bg-card space-y-3">
+        <div className="flex items-center gap-2.5">
+          <Truck size={18} className="text-emerald-500" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold">{t("shippingOptions")}</p>
+            <p className="text-xs text-muted-foreground">{ar ? "وسّع نطاق وصولك Beyond the local meet-up" : "Reach buyers beyond a face-to-face meet-up"}</p>
+          </div>
+        </div>
+        <label className="flex items-center justify-between p-3 rounded-xl bg-muted">
+          <span className="text-sm font-semibold flex items-center gap-2"><Truck size={15} /> {t("willingToShip")}</span>
+          <button type="button" onClick={() => setWillingToShip(!willingToShip)} className={`w-11 h-6 rounded-full p-0.5 transition ${willingToShip ? "bg-emerald-500" : "bg-muted-foreground/30"}`}>
+            <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${willingToShip ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
+          </button>
+        </label>
+        {willingToShip && (
+          <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-muted">
+            <input value={shippingFee} onChange={(e) => setShippingFee(normalizeDigits(e.target.value).replace(/\D/g, "").slice(0, 6))} placeholder={t("shippingFeePh")} inputMode="numeric" className="bg-transparent outline-none flex-1" />
+            <CurrencySymbol country={country || "SA"} lang={lang} size={15} className="text-muted-foreground shrink-0" />
+          </div>
+        )}
+        <label className="flex items-center justify-between p-3 rounded-xl bg-muted">
+          <span className="text-sm font-semibold flex items-center gap-2"><MapPin size={15} /> {t("deliversWithinCity")}</span>
+          <button type="button" onClick={() => setDeliversWithinCity(!deliversWithinCity)} className={`w-11 h-6 rounded-full p-0.5 transition ${deliversWithinCity ? "bg-emerald-500" : "bg-muted-foreground/30"}`}>
+            <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${deliversWithinCity ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
+          </button>
+        </label>
       </div>
 
       <div className="p-3.5 rounded-2xl border border-border bg-card space-y-3">

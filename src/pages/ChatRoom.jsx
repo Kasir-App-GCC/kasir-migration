@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, ShieldCheck, Check, CheckCheck, Star, BadgeCheck } from "lucide-react";
+import { ArrowLeft, Send, ShieldCheck, Check, CheckCheck, Star, BadgeCheck, Ban } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -10,6 +10,7 @@ import OfferCard from "@/components/OfferCard";
 import TrustedBadge from "@/components/TrustedBadge";
 import PullToRefreshScroll from "@/components/PullToRefreshScroll";
 import RatingDialog from "@/components/RatingDialog";
+import { useBlockStatus } from "@/lib/useBlockStatus";
 
 export default function ChatRoom() {
   const { id } = useParams();
@@ -127,6 +128,8 @@ export default function ChatRoom() {
   const avatar = otherAvatar || roomAvatar;
   const otherLastSeen = room ? (isSeller ? room.buyer_last_seen : room.seller_last_seen) : null;
   const otherId = room ? (isSeller ? room.buyer_id : room.seller_id) : null;
+  const { blockedByMe, blockedMe, block, unblock } = useBlockStatus(otherId, user?.id);
+  const isBlocked = blockedByMe || blockedMe;
 
   const goToProfile = () => {
     if (!otherId || isOfficial) return;
@@ -296,6 +299,15 @@ export default function ChatRoom() {
             ) : null}
           </div>
         </button>
+        {!isOfficial && otherId && (
+          <button
+            onClick={() => (blockedByMe ? unblock() : block(otherName))}
+            className="p-2 rounded-full hover:bg-muted shrink-0"
+            title={blockedByMe ? t("unblockUser") : t("blockUser")}
+          >
+            <Ban size={18} className={blockedByMe ? "text-rose-500" : "text-muted-foreground"} />
+          </button>
+        )}
         </div>
       </header>
 
@@ -385,16 +397,27 @@ export default function ChatRoom() {
       </PullToRefreshScroll>
 
       <div className="p-3 border-t border-border/60 flex items-center gap-2 pb-[env(safe-area-inset-bottom)] shrink-0">
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && sendText()}
-          placeholder={t("typeMessage")}
-          className="flex-1 px-4 py-3 rounded-full bg-muted outline-none focus:ring-2 ring-primary/30 text-sm"
-        />
-        <button onClick={() => sendText()} disabled={!text.trim()} className="w-11 h-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50">
-          <Send size={18} className="rtl:rotate-180" />
-        </button>
+        {isBlocked ? (
+          <div className="flex-1 flex items-center justify-between gap-2 py-2.5 px-4 rounded-full bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 text-sm font-semibold">
+            <span className="flex items-center gap-1.5"><Ban size={15} /> {blockedByMe ? t("blockedUserMsg") : t("blockedByThem")}</span>
+            {blockedByMe && (
+              <button onClick={unblock} className="text-xs font-bold underline">{t("unblockUser")}</button>
+            )}
+          </div>
+        ) : (
+          <>
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendText()}
+              placeholder={t("typeMessage")}
+              className="flex-1 px-4 py-3 rounded-full bg-muted outline-none focus:ring-2 ring-primary/30 text-sm"
+            />
+            <button onClick={() => sendText()} disabled={!text.trim()} className="w-11 h-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50">
+              <Send size={18} className="rtl:rotate-180" />
+            </button>
+          </>
+        )}
       </div>
       {ratingOffer && (
         <RatingDialog

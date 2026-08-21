@@ -28,6 +28,10 @@ export default async function(req) {
     }
     if (!/^https?:\/\//.test(baseUrl)) baseUrl = 'https://' + baseUrl;
 
+    // Infobip accepts either "App <apiKey>" or Basic auth with the API key as
+    // both username and password. We send both so either account type works.
+    const basicCred = btoa(`${apiKey}:${apiKey}`);
+
     // Generate a 6-digit code and persist its hash so verifyPhoneOtp can check
     // it locally without a second round-trip to the provider.
     const arr = new Uint32Array(1);
@@ -69,7 +73,8 @@ export default async function(req) {
         || data?.message
         || data?.requestError?.serviceException?.message
         || ('HTTP ' + res.status);
-      return Response.json({ error: 'Infobip error: ' + msg }, { status: 502 });
+      const host = baseUrl.replace(/^https?:\/\//, '');
+      return Response.json({ error: `Infobip error: ${msg} (host: ${host})` }, { status: 502 });
     }
 
     return Response.json({ ok: true });

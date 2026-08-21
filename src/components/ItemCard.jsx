@@ -154,10 +154,7 @@ export default function ItemCard({ item, onClick, promoted = false }) {
           <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">
             <span className="truncate">{(item.seller_name || "").split(" ")[0]}</span>
             {sellerInfo.trusted && (
-              <span className="inline-flex items-center gap-0.5 shrink-0 px-1 py-0.5 rounded bg-sky-500 text-white text-[9px] font-bold leading-none">
-                <BadgeCheck size={10} className="shrink-0" />
-                {lang === "ar" ? "موثّق" : "Verified"}
-              </span>
+              <BadgeCheck size={13} className="shrink-0 text-sky-500 fill-sky-500/20" />
             )}
             <span className="inline-flex items-center gap-0.5 shrink-0">
               <Star size={11} className="fill-amber-400 text-amber-400" />

@@ -56,9 +56,10 @@ export default async function(req) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        guid: crypto.randomUUID(),
         recipient: phone,
         code,
-        channels: [{ channel, expiry_time: 300 }],
+        channels: [{ channel, sender_id: "SMSTO", priority: 1, expiry_time: 300 }],
       }),
     });
 

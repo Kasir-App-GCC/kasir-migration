@@ -370,12 +370,12 @@ export default function Search() {
       {showFilters && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowFilters(false)} />
-          <div className="relative w-full sm:max-w-md bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl p-5 animate-in fade-in slide-in-from-bottom-[100%] duration-300">
-            <div className="flex items-center justify-between mb-4">
+          <div className="relative w-full sm:max-w-md max-h-[100dvh] sm:max-h-[90vh] flex flex-col bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl animate-in fade-in slide-in-from-bottom-[100%] duration-300">
+            <div className="flex items-center justify-between p-5 pb-3 shrink-0">
               <h3 className="font-bold text-lg">{t("filters")}</h3>
               <button onClick={() => setShowFilters(false)} className="p-1.5 rounded-full hover:bg-muted"><X size={20} /></button>
             </div>
-            <div className="space-y-4">
+            <div className="overflow-y-auto px-5 pb-2 space-y-4">
               <div>
                 <label className="text-sm font-medium text-muted-foreground block mb-1.5">{t("category")}</label>
                 <div className="flex flex-wrap gap-2">
@@ -426,7 +426,7 @@ export default function Search() {
                 </div>
               </div>
             </div>
-            <div className="flex gap-2 mt-6">
+            <div className="flex gap-2 p-5 pt-3 shrink-0">
               <button onClick={reset} className="px-4 py-3 rounded-xl bg-muted text-muted-foreground font-semibold">{t("reset")}</button>
               <button onClick={() => setShowFilters(false)} className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-bold">{t("applyFilters")}</button>
             </div>

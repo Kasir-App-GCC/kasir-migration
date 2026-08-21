@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Megaphone, Plus, X, MapPin, LocateFixed, Search } from "lucide-react";
+import { Megaphone, Plus, X, MapPin, LocateFixed } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
-import { CATEGORIES, SUBCATEGORIES, getSubcategories } from "@/lib/constants";
+import { CATEGORIES, getSubcategories } from "@/lib/constants";
 import { getCities, nearestCityInCountry } from "@/lib/countries";
 import Price from "@/components/Price";
 import CurrencySymbol from "@/components/CurrencySymbol";
 import PullToRefresh from "@/components/PullToRefresh";
 import CitySearchSelect from "@/components/CitySearchSelect";
 import BuyRequestCard from "@/components/BuyRequestCard";
+import BuyRequestFilters from "@/components/BuyRequestFilters";
 import BuyRequestOfferDialog from "@/components/BuyRequestOfferDialog";
 import BuyRequestAssistant from "@/components/BuyRequestAssistant";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
@@ -282,94 +283,20 @@ export default function BuyRequests() {
         </div>
 
         {tab === "browse" && (
-          <div className="space-y-2">
-            <div className="relative">
-              <Search size={16} className="absolute top-1/2 -translate-y-1/2 start-3 text-muted-foreground pointer-events-none" />
-              <input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={lang === "ar" ? "ابحث في كل الطلبات..." : "Search all requests..."}
-                className="w-full ps-9 pe-9 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute top-1/2 -translate-y-1/2 end-2 w-6 h-6 rounded-full bg-muted-foreground/15 flex items-center justify-center text-muted-foreground hover:bg-muted-foreground/25"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {CATEGORIES.filter((c) => c.id !== "all").map((c) => {
-                const selected = filterCategories.includes(c.id);
-                return (
-                  <button
-                    key={c.id}
-                    onClick={() => setFilterCategories((prev) => selected ? prev.filter((x) => x !== c.id) : [...prev, c.id])}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${selected ? "bg-violet-500 text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
-                  >
-                    {lang === "ar" ? c.ar : c.en}
-                  </button>
-                );
-              })}
-            </div>
-            {filterCategories.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {filterCategories
-                  .flatMap((cat) => (SUBCATEGORIES[cat] || []).map((s) => ({ ...s })))
-                  .filter((s, i, arr) => arr.findIndex((x) => x.en === s.en) === i)
-                  .map((s) => {
-                    const selected = filterSubcategories.includes(s.en);
-                    return (
-                      <button
-                        key={s.en}
-                        onClick={() => setFilterSubcategories((prev) => selected ? prev.filter((x) => x !== s.en) : [...prev, s.en])}
-                        className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${selected ? "bg-violet-500 text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
-                      >
-                        {lang === "ar" ? s.ar : s.en}
-                      </button>
-                    );
-                  })}
-              </div>
-            )}
-            {filterSubcategories.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {filterCategories
-                  .flatMap((cat) => getBuyRequestTagsForCategory(cat, filterSubcategories))
-                  .filter((t, i, arr) => arr.findIndex((x) => x.en === t.en) === i)
-                  .map((t) => {
-                    const selected = filterTags.includes(t.en);
-                    return (
-                      <button
-                        key={t.en}
-                        onClick={() => setFilterTags((prev) => selected ? prev.filter((x) => x !== t.en) : [...prev, t.en])}
-                        className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${selected ? "bg-violet-500 text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
-                      >
-                        {lang === "ar" ? t.ar : t.en}
-                      </button>
-                    );
-                  })}
-              </div>
-            )}
-            <div className="relative">
-              <CitySearchSelect
-                value={filterCity}
-                onChange={setFilterCity}
-                cities={cities}
-                lang={lang}
-                placeholder={lang === "ar" ? "ابحث عن مدينة..." : "Search city..."}
-              />
-              {filterCity && (
-                <button
-                  onClick={() => setFilterCity("")}
-                  className="absolute top-1/2 -translate-y-1/2 end-2 w-6 h-6 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/70 z-10"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-          </div>
+          <BuyRequestFilters
+            lang={lang}
+            cities={cities}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            filterCity={filterCity}
+            setFilterCity={setFilterCity}
+            filterCategories={filterCategories}
+            setFilterCategories={setFilterCategories}
+            filterSubcategories={filterSubcategories}
+            setFilterSubcategories={setFilterSubcategories}
+            filterTags={filterTags}
+            setFilterTags={setFilterTags}
+          />
         )}
 
         {loading ? (

@@ -54,6 +54,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [locating, setLocating] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
   const [mapPos, setMapPos] = useState(null);
+  const [mapHint, setMapHint] = useState("");
   const [uploading, setUploading] = useState(false);
   const [posting, setPosting] = useState(false);
   const [editQueue, setEditQueue] = useState([]);
@@ -90,6 +91,22 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
       if (match) setCity(match.en);
     } catch {}
   };
+
+  // Live reverse-geocode the pin while picking on the map so the hint label
+  // shows the accurate place name (e.g. "Al Aarid, Riyadh Region") instead of
+  // the nearest static city (which can be a smaller municipality like Diriyah).
+  useEffect(() => {
+    if (!mapPos) { setMapHint(""); return; }
+    let cancelled = false;
+    const handle = setTimeout(async () => {
+      try {
+        const res = await base44.functions.invoke("geocodeLocation", { lat: mapPos.lat, lng: mapPos.lng, country: country || "SA", lang });
+        if (!cancelled && res?.data?.name) setMapHint(String(res.data.name).slice(0, 120));
+      } catch {}
+    }, 400);
+    return () => { cancelled = true; clearTimeout(handle); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapPos]);
 
   const detectLocation = () => {
     if (!navigator.geolocation) {
@@ -680,7 +697,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             {mapPos && (
               <p className="text-xs text-muted-foreground mt-2">
                 {ar ? "الموقع" : "Location"}: {mapPos.lat.toFixed(4)}, {mapPos.lng.toFixed(4)}
-                {(() => { const c = nearestCityInCountry(mapPos.lat, mapPos.lng, country || "SA"); return c ? ` · ${ar ? c.ar : c.en}` : ""; })()}
+                {mapHint ? ` · ${mapHint}` : ""}
               </p>
             )}
             <button

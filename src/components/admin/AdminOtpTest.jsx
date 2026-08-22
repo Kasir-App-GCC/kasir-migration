@@ -1,9 +1,8 @@
 import React, { useState } from "react";
-import { Phone, Send, ShieldCheck, Loader2, CheckCircle2, XCircle, MessageCircle, Volume2 } from "lucide-react";
+import { Phone, Send, ShieldCheck, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
-import WhatsAppIcon from "@/components/WhatsAppIcon";
 
 export default function AdminOtpTest() {
   const { lang } = useStore();
@@ -12,30 +11,21 @@ export default function AdminOtpTest() {
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [sending, setSending] = useState(false);
-  const [sendingWa, setSendingWa] = useState(false);
-  const [sendingVoice, setSendingVoice] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [result, setResult] = useState(null);
 
-  const send = async (channel = "sms") => {
+  const send = async () => {
     const p = phone.trim();
     if (!/^\+\d{8,15}$/.test(p)) {
       toast({ title: ar ? "رقم غير صالح — استخدم صيغة +966XXXXXXXXX" : "Invalid number — use +966XXXXXXXXX", variant: "destructive" });
       return;
     }
-    if (channel === "whatsapp") setSendingWa(true);
-    else if (channel === "voice") setSendingVoice(true);
-    else setSending(true);
+    setSending(true);
     setResult(null);
     try {
-      const res = await base44.functions.invoke("sendPhoneOtp", { phone: p, channel });
+      const res = await base44.functions.invoke("sendPhoneOtp", { phone: p, channel: "sms" });
       if (res?.data?.ok) {
-        const desc = channel === "whatsapp"
-          ? (ar ? "تحقق من واتساب" : "Check your WhatsApp")
-          : channel === "voice"
-            ? (ar ? "ستصلك مكالمة صوتية" : "You'll receive a voice call")
-            : (ar ? "تحقق من رسائل الجوال" : "Check your SMS");
-        toast({ title: ar ? "تم إرسال الرمز" : "Code sent", description: desc });
+        toast({ title: ar ? "تم إرسال الرمز" : "Code sent", description: ar ? "تحقق من رسائل الجوال" : "Check your SMS" });
       } else {
         throw new Error(res?.data?.error || "Failed");
       }
@@ -44,8 +34,6 @@ export default function AdminOtpTest() {
       toast({ title: ar ? "فشل الإرسال" : "Send failed", description: e.message, variant: "destructive" });
     } finally {
       setSending(false);
-      setSendingWa(false);
-      setSendingVoice(false);
     }
   };
 
@@ -92,17 +80,9 @@ export default function AdminOtpTest() {
               className="w-full ps-9 pe-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm text-start"
             />
           </div>
-          <button onClick={() => send("sms")} disabled={sending || sendingWa || sendingVoice} className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm flex items-center gap-1.5 disabled:opacity-50">
+          <button onClick={() => send()} disabled={sending} className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm flex items-center gap-1.5 disabled:opacity-50">
             {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
             {ar ? "إرسال SMS" : "Send SMS"}
-          </button>
-          <button onClick={() => send("whatsapp")} disabled={sending || sendingWa || sendingVoice} className="px-4 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-sm flex items-center gap-1.5 disabled:opacity-50">
-            {sendingWa ? <Loader2 size={16} className="animate-spin" /> : <WhatsAppIcon size={16} />}
-            {ar ? "واتساب" : "WhatsApp"}
-          </button>
-          <button onClick={() => send("voice")} disabled={sending || sendingWa || sendingVoice} className="px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-bold text-sm flex items-center gap-1.5 disabled:opacity-50">
-            {sendingVoice ? <Loader2 size={16} className="animate-spin" /> : <Volume2 size={16} />}
-            {ar ? "مكالمة" : "Voice"}
           </button>
         </div>
       </div>

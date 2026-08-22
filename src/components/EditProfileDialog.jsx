@@ -149,7 +149,7 @@ export default function EditProfileDialog({ open, onClose }) {
             {showWaVerifier ? (
               <div className="space-y-1">
                 <PhoneOtpVerifier
-                  channel="whatsapp"
+                  channel="sms"
                   initialPhone={waVerifiedNew ? waNumberNew : (user?.whatsapp_verified && user?.whatsapp_number ? "+" + user.whatsapp_number : userPhoneE164(user))}
                   disallowE164={user?.whatsapp_verified ? "+" + user.whatsapp_number : ""}
                   onVerified={(e164) => {

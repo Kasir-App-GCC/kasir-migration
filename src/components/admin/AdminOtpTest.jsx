@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Phone, Send, ShieldCheck, Loader2, CheckCircle2, XCircle, MessageCircle } from "lucide-react";
+import { Phone, Send, ShieldCheck, Loader2, CheckCircle2, XCircle, MessageCircle, Volume2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
@@ -13,6 +13,7 @@ export default function AdminOtpTest() {
   const [code, setCode] = useState("");
   const [sending, setSending] = useState(false);
   const [sendingWa, setSendingWa] = useState(false);
+  const [sendingVoice, setSendingVoice] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [result, setResult] = useState(null);
 
@@ -22,17 +23,19 @@ export default function AdminOtpTest() {
       toast({ title: ar ? "رقم غير صالح — استخدم صيغة +966XXXXXXXXX" : "Invalid number — use +966XXXXXXXXX", variant: "destructive" });
       return;
     }
-    if (channel === "whatsapp") setSendingWa(true); else setSending(true);
+    if (channel === "whatsapp") setSendingWa(true);
+    else if (channel === "voice") setSendingVoice(true);
+    else setSending(true);
     setResult(null);
     try {
       const res = await base44.functions.invoke("sendPhoneOtp", { phone: p, channel });
       if (res?.data?.ok) {
-        toast({
-          title: ar ? "تم إرسال الرمز" : "Code sent",
-          description: channel === "whatsapp"
-            ? (ar ? "تحقق من واتساب" : "Check your WhatsApp")
-            : (ar ? "تحقق من رسائل الجوال" : "Check your SMS"),
-        });
+        const desc = channel === "whatsapp"
+          ? (ar ? "تحقق من واتساب" : "Check your WhatsApp")
+          : channel === "voice"
+            ? (ar ? "ستصلك مكالمة صوتية" : "You'll receive a voice call")
+            : (ar ? "تحقق من رسائل الجوال" : "Check your SMS");
+        toast({ title: ar ? "تم إرسال الرمز" : "Code sent", description: desc });
       } else {
         throw new Error(res?.data?.error || "Failed");
       }
@@ -42,6 +45,7 @@ export default function AdminOtpTest() {
     } finally {
       setSending(false);
       setSendingWa(false);
+      setSendingVoice(false);
     }
   };
 
@@ -77,8 +81,8 @@ export default function AdminOtpTest() {
 
       <div className="rounded-2xl bg-card border border-border/60 p-4 space-y-3">
         <label className="text-sm font-semibold">{ar ? "رقم الجوال (E.164)" : "Phone number (E.164)"}</label>
-        <div className="flex gap-2">
-          <div className="relative flex-1">
+        <div className="flex flex-wrap gap-2">
+          <div className="relative flex-1 min-w-[180px]">
             <Phone size={16} className="absolute top-1/2 -translate-y-1/2 start-3 text-muted-foreground" />
             <input
               value={phone}
@@ -88,13 +92,17 @@ export default function AdminOtpTest() {
               className="w-full ps-9 pe-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm text-start"
             />
           </div>
-          <button onClick={() => send("sms")} disabled={sending || sendingWa} className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm flex items-center gap-1.5 disabled:opacity-50">
+          <button onClick={() => send("sms")} disabled={sending || sendingWa || sendingVoice} className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm flex items-center gap-1.5 disabled:opacity-50">
             {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
             {ar ? "إرسال SMS" : "Send SMS"}
           </button>
-          <button onClick={() => send("whatsapp")} disabled={sending || sendingWa} className="px-4 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-sm flex items-center gap-1.5 disabled:opacity-50">
+          <button onClick={() => send("whatsapp")} disabled={sending || sendingWa || sendingVoice} className="px-4 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-sm flex items-center gap-1.5 disabled:opacity-50">
             {sendingWa ? <Loader2 size={16} className="animate-spin" /> : <WhatsAppIcon size={16} />}
             {ar ? "واتساب" : "WhatsApp"}
+          </button>
+          <button onClick={() => send("voice")} disabled={sending || sendingWa || sendingVoice} className="px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-bold text-sm flex items-center gap-1.5 disabled:opacity-50">
+            {sendingVoice ? <Loader2 size={16} className="animate-spin" /> : <Volume2 size={16} />}
+            {ar ? "مكالمة" : "Voice"}
           </button>
         </div>
       </div>

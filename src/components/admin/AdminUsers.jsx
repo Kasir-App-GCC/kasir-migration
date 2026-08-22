@@ -146,11 +146,16 @@ export default function AdminUsers() {
     }
     if (q.trim()) {
       const s = q.trim().toLowerCase();
+      const digits = s.replace(/\D/g, "");
       r = r.filter((u) =>
         (u.username || "").toLowerCase().includes(s) ||
         (u.email || "").toLowerCase().includes(s) ||
         (u.first_name || "").toLowerCase().includes(s) ||
-        (u.last_name || "").toLowerCase().includes(s)
+        (u.last_name || "").toLowerCase().includes(s) ||
+        (digits.length >= 3 && (
+          ((u.phone || "").replace(/\D/g, "")).includes(digits) ||
+          ((u.whatsapp_number || "").replace(/\D/g, "")).includes(digits)
+        ))
       );
     }
     return r;
@@ -288,7 +293,7 @@ export default function AdminUsers() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder={ar ? "بحث بالاسم أو الإيميل…" : "Search name or email…"}
+            placeholder={ar ? "بحث بالاسم، الإيميل، أو الرقم…" : "Search name, email, or phone…"}
             className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm"
           />
         </div>

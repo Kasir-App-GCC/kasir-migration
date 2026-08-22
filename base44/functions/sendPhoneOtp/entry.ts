@@ -18,11 +18,13 @@ export default async function(req) {
       return Response.json({ error: 'Invalid phone. Use E.164 format e.g. +9665XXXXXXXX' }, { status: 400 });
     }
 
-    // Authentica's WhatsApp/Voice channels are routed through Twilio and are
-    // disabled on their side (Twilio error 60223). Force SMS delivery for all
-    // verifications — the WhatsApp number itself is still verified by sending
-    // an SMS OTP to that same number.
-    const channel = 'sms';
+    const channel = ['whatsapp', 'voice', 'email'].includes(body?.channel) ? body.channel : 'sms';
+    // Each Authentica template is channel-specific. Template 31 is the SMS
+    // template; WhatsApp requires its own template id from your Authentica
+    // dashboard (set via the AUTHENTICA_WHATSAPP_TEMPLATE_ID secret).
+    const templateId = channel === 'whatsapp'
+      ? (secrets.get('AUTHENTICA_WHATSAPP_TEMPLATE_ID') || '31')
+      : '31';
 
     // Rate limit: max 3 OTP sends per user per 30 minutes.
     const sinceIso = new Date(Date.now() - 30 * 60 * 1000).toISOString();
@@ -48,7 +50,7 @@ export default async function(req) {
       body: JSON.stringify({
         method: channel,
         phone,
-        template_id: 31,
+        template_id: templateId,
       }),
     });
 

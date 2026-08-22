@@ -5,6 +5,7 @@ import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
 import PhoneOtpVerifier from "@/components/PhoneOtpVerifier";
 import { userPhoneE164, digitsOnly } from "@/lib/phone";
+import { apiErrorMessage } from "@/lib/apiError";
 import { validateNationalId, nationalIdRule } from "@/lib/nationalId";
 
 export default function VerificationDialog({ open, onClose }) {
@@ -72,8 +73,7 @@ export default function VerificationDialog({ open, onClose }) {
       toast({ title: ar ? "تم إرسال طلب التوثيق" : "Verification request submitted", description: ar ? "سنطلعك عند المراجعة" : "We'll notify you once reviewed" });
       onClose();
     } catch (err) {
-      const msg = err?.response?.data?.error || err?.message || (ar ? "فشل الإرسال" : "Failed to submit");
-      setError(msg);
+      setError(apiErrorMessage(err, ar ? "فشل الإرسال" : "Failed to submit"));
     } finally {
       setSubmitting(false);
     }

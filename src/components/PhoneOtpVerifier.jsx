@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { COUNTRIES, getCountry } from "@/lib/countries";
 import { digitsOnly } from "@/lib/phone";
+import { apiErrorMessage } from "@/lib/apiError";
 import SheetSelect from "@/components/SheetSelect";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 
@@ -96,7 +97,7 @@ export default function PhoneOtpVerifier({ initialPhone = "", channel = "sms", o
         throw new Error(res?.data?.error || "Failed");
       }
     } catch (e) {
-      setError(e.message || (ar ? "فشل الإرسال" : "Failed to send"));
+      setError(apiErrorMessage(e, ar ? "فشل الإرسال" : "Failed to send"));
     } finally {
       setSending(false);
     }
@@ -118,7 +119,7 @@ export default function PhoneOtpVerifier({ initialPhone = "", channel = "sms", o
         throw new Error(res?.data?.error || "Invalid code");
       }
     } catch (e) {
-      setError(e.message || (ar ? "رمز غير صحيح" : "Invalid code"));
+      setError(apiErrorMessage(e, ar ? "رمز غير صحيح" : "Invalid code"));
     } finally {
       setVerifying(false);
     }

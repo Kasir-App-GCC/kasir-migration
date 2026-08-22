@@ -6,6 +6,7 @@ import { useT } from "@/lib/i18n";
 import { base44 } from "@/api/base44Client";
 import { syncAvatarToEntities } from "@/lib/syncAvatar";
 import { userPhoneE164, digitsOnly } from "@/lib/phone";
+import { apiErrorMessage } from "@/lib/apiError";
 import PhoneOtpVerifier from "@/components/PhoneOtpVerifier";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 
@@ -94,7 +95,7 @@ export default function EditProfileDialog({ open, onClose }) {
       await syncAvatarToEntities(user.id, avatar);
       onClose();
     } catch (err) {
-      setError(err.message || (ar ? "فشل الحفظ" : "Failed to save"));
+      setError(apiErrorMessage(err, ar ? "فشل الحفظ" : "Failed to save"));
       setSaving(false);
     }
   };

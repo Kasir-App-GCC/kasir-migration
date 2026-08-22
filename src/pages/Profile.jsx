@@ -219,19 +219,24 @@ export default function Profile() {
               const canRefresh = it.archived || daysSinceUpdate >= 27;
               return (
                 <div key={it.id} className="relative">
-                  <ItemCard item={it} onClick={() => nav(`/item/${it.id}`)} promoted={promoted} />
+                  <ItemCard
+                    item={it}
+                    onClick={() => nav(`/item/${it.id}`)}
+                    promoted={promoted}
+                    refreshButton={canRefresh ? (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); refreshListing(it.id); }}
+                        className="w-8 h-8 rounded-full bg-sky-600 text-white shadow flex items-center justify-center hover:scale-110 transition"
+                        title={ar ? "تحديث الإعلان" : "Refresh listing"}
+                      >
+                        <RefreshCw size={14} />
+                      </button>
+                    ) : null}
+                  />
                   {it.archived && (
                     <span className="absolute top-1.5 left-1/2 -translate-x-1/2 z-20 px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-bold shadow">{ar ? "مؤرشف" : "Archived"}</span>
                   )}
-                  <div className="absolute top-2 end-2 z-20 flex flex-col gap-1.5">
-                    <button
-                      onClick={() => refreshListing(it.id)}
-                      disabled={!canRefresh}
-                      className={`w-8 h-8 rounded-full text-white shadow flex items-center justify-center transition ${canRefresh ? "bg-sky-600 hover:scale-110" : "bg-sky-600/40 cursor-not-allowed"}`}
-                      title={ar ? (canRefresh ? "تحديث الإعلان" : "لا يحتاج تحديث بعد") : (canRefresh ? "Refresh listing" : "Not due yet")}
-                    >
-                      <RefreshCw size={14} />
-                    </button>
+                  <div className="absolute top-2 end-2 z-20">
                     <button
                       onClick={() => deleteListing(it.id)}
                       className="w-8 h-8 rounded-full bg-rose-600 text-white shadow flex items-center justify-center hover:scale-110 transition"

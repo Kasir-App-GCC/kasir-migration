@@ -8,7 +8,7 @@ import { getCategory, getCityName, getCondition } from "@/lib/constants";
 import { useSellerInfo } from "@/lib/useTrusted";
 import TrustedBadge from "@/components/TrustedBadge";
 
-export default function ItemCard({ item, onClick, promoted = false }) {
+export default function ItemCard({ item, onClick, promoted = false, refreshButton = null }) {
   const { lang, favorites, toggleFavorite } = useStore();
   const t = useT();
   const [idx, setIdx] = useState(0);
@@ -124,6 +124,11 @@ export default function ItemCard({ item, onClick, promoted = false }) {
               {t("sold")}
             </span>
           </span>
+        )}
+
+        {/* Owner-only refresh action — only rendered when due */}
+        {refreshButton && (
+          <div className="absolute bottom-2.5 end-2.5 z-20">{refreshButton}</div>
         )}
       </div>
 

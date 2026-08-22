@@ -38,7 +38,8 @@ export default async function(req) {
     });
 
     const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data?.success) {
+    const ok = res.ok && (data?.success === true || data?.status === true || data?.verified === true);
+    if (!ok) {
       const msg = data?.message || data?.errors?.[0]?.message || ('HTTP ' + res.status);
       return Response.json({ error: 'Authentica error: ' + msg }, { status: 502 });
     }

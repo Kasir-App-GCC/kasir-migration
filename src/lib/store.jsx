@@ -43,6 +43,7 @@ export function StoreProvider({ children }) {
         rating: 5.0,
         ratingsCount: 0,
         whatsapp_enabled: !!auth.user.whatsapp_enabled,
+        whatsapp_verified: !!auth.user.whatsapp_verified,
         whatsapp_number: auth.user.whatsapp_number || null,
         country: auth.user.country || "SA",
         role: auth.user.role || "user",

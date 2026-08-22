@@ -47,7 +47,7 @@ export default async function(req) {
     });
 
     const data = await res.json().catch(() => ({}));
-    if (data?.verified === true || data?.success === true) {
+    if (data?.status === true || data?.verified === true || data?.success === true) {
       await base44.entities.PhoneOtp.update(pending.id, { verified: true });
       return Response.json({ ok: true, verified: true });
     }

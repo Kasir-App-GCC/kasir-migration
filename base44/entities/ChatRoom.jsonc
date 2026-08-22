@@ -14,6 +14,10 @@
     "item_price": {
       "type": "number"
     },
+    "item_country": {
+      "type": "string",
+      "description": "Country code of the listed item, used to format prices in the chat"
+    },
     "seller_id": {
       "type": "string"
     },
@@ -80,9 +84,6 @@
           "data.buyer_id": "{{user.id}}"
         },
         {
-          "created_by_id": "{{user.id}}"
-        },
-        {
           "user_condition": {
             "role": "admin"
           }
@@ -116,9 +117,6 @@
           "data.buyer_id": "{{user.id}}"
         },
         {
-          "created_by_id": "{{user.id}}"
-        },
-        {
           "user_condition": {
             "role": "admin"
           }
@@ -132,9 +130,6 @@
         },
         {
           "data.buyer_id": "{{user.id}}"
-        },
-        {
-          "created_by_id": "{{user.id}}"
         },
         {
           "user_condition": {

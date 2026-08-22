@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import RatingStars from "@/components/RatingStars";
 import { findOrCreateOfficialChat } from "@/lib/officialChat";
 import SheetSelect from "@/components/SheetSelect";
+import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { invalidateSellerCache } from "@/lib/useTrusted";
 
 export default function AdminUsers() {
@@ -134,6 +135,7 @@ export default function AdminUsers() {
     if (filter === "trusted") r = r.filter((u) => u.is_trusted);
     else if (filter === "banned") r = r.filter((u) => u.is_banned);
     else if (filter === "admin") r = r.filter((u) => u.role === "admin");
+    else if (filter === "whatsapp") r = r.filter((u) => u.whatsapp_verified);
     else if (filter === "low") {
       // Sellers whose average rating is below 3.5 (with at least one rating) —
       // the ones an admin should keep an eye on as potentially bad sellers.
@@ -188,6 +190,19 @@ export default function AdminUsers() {
       if (selected?.id === u.id) setSelected({ ...u, is_banned: !u.is_banned });
       toast({ title: !u.is_banned ? (ar ? "تم حظر المستخدم" : "User banned") : (ar ? "تم رفع الحظر" : "User unbanned") });
     } catch {
+      toast({ title: ar ? "فشل التحديث" : "Update failed", variant: "destructive" });
+    }
+  };
+
+  const unverifyWhatsapp = async (u) => {
+    if (!window.confirm(ar ? "إلغاء توثيق رقم واتساب لهذا المستخدم؟ سيتمكن من إعادة التوثيق لاحقاً." : "Unverify this user's WhatsApp number? They can re-verify later.")) return;
+    try {
+      const res = await base44.functions.invoke("updateUser", { userId: u.id, whatsapp_verified: false });
+      if (!res.data?.success) throw new Error(res.data?.error || "Update failed");
+      setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, whatsapp_verified: false } : x)));
+      if (selected?.id === u.id) setSelected({ ...u, whatsapp_verified: false });
+      toast({ title: ar ? "تم إلغاء توثيق واتساب" : "WhatsApp unverified" });
+    } catch (e) {
       toast({ title: ar ? "فشل التحديث" : "Update failed", variant: "destructive" });
     }
   };
@@ -283,6 +298,7 @@ export default function AdminUsers() {
             { id: "trusted", label: ar ? "موثوق" : "Trusted" },
             { id: "banned", label: ar ? "محظور" : "Banned" },
             { id: "admin", label: ar ? "أدمن" : "Admin" },
+            { id: "whatsapp", label: ar ? "واتساب موثّق" : "WhatsApp" },
             { id: "low", label: ar ? "تقييم منخفض" : "Low Ratings" },
           ].map((f) => (
             <button
@@ -310,6 +326,7 @@ export default function AdminUsers() {
                 {u.is_trusted && <ShieldCheck size={14} className="text-cyan-500 shrink-0" />}
                 {u.is_banned && <Ban size={14} className="text-rose-500 shrink-0" />}
                 {u.role === "admin" && <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary text-primary-foreground">ADMIN</span>}
+                {u.whatsapp_verified && <WhatsAppIcon size={13} className="text-emerald-500 shrink-0" />}
                 {filter === "low" && ratingMap[u.id] && (
                   <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 shrink-0">
                     <Star size={10} className="fill-rose-500 text-rose-500" />
@@ -434,6 +451,24 @@ export default function AdminUsers() {
               </p>
             </div>
 
+            {selected.whatsapp_number && (
+              <div className="rounded-2xl border border-border/60 p-3 mb-3 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <WhatsAppIcon size={18} className={selected.whatsapp_verified ? "text-emerald-500" : "text-muted-foreground"} />
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">{ar ? "رقم واتساب" : "WhatsApp number"}</p>
+                    <p className="font-semibold font-mono truncate" dir="ltr">+{selected.whatsapp_number}</p>
+                  </div>
+                </div>
+                {selected.whatsapp_verified ? (
+                  <button onClick={() => unverifyWhatsapp(selected)} className="px-3 py-2 rounded-xl font-semibold text-xs flex items-center gap-1.5 bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 shrink-0">
+                    <ShieldX size={14} /> {ar ? "إلغاء التوثيق" : "Unverify"}
+                  </button>
+                ) : (
+                  <span className="text-xs text-muted-foreground shrink-0">{ar ? "غير موثّق" : "Not verified"}</span>
+                )}
+              </div>
+            )}
             <div className="flex gap-2 mb-3">
               <button onClick={sendPasswordReset} className="flex-1 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5 bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
                 <KeyRound size={16} /> {ar ? "إعادة تعيين كلمة المرور" : "Reset Password"}

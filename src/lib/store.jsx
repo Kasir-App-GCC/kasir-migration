@@ -72,6 +72,7 @@ export function StoreProvider({ children }) {
         country: auth.user.country || "SA",
         role: auth.user.role || "user",
         is_trusted: !!auth.user.is_trusted,
+        interests: auth.user.interests || [],
       }
     : null;
 
@@ -119,12 +120,15 @@ export function StoreProvider({ children }) {
   const setTheme = (t) => setThemeState(t);
   const setLang = (l) => setLangState(l);
   const toggleFavorite = (id) => {
-    setFavorites((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]));
-    // Best-effort per-listing save count for the seller analytics dashboard.
-    // Fire-and-forget so the UI never waits on it; a failed update just means
-    // the count drifts slightly until the next toggle corrects it.
     const isFav = favorites.includes(id);
+    setFavorites((f) => (isFav ? f.filter((x) => x !== id) : [...f, id]));
+    // Best-effort per-listing save count for the seller analytics dashboard.
     base44.entities.Item.updateMany({ id }, { $inc: { favorites_count: isFav ? -1 : 1 } }).catch(() => {});
+    // Keep a server-side Favorite record so price-drop alerts can reach savers.
+    if (user?.id) {
+      if (isFav) base44.entities.Favorite.deleteMany({ user_id: user.id, item_id: id }).catch(() => {});
+      else base44.entities.Favorite.create({ user_id: user.id, item_id: id }).catch(() => {});
+    }
   };
   const setPrefs = (patch) => setPrefsState((p) => ({ ...p, ...patch }));
   const clearFavorites = () => setFavorites([]);

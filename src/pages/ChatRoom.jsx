@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, ShieldCheck, Check, CheckCheck, Star, BadgeCheck, Ban } from "lucide-react";
+import { ArrowLeft, Send, ShieldCheck, Check, CheckCheck, Star, BadgeCheck, Ban, ShieldAlert } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -10,6 +10,7 @@ import OfferCard from "@/components/OfferCard";
 import TrustedBadge from "@/components/TrustedBadge";
 import PullToRefreshScroll from "@/components/PullToRefreshScroll";
 import RatingDialog from "@/components/RatingDialog";
+import DisputeDialog from "@/components/DisputeDialog";
 import { useBlockStatus } from "@/lib/useBlockStatus";
 
 export default function ChatRoom() {
@@ -28,6 +29,7 @@ export default function ChatRoom() {
   const [otherAvatar, setOtherAvatar] = useState(null);
   const [ratedOffers, setRatedOffers] = useState(new Set());
   const [ratingOffer, setRatingOffer] = useState(null);
+  const [disputeOffer, setDisputeOffer] = useState(null);
   const endRef = useRef(null);
 
   const loadAll = useCallback(async () => {
@@ -358,6 +360,11 @@ export default function ChatRoom() {
                         <Star size={14} /> {t("rateNow")}
                       </button>
                     )}
+                    {(offer.status === "accepted" || offer.status === "completed") && (
+                      <button onClick={() => setDisputeOffer(offer)} className="mt-2 px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 mx-auto">
+                        <ShieldAlert size={14} /> {ar ? "فتح نزاع" : "Open dispute"}
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -423,6 +430,9 @@ export default function ChatRoom() {
           </>
         )}
       </div>
+      {disputeOffer && (
+        <DisputeDialog offer={disputeOffer} user={user} lang={lang} onClose={() => setDisputeOffer(null)} />
+      )}
       {ratingOffer && (
         <RatingDialog
           offer={ratingOffer}

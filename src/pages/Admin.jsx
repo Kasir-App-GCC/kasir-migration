@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { LayoutDashboard, Users, Tag, Flag, LifeBuoy, ArrowLeft, MessageSquare, ShieldX, BadgeCheck, TrendingUp, ShieldCheck, Megaphone } from "lucide-react";
+import { LayoutDashboard, Users, Tag, Flag, LifeBuoy, ArrowLeft, MessageSquare, ShieldX, BadgeCheck, TrendingUp, ShieldCheck, Megaphone, ShieldAlert } from "lucide-react";
 import { useStore } from "@/lib/store";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminUsers from "@/components/admin/AdminUsers";
@@ -13,6 +13,7 @@ import AdminVerifications from "@/components/admin/AdminVerifications";
 import AdminBoosts from "@/components/admin/AdminBoosts";
 import AdminBuyRequests from "@/components/admin/AdminBuyRequests";
 import AdminOtpTest from "@/components/admin/AdminOtpTest";
+import AdminDisputes from "@/components/admin/AdminDisputes";
 import { base44 } from "@/api/base44Client";
 
 export default function Admin() {
@@ -68,6 +69,7 @@ export default function Admin() {
     { id: "blacklist", icon: ShieldX, label: ar ? "الحظر" : "Blacklist" },
     { id: "verifications", icon: BadgeCheck, label: ar ? "التوثيق" : "Verifications" },
     { id: "boosts", icon: TrendingUp, label: ar ? "التعزيزات" : "Boosts" },
+    { id: "disputes", icon: ShieldAlert, label: ar ? "النزاعات" : "Disputes" },
     { id: "otp", icon: ShieldCheck, label: ar ? "تجربة OTP" : "OTP Test" },
   ];
 
@@ -106,6 +108,7 @@ export default function Admin() {
       {tab === "blacklist" && <AdminBlacklist />}
       {tab === "verifications" && <AdminVerifications />}
       {tab === "boosts" && <AdminBoosts />}
+      {tab === "disputes" && <AdminDisputes />}
       {tab === "otp" && <AdminOtpTest />}
     </div>
   );

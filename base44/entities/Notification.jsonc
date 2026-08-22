@@ -23,7 +23,9 @@
         "rate",
         "support_resolved",
         "saved_search_match",
-        "new_follower"
+        "new_follower",
+        "price_drop",
+        "dispute_resolved"
       ],
       "default": "sold"
     },

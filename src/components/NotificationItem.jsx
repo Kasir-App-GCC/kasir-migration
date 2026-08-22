@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, Star, Tag, CheckCircle, Check, X, ArrowLeftRight, Pencil, BadgeCheck, TrendingUp, Flag, LifeBuoy, Clock, Radar, UserPlus } from "lucide-react";
+import { MessageCircle, Star, Tag, CheckCircle, Check, X, ArrowLeftRight, Pencil, BadgeCheck, TrendingUp, TrendingDown, Flag, LifeBuoy, Clock, Radar, UserPlus, Scale } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -18,6 +18,8 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
       return;
     }
     if (n.type === "new_follower") { onMarkRead?.(n); if (n.actorId) nav(`/user/${n.actorId}`); onClick?.(); return; }
+    if (n.type === "price_drop") { onMarkRead?.(n); if (n.itemId) nav(`/item/${n.itemId}`); onClick?.(); return; }
+    if (n.type === "dispute_resolved") { onMarkRead?.(n); if (n.roomId) nav(`/chat/${n.roomId}`); else if (n.itemId) nav(`/item/${n.itemId}`); onClick?.(); return; }
     if (n.type === "support_resolved") { onMarkRead?.(n); onClick?.(); return; }
     if (n.type === "rate") { onMarkRead?.(n); if (n.roomId) nav(`/chat/${n.roomId}`); else if (n.itemId) nav(`/item/${n.itemId}`); }
     else if (n.type === "sold" || n.type === "boost_approved" || n.type === "saved_search_match") { onMarkRead?.(n); if (n.itemId) nav(`/item/${n.itemId}`); }
@@ -102,6 +104,14 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
       ) : n.type === "new_follower" ? (
         <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-300">
           <UserPlus size={18} />
+        </div>
+      ) : n.type === "price_drop" ? (
+        <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300">
+          <TrendingDown size={18} />
+        </div>
+      ) : n.type === "dispute_resolved" ? (
+        <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-300">
+          <Scale size={18} />
         </div>
       ) : n.type === "rate" ? (
         <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-300">

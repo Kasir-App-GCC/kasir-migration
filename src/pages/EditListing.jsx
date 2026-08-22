@@ -51,7 +51,12 @@ export default function EditListing() {
     // Strip boost + featured fields: editing must never reset an active boost.
     // The featured clock started at posting time and survives any number of edits.
     const { boost_hours, boost_cross_country, boost_amount, featured, featured_until, featured_cross_country, ...itemData } = data;
+    const oldPrice = Number(item?.price);
     await base44.entities.Item.update(id, itemData);
+    // Price-drop alert: notify users who saved this listing when the price drops.
+    if (Number.isFinite(oldPrice) && Number(itemData.price) > 0 && Number(itemData.price) < oldPrice) {
+      try { await base44.functions.invoke("notifyPriceDrop", { item_id: id, old_price: oldPrice, new_price: Number(itemData.price) }); } catch {}
+    }
     // A boost requested from the edit screen creates a pending BoostRequest
     // for admin review — same as the new-listing flow.
     if (boost_hours > 0) {

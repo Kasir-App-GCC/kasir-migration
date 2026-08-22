@@ -25,6 +25,7 @@
           "with": {
             "function_name": "matchSavedSearches",
             "args": {
+              "secret": "kasir_wf_8d3f2a9c4e1b",
               "item_id": "${ .trigger.entity_id }"
             }
           },

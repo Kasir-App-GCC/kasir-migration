@@ -1,14 +1,18 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
+import { WORKFLOW_SECRET } from "../../shared/workflowSecret.ts";
 
 // Sends a native push notification to a specific user via the service role.
 // Called from the NotificationPush workflow on every Notification entity
-// creation — no auth check because workflows are trusted server-side
-// processes. The push itself is a no-op when no credentialed native build
-// exists (web preview / unconfigured), so it never blocks.
+// creation. A shared secret is verified so the public function URL can't be
+// abused by external callers. The push itself is a no-op when no credentialed
+// native build exists (web preview / unconfigured), so it never blocks.
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
+    if (body?.secret !== WORKFLOW_SECRET) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const userId = String(body?.user_id || "").trim();
     const content = String(body?.content || "").slice(0, 200);
     const title = String(body?.title || "Kasir").slice(0, 100);

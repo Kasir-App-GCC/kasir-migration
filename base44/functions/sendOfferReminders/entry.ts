@@ -1,4 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
+import { WORKFLOW_SECRET } from "../../shared/workflowSecret.ts";
 
 // Scans for pending offers that have been waiting 2+ days without a response
 // and sends a reminder notification to the party who needs to act:
@@ -7,10 +8,15 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 // Uses updated_date as the "last action" timestamp so modifying an offer
 // restarts the 2-day clock. reminder_sent_at prevents duplicate reminders
 // (only re-notifies if the offer was touched since the last reminder).
-// Called from a scheduled workflow — no user auth (trusted server-side).
+// Called from a scheduled workflow. A shared secret is verified so the public
+// function URL can't be abused by external callers.
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
+    const body = await req.json().catch(() => ({}));
+    if (body?.secret !== WORKFLOW_SECRET) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
     const now = Date.now();
 

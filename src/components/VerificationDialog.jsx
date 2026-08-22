@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, Loader2, BadgeCheck, Camera, Clock } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import PhoneOtpVerifier from "@/components/PhoneOtpVerifier";
 import { userPhoneE164, digitsOnly } from "@/lib/phone";
@@ -10,6 +11,7 @@ import { validateNationalId, nationalIdRule } from "@/lib/nationalId";
 
 export default function VerificationDialog({ open, onClose }) {
   const { user, lang } = useStore();
+  const { checkUserAuth } = useAuth();
   const { toast } = useToast();
   const ar = lang === "ar";
   const [fullName, setFullName] = useState(user?.name || "");
@@ -119,7 +121,16 @@ export default function VerificationDialog({ open, onClose }) {
                     <PhoneOtpVerifier
                       channel="sms"
                       initialPhone={phoneE164 || userPhoneE164(user)}
-                      onVerified={(e164) => { setPhoneE164(e164); setPhoneVerified(true); setShowPhoneVerifier(false); }}
+                      disallowE164={phoneVerified ? phoneE164 : ""}
+                      onVerified={async (e164) => {
+                        setPhoneE164(e164);
+                        setPhoneVerified(true);
+                        setShowPhoneVerifier(false);
+                        try {
+                          await base44.auth.updateMe({ phone: digitsOnly(e164), phone_verified: true });
+                          await checkUserAuth();
+                        } catch (e) {}
+                      }}
                     />
                     {phoneVerified && (
                       <button type="button" onClick={() => setShowPhoneVerifier(false)} className="text-xs text-muted-foreground underline">

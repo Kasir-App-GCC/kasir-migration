@@ -194,8 +194,8 @@ export default function PhoneOtpVerifier({ initialPhone = "", channel = "sms", o
 
       <p className="text-xs text-muted-foreground">
         {channel === "whatsapp"
-          ? (ar ? "ستصلك رسالة التحقق على واتساب. الحد ٣ محاولات كل ٣٠ دقيقة." : "You'll receive the code on WhatsApp. Max 3 attempts per 30 minutes.")
-          : (ar ? "ستصلك رسالة SMS بالرمز. الحد ٣ محاولات كل ٣٠ دقيقة." : "You'll receive the code via SMS. Max 3 attempts per 30 minutes.")}
+          ? (ar ? "ستصلك رسالة التحقق على واتساب." : "You'll receive the code on WhatsApp.")
+          : (ar ? "سيصلك رمز برسالة نصية." : "You'll receive a code via SMS.")}
       </p>
     </div>
   );

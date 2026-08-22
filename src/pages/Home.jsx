@@ -43,7 +43,7 @@ export default function Home() {
     skipRef.current = 0;
     setHasMore(true);
     try {
-      const first = await base44.entities.Item.filter({ country }, "-created_date", PAGE_SIZE, 0);
+      const first = await base44.entities.Item.filter({ country, archived: { $ne: true } }, "-created_date", PAGE_SIZE, 0);
       const list = first || [];
       // Fetch all seller profiles in ONE batched call before cards mount, so
       // the per-card useSellerInfo hook hits the cache instead of firing N
@@ -68,7 +68,7 @@ export default function Home() {
   // surface first; country/cross-country filtering is applied client-side.
   const loadFeatured = useCallback(async () => {
     try {
-      const list = await base44.entities.Item.filter({ featured: true }, "-featured_until", 100);
+      const list = await base44.entities.Item.filter({ featured: true, archived: { $ne: true } }, "-featured_until", 100);
       const ids = [...new Set((list || []).map((i) => i.seller_id).filter(Boolean))];
       const sMap = ids.length ? await fetchSellerInfos(ids) : {};
       setSellers((prev) => ({ ...prev, ...sMap }));
@@ -84,7 +84,7 @@ export default function Home() {
     const skip = skipRef.current + PAGE_SIZE;
     skipRef.current = skip; // reserve the page synchronously so self-heal can't wipe it
     try {
-      const next = await base44.entities.Item.filter({ country }, "-created_date", PAGE_SIZE, skip);
+      const next = await base44.entities.Item.filter({ country, archived: { $ne: true } }, "-created_date", PAGE_SIZE, skip);
       const list = next || [];
       const ids = [...new Set(list.map((i) => i.seller_id).filter(Boolean))];
       const sMap = ids.length ? await fetchSellerInfos(ids) : {};

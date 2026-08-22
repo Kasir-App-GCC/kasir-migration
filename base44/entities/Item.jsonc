@@ -123,6 +123,11 @@
       "type": "boolean",
       "default": false,
       "description": "Seller offers delivery within the buyer's city"
+    },
+    "archived": {
+      "type": "boolean",
+      "default": false,
+      "description": "Auto-set when the listing hasn't been refreshed in N days; excluded from public feeds until the seller refreshes it"
     }
   },
   "required": [

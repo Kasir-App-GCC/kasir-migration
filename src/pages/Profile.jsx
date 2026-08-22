@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck } from "lucide-react";
+import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck, RefreshCw } from "lucide-react";
 import VerificationDialog from "@/components/VerificationDialog";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -8,17 +8,20 @@ import { useT } from "@/lib/i18n";
 import ItemCard from "@/components/ItemCard";
 import RatingStars from "@/components/RatingStars";
 import EditProfileDialog from "@/components/EditProfileDialog";
+import SellerReply from "@/components/SellerReply";
 import ContactSupportDialog from "@/components/ContactSupportDialog";
 import SellerDashboard from "@/components/SellerDashboard";
 import PullToRefresh from "@/components/PullToRefresh";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { useAuth } from "@/lib/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
 import { formatPrice, timeAgo } from "@/lib/format";
 
 export default function Profile() {
   const { user, lang, setLang, theme, setTheme, logout, favorites, prefs, setPrefs, clearFavorites } = useStore();
   const { checkUserAuth, refreshUser } = useAuth();
   const t = useT();
+  const { toast } = useToast();
   const ar = lang === "ar";
   const nav = useNavigate();
   const [tab, setTab] = useState("listings");
@@ -200,13 +203,25 @@ export default function Profile() {
               return (
                 <div key={it.id} className="relative">
                   <ItemCard item={it} onClick={() => nav(`/item/${it.id}`)} promoted={promoted} />
-                  <button
-                    onClick={() => deleteListing(it.id)}
-                    className="absolute top-2 end-2 z-20 w-8 h-8 rounded-full bg-rose-600 text-white shadow flex items-center justify-center hover:scale-110 transition"
-                    title={t("deleteListing")}
-                  >
-                    <Trash2 size={15} />
-                  </button>
+                  {it.archived && (
+                    <span className="absolute top-1.5 left-1/2 -translate-x-1/2 z-20 px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-bold shadow">{ar ? "مؤرشف" : "Archived"}</span>
+                  )}
+                  <div className="absolute top-2 end-2 z-20 flex flex-col gap-1.5">
+                    <button
+                      onClick={() => refreshListing(it.id)}
+                      className="w-8 h-8 rounded-full bg-sky-600 text-white shadow flex items-center justify-center hover:scale-110 transition"
+                      title={ar ? "تحديث الإعلان" : "Refresh listing"}
+                    >
+                      <RefreshCw size={14} />
+                    </button>
+                    <button
+                      onClick={() => deleteListing(it.id)}
+                      className="w-8 h-8 rounded-full bg-rose-600 text-white shadow flex items-center justify-center hover:scale-110 transition"
+                      title={t("deleteListing")}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -278,6 +293,7 @@ export default function Profile() {
               </div>
               {r.review && <p className="text-sm text-muted-foreground mt-1.5">{r.review}</p>}
               <p className="text-[11px] text-muted-foreground mt-1">{timeAgo(r.created_date, lang)}</p>
+              {r.role === "buyer" && <SellerReply rating={r} lang={lang} />}
             </div>
           )) : (
             <div className="text-center py-16 text-muted-foreground">

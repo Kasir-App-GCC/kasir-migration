@@ -59,7 +59,7 @@ export default function MapView() {
     (async () => {
       setLoading(true);
       try {
-        const all = await base44.entities.Item.list("-created_date", 200);
+        const all = await base44.entities.Item.filter({ archived: { $ne: true } }, "-created_date", 200);
         setItems(all || []);
       } catch {
         setItems([]);

@@ -43,7 +43,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [lng, setLng] = useState(initial?.lng ?? null);
   const [description, setDescription] = useState(initial?.description || "");
   const [subcats, setSubcats] = useState(
-    Array.isArray(initial?.subcategory) ? initial.subcategory : (initial?.subcategory ? [initial.subcategory] : [])
+    Array.isArray(initial?.subcategory) ? initial.subcategory : initial?.subcategory ? [initial.subcategory] : []
   );
   const [tags, setTags] = useState(Array.isArray(initial?.tags) ? initial.tags : []);
   const [boostHours, setBoostHours] = useState(0);
@@ -69,7 +69,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const reverseGeocode = async (la, ln) => {
     try {
       const res = await base44.functions.invoke("geocodeLocation", {
-        lat: la, lng: ln, country: country || "SA", lang,
+        lat: la, lng: ln, country: country || "SA", lang
       });
       const d = res?.data;
       if (d?.name) setLocationName(String(d.name).slice(0, 120));
@@ -83,7 +83,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         const raw = norm(val);
         if (raw.length < 3) return null;
         return cities.find((c) => {
-          const ce = norm(c.en), ca = norm(c.ar);
+          const ce = norm(c.en),ca = norm(c.ar);
           return raw === ce || raw === ca || raw.includes(ce) || raw.includes(ca);
         });
       };
@@ -96,7 +96,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   // shows the accurate place name (e.g. "Al Aarid, Riyadh Region") instead of
   // the nearest static city (which can be a smaller municipality like Diriyah).
   useEffect(() => {
-    if (!mapPos) { setMapHint(""); return; }
+    if (!mapPos) {setMapHint("");return;}
     let cancelled = false;
     const handle = setTimeout(async () => {
       try {
@@ -104,7 +104,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         if (!cancelled && res?.data?.name) setMapHint(String(res.data.name).slice(0, 120));
       } catch {}
     }, 400);
-    return () => { cancelled = true; clearTimeout(handle); };
+    return () => {cancelled = true;clearTimeout(handle);};
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapPos]);
 
@@ -210,10 +210,10 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   };
 
   const toggleSub = (s) => {
-    setSubcats((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
+    setSubcats((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]);
   };
   const toggleTag = (t) => {
-    setTags((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
+    setTags((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
   };
   const tagOptions = getListingTags(category, subcats, condition);
 
@@ -221,7 +221,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   // category / subcategory / condition (e.g. "Sealed" after switching to "good").
   useEffect(() => {
     const valid = new Set(getListingTags(category, subcats, condition).map((o) => o.en));
-    setTags((prev) => (prev.every((t) => valid.has(t)) ? prev : prev.filter((t) => valid.has(t))));
+    setTags((prev) => prev.every((t) => valid.has(t)) ? prev : prev.filter((t) => valid.has(t)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, subcats, condition]);
 
@@ -251,7 +251,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         featured: false,
         boost_hours: boostHours,
         boost_cross_country: boostCross,
-        boost_amount: boostAmount,
+        boost_amount: boostAmount
       });
     } catch (e) {
       setPosting(false);
@@ -283,8 +283,8 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             <button
               type="button"
               onClick={() => setCameraOpen(true)}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 active:scale-95 transition"
-            >
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 active:scale-95 transition">
+              
               <Camera size={12} /> {ar ? "كاميرا" : "Camera"}
             </button>
             <span className="text-[11px] text-muted-foreground font-medium">{images.length}/{maxPhotos}</span>
@@ -292,126 +292,126 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         </div>
         <DragDropContext onDragEnd={onDragEnd}>
           <Droppable droppableId="photos" direction="horizontal">
-            {(provided) => (
-              <div ref={provided.innerRef} {...provided.droppableProps} className="flex flex-wrap gap-2">
-                {images.map((url, i) => (
-                  <Draggable key={url} draggableId={url} index={i}>
-                    {(prov, snap) => (
-                      <div
-                        ref={prov.innerRef}
-                        {...prov.draggableProps}
-                        {...prov.dragHandleProps}
-                        className={`relative w-24 h-24 rounded-xl overflow-hidden select-none ${snap.isDragging ? "opacity-70 ring-2 ring-primary" : ""}`}
-                      >
+            {(provided) =>
+            <div ref={provided.innerRef} {...provided.droppableProps} className="flex flex-wrap gap-2">
+                {images.map((url, i) =>
+              <Draggable key={url} draggableId={url} index={i}>
+                    {(prov, snap) =>
+                <div
+                  ref={prov.innerRef}
+                  {...prov.draggableProps}
+                  {...prov.dragHandleProps}
+                  className={`relative w-24 h-24 rounded-xl overflow-hidden select-none ${snap.isDragging ? "opacity-70 ring-2 ring-primary" : ""}`}>
+                  
                         <Image src={url} fittingType="fill" className="w-full h-full pointer-events-none" style={{ display: "block" }} />
                         <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/25 transition pointer-events-none">
                           <GripVertical size={18} className="text-white opacity-70 drop-shadow" />
                         </div>
                         <button
-                          onClick={() => setImages(images.filter((_, idx) => idx !== i))}
-                          className="absolute top-1 end-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center z-10"
-                        >
+                    onClick={() => setImages(images.filter((_, idx) => idx !== i))}
+                    className="absolute top-1 end-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center z-10">
+                    
                           <X size={14} />
                         </button>
                         {i === 0 && <span className="absolute bottom-0 inset-x-0 bg-black/55 text-white text-[10px] text-center py-0.5">{t("cover")}</span>}
                       </div>
-                    )}
+                }
                   </Draggable>
-                ))}
+              )}
                 {Array.from({ length: Math.max(0, 5 - images.length) }).map((_, j) => {
-                  const i = images.length + j;
-                  const isUploading = uploading && j === 0;
-                  return (
-                    <Draggable key={`empty-${i}`} draggableId={`empty-${i}`} index={i} isDragDisabled>
-                      {(prov) => (
-                        <div ref={prov.innerRef} {...prov.draggableProps} className="w-24 h-24 rounded-xl border-2 border-dashed border-border">
+                const i = images.length + j;
+                const isUploading = uploading && j === 0;
+                return (
+                  <Draggable key={`empty-${i}`} draggableId={`empty-${i}`} index={i} isDragDisabled>
+                      {(prov) =>
+                    <div ref={prov.innerRef} {...prov.draggableProps} className="w-24 h-24 rounded-xl border-2 border-dashed border-border">
                           <label className="w-full h-full flex flex-col items-center justify-center text-muted-foreground hover:bg-muted cursor-pointer gap-1">
-                            {isUploading ? (
-                              <div className="w-5 h-5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                              <>
+                            {isUploading ?
+                        <div className="w-5 h-5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" /> :
+
+                        <>
                                 <ImagePlus size={20} />
                                 <span className="text-[10px] font-medium">{t("addPhotos")}</span>
                               </>
-                            )}
+                        }
                             <input type="file" accept="image/*" multiple className="hidden" onChange={onPick} />
                           </label>
                         </div>
-                      )}
-                    </Draggable>
-                  );
-                })}
-                {images.length >= 5 && images.length < maxPhotos && (
-                  <label className="w-24 h-24 rounded-xl border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-950/30 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 cursor-pointer gap-0.5 hover:bg-blue-100 dark:hover:bg-blue-900/40">
-                    {uploading ? (
-                      <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <>
+                    }
+                    </Draggable>);
+
+              })}
+                {images.length >= 5 && images.length < maxPhotos &&
+              <label className="w-24 h-24 rounded-xl border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-950/30 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 cursor-pointer gap-0.5 hover:bg-blue-100 dark:hover:bg-blue-900/40">
+                    {uploading ?
+                <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /> :
+
+                <>
                         <ImagePlus size={20} />
                         <span className="text-[9px] font-semibold text-center px-1 leading-tight">{ar ? "إضافة" : "Add"}</span>
                         <span className="text-[8px] font-medium text-blue-500/80">{ar ? `حتى ${verified ? "٢٠" : "١٠"}` : `up to ${verified ? "20" : "10"}`}</span>
                       </>
-                    )}
+                }
                     <input type="file" accept="image/*" multiple className="hidden" onChange={onPick} />
                   </label>
-                )}
-                {images.length >= maxPhotos && verified && (
-                  <div className="w-24 h-24 rounded-xl border-2 border-dashed border-blue-300 bg-blue-50/50 flex flex-col items-center justify-center text-blue-400 gap-0.5 opacity-60">
+              }
+                {images.length >= maxPhotos && verified &&
+              <div className="w-24 h-24 rounded-xl border-2 border-dashed border-blue-300 bg-blue-50/50 flex flex-col items-center justify-center text-blue-400 gap-0.5 opacity-60">
                     <Check size={18} />
                     <span className="text-[9px] font-semibold">{ar ? "الحد الأقصى ٢٠" : "Max 20"}</span>
                   </div>
-                )}
-                {images.length >= maxPhotos && !verified && (
-                  <button
-                    type="button"
-                    onClick={() => setVerifyOpen(true)}
-                    className="w-24 h-24 rounded-xl border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-950/30 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 gap-1"
-                  >
+              }
+                {images.length >= maxPhotos && !verified &&
+              <button
+                type="button"
+                onClick={() => setVerifyOpen(true)}
+                className="w-24 h-24 rounded-xl border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-950/30 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 gap-1">
+                
                     <Lock size={18} />
                     <span className="text-[9px] font-semibold text-center px-1 leading-tight">{ar ? "تحقق لإضافة 10 صور" : "Verify for 10 more"}</span>
                   </button>
-                )}
+              }
                 {provided.placeholder}
               </div>
-            )}
+            }
           </Droppable>
         </DragDropContext>
         <p className="text-[11px] text-muted-foreground mt-1.5">{t("dragToReorder")}</p>
         <div className="mt-1.5">
           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${verified ? "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300" : "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"}`}>
             <ImagePlus size={12} />
-            {verified
-              ? (ar ? "يمكنك إضافة حتى ٢٠ صورة" : "You can upload up to 20 photos")
-              : (ar ? "يمكنك إضافة حتى ١٠ صور فقط" : "You can upload up to 10 photos only")}
+            {verified ?
+            ar ? "يمكنك إضافة حتى ٢٠ صورة" : "You can upload up to 20 photos" :
+            ar ? "يمكنك إضافة حتى ١٠ صور فقط" : "You can upload up to 10 photos only"}
           </span>
         </div>
-        {images.length > 0 && (
-          <button
-            type="button"
-            onClick={analyze}
-            disabled={analyzing}
-            className="mt-2 w-full py-2.5 rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] transition"
-          >
-            {analyzing ? (
-              <>
+        {images.length > 0 &&
+        <button
+          type="button"
+          onClick={analyze}
+          disabled={analyzing}
+          className="mt-2 w-full py-2.5 rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.99] transition">
+          
+            {analyzing ?
+          <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 {ar ? "جارٍ تحليل الصور…" : "Analyzing photos…"}
-              </>
-            ) : (
-              <>
+              </> :
+
+          <>
                 <Wand2 size={16} /> {ar ? "تحليل الصور بالذكاء الاصطناعي" : "AI Analyze Photos"}
               </>
-            )}
+          }
           </button>
-        )}
-        {images.length === 0 && (
-          <p className="text-[11px] text-rose-500 font-semibold mt-1">{ar ? "صورة واحدة على الأقل مطلوبة" : "At least one photo is required"}</p>
-        )}
-        {!verified && (
-          <button type="button" onClick={() => setVerifyOpen(true)} className="text-[11px] text-blue-600 dark:text-blue-400 mt-1 flex items-center gap-1 hover:underline">
+        }
+        {images.length === 0 &&
+        <p className="text-[11px] text-rose-500 font-semibold mt-1">{ar ? "صورة واحدة على الأقل مطلوبة" : "At least one photo is required"}</p>
+        }
+        {!verified &&
+        <button type="button" onClick={() => setVerifyOpen(true)} className="text-[11px] text-blue-600 dark:text-blue-400 mt-1 flex items-center gap-1 hover:underline">
             <Lock size={11} /> {ar ? "وثق حسابك لإضافة 10 صور إضافية" : "Verify your account to add 10 more photos"}
           </button>
-        )}
+        }
       </div>
 
       <div className="space-y-1">
@@ -426,47 +426,47 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
           <input value={price} onChange={onPriceChange} placeholder={t("pricePlaceholder")} className="bg-transparent outline-none flex-1 disabled:cursor-not-allowed" inputMode="numeric" disabled={boostLocked} />
           <CurrencySymbol country={country || "SA"} lang={lang} size={15} className="text-muted-foreground shrink-0" />
         </div>
-        {!price && (
-          <p className="text-[11px] text-rose-500 font-semibold">{ar ? "السعر مطلوب" : "Price is required"}</p>
-        )}
-        {boostLocked && (
-          <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
+        {!price &&
+        <p className="text-[11px] text-rose-500 font-semibold hidden">{ar ? "السعر مطلوب" : "Price is required"}</p>
+        }
+        {boostLocked &&
+        <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
             <Lock size={11} /> {ar ? "لا يمكن تعديل السعر أثناء تفعيل الترويج" : "Price can't be edited while the listing is promoted"}
           </p>
-        )}
+        }
       </div>
 
       <div className="space-y-1">
         <label className="text-sm font-semibold flex items-center gap-0.5">{t("category")} <span className="text-rose-500">*</span></label>
         <SheetSelect
           value={category}
-          onChange={(v) => { setCategory(v); setSubcats([]); setTags([]); }}
+          onChange={(v) => {setCategory(v);setSubcats([]);setTags([]);}}
           placeholder={t("selectCategory")}
           label={t("category")}
-          options={CATEGORIES.filter((c) => c.id !== "all").map((c) => ({ value: c.id, label: lang === "ar" ? c.ar : c.en }))}
-        />
+          options={CATEGORIES.filter((c) => c.id !== "all").map((c) => ({ value: c.id, label: lang === "ar" ? c.ar : c.en }))} />
+        
       </div>
 
-      {subs.length > 0 && (
-        <div className="space-y-1">
+      {subs.length > 0 &&
+      <div className="space-y-1">
           <label className="text-sm font-semibold">{t("subcategory")}</label>
           <div className="flex flex-wrap gap-2">
             {subs.map((s) => {
-              const active = subcats.includes(s.en);
-              return (
-                <button
-                  key={s.en}
-                  type="button"
-                  onClick={() => toggleSub(s.en)}
-                  className={`px-3.5 py-2 rounded-full text-sm font-semibold whitespace-nowrap border ${active ? "bg-primary text-primary-foreground border-transparent" : "bg-card border-border/70 hover:bg-muted"}`}
-                >
+            const active = subcats.includes(s.en);
+            return (
+              <button
+                key={s.en}
+                type="button"
+                onClick={() => toggleSub(s.en)}
+                className={`px-3.5 py-2 rounded-full text-sm font-semibold whitespace-nowrap border ${active ? "bg-primary text-primary-foreground border-transparent" : "bg-card border-border/70 hover:bg-muted"}`}>
+                
                   {lang === "ar" ? s.ar : s.en}
-                </button>
-              );
-            })}
+                </button>);
+
+          })}
           </div>
         </div>
-      )}
+      }
 
       <div className="space-y-1">
         <label className="text-sm font-semibold">{t("selectCondition")}</label>
@@ -475,17 +475,17 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
           onChange={setCondition}
           label={t("selectCondition")}
           buttonClassName="border-2 border-amber-400 dark:border-amber-500 bg-amber-50 dark:bg-amber-950/30 ring-2 ring-amber-300/40"
-          options={CONDITIONS.map((c) => ({ value: c.id, label: lang === "ar" ? c.ar : c.en }))}
-        />
+          options={CONDITIONS.map((c) => ({ value: c.id, label: lang === "ar" ? c.ar : c.en }))} />
+        
       </div>
 
-      {tagOptions.length > 0 && (
-        <div className="space-y-1">
+      {tagOptions.length > 0 &&
+      <div className="space-y-1">
           <label className="text-sm font-semibold">{ar ? "تفاصيل سريعة" : "Quick details"}</label>
           <p className="text-[11px] text-muted-foreground -mt-0.5">{ar ? "اختر ما ينطبق على منتجك ليظهر للمشترين" : "Pick what applies — buyers will see these"}</p>
           <ReviewTagChips options={tagOptions} selected={tags} onToggle={toggleTag} lang={lang} />
         </div>
-      )}
+      }
 
       <div className="space-y-1">
         <label className="text-sm font-semibold">{t("description")}</label>
@@ -504,25 +504,25 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
                 setCity(v);
                 setLocationName("");
                 const c = getCities(country || "SA").find((x) => x.en === v);
-                if (c) { setLat(c.lat); setLng(c.lng); }
+                if (c) {setLat(c.lat);setLng(c.lng);}
               }}
               placeholder={t("selectCity")}
               label={t("location")}
               buttonClassName="bg-transparent px-0 py-1.5 text-sm font-semibold flex-1"
-              options={getCities(country || "SA").map((c) => ({ value: c.en, label: lang === "ar" ? c.ar : c.en }))}
-            />
+              options={getCities(country || "SA").map((c) => ({ value: c.en, label: lang === "ar" ? c.ar : c.en }))} />
+            
           </div>
-          {lat != null && lng != null && (
-            <p className="text-[11px] text-muted-foreground ps-6">
+          {lat != null && lng != null &&
+          <p className="text-[11px] text-muted-foreground ps-6">
               {locationName ? <span className="font-semibold text-foreground">{locationName}</span> : (ar ? "الإحداثيات" : "Coordinates") + ": "}
-              {(!locationName ? `${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}` : "")}
+              {!locationName ? `${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}` : ""}
             </p>
-          )}
+          }
           <div className="flex gap-2">
             <button type="button" onClick={detectLocation} disabled={locating} className="flex-1 py-2.5 rounded-xl bg-card border border-border/60 text-xs font-semibold flex items-center justify-center gap-1.5 disabled:opacity-50">
               {locating ? <div className="w-3.5 h-3.5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" /> : <LocateFixed size={14} />} {t("useMyLocation")}
             </button>
-            <button type="button" onClick={() => { setMapPos(lat != null && lng != null ? { lat, lng } : null); setMapOpen(true); }} className="flex-1 py-2.5 rounded-xl bg-card border border-border/60 text-xs font-semibold flex items-center justify-center gap-1.5">
+            <button type="button" onClick={() => {setMapPos(lat != null && lng != null ? { lat, lng } : null);setMapOpen(true);}} className="flex-1 py-2.5 rounded-xl bg-card border border-border/60 text-xs font-semibold flex items-center justify-center gap-1.5">
               <Globe size={14} /> {ar ? "اختر على الخريطة" : "Select on map"}
             </button>
           </div>
@@ -543,12 +543,12 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${willingToShip ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
           </button>
         </label>
-        {willingToShip && (
-          <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-muted">
+        {willingToShip &&
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-muted">
             <input value={shippingFee} onChange={(e) => setShippingFee(normalizeDigits(e.target.value).replace(/\D/g, "").slice(0, 6))} placeholder={t("shippingFeePh")} inputMode="numeric" className="bg-transparent outline-none flex-1" />
             <CurrencySymbol country={country || "SA"} lang={lang} size={15} className="text-muted-foreground shrink-0" />
           </div>
-        )}
+        }
         <label className="flex items-center justify-between p-3 rounded-xl bg-muted">
           <span className="text-sm font-semibold flex items-center gap-2"><MapPin size={15} /> {t("deliversWithinCity")}</span>
           <button type="button" onClick={() => setDeliversWithinCity(!deliversWithinCity)} className={`w-11 h-6 rounded-full p-0.5 transition ${deliversWithinCity ? "bg-emerald-500" : "bg-muted-foreground/30"}`}>
@@ -565,33 +565,33 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             <p className="text-xs text-muted-foreground">{ar ? "تعزيز الإعلان ليظهر في المميز" : "Boost your listing to appear in featured"}</p>
           </div>
         </div>
-        {boostLocked && (
-          <div className="flex items-start gap-2 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900">
+        {boostLocked &&
+        <div className="flex items-start gap-2 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900">
             <Sparkles size={15} className="text-amber-500 shrink-0 mt-0.5" />
             <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
               {ar ? "هذا الإعلان مُعزَّز حالياً — لا يمكن تعديل الترويج من هنا" : "This listing is currently promoted — promotion can't be modified here"}
-              {initial?.featured_until && (
-                <>
+              {initial?.featured_until &&
+            <>
                   {" · "}
                   {ar ? "ينتهي في " : "Ends "}
                   {new Date(initial.featured_until).toLocaleString(ar ? "ar-SA" : "en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                   {" · "}
                   {ar ? "يمكنك طلب تعزيز جديد بعد انتهائه" : "you can request a new boost after it ends"}
                 </>
-              )}
+            }
             </p>
           </div>
-        )}
+        }
         <div className={boostLocked ? "opacity-50 pointer-events-none" : ""}>
           <div className="flex items-center justify-between text-sm mb-1.5">
             <span className="font-semibold">{ar ? "المدة المضافة" : "Hours to add"}</span>
-            <span className="font-bold">{boostHours > 0 ? (() => { const days = boostHours / 24; const dayLabel = days >= 1 && boostHours % 24 === 0 ? ` (${days} ${ar ? (days === 1 ? "يوم" : days === 2 ? "يومان" : days <= 10 ? "أيام" : "يوم") : days === 1 ? "day" : "days"})` : ""; return `${boostHours} ${ar ? "ساعة" : "h"}${dayLabel}`; })() : (ar ? "بدون تعزيز" : "No boost")}</span>
+            <span className="font-bold">{boostHours > 0 ? (() => {const days = boostHours / 24;const dayLabel = days >= 1 && boostHours % 24 === 0 ? ` (${days} ${ar ? days === 1 ? "يوم" : days === 2 ? "يومان" : days <= 10 ? "أيام" : "يوم" : days === 1 ? "day" : "days"})` : "";return `${boostHours} ${ar ? "ساعة" : "h"}${dayLabel}`;})() : ar ? "بدون تعزيز" : "No boost"}</span>
           </div>
-          {existingHours > 0 && (
-            <p className="text-[11px] text-muted-foreground mb-1.5">
+          {existingHours > 0 &&
+          <p className="text-[11px] text-muted-foreground mb-1.5">
               {ar ? `تعزيز حالي: ${existingHours} ساعة متبقية` : `Current boost: ${existingHours}h remaining`}
             </p>
-          )}
+          }
           <input
             type="range"
             min={0}
@@ -603,8 +603,8 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
               setBoostHours(v === 1 ? BOOST_MIN_HOURS : v);
             }}
             disabled={maxBoost === 0 || boostLocked}
-            className="w-full accent-amber-500 disabled:opacity-50"
-          />
+            className="w-full accent-amber-500 disabled:opacity-50" />
+          
           <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
             <span>0</span>
             <span>{maxBoost}</span>
@@ -613,45 +613,45 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             {[1, 2, 3, 4, 5, 6, 7].map((d) => {
               const hrs = d * 24;
               if (hrs > maxBoost) return null;
-              const label = d === 7 ? (ar ? "أسبوع" : "1 Week") : d === 1 ? (ar ? "يوم" : "1 Day") : d === 2 ? (ar ? "يومان" : "2 Days") : (ar ? `${d} أيام` : `${d} Days`);
+              const label = d === 7 ? ar ? "أسبوع" : "1 Week" : d === 1 ? ar ? "يوم" : "1 Day" : d === 2 ? ar ? "يومان" : "2 Days" : ar ? `${d} أيام` : `${d} Days`;
               return (
                 <button
                   key={d}
                   type="button"
                   onClick={() => setBoostHours(hrs)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition ${boostHours === hrs ? "bg-amber-500 text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
-                >
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition ${boostHours === hrs ? "bg-amber-500 text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}>
+                  
                   {label}
-                </button>
-              );
+                </button>);
+
             })}
           </div>
-          {maxBoost === 0 && (
-            <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">{ar ? "وصلت للحد الأقصى (أسبوع واحد)" : "Max boost reached (1 week)"}</p>
-          )}
-          {boostHours > 0 && (
-            <div className="mt-2.5 space-y-1 text-xs">
+          {maxBoost === 0 &&
+          <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">{ar ? "وصلت للحد الأقصى (أسبوع واحد)" : "Max boost reached (1 week)"}</p>
+          }
+          {boostHours > 0 &&
+          <div className="mt-2.5 space-y-1 text-xs">
               <div className="flex items-center justify-between pt-1 border-t border-border/60">
                 <span className="text-muted-foreground">{ar ? "الإجمالي بعد التعزيز" : "Total after boost"}</span>
                 <span className="font-semibold">{fmt(baseDisplay)} {ar ? cur.currencyAr : cur.currency}</span>
               </div>
-              {boostCross && (
-                <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400">
+              {boostCross &&
+            <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400">
                   <span>{ar ? "إضافة كل دول الخليج (+75%)" : "Gulf countries add-on (+75%)"}</span>
                   <span className="font-semibold">+{fmt(surchargeDisplay)} {ar ? cur.currencyAr : cur.currency}</span>
                 </div>
-              )}
-              <p className="text-[11px] text-muted-foreground leading-relaxed">{boostCross ? (ar ? <>سيظهر إعلانك في قسم المميز طوال هذه المدة في كل دول الخليج</> : <>Your listing will appear in the Featured section for this duration across all Gulf countries</>) : (ar ? <>سيظهر إعلانك في قسم المميز طوال هذه المدة لجميع المدن في دولتك {cur.flag}</> : <>Your listing will appear in the Featured section for this duration across all cities in your country {cur.flag}</>)}</p>
+            }
+              <p className="text-[11px] text-muted-foreground leading-relaxed">{boostCross ? ar ? <>سيظهر إعلانك في قسم المميز طوال هذه المدة في كل دول الخليج</> : <>Your listing will appear in the Featured section for this duration across all Gulf countries</> : ar ? <>سيظهر إعلانك في قسم المميز طوال هذه المدة لجميع المدن في دولتك {cur.flag}</> : <>Your listing will appear in the Featured section for this duration across all cities in your country {cur.flag}</>}</p>
             </div>
-          )}
+          }
         </div>
-        {boostHours > 0 && (
-          <>
+        {boostHours > 0 &&
+        <>
             <button
-              type="button"
-              onClick={() => setBoostCross(!boostCross)}
-              className="w-full flex items-center justify-between p-3 rounded-xl bg-muted"
-            >
+            type="button"
+            onClick={() => setBoostCross(!boostCross)}
+            className="w-full flex items-center justify-between p-3 rounded-xl bg-muted">
+            
               <span className="flex items-center gap-2 text-start">
                 <Globe size={16} className="text-primary" />
                 <span>
@@ -670,19 +670,19 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
               <p className="text-xs text-muted-foreground">{ar ? "سيتم تفعيل التعزيز بعد مراجعة الإدارة والدفع عبر بوابة الدفع الإلكترونية (قريباً)." : "The boost is activated after admin review and payment via the online gateway (coming soon)."}</p>
             </div>
           </>
-        )}
+        }
       </div>
 
       <button
         onClick={submit}
         disabled={!valid || posting}
-        className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-lg disabled:opacity-50 hover:bg-primary/90"
-      >
+        className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-lg disabled:opacity-50 hover:bg-primary/90">
+        
         {posting ? submittingLabel : submitLabel}
       </button>
 
-      {mapOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      {mapOpen &&
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMapOpen(false)} />
           <div className="relative w-full sm:max-w-md bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl p-5 animate-in fade-in slide-in-from-bottom-[100%] duration-300">
             <div className="flex items-center justify-between mb-3">
@@ -690,54 +690,54 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
               <button onClick={() => setMapOpen(false)} className="p-1.5 rounded-full hover:bg-muted"><X size={20} /></button>
             </div>
             <MapPinPicker
-              center={mapPos || (getCities(country || "SA")[0] || { lat: 24.7136, lng: 46.6753 })}
-              radius={0}
-              onPick={(p) => setMapPos(p)}
-            />
-            {mapPos && (
-              <p className="text-xs text-muted-foreground mt-2">
+            center={mapPos || getCities(country || "SA")[0] || { lat: 24.7136, lng: 46.6753 }}
+            radius={0}
+            onPick={(p) => setMapPos(p)} />
+          
+            {mapPos &&
+          <p className="text-xs text-muted-foreground mt-2">
                 {ar ? "الموقع" : "Location"}: {mapPos.lat.toFixed(4)}, {mapPos.lng.toFixed(4)}
                 {mapHint ? ` · ${mapHint}` : ""}
               </p>
-            )}
+          }
             <button
-              onClick={() => {
-                if (!mapPos) return;
-                const c = nearestCityInCountry(mapPos.lat, mapPos.lng, country || "SA");
-                if (c) setCity(c.en);
-                setLat(mapPos.lat);
-                setLng(mapPos.lng);
-                reverseGeocode(mapPos.lat, mapPos.lng);
-                setMapOpen(false);
-              }}
-              disabled={!mapPos}
-              className="mt-4 w-full py-3 rounded-2xl bg-primary text-primary-foreground font-bold disabled:opacity-50"
-            >
+            onClick={() => {
+              if (!mapPos) return;
+              const c = nearestCityInCountry(mapPos.lat, mapPos.lng, country || "SA");
+              if (c) setCity(c.en);
+              setLat(mapPos.lat);
+              setLng(mapPos.lng);
+              reverseGeocode(mapPos.lat, mapPos.lng);
+              setMapOpen(false);
+            }}
+            disabled={!mapPos}
+            className="mt-4 w-full py-3 rounded-2xl bg-primary text-primary-foreground font-bold disabled:opacity-50">
+            
               {t("apply")}
             </button>
           </div>
         </div>
-      )}
+      }
 
-      {cameraOpen && (
-        <CameraCapture
-          lang={lang}
-          max={Math.max(1, maxPhotos - images.length)}
-          onDone={onCameraDone}
-          onClose={() => setCameraOpen(false)}
-        />
-      )}
+      {cameraOpen &&
+      <CameraCapture
+        lang={lang}
+        max={Math.max(1, maxPhotos - images.length)}
+        onDone={onCameraDone}
+        onClose={() => setCameraOpen(false)} />
 
-      {editQueue.length > 0 && (
-        <ImageEditor
-          files={editQueue}
-          lang={lang}
-          onFileDone={handleFileDone}
-          onSkipFile={handleSkipFile}
-        />
-      )}
+      }
+
+      {editQueue.length > 0 &&
+      <ImageEditor
+        files={editQueue}
+        lang={lang}
+        onFileDone={handleFileDone}
+        onSkipFile={handleSkipFile} />
+
+      }
 
       <VerificationDialog open={verifyOpen} onClose={() => setVerifyOpen(false)} />
-    </div>
-  );
+    </div>);
+
 }

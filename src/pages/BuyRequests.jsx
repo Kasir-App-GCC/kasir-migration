@@ -147,8 +147,8 @@ export default function BuyRequests() {
           budget: form.budget ? Number(form.budget) : undefined,
           city: form.city,
           tags: form.tags || [],
-          whatsapp_enabled: waVerified ? true : form.whatsapp_enabled,
-          whatsapp_number: (waVerified ? user.whatsapp_number : (form.whatsapp_enabled ? form.whatsapp_number.trim().replace(/[^\d]/g, "") : "")) || "",
+          whatsapp_enabled: form.whatsapp_enabled,
+          whatsapp_number: form.whatsapp_enabled ? (waVerified ? user.whatsapp_number : form.whatsapp_number.trim().replace(/[^\d]/g, "")) : "",
         });
         toast({ title: lang === "ar" ? "تم التحديث" : "Updated" });
       } else {
@@ -163,8 +163,8 @@ export default function BuyRequests() {
           user_id: user.id,
           user_name: user.name,
           user_avatar: user.avatar,
-          whatsapp_enabled: waVerified ? true : form.whatsapp_enabled,
-          whatsapp_number: (waVerified ? user.whatsapp_number : (form.whatsapp_enabled ? form.whatsapp_number.trim().replace(/[^\d]/g, "") : "")) || "",
+          whatsapp_enabled: form.whatsapp_enabled,
+          whatsapp_number: form.whatsapp_enabled ? (waVerified ? user.whatsapp_number : form.whatsapp_number.trim().replace(/[^\d]/g, "")) : "",
           tags: form.tags || [],
           status: "open",
         });
@@ -191,7 +191,7 @@ export default function BuyRequests() {
       description: req.description || "",
       subcategory: req.subcategory || [],
       tags: req.tags || [],
-      whatsapp_enabled: waVerified ? true : !!req.whatsapp_enabled,
+      whatsapp_enabled: !!req.whatsapp_enabled,
       whatsapp_number: waVerified ? ("+" + user.whatsapp_number) : (req.whatsapp_number || ""),
     });
     setShowForm(true);
@@ -251,7 +251,7 @@ export default function BuyRequests() {
             <button
               onClick={() => {
                 setEditingId(null);
-                setForm({ title: "", category: "", budget: "", city: "", description: "", subcategory: [], tags: [], whatsapp_enabled: waVerified, whatsapp_number: waVerified ? "+" + user.whatsapp_number : "" });
+                setForm({ title: "", category: "", budget: "", city: "", description: "", subcategory: [], tags: [], whatsapp_enabled: !!user.whatsapp_enabled && waVerified, whatsapp_number: waVerified ? "+" + user.whatsapp_number : "" });
                 setShowForm(true);
               }}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-500 text-white text-sm font-bold hover:bg-violet-600 transition"
@@ -496,18 +496,23 @@ export default function BuyRequests() {
                     {lang === "ar" ? "التواصل عبر واتساب" : "Reach me via WhatsApp"}
                   </label>
                   {waVerified ? (
-                    <div className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800">
-                      <span className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300 min-w-0">
-                        <WhatsAppIcon size={16} className="text-emerald-600 shrink-0" />
-                        <span dir="ltr" className="font-mono truncate">+{user.whatsapp_number}</span>
+                    <button
+                      type="button"
+                      onClick={() => setForm((prev) => ({ ...prev, whatsapp_enabled: !prev.whatsapp_enabled }))}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition ${form.whatsapp_enabled ? "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800" : "bg-muted border border-border/60"}`}
+                    >
+                      <span className="flex items-center gap-2 text-sm font-semibold min-w-0">
+                        <WhatsAppIcon size={16} className={form.whatsapp_enabled ? "text-emerald-600" : "text-muted-foreground"} />
+                        {form.whatsapp_enabled ? (
+                          <span dir="ltr" className="font-mono truncate">+{user.whatsapp_number}</span>
+                        ) : (
+                          <span className="text-muted-foreground">{lang === "ar" ? "غير مفعّل" : "Disabled"}</span>
+                        )}
                       </span>
-                      <span className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs font-bold text-emerald-600">{lang === "ar" ? "موثّق" : "Verified"}</span>
-                        <span className="w-10 h-6 rounded-full bg-emerald-500 relative">
-                          <span className="absolute top-0.5 start-[18px] w-5 h-5 rounded-full bg-white" />
-                        </span>
+                      <span className={`w-10 h-6 rounded-full transition relative ${form.whatsapp_enabled ? "bg-emerald-500" : "bg-muted-foreground/30"}`}>
+                        <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${form.whatsapp_enabled ? "start-[18px]" : "start-0.5"}`} />
                       </span>
-                    </div>
+                    </button>
                   ) : (
                     <>
                       <button
@@ -536,6 +541,9 @@ export default function BuyRequests() {
                       )}
                     </>
                   )}
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    {lang === "ar" ? "يمكن للبائعين أيضاً التواصل معك عبر المحادثة داخل التطبيق." : "Sellers can also reach you via in-app chat."}
+                  </p>
                 </div>
               </div>
               <button

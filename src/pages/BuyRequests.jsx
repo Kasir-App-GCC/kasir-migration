@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Megaphone, Plus, X, MapPin, LocateFixed } from "lucide-react";
+import { Megaphone, Plus, X, MapPin, LocateFixed, ShieldAlert } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
@@ -250,7 +250,7 @@ export default function BuyRequests() {
             <button
               onClick={() => {
                 setEditingId(null);
-                setForm({ title: "", category: "", budget: "", city: "", description: "", subcategory: [], tags: [], whatsapp_enabled: !!user.whatsapp_enabled, whatsapp_number: user.whatsapp_number ? (user.whatsapp_number.startsWith("+") ? user.whatsapp_number : "+" + user.whatsapp_number) : "" });
+                setForm({ title: "", category: "", budget: "", city: "", description: "", subcategory: [], tags: [], whatsapp_enabled: !!user.whatsapp_enabled && !!user.whatsapp_verified, whatsapp_number: user.whatsapp_number ? (user.whatsapp_number.startsWith("+") ? user.whatsapp_number : "+" + user.whatsapp_number) : "" });
                 setShowForm(true);
               }}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-500 text-white text-sm font-bold hover:bg-violet-600 transition"
@@ -496,7 +496,13 @@ export default function BuyRequests() {
                   </label>
                   <button
                     type="button"
-                    onClick={() => setForm((prev) => ({ ...prev, whatsapp_enabled: !prev.whatsapp_enabled }))}
+                    onClick={() => {
+                      if (!form.whatsapp_enabled && !user?.whatsapp_verified) {
+                        toast({ title: lang === "ar" ? "وثّق رقم واتساب أولاً" : "Verify your WhatsApp first", description: lang === "ar" ? "من ملفك الشخصي" : "From your profile", variant: "destructive" });
+                        return;
+                      }
+                      setForm((prev) => ({ ...prev, whatsapp_enabled: !prev.whatsapp_enabled }));
+                    }}
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition ${form.whatsapp_enabled ? "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800" : "bg-muted border border-border/60"}`}
                   >
                     <span className="flex items-center gap-2 text-sm font-semibold">
@@ -507,6 +513,11 @@ export default function BuyRequests() {
                       <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${form.whatsapp_enabled ? "start-[18px]" : "start-0.5"}`} />
                     </span>
                   </button>
+                  {!user?.whatsapp_verified && !form.whatsapp_enabled && (
+                    <button type="button" onClick={() => nav("/profile")} className="mt-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400 inline-flex items-center gap-1">
+                      <ShieldAlert size={12} /> {lang === "ar" ? "وثّق رقم واتساب أولاً من ملفك" : "Verify your WhatsApp from your profile first"}
+                    </button>
+                  )}
                   {form.whatsapp_enabled && (
                     <div className="mt-2">
                       <input

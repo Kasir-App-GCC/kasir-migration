@@ -12,9 +12,10 @@ export default function VerificationDialog({ open, onClose }) {
   const { toast } = useToast();
   const ar = lang === "ar";
   const [fullName, setFullName] = useState(user?.name || "");
-  const [phoneVerified, setPhoneVerified] = useState(!!user?.phone_verified);
-  const [phoneE164, setPhoneE164] = useState(user?.phone_verified ? userPhoneE164(user) : "");
-  const [showPhoneVerifier, setShowPhoneVerifier] = useState(!user?.phone_verified);
+  const initialPhoneE164 = user?.phone_verified ? userPhoneE164(user) : "";
+  const [phoneVerified, setPhoneVerified] = useState(!!initialPhoneE164);
+  const [phoneE164, setPhoneE164] = useState(initialPhoneE164);
+  const [showPhoneVerifier, setShowPhoneVerifier] = useState(!initialPhoneE164);
   const [nationalId, setNationalId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -71,7 +72,8 @@ export default function VerificationDialog({ open, onClose }) {
       toast({ title: ar ? "تم إرسال طلب التوثيق" : "Verification request submitted", description: ar ? "سنطلعك عند المراجعة" : "We'll notify you once reviewed" });
       onClose();
     } catch (err) {
-      setError(err.message || (ar ? "فشل الإرسال" : "Failed to submit"));
+      const msg = err?.response?.data?.error || err?.message || (ar ? "فشل الإرسال" : "Failed to submit");
+      setError(msg);
     } finally {
       setSubmitting(false);
     }

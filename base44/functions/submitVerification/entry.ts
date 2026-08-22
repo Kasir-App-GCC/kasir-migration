@@ -31,13 +31,8 @@ export default async function(req) {
       return Response.json({ error: 'You already have a pending verification request' }, { status: 409 });
     }
 
-    // Enforce phone uniqueness — the verified phone cannot belong to another user.
-    const phoneMatches = await base44.asServiceRole.entities.User.filter({ whatsapp_number: phone });
-    const phoneTaken = (phoneMatches || []).some((u) => u.id !== user.id);
-    if (phoneTaken) {
-      return Response.json({ error: 'This phone number is already used by another account' }, { status: 409 });
-    }
-
+    // Phone uniqueness is enforced at OTP-send time (checkPhoneUnique) in the
+    // verification dialog, so the number the user verified is already theirs.
     const request = await base44.entities.VerificationRequest.create({
       user_id: user.id,
       user_name: user.name || fullName,

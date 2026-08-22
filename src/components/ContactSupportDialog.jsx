@@ -63,7 +63,7 @@ export default function ContactSupportDialog({ open, onClose }) {
   if (!open) return null;
 
   const submit = async () => {
-    if (!fullName.trim() || !phoneValid || !email.trim() || !subject.trim() || !message.trim() || submitting) return;
+    if (!fullName.trim() || !phoneValid || !emailValid || !subject.trim() || !message.trim() || submitting) return;
     if (filesTotal > MAX_ATTACH_TOTAL) return;
     setSubmitting(true);
     try {
@@ -108,8 +108,9 @@ export default function ContactSupportDialog({ open, onClose }) {
   const onPhoneChange = (e) => setPhone(digitsOnly(e.target.value).slice(0, MAX_PHONE));
   const phoneLen = digitsOnly(phone).length;
   const phoneValid = phoneLen >= MIN_PHONE && phoneLen <= MAX_PHONE;
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const filesTotal = files.reduce((s, f) => s + f.size, 0);
-  const valid = fullName.trim() && phoneValid && email.trim() && subject.trim() && message.trim() && filesTotal <= MAX_ATTACH_TOTAL;
+  const valid = fullName.trim() && phoneValid && emailValid && subject.trim() && message.trim() && filesTotal <= MAX_ATTACH_TOTAL;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -177,16 +178,18 @@ export default function ContactSupportDialog({ open, onClose }) {
 
           <div>
             <label className="text-sm font-semibold mb-1.5 block">{t("supportEmail")}</label>
-            <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-muted/70 border border-border/50">
+            <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-muted border border-border/50 focus-within:ring-2 ring-primary/30">
               <Mail size={16} className="text-muted-foreground shrink-0" />
               <input
+                type="email"
                 value={email}
-                disabled
-                readOnly
-                className="bg-transparent outline-none flex-1 text-muted-foreground cursor-not-allowed"
+                onChange={(e) => setEmail(e.target.value.slice(0, 120))}
+                maxLength={120}
+                placeholder={user?.email || "you@example.com"}
+                className="bg-transparent outline-none flex-1 min-w-0"
               />
             </div>
-            <p className="text-[11px] text-muted-foreground mt-1 ps-1">{t("supportEmailHint")}</p>
+            <p className="text-[11px] text-muted-foreground mt-1 ps-1">{lang === "ar" ? "عدّل البريد الذي تصلك عليه تأكيدات التذكرة." : "Edit the email that receives your ticket confirmation."}</p>
           </div>
 
           <div>

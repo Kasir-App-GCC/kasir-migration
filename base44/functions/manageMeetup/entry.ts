@@ -65,7 +65,8 @@ export default async function (req) {
         return Response.json({ error: "Not a party" }, { status: 403 });
 
       const existing = await meetups.filter({ offer_id: offerId }, "-created_date", 1);
-      if (existing && existing.length) return Response.json({ meetup: existing[0] });
+      if (existing && existing.length && existing[0].status !== "cancelled")
+        return Response.json({ meetup: existing[0] });
 
       const meetupType = ["meet_at_place", "buyer_pickup", "agree_separately"].includes(body.meetup_type)
         ? body.meetup_type

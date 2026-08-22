@@ -31,6 +31,7 @@ export default function ChatRoom() {
   const [ratedOffers, setRatedOffers] = useState(new Set());
   const [ratingOffer, setRatingOffer] = useState(null);
   const [disputeOffer, setDisputeOffer] = useState(null);
+  const [acceptedMeetup, setAcceptedMeetup] = useState(null);
   const endRef = useRef(null);
 
   const loadAll = useCallback(async () => {
@@ -305,6 +306,28 @@ export default function ChatRoom() {
     [offers]
   );
 
+  // Track the meetup for the accepted offer so the offer card knows to defer
+  // rate/dispute/confirm to the meetup flow, and the meetup flow stays in sync.
+  useEffect(() => {
+    if (!acceptedOffer) { setAcceptedMeetup(null); return; }
+    let active = true;
+    const reload = async () => {
+      try {
+        const rows = await base44.entities.Meetup.filter({ offer_id: acceptedOffer.id }, "-created_date", 10);
+        if (active) setAcceptedMeetup(rows?.[0] || null);
+      } catch { if (active) setAcceptedMeetup(null); }
+    };
+    reload();
+    const unsub = base44.entities.Meetup.subscribe((event) => {
+      const d = event?.data;
+      if (!d || d.offer_id !== acceptedOffer.id) return;
+      reload();
+    });
+    return () => { active = false; unsub?.(); };
+  }, [acceptedOffer?.id]);
+
+  const hasMeetup = !!acceptedMeetup && acceptedMeetup.status !== "cancelled";
+
   return (
     <div className="fixed inset-0 z-40 bg-background flex flex-col">
       <header className="pt-[env(safe-area-inset-top)] border-b border-border/60 bg-background/90 backdrop-blur shrink-0">
@@ -344,7 +367,7 @@ export default function ChatRoom() {
 
       <PullToRefreshScroll onRefresh={loadAll} className="px-4 py-4 space-y-2">
         {acceptedOffer && (
-          <MeetupFlow offer={acceptedOffer} user={user} lang={lang} otherName={otherName} />
+          <MeetupFlow offer={acceptedOffer} user={user} lang={lang} otherName={otherName} meetup={acceptedMeetup} onMeetupChange={setAcceptedMeetup} />
         )}
         {loading ? (
           <div className="text-center text-muted-foreground text-sm py-10"><div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin mx-auto" /></div>
@@ -359,7 +382,8 @@ export default function ChatRoom() {
                 <div key={`o-${o.id}`} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                   <OfferCard offer={o} user={user} lang={lang} t={t} itemPrice={room?.item_price} itemImage={room?.item_image} itemTitle={room?.item_title} country={itemCountry}
                     ratedOffers={ratedOffers} onRate={setRatingOffer} onConfirm={confirmReceipt} onDispute={setDisputeOffer}
-                    onAccept={acceptOffer} onReject={rejectOffer} onCounter={counterOffer} onModify={modifyOffer} onNotMatch={notMatchOffer} />
+                    onAccept={acceptOffer} onReject={rejectOffer} onCounter={counterOffer} onModify={modifyOffer} onNotMatch={notMatchOffer}
+                    hasMeetup={hasMeetup && o.id === acceptedOffer?.id} />
                 </div>
               );
             }

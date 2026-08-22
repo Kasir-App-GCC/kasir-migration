@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Check, X, Tag, Pencil, ArrowLeftRight, Clock, Star, ShieldAlert } from "lucide-react";
 import Price from "@/components/Price";
 
-export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, itemTitle, country, onAccept, onReject, onCounter, onModify, onNotMatch, ratedOffers, onRate, onConfirm, onDispute }) {
+export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, itemTitle, country, onAccept, onReject, onCounter, onModify, onNotMatch, ratedOffers, onRate, onConfirm, onDispute, hasMeetup }) {
   const nav = useNavigate();
   const mine = offer.direction === "buyer_offer" ? offer.buyer_id === user.id : offer.seller_id === user.id;
   const isRecipient = offer.direction === "buyer_offer" ? offer.seller_id === user.id : offer.buyer_id === user.id;
@@ -137,7 +137,7 @@ export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, 
         </div>
       )}
 
-      {(offer.status === "accepted" || offer.status === "completed") && (
+      {(offer.status === "accepted" || offer.status === "completed") && !hasMeetup && (
         <div className="mt-2 space-y-1.5">
           {offer.status === "accepted" && <p className="text-[11px] text-center text-muted-foreground">{t("agreedArrange")}</p>}
           {offer.status === "accepted" && offer.buyer_id === user.id && !offer.received_confirmed && onConfirm && (

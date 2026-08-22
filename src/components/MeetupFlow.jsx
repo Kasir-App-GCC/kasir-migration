@@ -1,9 +1,11 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import {
-  MapPin, Clock, Check, X, Navigation, ShieldAlert, Loader2, Handshake, Package, Banknote, CalendarClock, MapPinned,
+  MapPin, Clock, Check, X, Navigation, ShieldAlert, Loader2, Handshake, Package, Banknote, CalendarClock, MapPinned, Star,
 } from "lucide-react";
 import MapPinPicker from "@/components/MapPinPicker";
+import RatingDialog from "@/components/RatingDialog";
+import DisputeDialog from "@/components/DisputeDialog";
 import { useToast } from "@/components/ui/use-toast";
 
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
@@ -12,10 +14,7 @@ const CHECK_IN_LATE_MS = 15 * 60 * 1000;
 
 function fmt(dt, ar) {
   if (!dt) return "";
-  return new Date(dt).toLocaleString(ar ? "ar-SA" : undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  return new Date(dt).toLocaleString(ar ? "ar-SA" : undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 function toLocalInput(dt) {
   if (!dt) return "";
@@ -30,12 +29,10 @@ const TYPE_CARDS = [
   { id: "agree_separately", icon: Handshake, ar: "نتفق على اللقاء في المحادثة", en: "Agree on the meetup in chat" },
 ];
 
-export default function MeetupFlow({ offer, user, lang, otherName }) {
+export default function MeetupFlow({ offer, user, lang, otherName, meetup, onMeetupChange }) {
   const ar = lang === "ar";
   const { toast } = useToast();
-  const [meetup, setMeetup] = useState(null);
   const [item, setItem] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [plannerOpen, setPlannerOpen] = useState(false);
   const [mtype, setMtype] = useState("meet_at_place");
@@ -43,17 +40,13 @@ export default function MeetupFlow({ offer, user, lang, otherName }) {
   const [placeName, setPlaceName] = useState("");
   const [timeInput, setTimeInput] = useState("");
   const [changingTime, setChangingTime] = useState(false);
+  const [suggestingPlace, setSuggestingPlace] = useState(false);
+  const [ratingOpen, setRatingOpen] = useState(false);
+  const [disputeOpen, setDisputeOpen] = useState(false);
+  const [rated, setRated] = useState(false);
 
   const isBuyer = offer.buyer_id === user.id;
   const myId = user.id;
-
-  const load = useCallback(async () => {
-    try {
-      const rows = await base44.entities.Meetup.filter({ offer_id: offer.id }, "-created_date", 5);
-      setMeetup(rows?.[0] || null);
-    } catch {}
-    setLoading(false);
-  }, [offer.id]);
 
   useEffect(() => {
     (async () => {
@@ -63,18 +56,8 @@ export default function MeetupFlow({ offer, user, lang, otherName }) {
         const c = it?.lat && it?.lng ? { lat: it.lat, lng: it.lng } : null;
         if (c) setPlace(c);
       } catch {}
-      load();
     })();
-  }, [offer.id, load]);
-
-  useEffect(() => {
-    const unsub = base44.entities.Meetup.subscribe((event) => {
-      const d = event?.data;
-      if (!d || d.offer_id !== offer.id) return;
-      load();
-    });
-    return unsub;
-  }, [offer.id, load]);
+  }, [offer.item_id]);
 
   const act = async (payload) => {
     setBusy(true);
@@ -82,8 +65,7 @@ export default function MeetupFlow({ offer, user, lang, otherName }) {
       const res = await base44.functions.invoke("manageMeetup", payload);
       const data = res?.data || res;
       if (data?.error) throw new Error(data.error);
-      if (data?.meetup) setMeetup(data.meetup);
-      else await load();
+      if (data?.meetup) onMeetupChange?.(data.meetup);
       return data;
     } catch (e) {
       toast({ title: ar ? "تعذّر الإجراء" : "Action failed", description: e?.message, variant: "destructive" });
@@ -108,18 +90,25 @@ export default function MeetupFlow({ offer, user, lang, otherName }) {
     if (data) setPlannerOpen(false);
   };
 
-  const repropose = async () => {
+  const startSuggest = () => {
+    if (meetup?.place_lat != null && meetup?.place_lng != null) setPlace({ lat: meetup.place_lat, lng: meetup.place_lng });
+    setPlaceName(meetup?.place_name || "");
+    setSuggestingPlace(true);
+  };
+
+  const doRepropose = async () => {
     if (!place) {
       toast({ title: ar ? "اختر المكان على الخريطة" : "Pick a place on the map", variant: "destructive" });
       return;
     }
-    await act({
+    const data = await act({
       action: "repropose_place",
       meetup_id: meetup.id,
       place_lat: place.lat,
       place_lng: place.lng,
       place_name: placeName.trim(),
     });
+    if (data) setSuggestingPlace(false);
   };
 
   const submitTime = async () => {
@@ -154,13 +143,7 @@ export default function MeetupFlow({ offer, user, lang, otherName }) {
     await act({ action: "check_in", meetup_id: meetup.id, lat, lng });
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-3">
-        <Loader2 size={16} className="animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  const concluded = meetup && (meetup.status === "completed" || meetup.status === "no_show");
 
   // ---- No meetup yet ----
   if (!meetup && !plannerOpen) {
@@ -281,7 +264,7 @@ export default function MeetupFlow({ offer, user, lang, otherName }) {
       </div>
 
       {/* Place */}
-      {meetup.meetup_type !== "agree_separately" && (
+      {meetup.meetup_type !== "agree_separately" && !suggestingPlace && (
         <div className="rounded-xl bg-muted p-2.5">
           <p className="text-[11px] text-muted-foreground flex items-center gap-1"><MapPinned size={12} /> {ar ? "المكان" : "Place"}</p>
           <p className="text-sm font-semibold mt-0.5">{meetup.place_name || (ar ? "محدد على الخريطة" : "Pinned on map")}</p>
@@ -300,25 +283,48 @@ export default function MeetupFlow({ offer, user, lang, otherName }) {
         </div>
       )}
 
+      {/* Suggest / adjust place (map picker) */}
+      {suggestingPlace && (
+        <div className="space-y-2">
+          <input
+            value={placeName}
+            onChange={(e) => setPlaceName(e.target.value.slice(0, 80))}
+            placeholder={ar ? "اسم المكان (اختياري)" : "Place name (optional)"}
+            className="w-full px-3 py-2 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm"
+          />
+          <MapPinPicker
+            center={place || (item?.lat && item?.lng ? { lat: item.lat, lng: item.lng } : { lat: 24.7136, lng: 46.6753 })}
+            radius={0}
+            onPick={setPlace}
+          />
+          <div className="flex gap-2">
+            <button onClick={doRepropose} disabled={busy} className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
+              {ar ? "إرسال المكان" : "Send place"}
+            </button>
+            <button onClick={() => setSuggestingPlace(false)} className="px-3 py-2 rounded-xl bg-muted text-xs font-bold">{ar ? "إلغاء" : "Cancel"}</button>
+          </div>
+        </div>
+      )}
+
       {/* Place actions */}
-      {meetup.status === "place_proposed" && !placeMine && (
+      {!suggestingPlace && meetup.status === "place_proposed" && !placeMine && (
         <div className="flex gap-2">
           <button onClick={() => act({ action: "confirm_place", meetup_id: meetup.id })} disabled={busy} className="flex-1 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
             <Check size={14} /> {ar ? "تأكيد المكان" : "Confirm place"}
           </button>
-          <button onClick={repropose} disabled={busy} className="flex-1 py-2 rounded-xl bg-muted text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
+          <button onClick={startSuggest} disabled={busy} className="flex-1 py-2 rounded-xl bg-muted text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
             <MapPin size={14} /> {ar ? "اقتراح مكان آخر" : "Suggest another"}
           </button>
         </div>
       )}
-      {meetup.status === "place_proposed" && placeMine && meetup.meetup_type === "meet_at_place" && (
-        <button onClick={repropose} disabled={busy} className="w-full py-2 rounded-xl bg-muted text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
+      {!suggestingPlace && meetup.status === "place_proposed" && placeMine && meetup.meetup_type === "meet_at_place" && (
+        <button onClick={startSuggest} disabled={busy} className="w-full py-2 rounded-xl bg-muted text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
           <MapPin size={14} /> {ar ? "تعديل المكان" : "Adjust place"}
         </button>
       )}
 
       {/* Time */}
-      {meetup.status === "place_confirmed" && (
+      {!suggestingPlace && meetup.status === "place_confirmed" && (
         <div className="space-y-2">
           <label className="text-xs text-muted-foreground flex items-center gap-1"><Clock size={12} /> {ar ? "اقترح موعد اللقاء" : "Propose a meetup time"}</label>
           <input
@@ -334,7 +340,7 @@ export default function MeetupFlow({ offer, user, lang, otherName }) {
         </div>
       )}
 
-      {mt && (
+      {!suggestingPlace && mt && (
         <div className="rounded-xl bg-muted p-2.5">
           <p className="text-[11px] text-muted-foreground flex items-center gap-1"><CalendarClock size={12} /> {ar ? "الموعد" : "Time"}</p>
           <p className="text-sm font-semibold mt-0.5">{fmt(meetup.meetup_time, ar)}</p>
@@ -349,7 +355,7 @@ export default function MeetupFlow({ offer, user, lang, otherName }) {
       )}
 
       {/* Time actions */}
-      {meetup.status === "time_proposed" && !timeMine && (
+      {!suggestingPlace && meetup.status === "time_proposed" && !timeMine && (
         <div className="flex gap-2">
           <button onClick={() => act({ action: "confirm_time", meetup_id: meetup.id })} disabled={busy} className="flex-1 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
             <Check size={14} /> {ar ? "تأكيد الموعد" : "Confirm time"}
@@ -359,12 +365,12 @@ export default function MeetupFlow({ offer, user, lang, otherName }) {
           </button>
         </div>
       )}
-      {meetup.status === "time_proposed" && timeMine && (
+      {!suggestingPlace && meetup.status === "time_proposed" && timeMine && (
         <button onClick={() => setChangingTime((v) => !v)} className="w-full py-2 rounded-xl bg-muted text-xs font-bold flex items-center justify-center gap-1.5">
           <Clock size={14} /> {ar ? "تعديل الموعد" : "Adjust time"}
         </button>
       )}
-      {(changingTime || (meetup.status === "time_proposed" && timeMine)) && (
+      {!suggestingPlace && (changingTime || (meetup.status === "time_proposed" && timeMine)) && (
         <div className="space-y-2">
           <input
             type="datetime-local"
@@ -379,8 +385,8 @@ export default function MeetupFlow({ offer, user, lang, otherName }) {
         </div>
       )}
 
-      {/* Confirmed: countdown + change + check-in */}
-      {meetup.status === "confirmed" && (
+      {/* Confirmed: change + check-in */}
+      {!suggestingPlace && meetup.status === "confirmed" && (
         <>
           {canChangeTime && (
             <div className="space-y-2">
@@ -406,7 +412,6 @@ export default function MeetupFlow({ offer, user, lang, otherName }) {
             </div>
           )}
 
-          {/* Check-in */}
           {!iCheckedIn && inWindow && (
             <button onClick={checkIn} disabled={busy} className="w-full py-2.5 rounded-xl bg-sky-600 text-white text-sm font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
               {busy ? <Loader2 size={15} className="animate-spin" /> : <Navigation size={15} />} {ar ? "أنا في المكان" : "I'm at the meetup"}
@@ -428,7 +433,7 @@ export default function MeetupFlow({ offer, user, lang, otherName }) {
       )}
 
       {/* Outcomes */}
-      {outcomesOpen && meetup.status !== "completed" && meetup.status !== "no_show" && (
+      {!suggestingPlace && outcomesOpen && !concluded && (
         <div className="space-y-2 pt-1 border-t border-border/60">
           <p className="text-xs font-bold flex items-center gap-1.5"><ShieldAlert size={13} className="text-rose-500" /> {ar ? "نتيجة اللقاء" : "Meetup outcome"}</p>
           {isBuyer ? (
@@ -450,19 +455,46 @@ export default function MeetupFlow({ offer, user, lang, otherName }) {
         </div>
       )}
 
-      {/* Final summary */}
-      {meetup.status === "completed" && (
-        <p className="text-[11px] text-emerald-600 font-semibold text-center flex items-center justify-center gap-1"><Check size={12} /> {ar ? "اكتمل اللقاء بنجاح" : "Meetup completed successfully"}</p>
-      )}
-      {meetup.status === "no_show" && (
-        <p className="text-[11px] text-rose-500 font-semibold text-center flex items-center justify-center gap-1"><ShieldAlert size={12} /> {ar ? "تم تسجيل تخلّف عن الحضور — راجعه الإدارة" : "No-show recorded — admin will review"}</p>
+      {/* Conclusion summary + rate/dispute */}
+      {concluded && (
+        <div className="space-y-2 pt-1 border-t border-border/60">
+          {meetup.status === "completed" ? (
+            <p className="text-[11px] text-emerald-600 font-semibold text-center flex items-center justify-center gap-1"><Check size={12} /> {ar ? "اكتمل اللقاء بنجاح" : "Meetup completed successfully"}</p>
+          ) : (
+            <p className="text-[11px] text-rose-500 font-semibold text-center flex items-center justify-center gap-1"><ShieldAlert size={12} /> {ar ? "تم تسجيل تخلّف عن الحضور — راجعه الإدارة" : "No-show recorded — admin will review"}</p>
+          )}
+          {!rated && (
+            <button onClick={() => setRatingOpen(true)} className="w-full py-2 rounded-xl bg-amber-400 text-slate-900 text-xs font-bold flex items-center justify-center gap-1.5">
+              <Star size={13} /> {isBuyer ? (ar ? "قيّم البائع" : "Rate the seller") : (ar ? "قيّم المشتري" : "Rate the buyer")}
+            </button>
+          )}
+          <button onClick={() => setDisputeOpen(true)} className="w-full py-2 rounded-xl bg-rose-600 text-white text-xs font-bold flex items-center justify-center gap-1.5">
+            <ShieldAlert size={13} /> {ar ? "فتح نزاع" : "Open dispute"}
+          </button>
+        </div>
       )}
 
       {/* Cancel while planning */}
-      {["place_proposed", "place_confirmed", "time_proposed", "confirmed"].includes(meetup.status) && (
+      {!concluded && ["place_proposed", "place_confirmed", "time_proposed", "confirmed"].includes(meetup.status) && (
         <button onClick={() => act({ action: "cancel", meetup_id: meetup.id })} disabled={busy} className="w-full py-1.5 rounded-xl text-[11px] text-muted-foreground hover:text-rose-500 font-semibold">
           {ar ? "إلغاء اللقاء" : "Cancel meetup"}
         </button>
+      )}
+
+      {ratingOpen && (
+        <RatingDialog
+          offer={offer}
+          user={user}
+          lang={lang}
+          onClose={() => setRatingOpen(false)}
+          onDone={() => {
+            setRated(true);
+            setRatingOpen(false);
+          }}
+        />
+      )}
+      {disputeOpen && (
+        <DisputeDialog offer={offer} user={user} lang={lang} onClose={() => setDisputeOpen(false)} />
       )}
     </Section>
   );

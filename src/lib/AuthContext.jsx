@@ -123,7 +123,9 @@ export const AuthProvider = ({ children }) => {
         setBlockedReason(null);
       }
     } catch {
-      setBlocked(false);
+      // A transient network/infra error must NOT lift an existing ban — only a
+      // successful "not blocked" response should. Otherwise a blip mid-session
+      // would briefly unblock a banned user until the next poll.
     }
     return false;
   };

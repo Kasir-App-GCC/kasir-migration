@@ -19,40 +19,6 @@ import { Image } from "@/components/ui/image";
 import { sendPush } from "@/lib/notify";
 import { useBlockStatus } from "@/lib/useBlockStatus";
 
-const SELLER_TAG_OPTIONS = [
-  { en: "Fast replies", ar: "ردود سريعة" },
-  { en: "Honest", ar: "صادق" },
-  { en: "Item as described", ar: "السلعة مطابقة" },
-  { en: "Good quality", ar: "جودة ممتازة" },
-  { en: "Friendly", ar: "لطيف" },
-  { en: "Fair price", ar: "سعر عادل" },
-  { en: "Helpful", ar: "متعاون" },
-  { en: "Quick meetup", ar: "استلام سريع" },
-  { en: "Well packaged", ar: "تغليف ممتاز" },
-  { en: "Slow replies", ar: "ردود بطيئة" },
-  { en: "Item not as described", ar: "السلعة غير مطابقة" },
-  { en: "Poor quality", ar: "جودة ضعيفة" },
-  { en: "Rude", ar: "فظ" },
-  { en: "Overpriced", ar: "سعر مرتفع" },
-  { en: "No-show", ar: "لم يحضر" },
-];
-const BUYER_TAG_OPTIONS = [
-  { en: "Fast payment", ar: "دفع سريع" },
-  { en: "Polite", ar: "مهذب" },
-  { en: "Punctual", ar: "ملتزم بالموعد" },
-  { en: "Easy to deal with", ar: "سهل التعامل" },
-  { en: "Responsive", ar: "يتجاوب بسرعة" },
-  { en: "Serious buyer", ar: "مشتري جاد" },
-  { en: "Friendly", ar: "لطيف" },
-  { en: "Honest", ar: "صادق" },
-  { en: "Slow replies", ar: "ردود بطيئة" },
-  { en: "Lowball offer", ar: "سعر متدنٍ" },
-  { en: "No-show", ar: "لم يحضر" },
-  { en: "Rude", ar: "فظ" },
-  { en: "Late payment", ar: "تأخر الدفع" },
-  { en: "Flaky", ar: "غير جاد" },
-];
-
 export default function ItemDetail() {
   const { id } = useParams();
   const nav = useNavigate();
@@ -120,7 +86,8 @@ export default function ItemDetail() {
         if (ratingsRes.status === "fulfilled") setRatings(ratingsRes.value || []);
         if (profileRes.status === "fulfilled") setSellerProfile(profileRes.value?.data || null);
         if (simRes.status === "fulfilled") setSimilar((simRes.value || []).filter((x) => x.id !== id).slice(0, 6));
-        base44.entities.Item.update(id, { views: (Number(it.views) || 0) + 1 }).catch(() => {});
+        // Don't count the owner's own views (prevents sellers from inflating their own view count).
+        if (it.seller_id !== user?.id) base44.entities.Item.update(id, { views: (Number(it.views) || 0) + 1 }).catch(() => {});
       } catch {
         setItem(null);
       } finally {
@@ -144,6 +111,7 @@ export default function ItemDetail() {
       item_title: item.title,
       item_image: item.images?.[0],
       item_price: offerPrice ?? item.price,
+      item_country: item.country,
       seller_id: item.seller_id,
       seller_name: item.seller_name,
       seller_avatar: item.seller_avatar || null,
@@ -158,36 +126,16 @@ export default function ItemDetail() {
   const messageSeller = async () => {
     if (!user || !item) return;
     if (item.seller_id === user.id) { nav("/chats"); return; }
-    if (blockedByMe || blockedMe) { setOfferOpen(false); return; }
+    if (item.status === "sold" || blockedByMe || blockedMe) { setOfferOpen(false); return; }
     const room = await getOrCreateRoom();
     nav(`/chat/${room.id}`);
-  };
-
-  const submitRating = async () => {
-    if (!(item.status === "sold" && item.sold_to === user.id)) return;
-    const tagText = sellerTags.map((k) => SELLER_TAG_OPTIONS.find((o) => o.en === k)).filter(Boolean).map((o) => (lang === "ar" ? o.ar : o.en)).join(" · ");
-    const review = [tagText, myReview].filter(Boolean).join(" · ");
-    await base44.entities.Rating.create({
-      rated_user_id: item.seller_id,
-      rated_user_name: item.seller_name,
-      rater_user_id: user.id,
-      rater_name: user.name,
-      score: myScore,
-      review,
-      item_id: item.id,
-      role: "buyer",
-    });
-    setRateOpen(false);
-    setSellerTags([]);
-    const rs = await base44.entities.Rating.filter({ rated_user_id: item.seller_id }, "-created_date", 20);
-    setRatings(rs || []);
   };
 
   const isOwner = user && item && item.seller_id === user.id;
 
   const sendOffer = async (pct) => {
     if (!user || !item) return;
-    if (blockedByMe || blockedMe) { setOfferOpen(false); return; }
+    if (item.status === "sold" || blockedByMe || blockedMe) { setOfferOpen(false); return; }
     const offerPrice = Math.round(item.price * (1 - pct / 100));
     setSending(true);
     try {
@@ -236,23 +184,6 @@ export default function ItemDetail() {
     } else {
       try { await navigator.clipboard.writeText(url); } catch {}
     }
-  };
-
-  const submitBuyerRating = async () => {
-    const tagText = buyerTags.map((k) => BUYER_TAG_OPTIONS.find((o) => o.en === k)).filter(Boolean).map((o) => (lang === "ar" ? o.ar : o.en)).join(" · ");
-    const review = [tagText, buyerReview].filter(Boolean).join(" · ");
-    await base44.entities.Rating.create({
-      rated_user_id: item.sold_to,
-      rated_user_name: item.sold_to_name,
-      rater_user_id: user.id,
-      rater_name: user.name,
-      score: buyerScore,
-      review,
-      item_id: item.id,
-      role: "seller",
-    });
-    setRateBuyerOpen(false);
-    setBuyerTags([]);
   };
 
   const openSold = async () => {
@@ -532,7 +463,7 @@ export default function ItemDetail() {
                 </div>
               </div>
             </button>
-            {sellerProfile?.whatsapp_enabled && sellerProfile?.whatsapp_number && (() => {
+            {sellerProfile?.whatsapp_enabled && sellerProfile?.whatsapp_number && !blockedByMe && !blockedMe && (() => {
               const priceLine = formatPrice(item.price, lang, item.country);
               const msg = lang === "ar"
                 ? `مرحباً، أنا مهتم بسلعتك: ${item.title} بسعر ${priceLine}`
@@ -596,10 +527,10 @@ export default function ItemDetail() {
                 <p className="text-xs text-muted-foreground">{t("price")}</p>
                 <p className="font-extrabold text-lg"><Price value={item.price} lang={lang} country={item.country} /></p>
               </div>
-              <button onClick={() => setOfferOpen(true)} disabled={blockedByMe || blockedMe} className="px-4 py-3.5 rounded-2xl border-2 border-primary text-primary font-bold flex items-center justify-center gap-2 disabled:opacity-40">
+              <button onClick={() => setOfferOpen(true)} disabled={item.status === "sold" || blockedByMe || blockedMe} className="px-4 py-3.5 rounded-2xl border-2 border-primary text-primary font-bold flex items-center justify-center gap-2 disabled:opacity-40">
                 <Tag size={18} /> {t("makeOffer")}
               </button>
-              <button onClick={messageSeller} disabled={blockedByMe || blockedMe} className="flex-1 py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold flex items-center justify-center gap-2 disabled:opacity-40">
+              <button onClick={messageSeller} disabled={item.status === "sold" || blockedByMe || blockedMe} className="flex-1 py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold flex items-center justify-center gap-2 disabled:opacity-40">
                 <MessageCircle size={18} /> {t("startChat")}
               </button>
             </>

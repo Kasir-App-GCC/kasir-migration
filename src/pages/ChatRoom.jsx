@@ -51,6 +51,13 @@ export default function ChatRoom() {
       try {
         const r = await base44.entities.ChatRoom.get(id);
         setRoom(r);
+        // Resolve the item's country so prices in chat render in the right currency.
+        // New rooms carry item_country; old rooms fall back to fetching the item.
+        if (r?.item_country) {
+          setItemCountry(r.item_country);
+        } else if (r?.item_id && r.item_id !== "official") {
+          try { const it = await base44.entities.Item.get(r.item_id); if (it?.country) setItemCountry(it.country); } catch {}
+        }
         const otherId = r && String(r.seller_id) === String(user?.id) ? r.buyer_id : r?.seller_id;
         if (otherId) {
           try {

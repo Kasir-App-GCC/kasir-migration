@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, X, Tag, Pencil, ArrowLeftRight, Clock, Star } from "lucide-react";
+import { Check, X, Tag, Pencil, ArrowLeftRight, Clock, Star, ShieldAlert } from "lucide-react";
 import Price from "@/components/Price";
 
-export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, itemTitle, country, onAccept, onReject, onCounter, onModify, onNotMatch, ratedOffers, onRate }) {
+export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, itemTitle, country, onAccept, onReject, onCounter, onModify, onNotMatch, ratedOffers, onRate, onConfirm, onDispute }) {
   const nav = useNavigate();
   const mine = offer.direction === "buyer_offer" ? offer.buyer_id === user.id : offer.seller_id === user.id;
   const isRecipient = offer.direction === "buyer_offer" ? offer.seller_id === user.id : offer.buyer_id === user.id;
@@ -137,9 +137,14 @@ export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, 
         </div>
       )}
 
-      {offer.status === "accepted" && (
+      {(offer.status === "accepted" || offer.status === "completed") && (
         <div className="mt-2 space-y-1.5">
-          <p className="text-[11px] text-center text-muted-foreground">{t("agreedArrange")}</p>
+          {offer.status === "accepted" && <p className="text-[11px] text-center text-muted-foreground">{t("agreedArrange")}</p>}
+          {offer.status === "accepted" && offer.buyer_id === user.id && !offer.received_confirmed && onConfirm && (
+            <button onClick={() => onConfirm(offer)} className="w-full py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5">
+              <Check size={13} /> {t("confirmReceipt")}
+            </button>
+          )}
           {onRate && !ratedOffers?.has(offer.id) && (() => {
             const isBuyer = offer.buyer_id === user.id;
             const rateLabel = isBuyer ? (lang === "ar" ? "قيّم البائع" : "Rate the seller") : (lang === "ar" ? "قيّم المشتري" : "Rate the buyer");
@@ -149,6 +154,11 @@ export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, 
               </button>
             );
           })()}
+          {onDispute && (
+            <button onClick={() => onDispute(offer)} className="w-full py-2 rounded-xl bg-rose-600 text-white text-xs font-bold flex items-center justify-center gap-1.5">
+              <ShieldAlert size={13} /> {lang === "ar" ? "فتح نزاع" : "Open dispute"}
+            </button>
+          )}
         </div>
       )}
     </div>

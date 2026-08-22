@@ -11,7 +11,7 @@ import { validateNationalId, nationalIdRule } from "@/lib/nationalId";
 
 export default function VerificationDialog({ open, onClose }) {
   const { user, lang } = useStore();
-  const { checkUserAuth } = useAuth();
+  const { refreshUser } = useAuth();
   const { toast } = useToast();
   const ar = lang === "ar";
   const [fullName, setFullName] = useState(user?.name || "");
@@ -128,7 +128,7 @@ export default function VerificationDialog({ open, onClose }) {
                         setShowPhoneVerifier(false);
                         try {
                           await base44.auth.updateMe({ phone: digitsOnly(e164), phone_verified: true });
-                          await checkUserAuth();
+                          await refreshUser();
                         } catch (e) {}
                       }}
                     />

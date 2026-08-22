@@ -18,12 +18,14 @@ import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { Image } from "@/components/ui/image";
 import { sendPush } from "@/lib/notify";
 import { useBlockStatus } from "@/lib/useBlockStatus";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function ItemDetail() {
   const { id } = useParams();
   const nav = useNavigate();
   const { user, lang } = useStore();
   const t = useT();
+  const { toast } = useToast();
   const [item, setItem] = useState(null);
   const [ratings, setRatings] = useState([]);
   const [activeImg, setActiveImg] = useState(0);
@@ -180,9 +182,20 @@ export default function ItemDetail() {
   const shareItem = async () => {
     const url = window.location.href;
     if (navigator.share) {
-      try { await navigator.share({ title: item.title, url }); } catch {}
+      try {
+        await navigator.share({ title: item.title, text: item.title, url });
+      } catch (err) {
+        if (err?.name !== "AbortError") toast({ title: lang === "ar" ? "تعذّر المشاركة" : "Couldn't share", variant: "destructive" });
+      }
+    } else if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(url);
+        toast({ title: lang === "ar" ? "تم نسخ الرابط" : "Link copied" });
+      } catch {
+        toast({ title: lang === "ar" ? "تعذّر النسخ" : "Couldn't copy", variant: "destructive" });
+      }
     } else {
-      try { await navigator.clipboard.writeText(url); } catch {}
+      toast({ title: lang === "ar" ? "المتصفح لا يدعم المشاركة" : "Sharing not supported", variant: "destructive" });
     }
   };
 

@@ -297,7 +297,7 @@ export default function AdminUsers() {
             className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm"
           />
         </div>
-        <div className="flex gap-1 p-1 bg-muted rounded-xl text-sm">
+        <div className="flex gap-1 p-1 bg-muted rounded-xl text-sm overflow-x-auto no-scrollbar">
           {[
             { id: "all", label: ar ? "الكل" : "All" },
             { id: "trusted", label: ar ? "موثوق" : "Trusted" },
@@ -309,7 +309,7 @@ export default function AdminUsers() {
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
-              className={`px-3 py-1.5 rounded-lg font-semibold transition ${filter === f.id ? "bg-card shadow-sm" : "text-muted-foreground"}`}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition whitespace-nowrap shrink-0 ${filter === f.id ? "bg-card shadow-sm" : "text-muted-foreground"}`}
             >
               {f.label}
             </button>

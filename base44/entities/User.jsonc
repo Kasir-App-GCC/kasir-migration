@@ -54,6 +54,11 @@
       "type": "string",
       "description": "WhatsApp number in international format (digits only, e.g. 9665XXXXXXXX)"
     },
+    "whatsapp_verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the WhatsApp number was confirmed via OTP"
+    },
     "is_trusted": {
       "type": "boolean",
       "default": false,

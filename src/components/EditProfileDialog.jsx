@@ -5,8 +5,8 @@ import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { base44 } from "@/api/base44Client";
 import { syncAvatarToEntities } from "@/lib/syncAvatar";
-import { getCountry } from "@/lib/countries";
-import SheetSelect from "@/components/SheetSelect";
+import { userPhoneE164, digitsOnly } from "@/lib/phone";
+import PhoneOtpVerifier from "@/components/PhoneOtpVerifier";
 
 const COUNTRY_CODES = [
   { code: "966", flag: "🇸🇦", en: "Saudi Arabia", ar: "السعودية" },
@@ -36,12 +36,6 @@ const COUNTRY_CODES = [
   { code: "33", flag: "🇫🇷", en: "France", ar: "فرنسا" },
 ];
 
-function parseWaNumber(existing, defaultCode = "966") {
-  const matched = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length).find((c) => existing.startsWith(c.code));
-  if (matched) return { country: matched.code, number: existing.slice(matched.code.length) };
-  return { country: defaultCode, number: existing };
-}
-
 export default function EditProfileDialog({ open, onClose }) {
   const { user, checkUserAuth } = useAuth();
   const { lang } = useStore();
@@ -52,9 +46,9 @@ export default function EditProfileDialog({ open, onClose }) {
   const [username, setUsername] = useState(user?.username || "");
   const [avatar, setAvatar] = useState(user?.avatar || null);
   const [waEnabled, setWaEnabled] = useState(!!user?.whatsapp_enabled);
-  const initialWa = parseWaNumber((user?.whatsapp_number || "").replace(/\D/g, ""), getCountry(user?.country)?.phoneCode || "966");
-  const [waCountry, setWaCountry] = useState(initialWa.country);
-  const [waNumber, setWaNumber] = useState(initialWa.number);
+  const [waVerifiedNew, setWaVerifiedNew] = useState(false);
+  const [waNumberNew, setWaNumberNew] = useState("");
+  const [showWaVerifier, setShowWaVerifier] = useState(!user?.whatsapp_verified);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -84,22 +78,24 @@ export default function EditProfileDialog({ open, onClose }) {
       setError(ar ? "اكتب اسمك الأول" : "Please enter your first name");
       return;
     }
+    // WhatsApp requires a verified number to enable contact.
+    if (waEnabled && !user?.whatsapp_verified && !waVerifiedNew) {
+      setError(ar ? "تحقق من رقم واتساب أولاً" : "Verify your WhatsApp number first");
+      return;
+    }
     setSaving(true);
     try {
-      const localDigits = waNumber.replace(/\D/g, "");
-      if (waEnabled && localDigits.length < 6) {
-        setError(ar ? "أدخل رقم واتساب صحيح" : "Enter a valid WhatsApp number");
-        setSaving(false);
-        return;
-      }
-      const fullWa = waCountry + localDigits;
-      await base44.auth.updateMe({
+      const update = {
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         avatar,
         whatsapp_enabled: waEnabled,
-        whatsapp_number: waEnabled && localDigits ? fullWa : (user?.whatsapp_number || ""),
-      });
+      };
+      if (waVerifiedNew && waNumberNew) {
+        update.whatsapp_number = digitsOnly(waNumberNew);
+        update.whatsapp_verified = true;
+      }
+      await base44.auth.updateMe(update);
       await checkUserAuth();
       await syncAvatarToEntities(user.id, avatar);
       onClose();
@@ -159,33 +155,36 @@ export default function EditProfileDialog({ open, onClose }) {
               <button
                 type="button"
                 onClick={() => setWaEnabled((v) => !v)}
+                disabled={!user?.whatsapp_verified && !waVerifiedNew && !waEnabled}
                 className={`w-11 h-6 rounded-full p-0.5 transition ${waEnabled ? "bg-emerald-500" : "bg-muted-foreground/30"}`}
               >
                 <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${waEnabled ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
               </button>
             </label>
-            {waEnabled && (
-              <div className="space-y-1.5">
-                <div className="flex gap-2">
-                  <SheetSelect
-                    value={waCountry}
-                    onChange={setWaCountry}
-                    label={ar ? "رمز الدولة" : "Country code"}
-                    buttonClassName="px-3 py-3 text-start"
-                    options={COUNTRY_CODES.map((c) => ({ value: c.code, label: `${c.flag} +${c.code}` }))}
-                  />
-                  <input
-                    value={waNumber}
-                    maxLength={15}
-                    onChange={(e) => setWaNumber(e.target.value)}
-                    placeholder={ar ? "مثال: 5XXXXXXXX" : "e.g. 5XXXXXXXX"}
-                    inputMode="tel"
-                    dir="ltr"
-                    className="flex-1 px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30 text-start"
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">{ar ? "اختر رمز الدولة ثم أدخل الرقم المحلي بدون +" : "Pick a country code, then enter the local number without +"}</p>
+            {(user?.whatsapp_verified || waVerifiedNew) && !showWaVerifier ? (
+              <div className="flex items-center justify-between rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 p-3">
+                <span className="text-sm text-emerald-700 dark:text-emerald-300 font-semibold font-mono" dir="ltr">
+                  +{waVerifiedNew ? digitsOnly(waNumberNew) : user?.whatsapp_number}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setShowWaVerifier(true); setWaVerifiedNew(false); }}
+                  className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold underline"
+                >
+                  {ar ? "تغيير الرقم" : "Change number"}
+                </button>
               </div>
+            ) : (
+              <PhoneOtpVerifier
+                channel="whatsapp"
+                initialPhone={waNumberNew || userPhoneE164(user)}
+                onVerified={(e164) => {
+                  setWaNumberNew(e164);
+                  setWaVerifiedNew(true);
+                  setShowWaVerifier(false);
+                  setWaEnabled(true);
+                }}
+              />
             )}
             <p className="text-xs text-muted-foreground">{ar ? "عند التفعيل سيظهر زر واتساب لسلعتك للمشترين" : "When enabled, a WhatsApp button shows on your listings for buyers"}</p>
           </div>

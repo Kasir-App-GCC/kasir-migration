@@ -3,13 +3,16 @@ import { X, Loader2, BadgeCheck, Camera } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
+import PhoneOtpVerifier from "@/components/PhoneOtpVerifier";
+import { userPhoneE164, digitsOnly } from "@/lib/phone";
 
 export default function VerificationDialog({ open, onClose }) {
   const { user, lang } = useStore();
   const { toast } = useToast();
   const ar = lang === "ar";
   const [fullName, setFullName] = useState(user?.name || "");
-  const [phone, setPhone] = useState(user?.phone ? (user.country_code || "") + user.phone : "");
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [phoneE164, setPhoneE164] = useState("");
   const [nationalId, setNationalId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -24,15 +27,19 @@ export default function VerificationDialog({ open, onClose }) {
       setError(ar ? "أضف صورة شخصية أولاً من تعديل الملف" : "Please add a profile photo first from Edit Profile");
       return;
     }
-    if (!fullName.trim() || !phone.trim() || !nationalId.trim()) {
+    if (!fullName.trim() || !nationalId.trim()) {
       setError(ar ? "أكمل جميع الحقول" : "Please complete all fields");
+      return;
+    }
+    if (!phoneVerified) {
+      setError(ar ? "تحقق من رقم جوالك أولاً" : "Verify your phone number first");
       return;
     }
     setSubmitting(true);
     try {
       const res = await base44.functions.invoke("submitVerification", {
         fullName: fullName.trim(),
-        phone: phone.trim(),
+        phone: digitsOnly(phoneE164),
         nationalId: nationalId.trim(),
       });
       if (res?.data?.error) throw new Error(res.data.error);
@@ -70,14 +77,21 @@ export default function VerificationDialog({ open, onClose }) {
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-semibold">{ar ? "رقم الجوال" : "Phone number"} *</label>
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30" />
+            <PhoneOtpVerifier
+              channel="sms"
+              initialPhone={userPhoneE164(user)}
+              onVerified={(e164) => { setPhoneE164(e164); setPhoneVerified(true); }}
+            />
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-semibold">{ar ? "رقم الهوية" : "National ID"} *</label>
             <input value={nationalId} onChange={(e) => setNationalId(e.target.value)} inputMode="numeric" className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30" />
           </div>
 
-          <button onClick={submit} disabled={submitting || !hasAvatar} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold flex items-center justify-center gap-2 disabled:opacity-50">
+          <div className="rounded-xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900 p-2.5 text-xs text-sky-700 dark:text-sky-300 text-center">
+            {ar ? "رسوم التوثيق معطّلة حالياً — سيتم المراجعة مجاناً." : "Verification fee is disabled for now — review is free."}
+          </div>
+          <button onClick={submit} disabled={submitting || !hasAvatar || !phoneVerified} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold flex items-center justify-center gap-2 disabled:opacity-50">
             {submitting && <Loader2 size={18} className="animate-spin" />}
             {submitting ? (ar ? "جاري الإرسال…" : "Submitting…") : (ar ? "إرسال الطلب" : "Submit request")}
           </button>

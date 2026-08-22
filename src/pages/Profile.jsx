@@ -35,6 +35,11 @@ export default function Profile() {
 
   const toggleWa = async () => {
     if (waSaving || !user) return;
+    // Enabling WhatsApp requires a verified number first.
+    if (!user.whatsapp_enabled && !user.whatsapp_verified) {
+      setEditOpen(true);
+      return;
+    }
     setWaSaving(true);
     try {
       await base44.auth.updateMe({ whatsapp_enabled: !user.whatsapp_enabled });
@@ -343,10 +348,13 @@ export default function Profile() {
               <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${user.whatsapp_enabled ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
             </button>
           </label>
-          {user.whatsapp_enabled && !user.whatsapp_number && (
+          {!user.whatsapp_verified && (
             <button onClick={() => setEditOpen(true)} className="text-xs text-emerald-600 font-semibold mt-1 text-start">
-              {lang === "ar" ? "أضف رقم واتساب من تعديل الملف" : "Add your WhatsApp number in Edit Profile"}
+              {lang === "ar" ? "تحقق من رقمك لتفعيل واتساب" : "Verify your number to enable WhatsApp"}
             </button>
+          )}
+          {user.whatsapp_verified && user.whatsapp_number && (
+            <p className="text-xs text-muted-foreground mt-1 font-mono" dir="ltr">+{user.whatsapp_number}</p>
           )}
         </div>
         <button onClick={() => setSupportOpen(true)} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">

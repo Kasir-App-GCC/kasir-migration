@@ -20,6 +20,17 @@ export default async function(req) {
 
     const channel = ['whatsapp', 'voice', 'email'].includes(body?.channel) ? body.channel : 'sms';
 
+    // Rate limit: max 3 OTP sends per user per 30 minutes.
+    const sinceIso = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const recent = await base44.entities.PhoneOtp.filter(
+      { user_id: user.id, created_date: { $gte: sinceIso } },
+      '-created_date',
+      10
+    );
+    if ((recent || []).length >= 3) {
+      return Response.json({ error: 'Too many attempts. Please try again in 30 minutes.' }, { status: 429 });
+    }
+
     const apiKey = secrets.get('AUTHENTICA_API_KEY');
     if (!apiKey) return Response.json({ error: 'Authentica not configured' }, { status: 500 });
 

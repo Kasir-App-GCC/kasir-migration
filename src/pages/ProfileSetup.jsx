@@ -5,8 +5,7 @@ import { useT } from "@/lib/i18n";
 import { base44 } from "@/api/base44Client";
 import { syncAvatarToEntities } from "@/lib/syncAvatar";
 import { Camera, Loader2, User } from "lucide-react";
-import { COUNTRIES, getCountry } from "@/lib/countries";
-import SheetSelect from "@/components/SheetSelect";
+import { COUNTRIES } from "@/lib/countries";
 
 export default function ProfileSetup() {
   const { user, checkUserAuth } = useAuth();
@@ -20,28 +19,10 @@ export default function ProfileSetup() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState(user?.username || "");
-  const [phone, setPhone] = useState(user?.phone || "");
-  const [countryCode, setCountryCode] = useState(user?.country_code || "+966");
   const [avatar, setAvatar] = useState(user?.avatar || null);
   const [intent, setIntent] = useState(user?.intent || "");
   const [country, setCountryState] = useState(user?.country || "SA");
 
-  const countryCodes = [
-    { code: "+966", label: "🇸🇦 +966", name: ar ? "السعودية" : "Saudi Arabia" },
-    { code: "+971", label: "🇦🇪 +971", name: ar ? "الإمارات" : "UAE" },
-    { code: "+965", label: "🇰🇼 +965", name: ar ? "الكويت" : "Kuwait" },
-    { code: "+974", label: "🇶🇦 +974", name: ar ? "قطر" : "Qatar" },
-    { code: "+973", label: "🇧🇭 +973", name: ar ? "البحرين" : "Bahrain" },
-    { code: "+968", label: "🇴🇲 +968", name: ar ? "عمان" : "Oman" },
-    { code: "+962", label: "🇯🇴 +962", name: ar ? "الأردن" : "Jordan" },
-    { code: "+963", label: "🇸🇾 +963", name: ar ? "سوريا" : "Syria" },
-    { code: "+964", label: "🇮🇶 +964", name: ar ? "العراق" : "Iraq" },
-    { code: "+967", label: "🇾🇪 +967", name: ar ? "اليمن" : "Yemen" },
-    { code: "+9665", label: "🇸🇦 +9665", name: ar ? "السعودية (جوال)" : "Saudi (mobile)" },
-    { code: "+20", label: "🇪🇬 +20", name: ar ? "مصر" : "Egypt" },
-    { code: "+1", label: "🇺🇸 +1", name: ar ? "أمريكا" : "USA" },
-    { code: "+44", label: "🇬🇧 +44", name: ar ? "بريطانيا" : "UK" },
-  ];
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -94,27 +75,11 @@ export default function ProfileSetup() {
       setError(ar ? "اختر وش جاي تسويه" : "Please pick what you're here for");
       return;
     }
-    const digits = phone.replace(/\D/g, "");
-    if (digits.length < 6) {
-      setError(ar ? "اكتب رقم جوال صحيح" : "Please enter a valid phone number");
-      return;
-    }
     setSaving(true);
     try {
       const check = await base44.functions.invoke("checkUsername", { username: uname });
       if (!check?.data?.available) {
         setError(ar ? "اسم المستخدم محجوز، جرّب غيره" : "This username is taken, try another");
-        setSaving(false);
-        return;
-      }
-      const ccDigits = countryCode.replace(/[^\d]/g, "");
-      const phoneCheck = await base44.functions.invoke("checkPhoneUnique", {
-        phone: ccDigits + digits,
-        local: digits,
-        cc: ccDigits,
-      });
-      if (!phoneCheck?.data?.available) {
-        setError(ar ? "رقم الجوال مستخدم بواسطة حساب آخر" : "This phone number is already used by another account");
         setSaving(false);
         return;
       }
@@ -125,8 +90,6 @@ export default function ProfileSetup() {
         // has the login-method name on record even if full_name later changes.
         provider_name: user?.provider_name || user?.full_name || "",
         username: uname,
-        phone: digits,
-        country_code: countryCode,
         country,
         avatar,
         intent,
@@ -182,7 +145,7 @@ export default function ProfileSetup() {
                 <button
                   key={c.code}
                   type="button"
-                  onClick={() => { setCountryState(c.code); setCountryCode("+" + getCountry(c.code).phoneCode); }}
+                  onClick={() => setCountryState(c.code)}
                   className={`py-2.5 rounded-2xl text-sm font-semibold border transition flex items-center gap-1.5 justify-center ${country === c.code ? "bg-primary text-primary-foreground border-transparent" : "bg-muted border-border/60"}`}
                 >
                   <span className="text-lg">{c.flag}</span>
@@ -227,28 +190,6 @@ export default function ProfileSetup() {
             {usernameStatus === "checking" && <p className="text-xs text-muted-foreground">{ar ? "نتأكد من التوفر…" : "Checking availability…"}</p>}
             {usernameStatus === "available" && <p className="text-xs text-emerald-600 font-medium">{ar ? "متاح ✓" : "Available ✓"}</p>}
             {usernameStatus === "taken" && <p className="text-xs text-rose-600 font-medium">{ar ? "محجوز، جرّب غيره" : "Taken, try another"}</p>}
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-sm font-semibold">{ar ? "رقم الجوال" : "Phone number"} *</label>
-            <div className="flex gap-2">
-              <SheetSelect
-                value={countryCode}
-                onChange={setCountryCode}
-                label={ar ? "رمز الدولة" : "Country code"}
-                buttonClassName="px-3 py-3 text-sm font-semibold min-w-[110px]"
-                options={countryCodes.map((c) => ({ value: c.code, label: c.label }))}
-              />
-              <input
-                value={phone}
-                maxLength={15}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder={ar ? "5xxxxxxxx" : "5XXXXXXXX"}
-                inputMode="tel"
-                className="flex-1 px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30"
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">{ar ? "مثال: 512345678" : "Example: 512345678"}</p>
           </div>
 
           <div className="space-y-1.5">

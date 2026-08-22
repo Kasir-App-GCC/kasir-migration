@@ -49,6 +49,18 @@ export default async function(req) {
     const data = await res.json().catch(() => ({}));
     if (data?.status === true || data?.verified === true || data?.success === true) {
       await base44.entities.PhoneOtp.update(pending.id, { verified: true });
+      // Reclaim the number: clear it from any other user who holds it but never
+      // verified it (squatters), so the genuine — now verified — owner is the
+      // sole holder. Verified holders are left untouched (a real conflict).
+      const digits = phone.replace(/\D/g, "");
+      if (digits) {
+        try {
+          await base44.asServiceRole.entities.User.updateMany(
+            { whatsapp_number: digits, whatsapp_verified: { $ne: true } },
+            { $unset: { whatsapp_number: "" } }
+          );
+        } catch {}
+      }
       return Response.json({ ok: true, verified: true });
     }
     const msg = data?.message || data?.errors?.[0]?.message || ('HTTP ' + res.status);

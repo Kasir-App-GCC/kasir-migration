@@ -21,10 +21,12 @@ export default async function(req) {
     const others = [];
 
     // 1) WhatsApp numbers are stored as full digits.
+    //    Only a VERIFIED holder blocks the genuine owner — an unverified number
+    //    is a squatter and must not deprive the real owner from verifying it.
     if (full) {
       const wa = await base44.asServiceRole.entities.User.filter({ whatsapp_number: full });
       (wa || []).forEach((u) => {
-        if (u.id !== user.id && !others.find((x) => x.id === u.id)) others.push(u);
+        if (u.id !== user.id && u.whatsapp_verified && !others.find((x) => x.id === u.id)) others.push(u);
       });
     }
 

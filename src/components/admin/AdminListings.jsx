@@ -198,9 +198,12 @@ export default function AdminListings() {
   };
 
   const markSold = async (it) => {
+    const newStatus = it.status === "sold" ? "available" : "sold";
     try {
-      await base44.entities.Item.update(it.id, { status: it.status === "sold" ? "available" : "sold" });
-      setItems((prev) => prev.map((x) => (x.id === it.id ? { ...x, status: x.status === "sold" ? "available" : "sold" } : x)));
+      await base44.entities.Item.update(it.id, { status: newStatus });
+      setItems((prev) => prev.map((x) => (x.id === it.id ? { ...x, status: newStatus } : x)));
+      setSearchItems((prev) => (prev ? prev.map((x) => (x.id === it.id ? { ...x, status: newStatus } : x)) : prev));
+      toast({ title: newStatus === "sold" ? (ar ? "تم تعليمه كمباع" : "Marked as sold") : (ar ? "تم تعليمه كمتاح" : "Marked as available") });
     } catch {
       toast({ title: ar ? "فشل" : "Failed", variant: "destructive" });
     }

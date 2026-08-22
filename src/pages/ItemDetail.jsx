@@ -138,6 +138,16 @@ export default function ItemDetail() {
   const sendOffer = async (pct) => {
     if (!user || !item) return;
     if (item.status === "sold" || blockedByMe || blockedMe) { setOfferOpen(false); return; }
+    // Lock further offers once an offer for this item is already accepted.
+    const alreadyAccepted = await base44.entities.Offer.filter(
+      { item_id: item.id, buyer_id: user.id, status: { $in: ["accepted", "completed"] } },
+      "-created_date",
+      1
+    );
+    if (alreadyAccepted && alreadyAccepted.length) {
+      nav(`/chat/${alreadyAccepted[0].chatroom_id}`);
+      return;
+    }
     const offerPrice = Math.round(item.price * (1 - pct / 100));
     setSending(true);
     try {

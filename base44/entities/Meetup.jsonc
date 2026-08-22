@@ -1,0 +1,179 @@
+{
+  "name": "Meetup",
+  "type": "object",
+  "properties": {
+    "offer_id": {
+      "type": "string",
+      "description": "The accepted offer this meetup arranges"
+    },
+    "chatroom_id": {
+      "type": "string"
+    },
+    "item_id": {
+      "type": "string"
+    },
+    "item_title": {
+      "type": "string"
+    },
+    "buyer_id": {
+      "type": "string"
+    },
+    "seller_id": {
+      "type": "string"
+    },
+    "item_country": {
+      "type": "string",
+      "default": "SA"
+    },
+    "item_lat": {
+      "type": "number"
+    },
+    "item_lng": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "place_proposed",
+        "place_confirmed",
+        "time_proposed",
+        "confirmed",
+        "completed",
+        "no_show",
+        "cancelled"
+      ],
+      "default": "place_proposed"
+    },
+    "meetup_type": {
+      "type": "string",
+      "enum": [
+        "meet_at_place",
+        "buyer_pickup",
+        "agree_separately"
+      ],
+      "default": "meet_at_place"
+    },
+    "place_name": {
+      "type": "string"
+    },
+    "place_lat": {
+      "type": "number"
+    },
+    "place_lng": {
+      "type": "number"
+    },
+    "place_proposed_by": {
+      "type": "string"
+    },
+    "place_confirmed_by": {
+      "type": "string"
+    },
+    "meetup_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "time_proposed_by": {
+      "type": "string"
+    },
+    "buyer_time_changes": {
+      "type": "number",
+      "default": 0
+    },
+    "seller_time_changes": {
+      "type": "number",
+      "default": 0
+    },
+    "buyer_checked_in": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "seller_checked_in": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "buyer_checked_in_lat": {
+      "type": "number"
+    },
+    "buyer_checked_in_lng": {
+      "type": "number"
+    },
+    "seller_checked_in_lat": {
+      "type": "number"
+    },
+    "seller_checked_in_lng": {
+      "type": "number"
+    },
+    "buyer_outcome": {
+      "type": "string",
+      "enum": [
+        "received",
+        "not_as_described",
+        "seller_no_show",
+        ""
+      ],
+      "default": ""
+    },
+    "seller_outcome": {
+      "type": "string",
+      "enum": [
+        "paid",
+        "not_paid",
+        "buyer_no_show",
+        ""
+      ],
+      "default": ""
+    },
+    "completed": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "offer_id",
+    "chatroom_id",
+    "buyer_id",
+    "seller_id"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "data.buyer_id": "{{user.id}}"
+        },
+        {
+          "data.seller_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "data.buyer_id": "{{user.id}}"
+        },
+        {
+          "data.seller_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

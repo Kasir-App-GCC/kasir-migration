@@ -11,6 +11,7 @@ import TrustedBadge from "@/components/TrustedBadge";
 import PullToRefreshScroll from "@/components/PullToRefreshScroll";
 import RatingDialog from "@/components/RatingDialog";
 import DisputeDialog from "@/components/DisputeDialog";
+import MeetupFlow from "@/components/MeetupFlow";
 import { useBlockStatus } from "@/lib/useBlockStatus";
 
 export default function ChatRoom() {
@@ -233,6 +234,7 @@ export default function ChatRoom() {
   };
 
   const counterOffer = async (offer, amount) => {
+    if (offers.some((o) => o.status === "accepted" || o.status === "completed")) return;
     setOffers((prev) => prev.map((o) => (o.id === offer.id ? { ...o, status: "countered" } : o)));
     const otherId = isSeller ? offer.buyer_id : offer.seller_id;
     const ntxt = lang === "ar"
@@ -295,6 +297,14 @@ export default function ChatRoom() {
     [messages, offers]
   );
 
+  const acceptedOffer = useMemo(
+    () =>
+      offers
+        .filter((o) => o.status === "accepted" || o.status === "completed")
+        .sort((a, b) => new Date(b.created_date) - new Date(a.created_date))[0] || null,
+    [offers]
+  );
+
   return (
     <div className="fixed inset-0 z-40 bg-background flex flex-col">
       <header className="pt-[env(safe-area-inset-top)] border-b border-border/60 bg-background/90 backdrop-blur shrink-0">
@@ -333,6 +343,9 @@ export default function ChatRoom() {
       </header>
 
       <PullToRefreshScroll onRefresh={loadAll} className="px-4 py-4 space-y-2">
+        {acceptedOffer && (
+          <MeetupFlow offer={acceptedOffer} user={user} lang={lang} otherName={otherName} />
+        )}
         {loading ? (
           <div className="text-center text-muted-foreground text-sm py-10"><div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin mx-auto" /></div>
         ) : timeline.length === 0 ? (

@@ -12,7 +12,7 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
   const nav = useNavigate();
 
   const handle = () => {
-    if (n.type === "admin_report" || n.type === "admin_ticket" || n.type === "admin_verification" || n.type === "admin_boost") {
+    if (n.type === "admin_report" || n.type === "admin_ticket" || n.type === "admin_verification" || n.type === "admin_boost" || n.type === "admin_dispute") {
       nav(`/admin?tab=${n.adminTab}`);
       onClick?.();
       return;
@@ -84,6 +84,10 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
       ) : n.type === "admin_boost" ? (
         <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-300">
           <TrendingUp size={18} />
+        </div>
+      ) : n.type === "admin_dispute" ? (
+        <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-300">
+          <Scale size={18} />
         </div>
       ) : n.type === "support_resolved" ? (
         <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300">

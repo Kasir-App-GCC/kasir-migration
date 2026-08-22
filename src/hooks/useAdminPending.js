@@ -20,11 +20,12 @@ export default function useAdminPending() {
       if (timer) clearTimeout(timer);
       timer = setTimeout(async () => {
         try {
-          const [tickets, reports, verifications, boosts] = await Promise.allSettled([
+          const [tickets, reports, verifications, boosts, disputes] = await Promise.allSettled([
             base44.entities.SupportTicket.filter({ status: "open" }, "-created_date", 50),
             base44.entities.Report.list("-created_date", 50),
             base44.entities.VerificationRequest.filter({ status: "pending" }, "-created_date", 50),
             base44.entities.BoostRequest.filter({ status: "pending" }, "-created_date", 50),
+            base44.entities.Dispute.filter({ status: "open" }, "-created_date", 50),
           ]);
           if (cancelled) return;
           const tItems = (tickets.value || []).map((x) => ({
@@ -47,8 +48,14 @@ export default function useAdminPending() {
             name: x.item_title || (ar ? "طلب تعزيز" : "Boost request"),
             text: ar ? `تعزيز ${x.hours} ساعة` : `Boost ${x.hours}h`, date: x.created_date,
           }));
+          const dItems = (disputes.value || []).map((x) => ({
+            id: `dispute-${x.id}`, type: "admin_dispute", adminTab: "disputes", unread: true,
+            name: x.item_title || (ar ? "نزاع جديد" : "New dispute"),
+            text: ar ? `من ${x.complainant_name || ""} ضد ${x.respondent_name || ""}` : `${x.complainant_name || ""} vs ${x.respondent_name || ""}`,
+            date: x.created_date,
+          }));
           setItems(
-            [...tItems, ...rItems, ...vItems, ...bItems].sort(
+            [...tItems, ...rItems, ...vItems, ...bItems, ...dItems].sort(
               (a, b) => new Date(b.date) - new Date(a.date)
             )
           );
@@ -62,6 +69,7 @@ export default function useAdminPending() {
       base44.entities.Report.subscribe(load),
       base44.entities.VerificationRequest.subscribe(load),
       base44.entities.BoostRequest.subscribe(load),
+      base44.entities.Dispute.subscribe(load),
     ];
     return () => {
       cancelled = true;

@@ -290,6 +290,35 @@ export default function ChatRoom() {
     } catch {}
   };
 
+  // Re-open negotiation after a mistaken acceptance: supersede the accepted
+  // offer and create a fresh pending one at the new amount.
+  const requestModification = async (offer, amount) => {
+    try { await base44.entities.Offer.update(offer.id, { status: "countered" }); } catch {}
+    setOffers((prev) => prev.map((o) => (o.id === offer.id ? { ...o, status: "countered" } : o)));
+    const direction = isSeller ? "seller_counter" : "buyer_offer";
+    let created;
+    try {
+      created = await base44.entities.Offer.create({
+        chatroom_id: id, item_id: offer.item_id, item_title: offer.item_title,
+        buyer_id: offer.buyer_id, buyer_name: offer.buyer_name,
+        seller_id: offer.seller_id, seller_name: offer.seller_name,
+        amount, status: "pending", direction, previous_offer_id: offer.id,
+      });
+    } catch { return; }
+    setOffers((prev) => [...prev, created]);
+    const otherId = isSeller ? offer.buyer_id : offer.seller_id;
+    const ntxt = ar
+      ? `طلب تعديل العرض المقبول إلى ${formatPrice(amount, lang, itemCountry, country)}`
+      : `Modification requested on accepted offer to ${formatPrice(amount, lang, itemCountry, country)}`;
+    base44.entities.Notification.create({
+      user_id: otherId, type: "offer_modified", text: ntxt,
+      item_id: offer.item_id, item_title: offer.item_title, chatroom_id: id,
+      offer_amount: amount, actor_name: user.name,
+    }).catch(() => {});
+    const preview = ar ? `طلب تعديل العرض إلى ${formatPrice(amount, lang, itemCountry, country)}` : `Modification requested: ${formatPrice(amount, lang, itemCountry, country)}`;
+    await base44.entities.ChatRoom.update(id, { last_message: preview, hidden_for_buyer: false, hidden_for_seller: false });
+  };
+
   const timeline = useMemo(
     () => [
       ...messages.filter((m) => m.sender_id !== "system").map((m) => ({ type: "message", ...m })),
@@ -383,6 +412,7 @@ export default function ChatRoom() {
                   <OfferCard offer={o} user={user} lang={lang} t={t} itemPrice={room?.item_price} itemImage={room?.item_image} itemTitle={room?.item_title} country={itemCountry}
                     ratedOffers={ratedOffers} onRate={setRatingOffer} onConfirm={confirmReceipt} onDispute={setDisputeOffer}
                     onAccept={acceptOffer} onReject={rejectOffer} onCounter={counterOffer} onModify={modifyOffer} onNotMatch={notMatchOffer}
+                    onRequestMod={requestModification}
                     hasMeetup={hasMeetup && o.id === acceptedOffer?.id} />
                 </div>
               );

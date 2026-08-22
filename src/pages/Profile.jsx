@@ -11,6 +11,7 @@ import EditProfileDialog from "@/components/EditProfileDialog";
 import SellerReply from "@/components/SellerReply";
 import ContactSupportDialog from "@/components/ContactSupportDialog";
 import SellerDashboard from "@/components/SellerDashboard";
+import useAdminPending from "@/hooks/useAdminPending";
 import PullToRefresh from "@/components/PullToRefresh";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { useAuth } from "@/lib/AuthContext";
@@ -24,6 +25,7 @@ export default function Profile() {
   const { toast } = useToast();
   const ar = lang === "ar";
   const nav = useNavigate();
+  const adminPending = useAdminPending();
   const [tab, setTab] = useState("listings");
   const [myListings, setMyListings] = useState([]);
   const [boughtItems, setBoughtItems] = useState([]);
@@ -329,7 +331,13 @@ export default function Profile() {
 
       {user.role === "admin" && (
         <button onClick={() => nav("/admin")} className="w-full p-4 rounded-2xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground flex items-center justify-between hover:opacity-90 transition">
-          <span className="flex items-center gap-2 font-bold text-sm"><Shield size={20} /> {lang === "ar" ? "لوحة الإدارة" : "Admin Panel"}</span>
+          <span className="flex items-center gap-2 font-bold text-sm">
+            <span className="relative">
+              <Shield size={20} />
+              {adminPending.count > 0 && <span className="absolute -top-1 -end-1 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white/40" />}
+            </span>
+            {lang === "ar" ? "لوحة الإدارة" : "Admin Panel"}
+          </span>
           <ChevronRight size={20} className="rtl:rotate-180" />
         </button>
       )}

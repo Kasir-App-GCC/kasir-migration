@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { ShieldAlert } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ShieldAlert, MessageCircle, Tag, User } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { timeAgo } from "@/lib/format";
@@ -9,6 +10,7 @@ import { timeAgo } from "@/lib/format";
 export default function AdminDisputes() {
   const { lang } = useStore();
   const ar = lang === "ar";
+  const nav = useNavigate();
   const [disputes, setDisputes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reply, setReply] = useState({});
@@ -72,6 +74,28 @@ export default function AdminDisputes() {
             <p className="text-xs text-muted-foreground">{ar ? "من" : "By"}: {d.complainant_name} → {d.respondent_name} · {timeAgo(d.created_date, lang)}</p>
             <p className="text-sm"><span className="font-semibold">{ar ? "السبب" : "Reason"}:</span> {d.reason}</p>
             {d.description && <p className="text-sm text-muted-foreground">{d.description}</p>}
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {d.chatroom_id && (
+                <button onClick={() => nav(`/chat/${d.chatroom_id}`)} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/70 text-xs font-semibold">
+                  <MessageCircle size={12} /> {ar ? "المحادثة" : "Chat"}
+                </button>
+              )}
+              {d.item_id && (
+                <button onClick={() => nav(`/item/${d.item_id}`)} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/70 text-xs font-semibold">
+                  <Tag size={12} /> {ar ? "الإعلان" : "Listing"}
+                </button>
+              )}
+              {d.complainant_id && (
+                <button onClick={() => nav(`/user/${d.complainant_id}`)} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/70 text-xs font-semibold">
+                  <User size={12} /> {d.complainant_name || (ar ? "المُشتكي" : "Complainant")}
+                </button>
+              )}
+              {d.respondent_id && (
+                <button onClick={() => nav(`/user/${d.respondent_id}`)} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/70 text-xs font-semibold">
+                  <User size={12} /> {d.respondent_name || (ar ? "الطرف الآخر" : "Respondent")}
+                </button>
+              )}
+            </div>
             {d.admin_reply && (
               <div className="text-sm ps-2 border-s-2 border-primary/30">
                 <span className="font-semibold text-primary">{ar ? "رد الإدارة" : "Admin"}:</span> {d.admin_reply}

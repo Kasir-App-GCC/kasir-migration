@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Check, X, Tag, Pencil, ArrowLeftRight, Clock, Star, ShieldAlert } from "lucide-react";
 import Price from "@/components/Price";
 
-export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, itemTitle, country, onAccept, onReject, onCounter, onModify, onNotMatch, ratedOffers, onRate, onConfirm, onDispute, hasMeetup }) {
+export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, itemTitle, country, onAccept, onReject, onCounter, onModify, onNotMatch, ratedOffers, onRate, onConfirm, onDispute, hasMeetup, onRequestMod }) {
   const nav = useNavigate();
   const mine = offer.direction === "buyer_offer" ? offer.buyer_id === user.id : offer.seller_id === user.id;
   const isRecipient = offer.direction === "buyer_offer" ? offer.seller_id === user.id : offer.buyer_id === user.id;
@@ -11,6 +11,8 @@ export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, 
   const [counterVal, setCounterVal] = useState("");
   const [editOpen, setEditOpen] = useState(false);
   const [editVal, setEditVal] = useState(String(offer.amount));
+  const [modOpen, setModOpen] = useState(false);
+  const [modVal, setModVal] = useState(String(offer.amount));
   const [busy, setBusy] = useState(false);
 
   const whoLabel = offer.direction === "seller_counter"
@@ -31,6 +33,12 @@ export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, 
     const v = Number(editVal);
     if (!v || v <= 0) return;
     run(() => onModify(offer, v));
+  };
+  const submitMod = () => {
+    const v = Number(modVal);
+    if (!v || v <= 0) return;
+    run(() => onRequestMod(offer, v));
+    setModOpen(false);
   };
 
   const statusBadge = () => {
@@ -140,6 +148,25 @@ export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, 
       {(offer.status === "accepted" || offer.status === "completed") && !hasMeetup && (
         <div className="mt-2 space-y-1.5">
           {offer.status === "accepted" && <p className="text-[11px] text-center text-muted-foreground">{t("agreedArrange")}</p>}
+          {offer.status === "accepted" && onRequestMod && !modOpen && (
+            <button onClick={() => { setModVal(String(offer.amount)); setModOpen(true); }} className="w-full py-2 rounded-xl bg-muted text-xs font-bold flex items-center justify-center gap-1.5">
+              <Pencil size={13} /> {lang === "ar" ? "طلب تعديل العرض" : "Request modification"}
+            </button>
+          )}
+          {offer.status === "accepted" && modOpen && (
+            <div className="flex gap-1.5">
+              <input
+                autoFocus
+                value={modVal}
+                onChange={(e) => setModVal(e.target.value.replace(/\D/g, ""))}
+                placeholder={lang === "ar" ? "السعر الجديد" : "New price"}
+                inputMode="numeric"
+                className="flex-1 min-w-0 px-2.5 py-2 rounded-xl bg-muted outline-none text-sm"
+              />
+              <button disabled={busy || !modVal} onClick={submitMod} className="px-3 rounded-xl bg-primary text-primary-foreground text-xs font-bold disabled:opacity-50">{t("send")}</button>
+              <button onClick={() => setModOpen(false)} className="px-2 rounded-xl bg-muted text-xs">{t("cancel")}</button>
+            </div>
+          )}
           {offer.status === "accepted" && offer.buyer_id === user.id && !offer.received_confirmed && onConfirm && (
             <button onClick={() => onConfirm(offer)} className="w-full py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5">
               <Check size={13} /> {t("confirmReceipt")}

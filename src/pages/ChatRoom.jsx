@@ -177,7 +177,7 @@ export default function ChatRoom() {
     }).catch(() => {});
     // Now persist the status, system message, and chat room — each in its own
     // try/catch so a failure in one can't block the others.
-    try { await base44.entities.Offer.update(offer.id, { status: "accepted" }); } catch {}
+    try { await base44.functions.invoke("acceptOffer", { offer_id: offer.id, lang }); } catch {}
     try { await base44.entities.ChatRoom.update(id, { last_message: agreeTxt, hidden_for_buyer: false, hidden_for_seller: false }); } catch {}
   };
 
@@ -257,9 +257,8 @@ export default function ChatRoom() {
   };
 
   const confirmReceipt = async (offer) => {
-    await base44.entities.Offer.update(offer.id, { status: "completed", received_confirmed: true });
     try {
-      await base44.entities.Item.update(offer.item_id, { status: "sold", sold_to: offer.buyer_id, sold_to_name: offer.buyer_name });
+      await base44.functions.invoke("confirmReceipt", { offer_id: offer.id, lang });
     } catch {}
   };
 

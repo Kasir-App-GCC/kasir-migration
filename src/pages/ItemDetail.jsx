@@ -120,7 +120,7 @@ export default function ItemDetail() {
         if (ratingsRes.status === "fulfilled") setRatings(ratingsRes.value || []);
         if (profileRes.status === "fulfilled") setSellerProfile(profileRes.value?.data || null);
         if (simRes.status === "fulfilled") setSimilar((simRes.value || []).filter((x) => x.id !== id).slice(0, 6));
-        base44.entities.Item.update(id, { views: (Number(it.views) || 0) + 1 }).catch(() => {});
+        base44.functions.invoke("incrementItemView", { item_id: id }).catch(() => {});
       } catch {
         setItem(null);
       } finally {
@@ -167,20 +167,13 @@ export default function ItemDetail() {
     if (!(item.status === "sold" && item.sold_to === user.id)) return;
     const tagText = sellerTags.map((k) => SELLER_TAG_OPTIONS.find((o) => o.en === k)).filter(Boolean).map((o) => (lang === "ar" ? o.ar : o.en)).join(" · ");
     const review = [tagText, myReview].filter(Boolean).join(" · ");
-    await base44.entities.Rating.create({
-      rated_user_id: item.seller_id,
-      rated_user_name: item.seller_name,
-      rater_user_id: user.id,
-      rater_name: user.name,
-      score: myScore,
-      review,
-      item_id: item.id,
-      role: "buyer",
-    });
-    setRateOpen(false);
-    setSellerTags([]);
-    const rs = await base44.entities.Rating.filter({ rated_user_id: item.seller_id }, "-created_date", 20);
-    setRatings(rs || []);
+    try {
+      await base44.functions.invoke("submitRating", { item_id: item.id, role: "buyer", score: myScore, review });
+      setRateOpen(false);
+      setSellerTags([]);
+      const rs = await base44.entities.Rating.filter({ rated_user_id: item.seller_id }, "-created_date", 20);
+      setRatings(rs || []);
+    } catch {}
   };
 
   const isOwner = user && item && item.seller_id === user.id;
@@ -241,18 +234,11 @@ export default function ItemDetail() {
   const submitBuyerRating = async () => {
     const tagText = buyerTags.map((k) => BUYER_TAG_OPTIONS.find((o) => o.en === k)).filter(Boolean).map((o) => (lang === "ar" ? o.ar : o.en)).join(" · ");
     const review = [tagText, buyerReview].filter(Boolean).join(" · ");
-    await base44.entities.Rating.create({
-      rated_user_id: item.sold_to,
-      rated_user_name: item.sold_to_name,
-      rater_user_id: user.id,
-      rater_name: user.name,
-      score: buyerScore,
-      review,
-      item_id: item.id,
-      role: "seller",
-    });
-    setRateBuyerOpen(false);
-    setBuyerTags([]);
+    try {
+      await base44.functions.invoke("submitRating", { item_id: item.id, role: "seller", rated_user_id: item.sold_to, score: buyerScore, review });
+      setRateBuyerOpen(false);
+      setBuyerTags([]);
+    } catch {}
   };
 
   const openSold = async () => {
@@ -269,21 +255,13 @@ export default function ItemDetail() {
 
   const markSold = async (buyer) => {
     try {
-      await base44.entities.Item.update(item.id, { status: "sold", sold_to: buyer?.id || null, sold_to_name: buyer?.name || null });
+      await base44.functions.invoke("markItemSold", {
+        item_id: item.id,
+        buyer_id: buyer?.id || null,
+        buyer_name: buyer?.name || null,
+        lang,
+      });
       setItem({ ...item, status: "sold", sold_to: buyer?.id || null, sold_to_name: buyer?.name || null });
-      if (buyer?.id) {
-        try {
-          const text = lang === "ar" ? `تم بيع «${item.title}» إليك 🎉` : `"${item.title}" has been sold to you 🎉`;
-          await base44.entities.Notification.create({
-            user_id: buyer.id,
-            type: "sold",
-            item_id: item.id,
-            item_title: item.title,
-            item_image: item.images?.[0] || null,
-            text,
-          });
-        } catch {}
-      }
     } catch {}
     setSoldOpen(false);
     setManualBuyer("");

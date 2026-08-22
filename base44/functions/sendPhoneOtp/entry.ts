@@ -19,12 +19,10 @@ export default async function(req) {
     }
 
     const channel = ['whatsapp', 'voice', 'email'].includes(body?.channel) ? body.channel : 'sms';
-    // Each Authentica template is channel-specific. Template 31 is SMS-only;
-    // sending it over WhatsApp triggers Twilio error 60223. For WhatsApp we omit
-    // template_id so Authentica uses your dashboard default (which worked
-    // before), unless a dedicated WhatsApp template id is configured.
-    const waTemplate = secrets.get('AUTHENTICA_WHATSAPP_TEMPLATE_ID');
-    const templateId = channel === 'whatsapp' ? (waTemplate || null) : '31';
+    // Template 31 is SMS-only; sending it over WhatsApp triggers Twilio error
+    // 60223. For WhatsApp we omit template_id so Authentica uses your dashboard
+    // default template, which is the channel-correct one.
+    const templateId = channel === 'whatsapp' ? null : '31';
 
     // Rate limit: max 3 OTP sends per user per 30 minutes.
     const sinceIso = new Date(Date.now() - 30 * 60 * 1000).toISOString();

@@ -25,7 +25,6 @@
           "with": {
             "function_name": "pushForMessage",
             "args": {
-              "secret": "kasir_wf_8d3f2a9c4e1b",
               "chatroom_id": "${ .trigger.data.chatroom_id }",
               "sender_id": "${ .trigger.data.sender_id }",
               "sender_name": "${ .trigger.data.sender_name // \"\" }",

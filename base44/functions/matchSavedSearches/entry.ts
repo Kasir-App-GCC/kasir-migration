@@ -1,12 +1,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { secrets } from 'base44:runtime';
+import { isInternalInvocation } from '../../shared/internalAuth.ts';
 
 // Called by the "Saved Search Alert" workflow whenever a new Item is created.
 // Reads all SavedSearch records (service role), matches them against the new
 // item, and creates a "saved_search_match" Notification for each matching
 // buyer (excluding the seller's own searches). The existing Notification Push
-// workflow then fires the native push. A shared secret is verified so the
-// public function URL can't be abused by external callers.
+// workflow then fires the native push. Only the platform's internal workflow
+// runner can reach this — we verify the dispatcher's signed service token, so
+// external public callers are rejected.
 
 function matchSearch(s, item) {
   if (s.country && item.country && s.country !== item.country) return false;
@@ -31,12 +32,11 @@ function matchSearch(s, item) {
 
 export default async function (req) {
   try {
-    const base44 = createClientFromRequest(req);
-    const body = await req.json().catch(() => ({}));
-    const workflowSecret = secrets.get("WORKFLOW_SECRET");
-    if (!workflowSecret || body?.secret !== workflowSecret) {
+    if (!isInternalInvocation(req)) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const base44 = createClientFromRequest(req);
+    const body = await req.json().catch(() => ({}));
     const itemId = String(body?.item_id || "").trim();
     if (!itemId) return Response.json({ error: "No item_id" }, { status: 400 });
 

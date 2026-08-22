@@ -1,19 +1,19 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
-import { secrets } from "base44:runtime";
+import { isInternalInvocation } from "../../shared/internalAuth.ts";
 
 // Sends a push notification to the OTHER participant in a chat when a new
 // Message is created. Called from the MessagePush workflow. Looks up the
 // ChatRoom to find the recipient, uses the sender's name as the push title.
 // Skips system messages (sender_id === "system" or kind === "system").
-// A shared secret is verified so the public function URL can't be abused.
+// Only the platform's internal workflow runner can reach this — we verify the
+// dispatcher's signed service token, so external public callers are rejected.
 export default async function (req) {
   try {
-    const base44 = createClientFromRequest(req);
-    const body = await req.json().catch(() => ({}));
-    const workflowSecret = secrets.get("WORKFLOW_SECRET");
-    if (!workflowSecret || body?.secret !== workflowSecret) {
+    if (!isInternalInvocation(req)) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const base44 = createClientFromRequest(req);
+    const body = await req.json().catch(() => ({}));
     const chatroomId = String(body?.chatroom_id || "").trim();
     const senderId = String(body?.sender_id || "").trim();
     const senderName = String(body?.sender_name || "").trim();

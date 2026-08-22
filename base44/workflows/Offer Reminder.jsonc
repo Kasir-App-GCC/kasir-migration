@@ -12,10 +12,7 @@
         "send_reminders": {
           "call": "invoke_backend_function",
           "with": {
-            "function_name": "sendOfferReminders",
-            "args": {
-              "secret": "kasir_wf_8d3f2a9c4e1b"
-            }
+            "function_name": "sendOfferReminders"
           },
           "then": "end",
           "x-base44": {

@@ -1,19 +1,19 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
-import { secrets } from "base44:runtime";
+import { isInternalInvocation } from "../../shared/internalAuth.ts";
 
 // Sends a native push notification to a specific user via the service role.
 // Called from the NotificationPush workflow on every Notification entity
-// creation. A shared secret is verified so the public function URL can't be
-// abused by external callers. The push itself is a no-op when no credentialed
-// native build exists (web preview / unconfigured), so it never blocks.
+// creation. Only the platform's internal workflow runner can reach this — we
+// verify the dispatcher's signed service token, so external public callers
+// are rejected. The push itself is a no-op when no credentialed native build
+// exists (web preview / unconfigured), so it never blocks.
 export default async function (req) {
   try {
-    const base44 = createClientFromRequest(req);
-    const body = await req.json().catch(() => ({}));
-    const workflowSecret = secrets.get("WORKFLOW_SECRET");
-    if (!workflowSecret || body?.secret !== workflowSecret) {
+    if (!isInternalInvocation(req)) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const base44 = createClientFromRequest(req);
+    const body = await req.json().catch(() => ({}));
     const userId = String(body?.user_id || "").trim();
     const content = String(body?.content || "").slice(0, 200);
     const title = String(body?.title || "Kasir").slice(0, 100);

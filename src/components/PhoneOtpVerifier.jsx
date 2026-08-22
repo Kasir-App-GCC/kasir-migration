@@ -5,6 +5,7 @@ import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { COUNTRIES, getCountry } from "@/lib/countries";
+import { digitsOnly } from "@/lib/phone";
 import SheetSelect from "@/components/SheetSelect";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 
@@ -12,9 +13,9 @@ import WhatsAppIcon from "@/components/WhatsAppIcon";
 // through the sendPhoneOtp backend function and verifies it via verifyPhoneOtp.
 // Calls onVerified(e164) once the code is confirmed.
 // The country code is prefilled from the user's country (changeable via dropdown),
-// so the user only types their local number.
+// so the user only types their local number. Numbers already claimed by another
+// account are rejected before the OTP is sent.
 
-// Split an E.164 string into a matching country phone code + the local number.
 function splitE164(e164, fallbackCode) {
   const s = (e164 || "").replace(/^\+/, "").replace(/\D/g, "");
   const codes = COUNTRIES.map((c) => c.phoneCode).sort((a, b) => b.length - a.length);
@@ -63,6 +64,20 @@ export default function PhoneOtpVerifier({ initialPhone = "", channel = "sms", o
     if (!/^\+\d{8,15}$/.test(e164)) {
       setError(ar ? "رقم غير صالح" : "Invalid number");
       return;
+    }
+    // Enforce phone uniqueness — reject numbers already claimed by another account.
+    try {
+      const check = await base44.functions.invoke("checkPhoneUnique", {
+        phone: digitsOnly(e164),
+        local: (localNumber || "").replace(/\D/g, ""),
+        cc: countryCode,
+      });
+      if (check?.data && check.data.available === false) {
+        setError(ar ? "هذا الرقم مستخدم بواسطة حساب آخر" : "This number is already used by another account");
+        return;
+      }
+    } catch (e) {
+      // If the uniqueness check fails, proceed — don't block verification on a transient error.
     }
     setSending(true);
     try {

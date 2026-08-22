@@ -107,6 +107,17 @@ export default function ProfileSetup() {
         setSaving(false);
         return;
       }
+      const ccDigits = countryCode.replace(/[^\d]/g, "");
+      const phoneCheck = await base44.functions.invoke("checkPhoneUnique", {
+        phone: ccDigits + digits,
+        local: digits,
+        cc: ccDigits,
+      });
+      if (!phoneCheck?.data?.available) {
+        setError(ar ? "رقم الجوال مستخدم بواسطة حساب آخر" : "This phone number is already used by another account");
+        setSaving(false);
+        return;
+      }
       await base44.auth.updateMe({
         first_name: firstName.trim(),
         last_name: lastName.trim(),

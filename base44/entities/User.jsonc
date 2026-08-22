@@ -45,6 +45,11 @@
       "type": "string",
       "description": "The country code prefix for the user's phone number (e.g. +966)"
     },
+    "phone_verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the user's phone number was confirmed via OTP (e.g. during a verification request)"
+    },
     "whatsapp_enabled": {
       "type": "boolean",
       "default": false,

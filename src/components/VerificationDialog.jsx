@@ -1,21 +1,41 @@
-import React, { useState } from "react";
-import { X, Loader2, BadgeCheck, Camera } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { X, Loader2, BadgeCheck, Camera, Clock } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
 import PhoneOtpVerifier from "@/components/PhoneOtpVerifier";
 import { userPhoneE164, digitsOnly } from "@/lib/phone";
+import { validateNationalId, nationalIdRule } from "@/lib/nationalId";
 
 export default function VerificationDialog({ open, onClose }) {
   const { user, lang } = useStore();
   const { toast } = useToast();
   const ar = lang === "ar";
   const [fullName, setFullName] = useState(user?.name || "");
-  const [phoneVerified, setPhoneVerified] = useState(false);
-  const [phoneE164, setPhoneE164] = useState("");
+  const [phoneVerified, setPhoneVerified] = useState(!!user?.phone_verified);
+  const [phoneE164, setPhoneE164] = useState(user?.phone_verified ? userPhoneE164(user) : "");
+  const [showPhoneVerifier, setShowPhoneVerifier] = useState(!user?.phone_verified);
   const [nationalId, setNationalId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [pendingRequest, setPendingRequest] = useState(null);
+
+  const idRule = nationalIdRule(user?.country);
+
+  useEffect(() => {
+    if (!open) return;
+    setPendingRequest(null);
+    (async () => {
+      try {
+        const res = await base44.entities.VerificationRequest.filter(
+          { user_id: user.id, status: "pending" },
+          "-created_date",
+          1
+        );
+        if (res && res.length > 0) setPendingRequest(res[0]);
+      } catch (e) {}
+    })();
+  }, [open]);
 
   if (!open) return null;
 
@@ -27,12 +47,17 @@ export default function VerificationDialog({ open, onClose }) {
       setError(ar ? "أضف صورة شخصية أولاً من تعديل الملف" : "Please add a profile photo first from Edit Profile");
       return;
     }
-    if (!fullName.trim() || !nationalId.trim()) {
-      setError(ar ? "أكمل جميع الحقول" : "Please complete all fields");
+    if (!fullName.trim()) {
+      setError(ar ? "اكتب اسمك الكامل" : "Please enter your full name");
       return;
     }
     if (!phoneVerified) {
       setError(ar ? "تحقق من رقم جوالك أولاً" : "Verify your phone number first");
+      return;
+    }
+    const idCheck = validateNationalId(nationalId, user?.country);
+    if (!idCheck.valid) {
+      setError(ar ? `رقم الهوية غير صالح — يجب أن يكون ${idRule.length} رقمًا${user?.country === "SA" ? " ويبدأ بـ 1 أو 2" : ""}` : `Invalid ID — must be ${idRule.length} digits${user?.country === "SA" ? " starting with 1 or 2" : ""}`);
       return;
     }
     setSubmitting(true);
@@ -40,7 +65,7 @@ export default function VerificationDialog({ open, onClose }) {
       const res = await base44.functions.invoke("submitVerification", {
         fullName: fullName.trim(),
         phone: digitsOnly(phoneE164),
-        nationalId: nationalId.trim(),
+        nationalId: idCheck.digits,
       });
       if (res?.data?.error) throw new Error(res.data.error);
       toast({ title: ar ? "تم إرسال طلب التوثيق" : "Verification request submitted", description: ar ? "سنطلعك عند المراجعة" : "We'll notify you once reviewed" });
@@ -61,41 +86,77 @@ export default function VerificationDialog({ open, onClose }) {
           <button onClick={onClose} className="p-1.5 rounded-full hover:bg-muted"><X size={20} /></button>
         </div>
 
-        {!hasAvatar && (
-          <div className="mb-4 p-3 rounded-xl bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 text-sm flex items-start gap-2">
-            <Camera size={16} className="shrink-0 mt-0.5" />
-            <span>{ar ? "يلزم وجود صورة شخصية قبل طلب التوثيق. أضف صورة من «تعديل الملف»." : "A profile photo is required before requesting verification. Add one from Edit Profile."}</span>
+        {pendingRequest ? (
+          <div className="rounded-2xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900 p-4 flex items-start gap-3">
+            <Clock size={20} className="text-sky-500 shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-semibold text-sky-700 dark:text-sky-300">{ar ? "طلبك قيد المراجعة" : "Your request is under review"}</p>
+              <p className="text-muted-foreground mt-1">{ar ? "لا يمكن تقديم طلب جديد حتى تكتمل المراجعة." : "You cannot submit a new request until the review is complete."}</p>
+            </div>
           </div>
+        ) : (
+          <>
+            {!hasAvatar && (
+              <div className="mb-4 p-3 rounded-xl bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 text-sm flex items-start gap-2">
+                <Camera size={16} className="shrink-0 mt-0.5" />
+                <span>{ar ? "يلزم وجود صورة شخصية قبل طلب التوثيق. أضف صورة من «تعديل الملف»." : "A profile photo is required before requesting verification. Add one from Edit Profile."}</span>
+              </div>
+            )}
+
+            {error && <div className="mb-3 p-3 rounded-xl bg-destructive/10 text-destructive text-sm text-center">{error}</div>}
+
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold">{ar ? "الاسم الكامل" : "Full name"} *</label>
+                <input value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold">{ar ? "رقم الجوال" : "Phone number"} *</label>
+                {showPhoneVerifier ? (
+                  <div className="space-y-1">
+                    <PhoneOtpVerifier
+                      channel="sms"
+                      initialPhone={phoneE164 || userPhoneE164(user)}
+                      onVerified={(e164) => { setPhoneE164(e164); setPhoneVerified(true); setShowPhoneVerifier(false); }}
+                    />
+                    {phoneVerified && (
+                      <button type="button" onClick={() => setShowPhoneVerifier(false)} className="text-xs text-muted-foreground underline">
+                        {ar ? "إبقاء الرقم الحالي" : "Keep current number"}
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 p-3">
+                    <span className="text-sm text-emerald-700 dark:text-emerald-300 font-semibold font-mono" dir="ltr">+{digitsOnly(phoneE164)}</span>
+                    <button type="button" onClick={() => setShowPhoneVerifier(true)} className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold underline">
+                      {ar ? "تغيير الرقم" : "Change number"}
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold">{ar ? "رقم الهوية" : "National ID"} *</label>
+                <input
+                  value={nationalId}
+                  onChange={(e) => setNationalId(e.target.value.replace(/[^\d]/g, "").slice(0, idRule.length))}
+                  inputMode="numeric"
+                  dir="ltr"
+                  placeholder={ar ? `${idRule.length} أرقام` : `${idRule.length} digits`}
+                  className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30 text-start font-mono"
+                />
+                <p className="text-xs text-muted-foreground">{ar ? `يجب أن يكون ${idRule.length} رقمًا${user?.country === "SA" ? " ويبدأ بـ 1 أو 2" : ""}` : `Must be ${idRule.length} digits${user?.country === "SA" ? " starting with 1 or 2" : ""}`}</p>
+              </div>
+
+              <div className="rounded-xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900 p-2.5 text-xs text-sky-700 dark:text-sky-300 text-center">
+                {ar ? "رسوم التوثيق معطّلة حالياً — سيتم المراجعة مجاناً." : "Verification fee is disabled for now — review is free."}
+              </div>
+              <button onClick={submit} disabled={submitting || !hasAvatar || !phoneVerified} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold flex items-center justify-center gap-2 disabled:opacity-50">
+                {submitting && <Loader2 size={18} className="animate-spin" />}
+                {submitting ? (ar ? "جاري الإرسال…" : "Submitting…") : (ar ? "إرسال الطلب" : "Submit request")}
+              </button>
+            </div>
+          </>
         )}
-
-        {error && <div className="mb-3 p-3 rounded-xl bg-destructive/10 text-destructive text-sm text-center">{error}</div>}
-
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <label className="text-sm font-semibold">{ar ? "الاسم الكامل" : "Full name"} *</label>
-            <input value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30" />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-sm font-semibold">{ar ? "رقم الجوال" : "Phone number"} *</label>
-            <PhoneOtpVerifier
-              channel="sms"
-              initialPhone={userPhoneE164(user)}
-              onVerified={(e164) => { setPhoneE164(e164); setPhoneVerified(true); }}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-sm font-semibold">{ar ? "رقم الهوية" : "National ID"} *</label>
-            <input value={nationalId} onChange={(e) => setNationalId(e.target.value)} inputMode="numeric" className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30" />
-          </div>
-
-          <div className="rounded-xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900 p-2.5 text-xs text-sky-700 dark:text-sky-300 text-center">
-            {ar ? "رسوم التوثيق معطّلة حالياً — سيتم المراجعة مجاناً." : "Verification fee is disabled for now — review is free."}
-          </div>
-          <button onClick={submit} disabled={submitting || !hasAvatar || !phoneVerified} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold flex items-center justify-center gap-2 disabled:opacity-50">
-            {submitting && <Loader2 size={18} className="animate-spin" />}
-            {submitting ? (ar ? "جاري الإرسال…" : "Submitting…") : (ar ? "إرسال الطلب" : "Submit request")}
-          </button>
-        </div>
       </div>
     </div>
   );

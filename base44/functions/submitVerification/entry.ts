@@ -21,6 +21,23 @@ export default async function(req) {
       return Response.json({ error: 'Profile photo required' }, { status: 400 });
     }
 
+    // Block duplicate pending requests — a user cannot submit another while under review.
+    const existing = await base44.entities.VerificationRequest.filter(
+      { user_id: user.id, status: 'pending' },
+      '-created_date',
+      1
+    );
+    if (existing && existing.length > 0) {
+      return Response.json({ error: 'You already have a pending verification request' }, { status: 409 });
+    }
+
+    // Enforce phone uniqueness — the verified phone cannot belong to another user.
+    const phoneMatches = await base44.asServiceRole.entities.User.filter({ whatsapp_number: phone });
+    const phoneTaken = (phoneMatches || []).some((u) => u.id !== user.id);
+    if (phoneTaken) {
+      return Response.json({ error: 'This phone number is already used by another account' }, { status: 409 });
+    }
+
     const request = await base44.entities.VerificationRequest.create({
       user_id: user.id,
       user_name: user.name || fullName,
@@ -32,6 +49,11 @@ export default async function(req) {
     });
 
     const reqNumber = 'VER-' + request.id.slice(-8).toUpperCase();
+
+    // Mark the phone as verified on the user profile so it remains verified.
+    try {
+      await base44.asServiceRole.entities.User.update(user.id, { phone_verified: true });
+    } catch (e) {}
 
     // Email the support team (best-effort — only delivers if the recipient is a registered app user).
     const supportBody = [

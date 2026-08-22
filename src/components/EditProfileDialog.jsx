@@ -161,30 +161,37 @@ export default function EditProfileDialog({ open, onClose }) {
                 <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${waEnabled ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
               </button>
             </label>
-            {(user?.whatsapp_verified || waVerifiedNew) && !showWaVerifier ? (
+            {showWaVerifier ? (
+              <div className="space-y-1">
+                <PhoneOtpVerifier
+                  channel="whatsapp"
+                  initialPhone={waVerifiedNew ? waNumberNew : (user?.whatsapp_verified && user?.whatsapp_number ? "+" + user.whatsapp_number : userPhoneE164(user))}
+                  onVerified={(e164) => {
+                    setWaNumberNew(e164);
+                    setWaVerifiedNew(true);
+                    setShowWaVerifier(false);
+                    setWaEnabled(true);
+                  }}
+                />
+                {(user?.whatsapp_verified || waVerifiedNew) && (
+                  <button type="button" onClick={() => setShowWaVerifier(false)} className="text-xs text-muted-foreground underline">
+                    {ar ? "إبقاء الرقم الحالي" : "Keep current number"}
+                  </button>
+                )}
+              </div>
+            ) : (
               <div className="flex items-center justify-between rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 p-3">
                 <span className="text-sm text-emerald-700 dark:text-emerald-300 font-semibold font-mono" dir="ltr">
                   +{waVerifiedNew ? digitsOnly(waNumberNew) : user?.whatsapp_number}
                 </span>
                 <button
                   type="button"
-                  onClick={() => { setShowWaVerifier(true); setWaVerifiedNew(false); }}
+                  onClick={() => setShowWaVerifier(true)}
                   className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold underline"
                 >
                   {ar ? "تغيير الرقم" : "Change number"}
                 </button>
               </div>
-            ) : (
-              <PhoneOtpVerifier
-                channel="whatsapp"
-                initialPhone={waNumberNew || userPhoneE164(user)}
-                onVerified={(e164) => {
-                  setWaNumberNew(e164);
-                  setWaVerifiedNew(true);
-                  setShowWaVerifier(false);
-                  setWaEnabled(true);
-                }}
-              />
             )}
             <p className="text-xs text-muted-foreground">{ar ? "عند التفعيل سيظهر زر واتساب لسلعتك للمشترين" : "When enabled, a WhatsApp button shows on your listings for buyers"}</p>
           </div>

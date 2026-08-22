@@ -278,7 +278,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
     <div className="space-y-5">
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="text-sm font-semibold block">{t("photos")}</label>
+          <label className="text-sm font-semibold flex items-center gap-0.5">{t("photos")} <span className="text-rose-500">*</span></label>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -415,7 +415,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
       </div>
 
       <div className="space-y-1">
-        <label className="text-sm font-semibold">{t("title")}</label>
+        <label className="text-sm font-semibold flex items-center gap-0.5">{t("title")} <span className="text-rose-500">*</span></label>
         <input value={title} onChange={(e) => setTitle(e.target.value.slice(0, 50))} maxLength={50} placeholder={t("titlePlaceholder")} className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30" />
         <div className="flex justify-end text-[11px] text-muted-foreground mt-1">{(title || "").length}/50</div>
       </div>
@@ -437,7 +437,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
       </div>
 
       <div className="space-y-1">
-        <label className="text-sm font-semibold">{t("category")}</label>
+        <label className="text-sm font-semibold flex items-center gap-0.5">{t("category")} <span className="text-rose-500">*</span></label>
         <SheetSelect
           value={category}
           onChange={(v) => { setCategory(v); setSubcats([]); setTags([]); }}
@@ -494,7 +494,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
       </div>
 
       <div className="space-y-1">
-        <label className="text-sm font-semibold">{t("location")}</label>
+        <label className="text-sm font-semibold flex items-center gap-0.5">{t("location")} <span className="text-rose-500">*</span></label>
         <div className="rounded-2xl bg-muted p-3 space-y-2.5">
           <div className="flex items-center gap-2">
             <MapPin size={16} className="text-muted-foreground shrink-0" />

@@ -63,8 +63,8 @@ export default function AdminOtpTest() {
     <div className="space-y-4 max-w-md">
       <div className="rounded-2xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900 p-3 text-xs text-sky-700 dark:text-sky-300">
         {ar
-          ? "يتم الإرسال عبر sms.to. أدخل رقمك بصيغة E.164 (مثال: +9665XXXXXXXX) ثم اضغط إرسال."
-          : "Codes are sent via sms.to. Enter your number in E.164 format (e.g. +9665XXXXXXXX) and press Send."}
+         ? "يتم الإرسال عبر Authentica.sa. أدخل رقمك بصيغة E.164 (مثال: +9665XXXXXXXX) ثم اضغط إرسال."
+         : "Codes are sent via Authentica.sa. Enter your number in E.164 format (e.g. +9665XXXXXXXX) and press Send."}
       </div>
 
       <div className="rounded-2xl bg-card border border-border/60 p-4 space-y-3">
@@ -92,13 +92,13 @@ export default function AdminOtpTest() {
         <div className="flex gap-2">
           <input
             value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-            placeholder="000000"
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+            placeholder="0000"
             dir="ltr"
             inputMode="numeric"
             className="flex-1 px-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm tracking-widest text-center font-mono"
           />
-          <button onClick={verify} disabled={verifying || code.length !== 6} className="px-4 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-sm flex items-center gap-1.5 disabled:opacity-50">
+          <button onClick={verify} disabled={verifying || code.length !== 4} className="px-4 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-sm flex items-center gap-1.5 disabled:opacity-50">
             {verifying ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
             {ar ? "تحقق" : "Verify"}
           </button>

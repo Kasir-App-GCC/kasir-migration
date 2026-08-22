@@ -35,11 +35,6 @@ export default function Profile() {
 
   const toggleWa = async () => {
     if (waSaving || !user) return;
-    // Enabling WhatsApp requires a verified number first.
-    if (!user.whatsapp_enabled && !user.whatsapp_verified) {
-      setEditOpen(true);
-      return;
-    }
     setWaSaving(true);
     try {
       await base44.auth.updateMe({ whatsapp_enabled: !user.whatsapp_enabled });
@@ -338,24 +333,32 @@ export default function Profile() {
               <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${prefs.showSold ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
             </button>
           </label>
-          <label className="flex items-center justify-between py-2">
-            <span className="text-sm flex items-center gap-2"><WhatsAppIcon size={16} className="text-emerald-600" /> {lang === "ar" ? "السماح بالتواصل عبر واتساب" : "Allow WhatsApp contact"}</span>
-            <button
-              onClick={toggleWa}
-              disabled={waSaving}
-              className={`w-11 h-6 rounded-full p-0.5 transition ${user.whatsapp_enabled ? "bg-emerald-500" : "bg-muted-foreground/30"}`}
-            >
-              <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${user.whatsapp_enabled ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
-            </button>
-          </label>
-          {!user.whatsapp_verified && (
-            <button onClick={() => setEditOpen(true)} className="text-xs text-emerald-600 font-semibold mt-1 text-start">
-              {lang === "ar" ? "تحقق من رقمك لتفعيل واتساب" : "Verify your number to enable WhatsApp"}
-            </button>
-          )}
-          {user.whatsapp_verified && user.whatsapp_number && (
-            <p className="text-xs text-muted-foreground mt-1 font-mono" dir="ltr">+{user.whatsapp_number}</p>
-          )}
+          <div className="py-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm flex items-center gap-2"><WhatsAppIcon size={16} className="text-emerald-600" /> {lang === "ar" ? "واتساب" : "WhatsApp"}</span>
+              {user.whatsapp_verified ? (
+                <button
+                  onClick={toggleWa}
+                  disabled={waSaving}
+                  className={`w-11 h-6 rounded-full p-0.5 transition ${user.whatsapp_enabled ? "bg-emerald-500" : "bg-muted-foreground/30"}`}
+                >
+                  <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${user.whatsapp_enabled ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
+                </button>
+              ) : (
+                <button onClick={() => setEditOpen(true)} className="px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-bold">
+                  {lang === "ar" ? "تحقق" : "Verify"}
+                </button>
+              )}
+            </div>
+            {user.whatsapp_verified ? (
+              <div className="mt-1.5">
+                <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1"><BadgeCheck size={12} /> {lang === "ar" ? "موثّق" : "Verified"} · <span className="font-mono" dir="ltr">+{user.whatsapp_number}</span></p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{user.whatsapp_enabled ? (lang === "ar" ? "زر واتساب يظهر للمشترين على سلعتك" : "WhatsApp button visible to buyers on your listings") : (lang === "ar" ? "زر واتساب مخفي عن المشترين" : "WhatsApp button hidden from buyers")}</p>
+              </div>
+            ) : (
+              <p className="text-[11px] text-muted-foreground mt-0.5">{lang === "ar" ? "تحقق من رقمك لعرض زر واتساب لسلعتك" : "Verify your number to show a WhatsApp button on your listings"}</p>
+            )}
+          </div>
         </div>
         <button onClick={() => setSupportOpen(true)} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
           <span className="flex items-center gap-2 text-sm font-semibold"><LifeBuoy size={18} /> {t("contactSupport")}</span>

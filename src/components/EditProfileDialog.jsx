@@ -7,6 +7,7 @@ import { base44 } from "@/api/base44Client";
 import { syncAvatarToEntities } from "@/lib/syncAvatar";
 import { userPhoneE164, digitsOnly } from "@/lib/phone";
 import PhoneOtpVerifier from "@/components/PhoneOtpVerifier";
+import WhatsAppIcon from "@/components/WhatsAppIcon";
 
 const COUNTRY_CODES = [
   { code: "966", flag: "🇸🇦", en: "Saudi Arabia", ar: "السعودية" },
@@ -45,7 +46,6 @@ export default function EditProfileDialog({ open, onClose }) {
   const [lastName, setLastName] = useState(user?.last_name || "");
   const [username, setUsername] = useState(user?.username || "");
   const [avatar, setAvatar] = useState(user?.avatar || null);
-  const [waEnabled, setWaEnabled] = useState(!!user?.whatsapp_enabled);
   const [waVerifiedNew, setWaVerifiedNew] = useState(false);
   const [waNumberNew, setWaNumberNew] = useState("");
   const [showWaVerifier, setShowWaVerifier] = useState(!user?.whatsapp_verified);
@@ -78,18 +78,12 @@ export default function EditProfileDialog({ open, onClose }) {
       setError(ar ? "اكتب اسمك الأول" : "Please enter your first name");
       return;
     }
-    // WhatsApp requires a verified number to enable contact.
-    if (waEnabled && !user?.whatsapp_verified && !waVerifiedNew) {
-      setError(ar ? "تحقق من رقم واتساب أولاً" : "Verify your WhatsApp number first");
-      return;
-    }
     setSaving(true);
     try {
       const update = {
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         avatar,
-        whatsapp_enabled: waEnabled,
       };
       if (waVerifiedNew && waNumberNew) {
         update.whatsapp_number = digitsOnly(waNumberNew);
@@ -150,27 +144,17 @@ export default function EditProfileDialog({ open, onClose }) {
           </div>
 
           <div className="space-y-2 pt-1 border-t border-border/60">
-            <label className="flex items-center justify-between py-1">
-              <span className="text-sm font-semibold">{ar ? "السماح بالتواصل عبر واتساب" : "Allow WhatsApp contact"}</span>
-              <button
-                type="button"
-                onClick={() => setWaEnabled((v) => !v)}
-                disabled={!user?.whatsapp_verified && !waVerifiedNew && !waEnabled}
-                className={`w-11 h-6 rounded-full p-0.5 transition ${waEnabled ? "bg-emerald-500" : "bg-muted-foreground/30"}`}
-              >
-                <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${waEnabled ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
-              </button>
-            </label>
+            <p className="text-sm font-semibold flex items-center gap-2"><WhatsAppIcon size={16} className="text-emerald-600" /> {ar ? "رقم واتساب" : "WhatsApp number"}</p>
             {showWaVerifier ? (
               <div className="space-y-1">
                 <PhoneOtpVerifier
                   channel="whatsapp"
                   initialPhone={waVerifiedNew ? waNumberNew : (user?.whatsapp_verified && user?.whatsapp_number ? "+" + user.whatsapp_number : userPhoneE164(user))}
+                  disallowE164={user?.whatsapp_verified ? "+" + user.whatsapp_number : ""}
                   onVerified={(e164) => {
                     setWaNumberNew(e164);
                     setWaVerifiedNew(true);
                     setShowWaVerifier(false);
-                    setWaEnabled(true);
                   }}
                 />
                 {(user?.whatsapp_verified || waVerifiedNew) && (
@@ -193,7 +177,7 @@ export default function EditProfileDialog({ open, onClose }) {
                 </button>
               </div>
             )}
-            <p className="text-xs text-muted-foreground">{ar ? "عند التفعيل سيظهر زر واتساب لسلعتك للمشترين" : "When enabled, a WhatsApp button shows on your listings for buyers"}</p>
+            <p className="text-xs text-muted-foreground">{ar ? "تحكّم في إظهار زر واتساب لسلعتك من إعدادات الملف." : "Control the WhatsApp button visibility from Profile settings."}</p>
           </div>
 
           <button onClick={submit} disabled={saving} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold disabled:opacity-50 flex items-center justify-center gap-2">

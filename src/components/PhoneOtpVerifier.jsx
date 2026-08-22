@@ -24,7 +24,7 @@ function splitE164(e164, fallbackCode) {
   return { code: fallbackCode || "966", local: s };
 }
 
-export default function PhoneOtpVerifier({ initialPhone = "", channel = "sms", onVerified }) {
+export default function PhoneOtpVerifier({ initialPhone = "", channel = "sms", onVerified, disallowE164 = "" }) {
   const { lang } = useStore();
   const { user } = useAuth();
   const ar = lang === "ar";
@@ -63,6 +63,11 @@ export default function PhoneOtpVerifier({ initialPhone = "", channel = "sms", o
     const e164 = buildE164();
     if (!/^\+\d{8,15}$/.test(e164)) {
       setError(ar ? "رقم غير صالح" : "Invalid number");
+      return;
+    }
+    // Block re-verifying a number that's already verified for this user.
+    if (disallowE164 && digitsOnly(e164) === digitsOnly(disallowE164)) {
+      setError(ar ? "هذا الرقم موثّق بالفعل" : "This number is already verified");
       return;
     }
     // Enforce phone uniqueness — reject numbers already claimed by another account.
@@ -119,6 +124,8 @@ export default function PhoneOtpVerifier({ initialPhone = "", channel = "sms", o
     }
   };
 
+  const isDisallowed = !!disallowE164 && digitsOnly(countryCode + (localNumber || "").replace(/\D/g, "")) === digitsOnly(disallowE164);
+
   if (verified) {
     return (
       <div className="rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 p-3 flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
@@ -150,11 +157,11 @@ export default function PhoneOtpVerifier({ initialPhone = "", channel = "sms", o
         />
         <button
           onClick={send}
-          disabled={sending || cooldown > 0}
+          disabled={sending || cooldown > 0 || isDisallowed}
           className="px-4 py-3 rounded-2xl bg-primary text-primary-foreground font-bold text-sm flex items-center gap-1.5 disabled:opacity-50 whitespace-nowrap"
         >
           {sending ? <Loader2 size={16} className="animate-spin" /> : (channel === "whatsapp" ? <WhatsAppIcon size={16} /> : <Send size={16} />)}
-          {cooldown > 0 ? `${cooldown}s` : (ar ? "إرسال" : "Send")}
+          {isDisallowed ? (ar ? "موثّق" : "Verified") : (cooldown > 0 ? `${cooldown}s` : (ar ? "إرسال" : "Send"))}
         </button>
       </div>
 

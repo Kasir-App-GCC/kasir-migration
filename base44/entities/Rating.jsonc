@@ -33,6 +33,14 @@
         "buyer",
         "seller"
       ]
+    },
+    "seller_reply": {
+      "type": "string",
+      "description": "The rated seller's public response to this review"
+    },
+    "seller_reply_date": {
+      "type": "string",
+      "format": "date-time"
     }
   },
   "required": [

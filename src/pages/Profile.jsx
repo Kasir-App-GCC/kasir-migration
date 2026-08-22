@@ -102,6 +102,18 @@ export default function Profile() {
     } catch {}
   };
 
+  // Refreshing bumps updated_date and un-archives, keeping the listing in the
+  // public feed (resets the auto-archive timer).
+  const refreshListing = async (id) => {
+    try {
+      await base44.entities.Item.update(id, { archived: false });
+      setMyListings((prev) => prev.map((x) => (x.id === id ? { ...x, archived: false } : x)));
+      toast({ title: ar ? "تم تحديث الإعلان — ظاهر بالمتجر الآن" : "Listing refreshed — visible again" });
+    } catch {
+      toast({ title: ar ? "تعذّر التحديث" : "Couldn't refresh", variant: "destructive" });
+    }
+  };
+
   const deleteAccount = async () => {
     if (!window.confirm(t("deleteAccountConfirm"))) return;
     setDeleting(true);

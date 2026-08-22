@@ -3,6 +3,7 @@ import { Crosshair } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { getCities, nearestCityInCountry } from "@/lib/countries";
+import SheetSelect from "@/components/SheetSelect";
 
 // Compact inline location picker for the search filter panel.
 // "Near me" requires geolocation; otherwise the user falls back to picking a city.
@@ -57,16 +58,17 @@ export default function SearchLocationControl() {
       </div>
 
       {mode === "city" ? (
-        <select
+        <SheetSelect
           value={city}
-          onChange={(e) => setLocationFilter({ mode: "city", city: e.target.value || null, radius: 25 })}
-          className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none text-sm focus:ring-2 ring-primary/30"
-        >
-          <option value="">{t("allCities")}</option>
-          {getCities(country).map((c) => (
-            <option key={c.en} value={c.en}>{lang === "ar" ? c.ar : c.en}</option>
-          ))}
-        </select>
+          onChange={(v) => setLocationFilter({ mode: "city", city: v || null, radius: 25 })}
+          placeholder={t("allCities")}
+          label={t("city")}
+          buttonClassName="px-3 py-2.5 rounded-xl text-sm"
+          options={[
+            { value: "", label: t("allCities") },
+            ...getCities(country).map((c) => ({ value: c.en, label: lang === "ar" ? c.ar : c.en })),
+          ]}
+        />
       ) : hasCoords ? (
         <div>
           <div className="flex items-baseline justify-between mb-2">

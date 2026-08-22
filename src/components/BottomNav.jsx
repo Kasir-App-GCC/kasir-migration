@@ -1,14 +1,17 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { Home, Search, Plus, MessageCircle, User } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useT } from "@/lib/i18n";
 import useUnreadChats from "@/hooks/useUnreadChats";
+import { useStore, tabForPath } from "@/lib/store";
 
 export default function BottomNav() {
   const t = useT();
   const unread = useUnreadChats();
   const nav = useNavigate();
   const location = useLocation();
+  const { tabStack, setTabEntry } = useStore();
+
   const items = [
     { to: "/", icon: Home, label: t("home") },
     { to: "/search", icon: Search, label: t("search") },
@@ -17,12 +20,54 @@ export default function BottomNav() {
     { to: "/profile", icon: User, label: t("profile") },
   ];
 
-  // Tapping the already-active tab resets it to its root (iOS-style: pop to root + scroll to top).
+  // Live scroll position of the current page, kept in a ref (not state) so
+  // scrolling never triggers re-renders.
+  const scrollRef = useRef(0);
+  useEffect(() => {
+    const onScroll = () => { scrollRef.current = window.scrollY; };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Mirror tabStack into a ref so the route-change effect can read the latest
+  // stored scroll for a tab without re-running on every tabStack update.
+  const tabStackRef = useRef(tabStack);
+  useEffect(() => { tabStackRef.current = tabStack; }, [tabStack]);
+
+  // Track the tab/path we're coming from so we can save its last route + scroll
+  // when leaving, and restore the scroll of the tab we're entering.
+  const prevRef = useRef({ tab: tabForPath(location.pathname), pathname: location.pathname });
+
+  useEffect(() => {
+    const curTab = tabForPath(location.pathname);
+    const prev = prevRef.current;
+    // Leaving a tab → persist its last route + scroll position.
+    if (prev.tab && prev.tab !== curTab) {
+      setTabEntry(prev.tab, { route: prev.pathname, scrollY: scrollRef.current });
+    }
+    // Entering a tab → record its current route (preserve stored scrollY) and
+    // best-effort restore the scroll position the user was at on that tab.
+    if (curTab && curTab !== prev.tab) {
+      setTabEntry(curTab, { route: location.pathname });
+      const sy = tabStackRef.current[curTab]?.scrollY || 0;
+      const apply = () => window.scrollTo({ top: sy, behavior: "auto" });
+      requestAnimationFrame(apply);
+      setTimeout(apply, 180);
+    }
+    prevRef.current = { tab: curTab, pathname: location.pathname };
+  }, [location.pathname, setTabEntry]);
+
+  // Tapping a tab restores its last known route; tapping the already-active
+  // tab resets it to the root and scrolls to the top (iOS-style pop-to-root).
   const go = (to) => {
-    if (location.pathname === to) {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+    const curTab = tabForPath(location.pathname);
+    if (curTab === to) {
+      setTabEntry(to, { route: to, scrollY: 0 });
+      if (location.pathname !== to) nav(to);
+      requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
     } else {
-      nav(to);
+      const entry = tabStackRef.current[to];
+      nav(entry?.route || to);
     }
   };
 
@@ -30,7 +75,7 @@ export default function BottomNav() {
     <nav className="fixed bottom-0 inset-x-0 z-30 bg-background/90 backdrop-blur-xl border-t border-border/60 pb-[env(safe-area-inset-bottom)]">
       <div className="max-w-5xl mx-auto grid grid-cols-5 h-16">
         {items.map((it) => {
-          const active = location.pathname === it.to;
+          const active = tabForPath(location.pathname) === it.to;
           return it.center ? (
             <div key={it.to} className="flex items-center justify-center">
               <button

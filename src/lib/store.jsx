@@ -1,8 +1,25 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
 
 const StoreContext = createContext(null);
+
+// The five bottom-navigation tabs. Each tab remembers its last route and scroll
+// position so tapping a tab restores where the user left off, and tapping the
+// active tab pops back to its root (iOS-style).
+export const TAB_ROOTS = ["/", "/search", "/sell", "/chats", "/profile"];
+
+// Maps any route to the main tab it belongs to. Routes reachable from several
+// tabs (e.g. /item/:id, /admin) return null so they don't hijack a tab's stack.
+export function tabForPath(pathname) {
+  if (!pathname) return null;
+  if (pathname === "/") return "/";
+  if (pathname.startsWith("/search") || pathname.startsWith("/map")) return "/search";
+  if (pathname.startsWith("/sell") || pathname.startsWith("/edit/")) return "/sell";
+  if (pathname.startsWith("/chats") || pathname.startsWith("/chat/")) return "/chats";
+  if (pathname.startsWith("/profile") || pathname.startsWith("/user/") || pathname.startsWith("/notifications") || pathname.startsWith("/assistant") || pathname.startsWith("/buy-requests")) return "/profile";
+  return null;
+}
 
 export function StoreProvider({ children }) {
   const auth = useAuth();
@@ -23,6 +40,13 @@ export function StoreProvider({ children }) {
   const [lastChatsSeen, setLastChatsSeenState] = useState(() => localStorage.getItem("souqi_chats_seen") || null);
   const [notifsClearedAt, setNotifsClearedAtState] = useState(() => localStorage.getItem("souqi_notifs_cleared") || null);
   const [country, setCountryState] = useState(() => localStorage.getItem("souqi_country") || "");
+  const [tabStack, setTabStack] = useState(() => {
+    let parsed = null;
+    const s = localStorage.getItem("souqi_tabstack");
+    if (s) { try { parsed = JSON.parse(s); } catch {} }
+    const base = Object.fromEntries(TAB_ROOTS.map((r) => [r, { route: r, scrollY: 0 }]));
+    return parsed ? { ...base, ...parsed } : base;
+  });
 
   // The signed-in user comes from the platform's built-in auth (Google / etc.)
   const user = auth.user
@@ -90,6 +114,7 @@ export function StoreProvider({ children }) {
   useEffect(() => {
     if (country) localStorage.setItem("souqi_country", country);
   }, [country]);
+  useEffect(() => localStorage.setItem("souqi_tabstack", JSON.stringify(tabStack)), [tabStack]);
 
   const setTheme = (t) => setThemeState(t);
   const setLang = (l) => setLangState(l);
@@ -109,6 +134,9 @@ export function StoreProvider({ children }) {
     setCountryState(c);
     setLocationFilter({ mode: "city", city: null, radius: 25 });
   };
+  const setTabEntry = useCallback((tab, entry) => {
+    setTabStack((s) => (s[tab] ? { ...s, [tab]: { ...s[tab], ...entry } } : s));
+  }, []);
   const logout = () => auth.logout(true);
 
   return (
@@ -132,6 +160,8 @@ export function StoreProvider({ children }) {
         setNotifsClearedAt,
         country: country || "SA",
         setCountry,
+        tabStack,
+        setTabEntry,
         logout,
       }}
     >

@@ -61,7 +61,7 @@ export default function RatingDialog({ offer, user, lang, onClose, onDone }) {
     (async () => {
       try {
         const existing = await base44.entities.Rating.filter(
-          { rater_user_id: user.id, item_id: offer.item_id, role },
+          { rater_user_id: user.id, offer_id: offer.id },
           "-created_date",
           1
         );
@@ -79,12 +79,16 @@ export default function RatingDialog({ offer, user, lang, onClose, onDone }) {
     try {
       const tagText = tags.map((k) => tagOptions.find((o) => o.en === k)).filter(Boolean).map((o) => (ar ? o.ar : o.en)).join(" · ");
       const fullReview = [tagText, review].filter(Boolean).join(" · ");
-      await base44.functions.invoke("submitRating", {
-        item_id: offer.item_id,
-        role,
+      await base44.entities.Rating.create({
         rated_user_id: ratedId,
+        rated_user_name: ratedName,
+        rater_user_id: user.id,
+        rater_name: user.name,
         score,
         review: fullReview,
+        item_id: offer.item_id,
+        offer_id: offer.id,
+        role,
       });
       toast({ title: ar ? "تم إرسال التقييم" : "Rating submitted" });
       onDone?.();

@@ -28,9 +28,10 @@ export default async function(req) {
       sold_to: offer.buyer_id,
       sold_to_name: offer.buyer_name || null,
     }).catch(() => {});
-    // Cancel any remaining pending offers on the item
+    // Cancel all backup offers on the item (pending, countered, or accepted) —
+    // the item is now sold, so no other buyer can claim it.
     await base44.asServiceRole.entities.Offer.updateMany(
-      { item_id: offer.item_id, status: 'pending' },
+      { item_id: offer.item_id, id: { $ne: offerId }, status: { $in: ['pending', 'countered', 'accepted'] } },
       { $set: { status: 'rejected' } }
     ).catch(() => {});
     // Notify the seller

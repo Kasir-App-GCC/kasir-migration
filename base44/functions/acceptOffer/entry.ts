@@ -1,11 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 
-// Accepts an offer (seller only) and atomically rejects every OTHER pending
-// offer on the same item, so a seller can no longer have multiple accepted
-// offers at once. This intentionally does NOT mark the item sold — the app's
-// escrow flow keeps "accepted" = price agreed, and the item is marked sold
-// only when the buyer confirms receipt (see confirmReceipt). Notification
-// messages stay client-side to preserve the existing chat UX.
+// Accepts an offer (seller only). Other offers on the item are intentionally
+// LEFT as backups — the accepted buyer may not be serious (no-show), so
+// keeping pending/countered offers lets the seller fall back to them. Backup
+// offers are only cancelled once the item is actually sold, in confirmReceipt
+// or markItemSold. Notification messages stay client-side for the chat UX.
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -23,12 +22,6 @@ export default async function(req) {
     }
 
     await base44.asServiceRole.entities.Offer.update(offerId, { status: 'accepted' });
-    // Reject the rest of the pending offers on the same item
-    await base44.asServiceRole.entities.Offer.updateMany(
-      { item_id: offer.item_id, status: 'pending', id: { $ne: offerId } },
-      { $set: { status: 'rejected' } }
-    ).catch(() => {});
-
     return Response.json({ ok: true });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

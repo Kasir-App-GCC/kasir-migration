@@ -199,7 +199,7 @@ export default function ItemDetail() {
       });
       const text = (lang === "ar" ? "أبي أعرض عليك بسعر " : "I'd like to offer ") + formatPrice(offerPrice, lang, item.country);
       await base44.entities.ChatRoom.update(room.id, { last_message: text, hidden_for_buyer: false, hidden_for_seller: false });
-      base44.entities.Notification.create({
+      base44.functions.invoke("notifyUser", {
         user_id: item.seller_id,
         type: "offer_received",
         text,

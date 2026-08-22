@@ -18,6 +18,8 @@ export default async function(req) {
       return Response.json({ error: 'Invalid phone. Use E.164 format e.g. +9665XXXXXXXX' }, { status: 400 });
     }
 
+    const channel = body?.channel === 'whatsapp' ? 'whatsapp' : 'sms';
+
     const apiKey = secrets.get('AUTHENTICA_API_KEY');
     if (!apiKey) return Response.json({ error: 'Authentica not configured' }, { status: 500 });
 
@@ -29,7 +31,7 @@ export default async function(req) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        method: 'sms',
+        method: channel,
         phone,
         template_id: 31,
       }),

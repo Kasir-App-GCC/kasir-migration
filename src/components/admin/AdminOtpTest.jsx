@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { Phone, Send, ShieldCheck, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Phone, Send, ShieldCheck, Loader2, CheckCircle2, XCircle, MessageCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
+import WhatsAppIcon from "@/components/WhatsAppIcon";
 
 export default function AdminOtpTest() {
   const { lang } = useStore();
@@ -11,21 +12,27 @@ export default function AdminOtpTest() {
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [sending, setSending] = useState(false);
+  const [sendingWa, setSendingWa] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [result, setResult] = useState(null);
 
-  const send = async () => {
+  const send = async (channel = "sms") => {
     const p = phone.trim();
     if (!/^\+\d{8,15}$/.test(p)) {
       toast({ title: ar ? "رقم غير صالح — استخدم صيغة +966XXXXXXXXX" : "Invalid number — use +966XXXXXXXXX", variant: "destructive" });
       return;
     }
-    setSending(true);
+    if (channel === "whatsapp") setSendingWa(true); else setSending(true);
     setResult(null);
     try {
-      const res = await base44.functions.invoke("sendPhoneOtp", { phone: p });
+      const res = await base44.functions.invoke("sendPhoneOtp", { phone: p, channel });
       if (res?.data?.ok) {
-        toast({ title: ar ? "تم إرسال الرمز" : "Code sent", description: ar ? "تحقق من رسائل الجوال" : "Check your SMS" });
+        toast({
+          title: ar ? "تم إرسال الرمز" : "Code sent",
+          description: channel === "whatsapp"
+            ? (ar ? "تحقق من واتساب" : "Check your WhatsApp")
+            : (ar ? "تحقق من رسائل الجوال" : "Check your SMS"),
+        });
       } else {
         throw new Error(res?.data?.error || "Failed");
       }
@@ -34,6 +41,7 @@ export default function AdminOtpTest() {
       toast({ title: ar ? "فشل الإرسال" : "Send failed", description: e.message, variant: "destructive" });
     } finally {
       setSending(false);
+      setSendingWa(false);
     }
   };
 
@@ -80,9 +88,13 @@ export default function AdminOtpTest() {
               className="w-full ps-9 pe-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm text-start"
             />
           </div>
-          <button onClick={send} disabled={sending} className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm flex items-center gap-1.5 disabled:opacity-50">
+          <button onClick={() => send("sms")} disabled={sending || sendingWa} className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm flex items-center gap-1.5 disabled:opacity-50">
             {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-            {ar ? "إرسال" : "Send"}
+            {ar ? "إرسال SMS" : "Send SMS"}
+          </button>
+          <button onClick={() => send("whatsapp")} disabled={sending || sendingWa} className="px-4 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-sm flex items-center gap-1.5 disabled:opacity-50">
+            {sendingWa ? <Loader2 size={16} className="animate-spin" /> : <WhatsAppIcon size={16} />}
+            {ar ? "واتساب" : "WhatsApp"}
           </button>
         </div>
       </div>

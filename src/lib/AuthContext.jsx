@@ -113,8 +113,10 @@ export const AuthProvider = ({ children }) => {
       if (res?.data?.blocked) {
         setBlocked(true);
         setBlockedReason(res.data.reason || null);
-        // Auto-terminate session: force logout so the banned user can't keep navigating
-        logout(false);
+        // Keep the user on the BlockedScreen (it covers the whole app). Do NOT
+        // call logout() here — the SDK's logout() reloads the page, which would
+        // flash the BlockedScreen for a moment and then bounce to login. The
+        // BlockedScreen has its own Log out button for the user to end the session.
         return true;
       } else {
         setBlocked(false);

@@ -120,20 +120,6 @@ export default function ChatRoom() {
     return () => { unsubM?.(); unsubO?.(); unsubR?.(); };
   }, [id]);
 
-  // Live-update block status so a freshly-blocked user immediately loses the
-  // ability to send messages without needing a manual reload.
-  useEffect(() => {
-    if (!otherId || !user?.id) return;
-    const unsub = base44.entities.UserBlock.subscribe((event) => {
-      const d = event?.data;
-      if (!d) return;
-      if ((d.blocker_id === user.id && d.blocked_id === otherId) || (d.blocker_id === otherId && d.blocked_id === user.id)) {
-        reload();
-      }
-    });
-    return unsub;
-  }, [otherId, user?.id, reload]);
-
   // Mark this chat as seen by the current user so the other party gets read receipts
   useEffect(() => {
     if (!room || !user) return;
@@ -153,6 +139,20 @@ export default function ChatRoom() {
   const otherId = room ? (isSeller ? room.buyer_id : room.seller_id) : null;
   const { blockedByMe, blockedMe, block, unblock, reload } = useBlockStatus(otherId, user?.id);
   const isBlocked = blockedByMe || blockedMe;
+
+  // Live-update block status so a freshly-blocked user immediately loses the
+  // ability to send messages without needing a manual reload.
+  useEffect(() => {
+    if (!otherId || !user?.id) return;
+    const unsub = base44.entities.UserBlock.subscribe((event) => {
+      const d = event?.data;
+      if (!d) return;
+      if ((d.blocker_id === user.id && d.blocked_id === otherId) || (d.blocker_id === otherId && d.blocked_id === user.id)) {
+        reload();
+      }
+    });
+    return unsub;
+  }, [otherId, user?.id, reload]);
 
   const goToProfile = () => {
     if (!otherId || isOfficial) return;

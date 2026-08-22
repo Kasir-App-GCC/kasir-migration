@@ -162,22 +162,22 @@ export default function ChatRoom() {
       : `Price agreed at ${formatPrice(offer.amount, lang, itemCountry, country)} ✅`;
     // Fire ALL notifications first (fire-and-forget, before any await) so a
     // failing update can never swallow the rating notifications.
-    base44.entities.Notification.create({
+    base44.functions.invoke("notifyUser", {
       user_id: otherId, type: "offer_accepted", text: ntxt,
       item_id: offer.item_id, item_title: offer.item_title, chatroom_id: id,
       offer_amount: offer.amount, actor_name: user.name,
     }).catch(() => {});
-    base44.entities.Notification.create({
+    base44.functions.invoke("notifyUser", {
       user_id: offer.buyer_id, type: "rate", item_id: offer.item_id, item_title: offer.item_title,
       text: lang === "ar" ? "قيّم البائع" : "Rate the seller", actor_name: offer.seller_name, chatroom_id: id,
     }).catch(() => {});
-    base44.entities.Notification.create({
+    base44.functions.invoke("notifyUser", {
       user_id: offer.seller_id, type: "rate", item_id: offer.item_id, item_title: offer.item_title,
       text: lang === "ar" ? "قيّم المشتري" : "Rate the buyer", actor_name: offer.buyer_name, chatroom_id: id,
     }).catch(() => {});
     // Now persist the status, system message, and chat room — each in its own
     // try/catch so a failure in one can't block the others.
-    try { await base44.entities.Offer.update(offer.id, { status: "accepted" }); } catch {}
+    try { await base44.functions.invoke("acceptOffer", { offer_id: offer.id, lang }); } catch {}
     try { await base44.entities.ChatRoom.update(id, { last_message: agreeTxt, hidden_for_buyer: false, hidden_for_seller: false }); } catch {}
   };
 
@@ -185,7 +185,7 @@ export default function ChatRoom() {
     setOffers((prev) => prev.map((o) => (o.id === offer.id ? { ...o, status: "rejected" } : o)));
     const otherId = offer.direction === "buyer_offer" ? offer.buyer_id : offer.seller_id;
     const ntxt = lang === "ar" ? "تم رفض عرضك" : "Your offer was rejected";
-    base44.entities.Notification.create({
+    base44.functions.invoke("notifyUser", {
       user_id: otherId, type: "offer_rejected", text: ntxt,
       item_id: offer.item_id, item_title: offer.item_title, chatroom_id: id,
       offer_amount: offer.amount, actor_name: user.name,
@@ -199,7 +199,7 @@ export default function ChatRoom() {
     setOffers((prev) => prev.map((o) => (o.id === offer.id ? { ...o, status: "not_match" } : o)));
     const otherId = offer.direction === "buyer_offer" ? offer.buyer_id : offer.seller_id;
     const ntxt = lang === "ar" ? "ليس ما أبحث عنه" : "Not what I'm looking for";
-    base44.entities.Notification.create({
+    base44.functions.invoke("notifyUser", {
       user_id: otherId, type: "offer_rejected", text: ntxt,
       item_id: offer.item_id, item_title: offer.item_title, chatroom_id: id,
       offer_amount: offer.amount, actor_name: user.name,
@@ -214,7 +214,7 @@ export default function ChatRoom() {
     const ntxt = lang === "ar"
       ? `تمت معارضة عرضك بسعر ${formatPrice(amount, lang, itemCountry, country)}`
       : `Your offer was countered at ${formatPrice(amount, lang, itemCountry, country)}`;
-    base44.entities.Notification.create({
+    base44.functions.invoke("notifyUser", {
       user_id: otherId, type: "offer_countered", text: ntxt,
       item_id: offer.item_id, item_title: offer.item_title, chatroom_id: id,
       offer_amount: amount, actor_name: user.name,
@@ -246,7 +246,7 @@ export default function ChatRoom() {
     const ntxt = lang === "ar"
       ? `تم تعديل العرض إلى ${formatPrice(amount, lang, itemCountry, country)}`
       : `Offer updated to ${formatPrice(amount, lang, itemCountry, country)}`;
-    base44.entities.Notification.create({
+    base44.functions.invoke("notifyUser", {
       user_id: otherId, type: "offer_modified", text: ntxt,
       item_id: offer.item_id, item_title: offer.item_title, chatroom_id: id,
       offer_amount: amount, actor_name: user.name,
@@ -257,9 +257,8 @@ export default function ChatRoom() {
   };
 
   const confirmReceipt = async (offer) => {
-    await base44.entities.Offer.update(offer.id, { status: "completed", received_confirmed: true });
     try {
-      await base44.entities.Item.update(offer.item_id, { status: "sold", sold_to: offer.buyer_id, sold_to_name: offer.buyer_name });
+      await base44.functions.invoke("confirmReceipt", { offer_id: offer.id, lang });
     } catch {}
   };
 

@@ -94,12 +94,12 @@ export function StoreProvider({ children }) {
   const setTheme = (t) => setThemeState(t);
   const setLang = (l) => setLangState(l);
   const toggleFavorite = (id) => {
-    setFavorites((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]));
-    // Best-effort per-listing save count for the seller analytics dashboard.
-    // Fire-and-forget so the UI never waits on it; a failed update just means
-    // the count drifts slightly until the next toggle corrects it.
     const isFav = favorites.includes(id);
-    base44.entities.Item.updateMany({ id }, { $inc: { favorites_count: isFav ? -1 : 1 } }).catch(() => {});
+    setFavorites((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]));
+    // Keep the public favorites_count in sync via the service role — a buyer
+    // can't update the seller's item directly (RLS), so the counter is
+    // maintained server-side. Fire-and-forget.
+    base44.functions.invoke("recordFavorite", { item_id: id, action: isFav ? "remove" : "add" }).catch(() => {});
   };
   const setPrefs = (patch) => setPrefsState((p) => ({ ...p, ...patch }));
   const clearFavorites = () => setFavorites([]);

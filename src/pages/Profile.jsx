@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck } from "lucide-react";
+import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck, Ban, UserPlus, Bookmark, MapPin } from "lucide-react";
 import VerificationDialog from "@/components/VerificationDialog";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -12,11 +12,12 @@ import ContactSupportDialog from "@/components/ContactSupportDialog";
 import SellerDashboard from "@/components/SellerDashboard";
 import PullToRefresh from "@/components/PullToRefresh";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
+import AccountListsDialog from "@/components/AccountListsDialog";
 import { useAuth } from "@/lib/AuthContext";
 import { formatPrice, timeAgo } from "@/lib/format";
 
 export default function Profile() {
-  const { user, lang, setLang, theme, setTheme, logout, favorites, prefs, setPrefs, clearFavorites } = useStore();
+  const { user, lang, setLang, theme, setTheme, logout, favorites, prefs, setPrefs, clearFavorites, locationFilter, setLocationFilter } = useStore();
   const { checkUserAuth, refreshUser } = useAuth();
   const t = useT();
   const ar = lang === "ar";
@@ -32,6 +33,8 @@ export default function Profile() {
   const [verificationOpen, setVerificationOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [waSaving, setWaSaving] = useState(false);
+  const [listsOpen, setListsOpen] = useState(false);
+  const [listsTab, setListsTab] = useState("blocked");
 
   const toggleWa = async () => {
     if (waSaving || !user) return;
@@ -333,6 +336,18 @@ export default function Profile() {
               <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${prefs.showSold ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
             </button>
           </label>
+          <div className="flex items-center justify-between py-2">
+            <span className="text-sm flex items-center gap-2"><MapPin size={15} /> {lang === "ar" ? "نطاق البحث الافتراضي" : "Default search radius"}</span>
+            <select
+              value={prefs.defaultRadius ?? 25}
+              onChange={(e) => { const r = Number(e.target.value); setPrefs({ defaultRadius: r }); setLocationFilter({ ...locationFilter, radius: r }); }}
+              className="px-3 py-1.5 rounded-xl bg-muted text-sm font-semibold outline-none"
+            >
+              {[5, 10, 25, 50, 100, 250].map((r) => (
+                <option key={r} value={r}>{r} km</option>
+              ))}
+            </select>
+          </div>
           <div className="py-2">
             <div className="flex items-center justify-between">
               <span className="text-sm flex items-center gap-2"><WhatsAppIcon size={16} className="text-emerald-600" /> {lang === "ar" ? "واتساب" : "WhatsApp"}</span>
@@ -360,6 +375,21 @@ export default function Profile() {
             )}
           </div>
         </div>
+        {/* Account lists: blocked users, following, saved searches */}
+        <div className="p-4 space-y-1">
+          <button onClick={() => { setListsTab("blocked"); setListsOpen(true); }} className="w-full flex items-center justify-between py-2">
+            <span className="flex items-center gap-2 text-sm font-semibold"><Ban size={16} /> {lang === "ar" ? "المستخدمون المحظورون" : "Blocked users"}</span>
+            <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
+          </button>
+          <button onClick={() => { setListsTab("following"); setListsOpen(true); }} className="w-full flex items-center justify-between py-2">
+            <span className="flex items-center gap-2 text-sm font-semibold"><UserPlus size={16} /> {lang === "ar" ? "المتابَعون" : "Following"}</span>
+            <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
+          </button>
+          <button onClick={() => { setListsTab("searches"); setListsOpen(true); }} className="w-full flex items-center justify-between py-2">
+            <span className="flex items-center gap-2 text-sm font-semibold"><Bookmark size={16} /> {lang === "ar" ? "عمليات البحث المحفوظة" : "Saved searches"}</span>
+            <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
+          </button>
+        </div>
         <button onClick={() => setSupportOpen(true)} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
           <span className="flex items-center gap-2 text-sm font-semibold"><LifeBuoy size={18} /> {t("contactSupport")}</span>
           <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
@@ -377,6 +407,7 @@ export default function Profile() {
       <EditProfileDialog open={editOpen} onClose={() => setEditOpen(false)} />
       <ContactSupportDialog open={supportOpen} onClose={() => setSupportOpen(false)} />
       <VerificationDialog open={verificationOpen} onClose={() => setVerificationOpen(false)} />
+      <AccountListsDialog open={listsOpen} onClose={() => setListsOpen(false)} initialTab={listsTab} />
     </div>
     </PullToRefresh>
   );

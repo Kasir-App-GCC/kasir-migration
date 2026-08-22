@@ -85,7 +85,7 @@ export default function UserProfile() {
         // Notify the followed user so the follow has a real effect.
         try {
           const me = [user.first_name, user.last_name].filter(Boolean).join(" ") || user.username || "—";
-          await base44.entities.Notification.create({
+          await base44.functions.invoke("notifyUser", {
             user_id: id,
             type: "new_follower",
             actor_id: user.id,

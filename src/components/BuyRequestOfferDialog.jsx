@@ -86,7 +86,7 @@ export default function BuyRequestOfferDialog({ req, user, lang, country, onClos
       const notifText = lang === "ar"
         ? `عرض جديد من ${user.name} على طلبك (${formatPrice(Number(amount), lang, country)})`
         : `New offer from ${user.name} (${formatPrice(Number(amount), lang, country)})`;
-      base44.entities.Notification.create({
+      base44.functions.invoke("notifyUser", {
         user_id: req.user_id,
         type: "offer_received",
         text: notifText,

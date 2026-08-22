@@ -6,6 +6,13 @@ export default async function(req) {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
+    // An admin can ban a user by setting is_banned on the User record.
+    // Enforce it at the entry gate so banned users are blocked from the app
+    // even when they were never added to the separate Blacklist entity.
+    if (user.is_banned) {
+      return Response.json({ blocked: true, reason: user.banned_reason || 'banned' });
+    }
+
     const entries = await base44.asServiceRole.entities.Blacklist.list("-created_date", 500);
     const email = (user.email || "").toLowerCase().trim();
     const phone = (user.phone || "").replace(/\D/g, "");

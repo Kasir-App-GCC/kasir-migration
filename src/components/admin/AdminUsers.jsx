@@ -24,7 +24,7 @@ export default function AdminUsers() {
   // without opening each user individually.
   const [ratingMap, setRatingMap] = useState({});
   const [selected, setSelected] = useState(null);
-  const [editForm, setEditForm] = useState({ username: "", phone: "", country_code: "+966", avatar: "" });
+  const [editForm, setEditForm] = useState({ username: "", phone: "", country_code: "+966", whatsapp_number: "", avatar: "" });
   const [saving, setSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const fileRef = useRef(null);
@@ -34,6 +34,7 @@ export default function AdminUsers() {
       username: u.username || "",
       phone: u.phone || "",
       country_code: u.country_code || "+966",
+      whatsapp_number: u.whatsapp_number || "",
       avatar: u.avatar || "",
     });
   };
@@ -73,6 +74,7 @@ export default function AdminUsers() {
         username: editForm.username.trim(),
         phone: editForm.phone.replace(/\D/g, ""),
         country_code: editForm.country_code.trim(),
+        whatsapp_number: editForm.whatsapp_number.replace(/\D/g, ""),
       });
       if (!res.data?.success) throw new Error(res.data?.error || "Update failed");
       const updated = { ...selected, ...editForm };
@@ -406,6 +408,17 @@ export default function AdminUsers() {
                     placeholder="5xxxxxxxx"
                   />
                 </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">{ar ? "رقم واتساب" : "WhatsApp number"}</label>
+                <input
+                  value={editForm.whatsapp_number}
+                  onChange={(e) => setEditForm((f) => ({ ...f, whatsapp_number: e.target.value.replace(/\D/g, "").slice(0, 15) }))}
+                  className="w-full mt-1 px-3 py-2 rounded-lg bg-muted outline-none focus:ring-2 ring-primary/30 text-sm"
+                  placeholder={ar ? "أرقام فقط (فراغ = إزالة)" : "Digits only (blank = clear)"}
+                  dir="ltr"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">{ar ? "اتركه فارغاً لإزالة رقم واتساب المرتبط (يفكّ التكرار)." : "Leave blank to remove the linked WhatsApp (resolves duplicates)."}</p>
               </div>
               <button
                 onClick={saveProfile}

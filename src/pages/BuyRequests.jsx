@@ -25,6 +25,7 @@ export default function BuyRequests() {
   const nav = useNavigate();
   const myInfo = useSellerInfo(user?.id);
   const canContact = !!myInfo.trusted;
+  const waVerified = !!user?.whatsapp_verified && !!user?.whatsapp_number;
   const PAGE_SIZE = 100;
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -146,8 +147,8 @@ export default function BuyRequests() {
           budget: form.budget ? Number(form.budget) : undefined,
           city: form.city,
           tags: form.tags || [],
-          whatsapp_enabled: form.whatsapp_enabled,
-          whatsapp_number: form.whatsapp_enabled ? form.whatsapp_number.trim() : "",
+          whatsapp_enabled: waVerified ? true : form.whatsapp_enabled,
+          whatsapp_number: (waVerified ? user.whatsapp_number : (form.whatsapp_enabled ? form.whatsapp_number.trim().replace(/[^\d]/g, "") : "")) || "",
         });
         toast({ title: lang === "ar" ? "تم التحديث" : "Updated" });
       } else {
@@ -162,8 +163,8 @@ export default function BuyRequests() {
           user_id: user.id,
           user_name: user.name,
           user_avatar: user.avatar,
-          whatsapp_enabled: form.whatsapp_enabled,
-          whatsapp_number: form.whatsapp_enabled ? form.whatsapp_number.trim() : "",
+          whatsapp_enabled: waVerified ? true : form.whatsapp_enabled,
+          whatsapp_number: (waVerified ? user.whatsapp_number : (form.whatsapp_enabled ? form.whatsapp_number.trim().replace(/[^\d]/g, "") : "")) || "",
           tags: form.tags || [],
           status: "open",
         });
@@ -190,8 +191,8 @@ export default function BuyRequests() {
       description: req.description || "",
       subcategory: req.subcategory || [],
       tags: req.tags || [],
-      whatsapp_enabled: !!req.whatsapp_enabled,
-      whatsapp_number: req.whatsapp_number || "",
+      whatsapp_enabled: waVerified ? true : !!req.whatsapp_enabled,
+      whatsapp_number: waVerified ? ("+" + user.whatsapp_number) : (req.whatsapp_number || ""),
     });
     setShowForm(true);
   };
@@ -250,7 +251,7 @@ export default function BuyRequests() {
             <button
               onClick={() => {
                 setEditingId(null);
-                setForm({ title: "", category: "", budget: "", city: "", description: "", subcategory: [], tags: [], whatsapp_enabled: !!user.whatsapp_enabled && !!user.whatsapp_verified, whatsapp_number: user.whatsapp_number ? (user.whatsapp_number.startsWith("+") ? user.whatsapp_number : "+" + user.whatsapp_number) : "" });
+                setForm({ title: "", category: "", budget: "", city: "", description: "", subcategory: [], tags: [], whatsapp_enabled: waVerified, whatsapp_number: waVerified ? "+" + user.whatsapp_number : "" });
                 setShowForm(true);
               }}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-500 text-white text-sm font-bold hover:bg-violet-600 transition"
@@ -494,43 +495,46 @@ export default function BuyRequests() {
                   <label className="text-sm font-medium text-muted-foreground block mb-1.5">
                     {lang === "ar" ? "التواصل عبر واتساب" : "Reach me via WhatsApp"}
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!form.whatsapp_enabled && !user?.whatsapp_verified) {
-                        toast({ title: lang === "ar" ? "وثّق رقم واتساب أولاً" : "Verify your WhatsApp first", description: lang === "ar" ? "من ملفك الشخصي" : "From your profile", variant: "destructive" });
-                        return;
-                      }
-                      setForm((prev) => ({ ...prev, whatsapp_enabled: !prev.whatsapp_enabled }));
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition ${form.whatsapp_enabled ? "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800" : "bg-muted border border-border/60"}`}
-                  >
-                    <span className="flex items-center gap-2 text-sm font-semibold">
-                      <WhatsAppIcon size={16} className={form.whatsapp_enabled ? "text-emerald-600" : "text-muted-foreground"} />
-                      {form.whatsapp_enabled ? (lang === "ar" ? "مفعّل" : "Enabled") : (lang === "ar" ? "غير مفعّل" : "Disabled")}
-                    </span>
-                    <span className={`w-10 h-6 rounded-full transition relative ${form.whatsapp_enabled ? "bg-emerald-500" : "bg-muted-foreground/30"}`}>
-                      <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${form.whatsapp_enabled ? "start-[18px]" : "start-0.5"}`} />
-                    </span>
-                  </button>
-                  {!user?.whatsapp_verified && !form.whatsapp_enabled && (
-                    <button type="button" onClick={() => nav("/profile")} className="mt-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400 inline-flex items-center gap-1">
-                      <ShieldAlert size={12} /> {lang === "ar" ? "وثّق رقم واتساب أولاً من ملفك" : "Verify your WhatsApp from your profile first"}
-                    </button>
-                  )}
-                  {form.whatsapp_enabled && (
-                    <div className="mt-2">
-                      <input
-                        type="tel"
-                        value={form.whatsapp_number}
-                        onChange={(e) => setForm({ ...form, whatsapp_number: e.target.value })}
-                        placeholder="+966 5X XXX XXXX"
-                        className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {lang === "ar" ? "تأكد من الرقم — سيظهر للبائع للتواصل معك مباشرة" : "Make sure the number is correct — sellers will see it to reach you directly"}
-                      </p>
+                  {waVerified ? (
+                    <div className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800">
+                      <span className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300 min-w-0">
+                        <WhatsAppIcon size={16} className="text-emerald-600 shrink-0" />
+                        <span dir="ltr" className="font-mono truncate">+{user.whatsapp_number}</span>
+                      </span>
+                      <span className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs font-bold text-emerald-600">{lang === "ar" ? "موثّق" : "Verified"}</span>
+                        <span className="w-10 h-6 rounded-full bg-emerald-500 relative">
+                          <span className="absolute top-0.5 start-[18px] w-5 h-5 rounded-full bg-white" />
+                        </span>
+                      </span>
                     </div>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!form.whatsapp_enabled && !user?.whatsapp_verified) {
+                            toast({ title: lang === "ar" ? "وثّق رقم واتساب أولاً" : "Verify your WhatsApp first", description: lang === "ar" ? "من ملفك الشخصي" : "From your profile", variant: "destructive" });
+                            return;
+                          }
+                          setForm((prev) => ({ ...prev, whatsapp_enabled: !prev.whatsapp_enabled }));
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition ${form.whatsapp_enabled ? "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800" : "bg-muted border border-border/60"}`}
+                      >
+                        <span className="flex items-center gap-2 text-sm font-semibold">
+                          <WhatsAppIcon size={16} className={form.whatsapp_enabled ? "text-emerald-600" : "text-muted-foreground"} />
+                          {form.whatsapp_enabled ? (lang === "ar" ? "مفعّل" : "Enabled") : (lang === "ar" ? "غير مفعّل" : "Disabled")}
+                        </span>
+                        <span className={`w-10 h-6 rounded-full transition relative ${form.whatsapp_enabled ? "bg-emerald-500" : "bg-muted-foreground/30"}`}>
+                          <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${form.whatsapp_enabled ? "start-[18px]" : "start-0.5"}`} />
+                        </span>
+                      </button>
+                      {!user?.whatsapp_verified && !form.whatsapp_enabled && (
+                        <button type="button" onClick={() => nav("/profile")} className="mt-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400 inline-flex items-center gap-1">
+                          <ShieldAlert size={12} /> {lang === "ar" ? "وثّق رقم واتساب أولاً من ملفك" : "Verify your WhatsApp from your profile first"}
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

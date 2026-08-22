@@ -1,5 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
-import { WORKFLOW_SECRET } from "../../shared/workflowSecret.ts";
+import { secrets } from "base44:runtime";
 
 // Sends a native push notification to a specific user via the service role.
 // Called from the NotificationPush workflow on every Notification entity
@@ -10,7 +10,8 @@ export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
-    if (body?.secret !== WORKFLOW_SECRET) {
+    const workflowSecret = secrets.get("WORKFLOW_SECRET");
+    if (!workflowSecret || body?.secret !== workflowSecret) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
     const userId = String(body?.user_id || "").trim();

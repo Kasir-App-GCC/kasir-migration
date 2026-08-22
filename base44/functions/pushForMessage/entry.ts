@@ -1,5 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
-import { WORKFLOW_SECRET } from "../../shared/workflowSecret.ts";
+import { secrets } from "base44:runtime";
 
 // Sends a push notification to the OTHER participant in a chat when a new
 // Message is created. Called from the MessagePush workflow. Looks up the
@@ -10,7 +10,8 @@ export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
-    if (body?.secret !== WORKFLOW_SECRET) {
+    const workflowSecret = secrets.get("WORKFLOW_SECRET");
+    if (!workflowSecret || body?.secret !== workflowSecret) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
     const chatroomId = String(body?.chatroom_id || "").trim();

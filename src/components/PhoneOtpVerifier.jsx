@@ -1,19 +1,39 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Send, ShieldCheck, Loader2, CheckCircle2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
+import { COUNTRIES, getCountry } from "@/lib/countries";
+import SheetSelect from "@/components/SheetSelect";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 
 // Reusable phone + OTP verifier. Sends a code via the given channel (sms/whatsapp)
 // through the sendPhoneOtp backend function and verifies it via verifyPhoneOtp.
 // Calls onVerified(e164) once the code is confirmed.
+// The country code is prefilled from the user's country (changeable via dropdown),
+// so the user only types their local number.
+
+// Split an E.164 string into a matching country phone code + the local number.
+function splitE164(e164, fallbackCode) {
+  const s = (e164 || "").replace(/^\+/, "").replace(/\D/g, "");
+  const codes = COUNTRIES.map((c) => c.phoneCode).sort((a, b) => b.length - a.length);
+  const matched = codes.find((c) => s.startsWith(c));
+  if (matched) return { code: matched, local: s.slice(matched.length) };
+  return { code: fallbackCode || "966", local: s };
+}
+
 export default function PhoneOtpVerifier({ initialPhone = "", channel = "sms", onVerified }) {
   const { lang } = useStore();
+  const { user } = useAuth();
   const ar = lang === "ar";
   const { toast } = useToast();
-  const [phone, setPhone] = useState(initialPhone);
-  const [code, setCode] = useState("");
+
+  const defaultCode = getCountry(user?.country)?.phoneCode || "966";
+  const initial = splitE164(initialPhone, defaultCode);
+  const [countryCode, setCountryCode] = useState(initial.code);
+  const [localNumber, setLocalNumber] = useState(initial.local);
+  const [otp, setOtp] = useState("");
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [cooldown, setCooldown] = useState(0);
@@ -27,17 +47,21 @@ export default function PhoneOtpVerifier({ initialPhone = "", channel = "sms", o
     return () => clearTimeout(t);
   }, [cooldown]);
 
-  const normalize = (p) => {
-    let e164 = (p || "").trim();
-    if (!e164.startsWith("+")) e164 = "+" + e164;
-    return e164;
-  };
+  const buildE164 = () => "+" + countryCode + (localNumber || "").replace(/\D/g, "");
+
+  const codeOptions = useMemo(() => {
+    const base = COUNTRIES.map((c) => ({ value: c.phoneCode, label: `${c.flag} +${c.phoneCode}` }));
+    if (countryCode && !base.some((o) => o.value === countryCode)) {
+      base.unshift({ value: countryCode, label: `+${countryCode}` });
+    }
+    return base;
+  }, [countryCode]);
 
   const send = async () => {
     setError("");
-    const e164 = normalize(phone);
+    const e164 = buildE164();
     if (!/^\+\d{8,15}$/.test(e164)) {
-      setError(ar ? "رقم غير صالح — استخدم صيغة +966XXXXXXXXX" : "Invalid number — use +966XXXXXXXXX");
+      setError(ar ? "رقم غير صالح" : "Invalid number");
       return;
     }
     setSending(true);
@@ -46,7 +70,7 @@ export default function PhoneOtpVerifier({ initialPhone = "", channel = "sms", o
       if (res?.data?.ok) {
         setSent(true);
         setCooldown(20);
-        setCode("");
+        setOtp("");
         toast({ title: ar ? "تم إرسال الرمز" : "Code sent" });
       } else {
         throw new Error(res?.data?.error || "Failed");
@@ -60,8 +84,8 @@ export default function PhoneOtpVerifier({ initialPhone = "", channel = "sms", o
 
   const verify = async () => {
     setError("");
-    const e164 = normalize(phone);
-    const c = code.trim();
+    const e164 = buildE164();
+    const c = otp.trim();
     if (!c) return;
     setVerifying(true);
     try {
@@ -85,33 +109,38 @@ export default function PhoneOtpVerifier({ initialPhone = "", channel = "sms", o
       <div className="rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 p-3 flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
         <CheckCircle2 size={18} className="shrink-0" />
         <span>{ar ? "تم التحقق من الرقم" : "Number verified"}</span>
-        <span dir="ltr" className="font-mono">{normalize(phone)}</span>
+        <span dir="ltr" className="font-mono">{buildE164()}</span>
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      <div className="space-y-1.5">
-        <label className="text-sm font-semibold">{ar ? "رقم الجوال (E.164)" : "Phone (E.164)"}</label>
-        <div className="flex gap-2">
-          <input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            dir="ltr"
-            inputMode="tel"
-            placeholder="+9665XXXXXXXX"
-            className="flex-1 px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30 text-start"
+      <div className="flex gap-2">
+        <div className="w-28 shrink-0">
+          <SheetSelect
+            value={countryCode}
+            onChange={setCountryCode}
+            options={codeOptions}
+            buttonClassName="px-3 py-3"
           />
-          <button
-            onClick={send}
-            disabled={sending || cooldown > 0}
-            className="px-4 py-3 rounded-2xl bg-primary text-primary-foreground font-bold text-sm flex items-center gap-1.5 disabled:opacity-50 whitespace-nowrap"
-          >
-            {sending ? <Loader2 size={16} className="animate-spin" /> : (channel === "whatsapp" ? <WhatsAppIcon size={16} /> : <Send size={16} />)}
-            {cooldown > 0 ? `${cooldown}s` : (ar ? "إرسال" : "Send")}
-          </button>
         </div>
+        <input
+          value={localNumber}
+          onChange={(e) => setLocalNumber(e.target.value.replace(/[^\d]/g, ""))}
+          dir="ltr"
+          inputMode="tel"
+          placeholder={ar ? "5XXXXXXXX" : "5XXXXXXXX"}
+          className="flex-1 min-w-0 px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30 text-start"
+        />
+        <button
+          onClick={send}
+          disabled={sending || cooldown > 0}
+          className="px-4 py-3 rounded-2xl bg-primary text-primary-foreground font-bold text-sm flex items-center gap-1.5 disabled:opacity-50 whitespace-nowrap"
+        >
+          {sending ? <Loader2 size={16} className="animate-spin" /> : (channel === "whatsapp" ? <WhatsAppIcon size={16} /> : <Send size={16} />)}
+          {cooldown > 0 ? `${cooldown}s` : (ar ? "إرسال" : "Send")}
+        </button>
       </div>
 
       {sent && (
@@ -119,8 +148,8 @@ export default function PhoneOtpVerifier({ initialPhone = "", channel = "sms", o
           <label className="text-sm font-semibold">{ar ? "رمز التحقق" : "Verification code"}</label>
           <div className="flex gap-2">
             <input
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 4))}
               inputMode="numeric"
               dir="ltr"
               placeholder="0000"
@@ -128,7 +157,7 @@ export default function PhoneOtpVerifier({ initialPhone = "", channel = "sms", o
             />
             <button
               onClick={verify}
-              disabled={verifying || code.length !== 4}
+              disabled={verifying || otp.length !== 4}
               className="px-4 py-3 rounded-2xl bg-emerald-600 text-white font-bold text-sm flex items-center gap-1.5 disabled:opacity-50"
             >
               {verifying ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}

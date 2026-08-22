@@ -157,7 +157,7 @@ export default function VerificationDialog({ open, onClose }) {
                 placeholder={ar ? `${idRule.length} أرقام` : `${idRule.length} digits`}
                 className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30 text-start font-mono" />
               
-                <p className="text-xs text-muted-foreground hidden">{ar ? `يجب أن يكون ${idRule.length} رقمًا${user?.country === "SA" ? " ويبدأ بـ 1 أو 2" : ""}` : `Must be ${idRule.length} digits${user?.country === "SA" ? " starting with 1 or 2" : ""}`}</p>
+                
               </div>
 
               <div className="rounded-xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900 p-2.5 text-xs text-sky-700 dark:text-sky-300 text-center">

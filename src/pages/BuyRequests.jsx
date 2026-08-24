@@ -36,7 +36,7 @@ export default function BuyRequests() {
   const [offerDialogReq, setOfferDialogReq] = useState(null);
   const [showAssistant, setShowAssistant] = useState(false);
   const [tab, setTab] = useState("browse");
-  const [form, setForm] = useState({ title: "", category: "", budget: "", city: "", description: "", subcategory: [], tags: [], whatsapp_enabled: false, whatsapp_number: "" });
+  const [form, setForm] = useState({ title: "", category: "", budget: "", city: "", description: "", subcategory: [], tags: [], whatsapp_enabled: false, whatsapp_number: "", location_name: "" });
   const [submitting, setSubmitting] = useState(false);
   const [locating, setLocating] = useState(false);
   const [filterCategories, setFilterCategories] = useState([]);
@@ -118,12 +118,17 @@ export default function BuyRequests() {
     if (!navigator.geolocation) return;
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const city = nearestCityInCountry(pos.coords.latitude, pos.coords.longitude, country);
-        if (city) {
-          setForm((prev) => ({ ...prev, city: city.en }));
-          setLocationLabel(lang === "ar" ? city.ar : city.en);
-        }
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const city = nearestCityInCountry(latitude, longitude, country);
+        // Reverse-geocode for an accurate place name (not the snapped list city).
+        let name = city ? (lang === "ar" ? city.ar : city.en) : "";
+        try {
+          const res = await base44.functions.invoke("geocodeLocation", { lat: latitude, lng: longitude, country: country || "SA", lang });
+          if (res?.data?.name) name = String(res.data.name).slice(0, 120);
+        } catch {}
+        setForm((prev) => ({ ...prev, city: city ? city.en : prev.city, location_name: name }));
+        setLocationLabel(name);
         setLocating(false);
       },
       () => setLocating(false),
@@ -146,6 +151,7 @@ export default function BuyRequests() {
           subcategory: form.subcategory || [],
           budget: form.budget ? Number(form.budget) : undefined,
           city: form.city,
+          location_name: form.location_name || undefined,
           tags: form.tags || [],
           whatsapp_enabled: form.whatsapp_enabled,
           whatsapp_number: form.whatsapp_enabled ? (waVerified ? user.whatsapp_number : form.whatsapp_number.trim().replace(/[^\d]/g, "")) : "",
@@ -159,6 +165,7 @@ export default function BuyRequests() {
           subcategory: form.subcategory || [],
           budget: form.budget ? Number(form.budget) : undefined,
           city: form.city,
+          location_name: form.location_name || undefined,
           country,
           user_id: user.id,
           user_name: user.name,
@@ -170,7 +177,7 @@ export default function BuyRequests() {
         });
         toast({ title: lang === "ar" ? "تم نشر طلبك" : "Request posted!" });
       }
-      setForm({ title: "", category: "", budget: "", city: "", description: "", subcategory: [], tags: [], whatsapp_enabled: false, whatsapp_number: "" });
+      setForm({ title: "", category: "", budget: "", city: "", description: "", subcategory: [], tags: [], whatsapp_enabled: false, whatsapp_number: "", location_name: "" });
       setEditingId(null);
       setShowForm(false);
       load();
@@ -188,6 +195,7 @@ export default function BuyRequests() {
       category: req.category || "",
       budget: req.budget != null ? String(req.budget) : "",
       city: req.city || "",
+      location_name: req.location_name || "",
       description: req.description || "",
       subcategory: req.subcategory || [],
       tags: req.tags || [],
@@ -251,7 +259,7 @@ export default function BuyRequests() {
             <button
               onClick={() => {
                 setEditingId(null);
-                setForm({ title: "", category: "", budget: "", city: "", description: "", subcategory: [], tags: [], whatsapp_enabled: !!user.whatsapp_enabled && waVerified, whatsapp_number: waVerified ? "+" + user.whatsapp_number : "" });
+                setForm({ title: "", category: "", budget: "", city: "", description: "", subcategory: [], tags: [], whatsapp_enabled: !!user.whatsapp_enabled && waVerified, whatsapp_number: waVerified ? "+" + user.whatsapp_number : "", location_name: "" });
                 setShowForm(true);
               }}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-500 text-white text-sm font-bold hover:bg-violet-600 transition"
@@ -479,7 +487,7 @@ export default function BuyRequests() {
                   </button>
                   <CitySearchSelect
                     value={form.city}
-                    onChange={(city) => { setForm((prev) => ({ ...prev, city })); setLocationLabel(""); }}
+                    onChange={(city) => { setForm((prev) => ({ ...prev, city, location_name: "" })); setLocationLabel(""); }}
                     cities={cities}
                     lang={lang}
                     placeholder={lang === "ar" ? "ابحث عن مدينة..." : "Search city..."}

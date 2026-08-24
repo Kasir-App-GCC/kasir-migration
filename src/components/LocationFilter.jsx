@@ -17,6 +17,7 @@ export default function LocationFilter({ open, onClose }) {
   const [locating, setLocating] = useState(false);
   const [detectedCity, setDetectedCity] = useState(null);
   const [detectedCoords, setDetectedCoords] = useState(null);
+  const [detectedName, setDetectedName] = useState(null);
   const [mapPos, setMapPos] = useState(
     locationFilter.mode === "map" && locationFilter.lat ? { lat: locationFilter.lat, lng: locationFilter.lng } : null
   );
@@ -35,6 +36,28 @@ export default function LocationFilter({ open, onClose }) {
     return () => { active = false; };
   }, [mapPos, country, lang]);
 
+  // Reverse-geocode the detected GPS coordinates to an accurate place name.
+  // The snapped list city is kept for filtering, but the user sees the real
+  // locality (e.g. "Al-Aridh, Riyadh" instead of the nearest list entry).
+  useEffect(() => {
+    if (!detectedCoords) { setDetectedName(null); return; }
+    let active = true;
+    (async () => {
+      let name = null;
+      try {
+        const res = await base44.functions.invoke("geocodeLocation", { lat: detectedCoords.lat, lng: detectedCoords.lng, country: country || "SA", lang });
+        if (res?.data?.name) name = String(res.data.name).slice(0, 120);
+      } catch {}
+      if (!active) return;
+      if (!name) {
+        const c = nearestCityInCountry(detectedCoords.lat, detectedCoords.lng, country);
+        name = c ? (lang === "ar" ? c.ar : c.en) : null;
+      }
+      setDetectedName(name);
+    })();
+    return () => { active = false; };
+  }, [detectedCoords, country, lang]);
+
   useEffect(() => {
     if (open) {
       setTab(locationFilter.mode === "map" ? "map" : locationFilter.mode);
@@ -49,9 +72,11 @@ export default function LocationFilter({ open, onClose }) {
         setMapPos({ lat: locationFilter.lat, lng: locationFilter.lng });
         setDetectedCity(null);
         setDetectedCoords(null);
+        setDetectedName(null);
       } else {
         setDetectedCity(null);
         setDetectedCoords(null);
+        setDetectedName(null);
         setMapPos(null);
       }
     }
@@ -101,7 +126,7 @@ export default function LocationFilter({ open, onClose }) {
       return;
     }
     if (detectedCoords) {
-      setLocationFilter({ mode: "radius", radius, city: detectedCity?.en || null, lat: detectedCoords.lat, lng: detectedCoords.lng });
+      setLocationFilter({ mode: "radius", radius, city: detectedCity?.en || null, lat: detectedCoords.lat, lng: detectedCoords.lng, name: detectedName || null });
     } else if (locationFilter.mode === "radius" && locationFilter.lat) {
       setLocationFilter({ ...locationFilter, radius });
     } else {
@@ -248,7 +273,7 @@ export default function LocationFilter({ open, onClose }) {
                 <div>
                   <p className="font-semibold">{t("nearMe")}</p>
                   <p className="text-xs text-muted-foreground">
-                    {locating ? t("locating") : detectedCity ? (lang === "ar" ? `تم تحديد موقعك: ${detectedCity.ar}` : `Location found: ${detectedCity.en}`) : t("useMyLocation")}
+                    {locating ? t("locating") : detectedCoords ? (lang === "ar" ? `تم تحديد موقعك: ${detectedName || "…"}` : `Location found: ${detectedName || "…"}`) : t("useMyLocation")}
                   </p>
                 </div>
               </div>
@@ -263,6 +288,13 @@ export default function LocationFilter({ open, onClose }) {
                   <button onClick={detectLocation} className="text-xs text-primary font-semibold mb-3 hover:underline">
                     {lang === "ar" ? "إعادة تحديد الموقع" : "Re-detect location"}
                   </button>
+                  <div className="rounded-2xl overflow-hidden border border-border mb-4">
+                    <MapPinPicker
+                      center={detectedCoords}
+                      radius={radius}
+                      onPick={(p) => setDetectedCoords(p)}
+                    />
+                  </div>
                   <div className="flex items-baseline justify-between mb-2">
                     <span className="text-sm text-muted-foreground">{t("radius")}</span>
                     <span className="text-2xl font-extrabold">

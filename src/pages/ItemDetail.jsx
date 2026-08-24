@@ -90,8 +90,10 @@ export default function ItemDetail() {
         if (ratingsRes.status === "fulfilled") setRatings(ratingsRes.value || []);
         if (profileRes.status === "fulfilled") setSellerProfile(profileRes.value?.data || null);
         if (simRes.status === "fulfilled") setSimilar((simRes.value || []).filter((x) => x.id !== id).slice(0, 6));
-        // Don't count the owner's own views (prevents sellers from inflating their own view count).
-        if (it.seller_id !== user?.id) base44.entities.Item.update(id, { views: (Number(it.views) || 0) + 1 }).catch(() => {});
+        // Count views server-side so guest (unauthenticated) views are counted
+        // too — the Item update RLS blocks guest writes, so this goes through a
+        // service-role backend function. The owner's own views are skipped.
+        if (it.seller_id !== user?.id) base44.functions.invoke("incrementItemViews", { item_id: id, seller_id: it.seller_id, viewer_id: user?.id || null }).catch(() => {});
       } catch {
         setItem(null);
       } finally {

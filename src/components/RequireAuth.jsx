@@ -5,7 +5,7 @@ export default function RequireAuth({ children }) {
   const { isAuthenticated, isLoadingAuth, authChecked, navigateToLogin } = useAuth();
 
   useEffect(() => {
-    if (authChecked && !isAuthenticated) navigateToLogin();
+    if (authChecked && !isAuthenticated) navigateToLogin({ replace: true });
   }, [authChecked, isAuthenticated, navigateToLogin]);
 
   if (isLoadingAuth || !authChecked) {

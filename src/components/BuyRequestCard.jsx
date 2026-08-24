@@ -2,7 +2,7 @@ import React from "react";
 import { MapPin, Clock, Tag, MessageCircle, Trash2, CheckCircle2, BadgeCheck, Pencil } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useSellerInfo } from "@/lib/useTrusted";
-import { CATEGORIES, getSubcategories } from "@/lib/constants";
+import { CATEGORIES, getSubcategories, getCityName } from "@/lib/constants";
 import { timeAgo } from "@/lib/format";
 import Price from "@/components/Price";
 import TrustedBadge from "@/components/TrustedBadge";
@@ -52,7 +52,7 @@ export default function BuyRequestCard({ req, tab, canContact, onChat, onClose, 
         ))}
         <span className="inline-flex items-center gap-1">
           <MapPin size={12} />
-          {req.city || (lang === "ar" ? "كل المدن" : "Any city")}
+          {req.location_name || (req.city ? getCityName(req.city, lang) : (lang === "ar" ? "كل المدن" : "Any city"))}
         </span>
         <span className="inline-flex items-center gap-1">
           <Clock size={12} />

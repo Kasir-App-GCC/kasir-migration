@@ -193,11 +193,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const navigateToLogin = () => {
-    // Redirect to the in-app login page, preserving the current path via returnTo
+  const navigateToLogin = (opts = {}) => {
+    // Redirect to the in-app login page, preserving the current path via returnTo.
+    // `replace` swaps the current history entry (used by RequireAuth) so pressing
+    // back from login returns to the page before the protected route, instead of
+    // a blank guarded page that would just redirect back to login again.
     const current = window.location.pathname + window.location.search;
     const returnTo = current && current !== "/" ? encodeURIComponent(current) : "";
-    window.location.href = "/login" + (returnTo ? `?returnTo=${returnTo}` : "");
+    const url = "/login" + (returnTo ? `?returnTo=${returnTo}` : "");
+    if (opts.replace) window.location.replace(url);
+    else window.location.href = url;
   };
 
   return (

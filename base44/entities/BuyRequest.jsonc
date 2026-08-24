@@ -27,7 +27,11 @@
     },
     "city": {
       "type": "string",
-      "description": "City where the buyer wants the item"
+      "description": "Canonical city from the country's city list, used for filtering"
+    },
+    "location_name": {
+      "type": "string",
+      "description": "Accurate reverse-geocoded place name (e.g. a neighborhood) shown on the card; falls back to the canonical city"
     },
     "country": {
       "type": "string",

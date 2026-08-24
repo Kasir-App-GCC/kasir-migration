@@ -61,6 +61,7 @@ export default function ItemDetail() {
   const panStart = useRef(null);
   const [pinching, setPinching] = useState(false);
   const pinchScaleRef = useRef(1);
+  const sharingRef = useRef(false);
   const panRef = useRef({ x: 0, y: 0 });
   const applyZoom = (ns, np) => { pinchScaleRef.current = ns; panRef.current = np; setPinchScale(ns); setPan(np); };
   const resetZoom = () => { pinchScaleRef.current = 1; panRef.current = { x: 0, y: 0 }; setPinchScale(1); setPan({ x: 0, y: 0 }); };
@@ -194,22 +195,26 @@ export default function ItemDetail() {
   };
 
   const shareItem = async () => {
-    const url = window.location.href;
-    if (navigator.share) {
-      try {
+    if (sharingRef.current || !item) return;
+    // Use a clean item URL based on the current origin so that, when the app is
+    // accessed via its custom domain, the shared link uses that domain instead
+    // of a raw base44/API link. Unregistered recipients can open it and view the
+    // item; action buttons route to login.
+    const url = `${window.location.origin}/item/${item.id}`;
+    sharingRef.current = true;
+    try {
+      if (navigator.share) {
         await navigator.share({ title: item.title, text: item.title, url });
-      } catch (err) {
-        if (err?.name !== "AbortError") toast({ title: lang === "ar" ? "تعذّر المشاركة" : "Couldn't share", variant: "destructive" });
-      }
-    } else if (navigator.clipboard?.writeText) {
-      try {
+      } else if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(url);
         toast({ title: lang === "ar" ? "تم نسخ الرابط" : "Link copied" });
-      } catch {
-        toast({ title: lang === "ar" ? "تعذّر النسخ" : "Couldn't copy", variant: "destructive" });
+      } else {
+        toast({ title: lang === "ar" ? "المتصفح لا يدعم المشاركة" : "Sharing not supported", variant: "destructive" });
       }
-    } else {
-      toast({ title: lang === "ar" ? "المتصفح لا يدعم المشاركة" : "Sharing not supported", variant: "destructive" });
+    } catch (err) {
+      if (err?.name !== "AbortError") toast({ title: lang === "ar" ? "تعذّر المشاركة" : "Couldn't share", variant: "destructive" });
+    } finally {
+      sharingRef.current = false;
     }
   };
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
-import { Search, ShieldCheck, Ban, Trash2, Star, Eye, X, ShieldX, Pencil, LifeBuoy, KeyRound, Save, ImagePlus, Loader2 } from "lucide-react";
+import { Search, ShieldCheck, Ban, Trash2, Star, Eye, X, ShieldX, Pencil, LifeBuoy, KeyRound, Save, ImagePlus, Loader2, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -10,6 +10,19 @@ import SheetSelect from "@/components/SheetSelect";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { invalidateSellerCache } from "@/lib/useTrusted";
 
+function lastActiveLabel(iso, ar) {
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 60) return ar ? `قبل ${mins} د` : `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return ar ? `قبل ${hrs} س` : `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return ar ? `قبل ${days} يوم` : `${days}d ago`;
+  const mos = Math.floor(days / 30);
+  if (mos < 12) return ar ? `قبل ${mos} شهر` : `${mos}mo ago`;
+  const yrs = Math.floor(days / 365);
+  return ar ? `قبل ${yrs} سنة` : `${yrs}y ago`;
+}
+
 export default function AdminUsers() {
   const { lang, user: adminUser } = useStore();
   const ar = lang === "ar";
@@ -19,6 +32,7 @@ export default function AdminUsers() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState("all");
+  const [activity, setActivity] = useState("all");
   const [ratings, setRatings] = useState({});
   // Aggregate rating averages per user (rated_user_id -> { avg, count }),
   // computed once on load so the "low ratings" filter can surface bad sellers
@@ -144,6 +158,16 @@ export default function AdminUsers() {
         return r1 && r1.count > 0 && r1.avg < 3.5;
       });
     }
+    if (activity !== "all") {
+      const now = Date.now();
+      const daysSince = (iso) => iso ? (now - new Date(iso).getTime()) / 86400000 : Infinity;
+      if (activity === "never") {
+        r = r.filter((u) => !u.last_active);
+      } else {
+        const thresh = { "1w": 7, "2w": 14, "1m": 30, "2m": 60, "3m": 90, "6m": 180, "1y": 365 }[activity];
+        if (thresh != null) r = r.filter((u) => daysSince(u.last_active || u.updated_date) >= thresh);
+      }
+    }
     if (q.trim()) {
       const s = q.trim().toLowerCase();
       const digits = s.replace(/\D/g, "");
@@ -159,7 +183,7 @@ export default function AdminUsers() {
       );
     }
     return r;
-  }, [users, q, filter]);
+  }, [users, q, filter, activity]);
 
   const loadRatings = async (userId) => {
     try {
@@ -317,6 +341,25 @@ export default function AdminUsers() {
         </div>
       </div>
 
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-semibold text-muted-foreground shrink-0">{ar ? "النشاط" : "Activity"}</span>
+        <select
+          value={activity}
+          onChange={(e) => setActivity(e.target.value)}
+          className="px-3 py-1.5 rounded-xl bg-muted text-sm font-medium outline-none"
+        >
+          <option value="all">{ar ? "كل النشاط" : "Any activity"}</option>
+          <option value="never">{ar ? "لم يُسجَّل دخوله" : "Never logged in"}</option>
+          <option value="1w">{ar ? "خامل أسبوع+" : "Idle 1 week+"}</option>
+          <option value="2w">{ar ? "خامل أسبوعين+" : "Idle 2 weeks+"}</option>
+          <option value="1m">{ar ? "خامل شهر+" : "Idle 1 month+"}</option>
+          <option value="2m">{ar ? "خامل شهرين+" : "Idle 2 months+"}</option>
+          <option value="3m">{ar ? "خامل 3 أشهر+" : "Idle 3 months+"}</option>
+          <option value="6m">{ar ? "خامل 6 أشهر+" : "Idle 6 months+"}</option>
+          <option value="1y">{ar ? "خامل سنة+" : "Idle 1 year+"}</option>
+        </select>
+      </div>
+
       <div className="space-y-2">
         {filtered.length === 0 ? (
           <div className="text-center py-10 text-muted-foreground text-sm">{ar ? "لا يوجد مستخدمون" : "No users found"}</div>
@@ -340,6 +383,12 @@ export default function AdminUsers() {
                 )}
               </div>
               <p className="text-xs text-muted-foreground truncate">@{u.username || "—"} · {u.email}</p>
+              <p className="text-[11px] text-muted-foreground truncate flex items-center gap-0.5">
+                <Clock size={10} className="shrink-0" />
+                {u.last_active
+                  ? (ar ? "آخر ظهور " : "Active ") + lastActiveLabel(u.last_active, ar)
+                  : (u.updated_date ? (ar ? "آخر تحديث " : "Updated ") + lastActiveLabel(u.updated_date, ar) : (ar ? "لم يُسجَّل" : "Never"))}
+              </p>
             </button>
             <div className="flex items-center gap-1.5 shrink-0">
               <button onClick={() => toggleTrusted(u)} title={ar ? "شارة الثقة" : "Trust badge"} className={`w-8 h-8 rounded-lg flex items-center justify-center transition ${u.is_trusted ? "bg-cyan-100 text-cyan-600 dark:bg-cyan-950/40" : "bg-muted hover:bg-muted/70"}`}>
@@ -393,6 +442,7 @@ export default function AdminUsers() {
               <div className="rounded-xl bg-muted p-2.5"><p className="text-xs text-muted-foreground">{ar ? "النية" : "Intent"}</p><p className="font-semibold capitalize">{selected.intent || "—"}</p></div>
               <div className="rounded-xl bg-muted p-2.5"><p className="text-xs text-muted-foreground">{ar ? "الدور" : "Role"}</p><p className="font-semibold capitalize">{selected.role}</p></div>
               <div className="rounded-xl bg-muted p-2.5"><p className="text-xs text-muted-foreground">{ar ? "انضم" : "Joined"}</p><p className="font-semibold">{new Date(selected.created_date).toLocaleDateString()}</p></div>
+              <div className="rounded-xl bg-muted p-2.5"><p className="text-xs text-muted-foreground">{ar ? "آخر ظهور" : "Last active"}</p><p className="font-semibold">{selected.last_active ? lastActiveLabel(selected.last_active, ar) : (ar ? "غير مُسجَّل" : "Not tracked")}</p></div>
               <div className="rounded-xl bg-muted p-2.5"><p className="text-xs text-muted-foreground">{ar ? "البريد" : "Email"}</p><p className="font-semibold truncate" title={selected.email}>{selected.email}</p></div>
               {(selected.provider_name || selected.full_name) && (
                 <div className="rounded-xl bg-muted p-2.5 col-span-2"><p className="text-xs text-muted-foreground">{ar ? "الاسم لدى Google/Apple" : "Login name (Google/Apple)"}</p><p className="font-semibold truncate" title={selected.provider_name || selected.full_name}>{selected.provider_name || selected.full_name}</p></div>

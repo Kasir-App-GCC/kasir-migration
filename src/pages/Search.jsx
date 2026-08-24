@@ -179,7 +179,7 @@ export default function Search() {
   // against the already-fetched seller map).
   const verifiedFiltered = useMemo(() => {
     if (!verifiedOnly) return filtered;
-    return filtered.filter((it) => !!sellers[it.seller_id]?.is_trusted);
+    return filtered.filter((it) => !!sellers[it.seller_id]?.trusted);
   }, [filtered, verifiedOnly, sellers]);
 
   // Distance sort is client-side (over the loaded page) since the server can't

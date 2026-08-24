@@ -90,7 +90,7 @@ export default function PhoneOtpVerifier({ initialPhone = "", channel = "sms", o
       const res = await base44.functions.invoke("sendPhoneOtp", { phone: e164, channel });
       if (res?.data?.ok) {
         setSent(true);
-        setCooldown(20);
+        setCooldown(60);
         setOtp("");
         toast({ title: ar ? "تم إرسال الرمز" : "Code sent" });
       } else {

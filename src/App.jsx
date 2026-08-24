@@ -31,7 +31,6 @@ import EditListing from "@/pages/EditListing";
 import MapView from "@/pages/MapView";
 import Admin from "@/pages/Admin";
 import BuyRequests from "@/pages/BuyRequests";
-import Onboarding from "@/pages/Onboarding";
 
 function routeDepth(pathname) {
   if (pathname === "/") return 0;
@@ -98,11 +97,6 @@ const AuthenticatedApp = () => {
   // Require profile completion before entering the app
   if (user && !(user.first_name && user.username)) {
     return <ProfileSetup />;
-  }
-
-  // One-time interest onboarding to personalize the home feed.
-  if (user && user.first_name && user.username && !user.interests?.length && !localStorage.getItem("souqi_onboarded")) {
-    return <Onboarding />;
   }
 
   // Render the main app

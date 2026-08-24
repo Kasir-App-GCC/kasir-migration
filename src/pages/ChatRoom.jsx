@@ -178,6 +178,15 @@ export default function ChatRoom() {
     base44.entities.Message.create({ chatroom_id: id, sender_id: "system", sender_name: t("adminName"), text, kind: "system", offer_id: offerId || null });
 
   const acceptOffer = async (offer) => {
+    // If accepting a modification request, supersede the currently-accepted
+    // offer so the new amount replaces it. The original accepted offer is
+    // preserved when a modification request is rejected (see requestModification).
+    const prevAccepted = offers.filter((o) => o.id !== offer.id && o.status === "accepted");
+    const isModAcceptance = prevAccepted.length > 0;
+    if (isModAcceptance) {
+      setOffers((prev) => prev.map((o) => (prevAccepted.some((a) => a.id === o.id) ? { ...o, status: "countered" } : o)));
+      for (const a of prevAccepted) { try { await base44.entities.Offer.update(a.id, { status: "countered" }); } catch {} }
+    }
     setOffers((prev) => prev.map((o) => (o.id === offer.id ? { ...o, status: "accepted" } : o)));
     const otherId = offer.direction === "buyer_offer" ? offer.buyer_id : offer.seller_id;
     const ntxt = lang === "ar"
@@ -186,23 +195,23 @@ export default function ChatRoom() {
     const agreeTxt = lang === "ar"
       ? `تم الاتفاق على السعر ${formatPrice(offer.amount, lang, itemCountry, country)} ✅`
       : `Price agreed at ${formatPrice(offer.amount, lang, itemCountry, country)} ✅`;
-    // Fire ALL notifications first (fire-and-forget, before any await) so a
-    // failing update can never swallow the rating notifications.
     base44.entities.Notification.create({
       user_id: otherId, type: "offer_accepted", text: ntxt,
       item_id: offer.item_id, item_title: offer.item_title, chatroom_id: id,
       offer_amount: offer.amount, actor_name: user.name,
     }).catch(() => {});
-    base44.entities.Notification.create({
-      user_id: offer.buyer_id, type: "rate", item_id: offer.item_id, item_title: offer.item_title,
-      text: lang === "ar" ? "قيّم البائع" : "Rate the seller", actor_name: offer.seller_name, chatroom_id: id,
-    }).catch(() => {});
-    base44.entities.Notification.create({
-      user_id: offer.seller_id, type: "rate", item_id: offer.item_id, item_title: offer.item_title,
-      text: lang === "ar" ? "قيّم المشتري" : "Rate the buyer", actor_name: offer.buyer_name, chatroom_id: id,
-    }).catch(() => {});
-    // Now persist the status, system message, and chat room — each in its own
-    // try/catch so a failure in one can't block the others.
+    // Only prompt ratings on the first acceptance — a modification acceptance
+    // shouldn't re-trigger duplicate rating prompts.
+    if (!isModAcceptance) {
+      base44.entities.Notification.create({
+        user_id: offer.buyer_id, type: "rate", item_id: offer.item_id, item_title: offer.item_title,
+        text: lang === "ar" ? "قيّم البائع" : "Rate the seller", actor_name: offer.seller_name, chatroom_id: id,
+      }).catch(() => {});
+      base44.entities.Notification.create({
+        user_id: offer.seller_id, type: "rate", item_id: offer.item_id, item_title: offer.item_title,
+        text: lang === "ar" ? "قيّم المشتري" : "Rate the buyer", actor_name: offer.buyer_name, chatroom_id: id,
+      }).catch(() => {});
+    }
     try { await base44.entities.Offer.update(offer.id, { status: "accepted" }); } catch {}
     try { await base44.entities.ChatRoom.update(id, { last_message: agreeTxt, hidden_for_buyer: false, hidden_for_seller: false }); } catch {}
   };
@@ -235,7 +244,7 @@ export default function ChatRoom() {
   };
 
   const counterOffer = async (offer, amount) => {
-    if (offers.some((o) => o.status === "accepted" || o.status === "completed")) return;
+    if (offers.some((o) => o.status === "accepted" || o.status === "completed") && !offer.previous_offer_id) return;
     setOffers((prev) => prev.map((o) => (o.id === offer.id ? { ...o, status: "countered" } : o)));
     const otherId = isSeller ? offer.buyer_id : offer.seller_id;
     const ntxt = lang === "ar"
@@ -290,11 +299,11 @@ export default function ChatRoom() {
     } catch {}
   };
 
-  // Re-open negotiation after a mistaken acceptance: supersede the accepted
-  // offer and create a fresh pending one at the new amount.
+  // Request a modification to an accepted offer WITHOUT ending it: create a
+  // fresh pending offer at the new amount. The original accepted offer stays
+  // valid — only if the other party accepts the modification does it supersede.
+  // Rejecting the modification simply rejects the new pending offer.
   const requestModification = async (offer, amount) => {
-    try { await base44.entities.Offer.update(offer.id, { status: "countered" }); } catch {}
-    setOffers((prev) => prev.map((o) => (o.id === offer.id ? { ...o, status: "countered" } : o)));
     const direction = isSeller ? "seller_counter" : "buyer_offer";
     let created;
     try {
@@ -356,6 +365,7 @@ export default function ChatRoom() {
   }, [acceptedOffer?.id]);
 
   const hasMeetup = !!acceptedMeetup && acceptedMeetup.status !== "cancelled";
+  const bothVerified = !!user?.is_trusted && !!otherTrusted;
 
   return (
     <div className="fixed inset-0 z-40 bg-background flex flex-col">
@@ -395,8 +405,16 @@ export default function ChatRoom() {
       </header>
 
       <PullToRefreshScroll onRefresh={loadAll} className="px-4 py-4 space-y-2">
-        {acceptedOffer && (
-          <MeetupFlow offer={acceptedOffer} user={user} lang={lang} otherName={otherName} meetup={acceptedMeetup} onMeetupChange={setAcceptedMeetup} />
+        {acceptedOffer && !bothVerified && (
+          <>
+            {!otherTrusted && (
+              <div className="rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 px-3 py-2 flex items-center gap-2 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                <ShieldAlert size={14} className="shrink-0" />
+                <span>{isSeller ? (ar ? "تلتقي مع مشترٍ غير موثّق — خطّط لقاءك بأمان عبر التطبيق" : "You're meeting an unverified buyer — plan your meetup safely through the app") : (ar ? "تلتقي مع بائع غير موثّق — خطّط لقاءك بأمان عبر التطبيق" : "You're meeting an unverified seller — plan your meetup safely through the app")}</span>
+              </div>
+            )}
+            <MeetupFlow offer={acceptedOffer} user={user} lang={lang} otherName={otherName} meetup={acceptedMeetup} onMeetupChange={setAcceptedMeetup} />
+          </>
         )}
         {loading ? (
           <div className="text-center text-muted-foreground text-sm py-10"><div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin mx-auto" /></div>
@@ -412,7 +430,7 @@ export default function ChatRoom() {
                   <OfferCard offer={o} user={user} lang={lang} t={t} itemPrice={room?.item_price} itemImage={room?.item_image} itemTitle={room?.item_title} country={itemCountry}
                     ratedOffers={ratedOffers} onRate={setRatingOffer} onConfirm={confirmReceipt} onDispute={setDisputeOffer}
                     onAccept={acceptOffer} onReject={rejectOffer} onCounter={counterOffer} onModify={modifyOffer} onNotMatch={notMatchOffer}
-                    onRequestMod={requestModification}
+                    onRequestMod={o.status === "accepted" && !offers.some((p) => p.status === "pending" && p.previous_offer_id === o.id) ? requestModification : undefined}
                     hasMeetup={hasMeetup && o.id === acceptedOffer?.id} />
                 </div>
               );

@@ -16,6 +16,7 @@ export default function CitySearchSelect({ value, onChange, cities, lang, placeh
 
   const selected = cities.find((c) => c.en === value);
   const displayValue = selected ? (lang === "ar" ? selected.ar : selected.en) : "";
+  const hasValue = !!value;
   const filtered = search
     ? cities.filter((c) => {
         const q = search.toLowerCase();
@@ -26,15 +27,16 @@ export default function CitySearchSelect({ value, onChange, cities, lang, placeh
   return (
     <div className="relative" ref={ref}>
       <div className="relative">
-        <Search size={16} className="absolute top-1/2 -translate-y-1/2 start-3 text-muted-foreground pointer-events-none" />
+        <Search size={16} className={`absolute top-1/2 -translate-y-1/2 start-3 pointer-events-none ${hasValue ? "text-emerald-600" : "text-muted-foreground"}`} />
         <input
           type="text"
           value={open ? search : displayValue}
           onChange={(e) => { setSearch(e.target.value); setOpen(true); }}
           onFocus={() => { setOpen(true); setSearch(""); }}
           placeholder={placeholder || (lang === "ar" ? "ابحث عن مدينة..." : "Search city...")}
-          className="w-full ps-9 pe-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30"
+          className={`w-full ps-9 ${hasValue ? "pe-9" : "pe-3"} py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ${hasValue ? "ring-2 ring-emerald-500/60 border border-emerald-500/50" : "ring-primary/30"}`}
         />
+        {hasValue && <Check size={16} className="absolute top-1/2 -translate-y-1/2 end-3 text-emerald-600 pointer-events-none" />}
       </div>
       {open && (
         <div className="absolute z-50 top-full mt-1 w-full max-h-48 overflow-y-auto bg-card border border-border rounded-xl shadow-lg">

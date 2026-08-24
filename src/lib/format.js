@@ -22,6 +22,16 @@ export function toDate(date) {
   return new Date(hasTz ? s : s + "Z");
 }
 
+function arNum(n) {
+  return new Intl.NumberFormat("ar-SA").format(n);
+}
+function arNoun(n, one, two, few, many) {
+  if (n === 1) return one;
+  if (n === 2) return two;
+  if (n >= 3 && n <= 10) return few;
+  return many;
+}
+
 export function timeAgo(date, lang = "en") {
   const d = toDate(date);
   const diff = (Date.now() - d.getTime()) / 1000;
@@ -29,15 +39,18 @@ export function timeAgo(date, lang = "en") {
   if (diff < 60) return ar ? "الآن" : "now";
   if (diff < 3600) {
     const m = Math.floor(diff / 60);
-    return ar ? `قبل ${m} د` : `${m}m ago`;
+    if (ar) return `قبل ${arNum(m)} ${arNoun(m, "دقيقة", "دقيقتين", "دقائق", "دقيقة")}`;
+    return `${m}m ago`;
   }
   if (diff < 86400) {
     const h = Math.floor(diff / 3600);
-    return ar ? `قبل ${h} س` : `${h}h ago`;
+    if (ar) return `قبل ${arNum(h)} ${arNoun(h, "ساعة", "ساعتين", "ساعات", "ساعة")}`;
+    return `${h}h ago`;
   }
   if (diff < 604800) {
-    const d = Math.floor(diff / 86400);
-    return ar ? `قبل ${d} يوم` : `${d}d ago`;
+    const days = Math.floor(diff / 86400);
+    if (ar) return `قبل ${arNum(days)} ${arNoun(days, "يوم", "يومين", "أيام", "يوماً")}`;
+    return `${days}d ago`;
   }
   return d.toLocaleDateString(ar ? "ar-SA" : "en-US", { month: "short", day: "numeric" });
 }

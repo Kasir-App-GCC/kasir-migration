@@ -5,6 +5,7 @@ import { timeAgo } from "@/lib/format";
 
 export default function ReviewCard({ rating, item, lang, t }) {
   const nav = useNavigate();
+  const ar = lang === "ar";
   const img = item?.images?.[0] || (item ? `https://picsum.photos/seed/${encodeURIComponent(item.title || item.id)}/100/100` : null);
   return (
     <div className="rounded-2xl bg-card border border-border/60 p-3.5">
@@ -13,6 +14,12 @@ export default function ReviewCard({ rating, item, lang, t }) {
         <RatingStars value={rating.score} size={14} />
       </div>
       {rating.review && <p className="text-sm text-muted-foreground mt-1.5">{rating.review}</p>}
+      {rating.seller_reply && (
+        <div className="mt-2 ps-3 border-s-2 border-primary/30">
+          <p className="text-[11px] font-bold text-primary mb-0.5">{ar ? "رد البائع" : "Seller's reply"}</p>
+          <p className="text-sm text-muted-foreground">{rating.seller_reply}</p>
+        </div>
+      )}
       <div className="flex items-end justify-between gap-2 mt-2">
         {item ? (
           <button

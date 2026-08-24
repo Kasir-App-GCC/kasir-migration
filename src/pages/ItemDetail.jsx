@@ -15,6 +15,7 @@ import RatingStars from "@/components/RatingStars";
 import ReviewTagChips from "@/components/ReviewTagChips";
 import ReportDialog from "@/components/ReportDialog";
 import FullscreenImageViewer from "@/components/FullscreenImageViewer";
+import ShareSheet from "@/components/ShareSheet";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { Image } from "@/components/ui/image";
 import { sendPush } from "@/lib/notify";
@@ -48,6 +49,7 @@ export default function ItemDetail() {
   const [buyerReview, setBuyerReview] = useState("");
   const [zoom, setZoom] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [similar, setSimilar] = useState([]);
   const [sellerProfile, setSellerProfile] = useState(null);
   const [origin, setOrigin] = useState({ x: 50, y: 50 });
@@ -196,25 +198,23 @@ export default function ItemDetail() {
 
   const shareItem = async () => {
     if (sharingRef.current || !item) return;
-    // Use a clean item URL based on the current origin so that, when the app is
-    // accessed via its custom domain, the shared link uses that domain instead
-    // of a raw base44/API link. Unregistered recipients can open it and view the
-    // item; action buttons route to login.
+    // Clean item URL — uses the custom domain when the app is accessed via one,
+    // so shared links avoid raw base44/API URLs. Unregistered recipients can view
+    // the item; action buttons route to login.
     const url = `${window.location.origin}/item/${item.id}`;
-    sharingRef.current = true;
-    try {
-      if (navigator.share) {
+    // On mobile, navigator.share opens the native sheet. On desktop it often
+    // exists but rejects (NotAllowedError) — fall back to our share sheet there.
+    if (navigator.share) {
+      sharingRef.current = true;
+      try {
         await navigator.share({ title: item.title, text: item.title, url });
-      } else if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url);
-        toast({ title: lang === "ar" ? "تم نسخ الرابط" : "Link copied" });
-      } else {
-        toast({ title: lang === "ar" ? "المتصفح لا يدعم المشاركة" : "Sharing not supported", variant: "destructive" });
+      } catch (err) {
+        if (err?.name !== "AbortError") setShareOpen(true);
+      } finally {
+        sharingRef.current = false;
       }
-    } catch (err) {
-      if (err?.name !== "AbortError") toast({ title: lang === "ar" ? "تعذّر المشاركة" : "Couldn't share", variant: "destructive" });
-    } finally {
-      sharingRef.current = false;
+    } else {
+      setShareOpen(true);
     }
   };
 
@@ -699,6 +699,8 @@ export default function ItemDetail() {
       {viewerOpen && (
         <FullscreenImageViewer images={imgs} index={activeImg} onClose={() => setViewerOpen(false)} lang={lang} />
       )}
+
+      <ShareSheet open={shareOpen} onClose={() => setShareOpen(false)} url={`${window.location.origin}/item/${item.id}`} title={item.title} lang={lang} />
 
       <ReportDialog open={reportOpen} onClose={() => setReportOpen(false)} seller={seller} item={item} />
 

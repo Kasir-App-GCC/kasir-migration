@@ -20,7 +20,7 @@ export default function ProfileSetup() {
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState(user?.username || "");
   const [avatar, setAvatar] = useState(user?.avatar || null);
-  const [intent, setIntent] = useState(user?.intent || "");
+  const [ageRange, setAgeRange] = useState(user?.age_range || "");
   const [country, setCountryState] = useState(user?.country || "SA");
 
   const [uploading, setUploading] = useState(false);
@@ -71,8 +71,8 @@ export default function ProfileSetup() {
       setError(ar ? "اسم المستخدم لا يقل عن 3 أحرف" : "Username must be at least 3 characters");
       return;
     }
-    if (!intent) {
-      setError(ar ? "اختر وش جاي تسويه" : "Please pick what you're here for");
+    if (!ageRange) {
+      setError(ar ? "اختر فئتك العمرية" : "Please select your age range");
       return;
     }
     setSaving(true);
@@ -92,7 +92,7 @@ export default function ProfileSetup() {
         username: uname,
         country,
         avatar,
-        intent,
+        age_range: ageRange,
       });
       await checkUserAuth();
       setCountry(country);
@@ -193,18 +193,21 @@ export default function ProfileSetup() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold">{t("intentQuestion")} *</label>
-            <div className="grid grid-cols-3 gap-2">
+            <label className="text-sm font-semibold">{ar ? "فئتك العمرية" : "Your age range"} *</label>
+            <div className="flex flex-wrap gap-2">
               {[
-                { id: "buy", label: t("intentBuy") },
-                { id: "sell", label: t("intentSell") },
-                { id: "both", label: t("intentBoth") },
+                { id: "10-15", label: ar ? "١٠-١٥" : "10-15" },
+                { id: "16-19", label: ar ? "١٦-١٩" : "16-19" },
+                { id: "20-30", label: ar ? "٢٠-٣٠" : "20-30" },
+                { id: "31-40", label: ar ? "٣١-٤٠" : "31-40" },
+                { id: "41-50", label: ar ? "٤١-٥٠" : "41-50" },
+                { id: "51+", label: ar ? "٥١+" : "51+" },
               ].map((o) => (
                 <button
                   key={o.id}
                   type="button"
-                  onClick={() => setIntent(o.id)}
-                  className={`py-3 rounded-2xl text-sm font-semibold border transition ${intent === o.id ? "bg-primary text-primary-foreground border-transparent" : "bg-muted border-border/60"}`}
+                  onClick={() => setAgeRange(o.id)}
+                  className={`px-4 py-2.5 rounded-2xl text-sm font-semibold border transition ${ageRange === o.id ? "bg-primary text-primary-foreground border-transparent" : "bg-muted border-border/60"}`}
                 >
                   {o.label}
                 </button>

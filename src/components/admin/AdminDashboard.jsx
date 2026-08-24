@@ -51,6 +51,9 @@ export default function AdminDashboard() {
         const banned = (users || []).filter((u) => u.is_banned).length;
         const openTickets = (tickets || []).filter((t) => t.status === "open").length;
         const openReports = (reports || []).filter((r) => !r.resolved).length;
+        const ageBuckets = ["10-15", "16-19", "20-30", "31-40", "41-50", "51+"];
+        const ageDistribution = ageBuckets.map((b) => ({ bucket: b, count: (users || []).filter((u) => u.age_range === b).length }));
+        const ageKnown = (users || []).filter((u) => u.age_range).length;
         const resets = getResets();
         setStats({
           users: users?.length || 0,
@@ -66,6 +69,8 @@ export default function AdminDashboard() {
           banned,
           reports: openReports,
           tickets: openTickets,
+          ageDistribution,
+          ageKnown,
         });
       } catch {
       } finally {
@@ -134,6 +139,31 @@ export default function AdminDashboard() {
           {ar ? `${stats.banned} مستخدم محظور حالياً` : `${stats.banned} user(s) currently banned`}
         </div>
       )}
+
+      {/* Age demographics */}
+      <div className="rounded-2xl bg-card border border-border/60 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-9 h-9 rounded-xl bg-violet-500 text-white flex items-center justify-center"><Users size={18} /></div>
+          <div>
+            <p className="font-bold text-sm">{ar ? "الديموغرافيا العمرية" : "Age Demographics"}</p>
+            <p className="text-xs text-muted-foreground">{ar ? `${stats.ageKnown} من ${stats.users} مستخدم حدّد فئته العمرية` : `${stats.ageKnown} of ${stats.users} users provided their age range`}</p>
+          </div>
+        </div>
+        <div className="space-y-2">
+          {stats.ageDistribution.map((d) => {
+            const pct = stats.ageKnown ? Math.round((d.count / stats.ageKnown) * 100) : 0;
+            return (
+              <div key={d.bucket} className="flex items-center gap-3">
+                <span className="text-xs font-semibold w-14 shrink-0" dir="ltr">{d.bucket}</span>
+                <div className="flex-1 h-6 rounded-full bg-muted overflow-hidden">
+                  <div className="h-full bg-violet-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                </div>
+                <span className="text-xs font-bold w-16 text-end shrink-0">{d.count} · {pct}%</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {showRevenue && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">

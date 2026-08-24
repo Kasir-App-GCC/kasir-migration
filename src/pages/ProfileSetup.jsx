@@ -6,6 +6,7 @@ import { base44 } from "@/api/base44Client";
 import { syncAvatarToEntities } from "@/lib/syncAvatar";
 import { Camera, Loader2, User } from "lucide-react";
 import { COUNTRIES } from "@/lib/countries";
+import { AGE_RANGES, GENDERS } from "@/lib/demographics";
 
 export default function ProfileSetup() {
   const { user, checkUserAuth } = useAuth();
@@ -20,7 +21,8 @@ export default function ProfileSetup() {
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState(user?.username || "");
   const [avatar, setAvatar] = useState(user?.avatar || null);
-  const [intent, setIntent] = useState(user?.intent || "");
+  const [ageRange, setAgeRange] = useState(user?.age_range || "");
+  const [gender, setGender] = useState(user?.gender || "");
   const [country, setCountryState] = useState(user?.country || "SA");
 
   const [uploading, setUploading] = useState(false);
@@ -71,8 +73,12 @@ export default function ProfileSetup() {
       setError(ar ? "اسم المستخدم لا يقل عن 3 أحرف" : "Username must be at least 3 characters");
       return;
     }
-    if (!intent) {
-      setError(ar ? "اختر وش جاي تسويه" : "Please pick what you're here for");
+    if (!ageRange) {
+      setError(ar ? "اختر الفئة العمرية" : "Please pick your age range");
+      return;
+    }
+    if (!gender) {
+      setError(ar ? "اختر الجنس" : "Please pick your gender");
       return;
     }
     setSaving(true);
@@ -92,7 +98,8 @@ export default function ProfileSetup() {
         username: uname,
         country,
         avatar,
-        intent,
+        age_range: ageRange,
+        gender,
       });
       await checkUserAuth();
       setCountry(country);
@@ -193,20 +200,31 @@ export default function ProfileSetup() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold">{t("intentQuestion")} *</label>
+            <label className="text-sm font-semibold">{ar ? "الفئة العمرية" : "Age range"} *</label>
             <div className="grid grid-cols-3 gap-2">
-              {[
-                { id: "buy", label: t("intentBuy") },
-                { id: "sell", label: t("intentSell") },
-                { id: "both", label: t("intentBoth") },
-              ].map((o) => (
+              {AGE_RANGES.map((o) => (
                 <button
                   key={o.id}
                   type="button"
-                  onClick={() => setIntent(o.id)}
-                  className={`py-3 rounded-2xl text-sm font-semibold border transition ${intent === o.id ? "bg-primary text-primary-foreground border-transparent" : "bg-muted border-border/60"}`}
+                  onClick={() => setAgeRange(o.id)}
+                  className={`py-3 rounded-2xl text-sm font-semibold border transition ${ageRange === o.id ? "bg-primary text-primary-foreground border-transparent" : "bg-muted border-border/60"}`}
                 >
-                  {o.label}
+                  {ar ? o.ar : o.en}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold">{ar ? "الجنس" : "Gender"} *</label>
+            <div className="grid grid-cols-3 gap-2">
+              {GENDERS.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => setGender(o.id)}
+                  className={`py-3 rounded-2xl text-sm font-semibold border transition ${gender === o.id ? "bg-primary text-primary-foreground border-transparent" : "bg-muted border-border/60"}`}
+                >
+                  {ar ? o.ar : o.en}
                 </button>
               ))}
             </div>

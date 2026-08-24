@@ -25,7 +25,8 @@
         "saved_search_match",
         "new_follower",
         "price_drop",
-        "dispute_resolved"
+        "dispute_resolved",
+        "admin_message"
       ],
       "default": "sold"
     },

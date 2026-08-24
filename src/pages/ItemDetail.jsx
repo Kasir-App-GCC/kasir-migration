@@ -204,27 +204,15 @@ export default function ItemDetail() {
     sharingRef.current = true;
     try {
       if (navigator.share) {
-        try {
-          await navigator.share({ title: item.title, text: item.title, url });
-          return;
-        } catch (err) {
-          // AbortError = user dismissed the sheet — do nothing. Any other error
-          // (e.g. NotAllowedError when the app runs inside a cross-origin iframe
-          // without the web-share permission, such as the builder preview) means
-          // native sharing is blocked here — fall through to clipboard below.
-          if (err?.name === "AbortError") return;
-        }
-      }
-      if (navigator.clipboard?.writeText) {
-        try {
-          await navigator.clipboard.writeText(url);
-          toast({ title: lang === "ar" ? "تم نسخ الرابط" : "Link copied" });
-        } catch {
-          toast({ title: lang === "ar" ? "تعذّر المشاركة" : "Couldn't share", variant: "destructive" });
-        }
+        await navigator.share({ title: item.title, text: item.title, url });
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        toast({ title: lang === "ar" ? "تم نسخ الرابط" : "Link copied" });
       } else {
         toast({ title: lang === "ar" ? "المتصفح لا يدعم المشاركة" : "Sharing not supported", variant: "destructive" });
       }
+    } catch (err) {
+      if (err?.name !== "AbortError") toast({ title: lang === "ar" ? "تعذّر المشاركة" : "Couldn't share", variant: "destructive" });
     } finally {
       sharingRef.current = false;
     }
@@ -282,7 +270,7 @@ export default function ItemDetail() {
 
   return (
     <div className="pt-[calc(env(safe-area-inset-top)+0.75rem)] max-w-3xl mx-auto">
-      <button onClick={() => (window.history.length > 1 ? nav(-1) : nav("/"))} className="flex items-center gap-1 text-sm text-muted-foreground mb-3">
+      <button onClick={() => nav(-1)} className="flex items-center gap-1 text-sm text-muted-foreground mb-3">
         <ArrowLeft size={16} className="rtl:rotate-180" /> {t("back")}
       </button>
 

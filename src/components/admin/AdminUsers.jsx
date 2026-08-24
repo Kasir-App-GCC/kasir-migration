@@ -10,17 +10,25 @@ import SheetSelect from "@/components/SheetSelect";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { invalidateSellerCache } from "@/lib/useTrusted";
 
+function arNum(n) { return new Intl.NumberFormat("ar-SA").format(n); }
+function arNoun(n, one, two, few, many) {
+  if (n === 1) return one;
+  if (n === 2) return two;
+  if (n >= 3 && n <= 10) return few;
+  return many;
+}
 function lastActiveLabel(iso, ar) {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-  if (mins < 60) return ar ? `قبل ${mins} د` : `${mins}m ago`;
+  if (mins < 1) return ar ? "الآن" : "now";
+  if (mins < 60) return ar ? `قبل ${arNum(mins)} ${arNoun(mins, "دقيقة", "دقيقتين", "دقائق", "دقيقة")}` : `${mins}m ago`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return ar ? `قبل ${hrs} س` : `${hrs}h ago`;
+  if (hrs < 24) return ar ? `قبل ${arNum(hrs)} ${arNoun(hrs, "ساعة", "ساعتين", "ساعات", "ساعة")}` : `${hrs}h ago`;
   const days = Math.floor(hrs / 24);
-  if (days < 30) return ar ? `قبل ${days} يوم` : `${days}d ago`;
+  if (days < 30) return ar ? `قبل ${arNum(days)} ${arNoun(days, "يوم", "يومين", "أيام", "يوماً")}` : `${days}d ago`;
   const mos = Math.floor(days / 30);
-  if (mos < 12) return ar ? `قبل ${mos} شهر` : `${mos}mo ago`;
+  if (mos < 12) return ar ? `قبل ${arNum(mos)} ${arNoun(mos, "شهر", "شهرين", "أشهر", "شهراً")}` : `${mos}mo ago`;
   const yrs = Math.floor(days / 365);
-  return ar ? `قبل ${yrs} سنة` : `${yrs}y ago`;
+  return ar ? `قبل ${arNum(yrs)} ${arNoun(yrs, "سنة", "سنتين", "سنوات", "سنة")}` : `${yrs}y ago`;
 }
 
 export default function AdminUsers() {

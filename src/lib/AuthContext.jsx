@@ -25,8 +25,9 @@ export const AuthProvider = ({ children }) => {
     if (!isAuthenticated) return;
     const interval = setInterval(() => {
       checkBlacklistStatus();
+      touchLastActive();
     }, 30000); // every 30s
-    const onFocus = () => { checkBlacklistStatus(); };
+    const onFocus = () => { checkBlacklistStatus(); touchLastActive(); };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onFocus);
     return () => {
@@ -130,6 +131,18 @@ export const AuthProvider = ({ children }) => {
     return false;
   };
 
+  // Throttle last_active writes to once per 60s so the admin "last seen" view
+  // stays accurate (within a minute) without writing on every focus/interval tick.
+  const touchLastActive = async () => {
+    try {
+      const ts = Number(localStorage.getItem("souqi_last_active_ts") || 0);
+      if (Date.now() - ts > 60 * 1000) {
+        localStorage.setItem("souqi_last_active_ts", String(Date.now()));
+        base44.auth.updateMe({ last_active: new Date().toISOString() }).catch(() => {});
+      }
+    } catch {}
+  };
+
   const checkUserAuth = async () => {
     try {
       // Now check if the user is authenticated
@@ -139,14 +152,7 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
       setAuthChecked(true);
-      // Throttle last_active to once per 30 min so we don't write on every load.
-      try {
-        const ts = Number(localStorage.getItem("souqi_last_active_ts") || 0);
-        if (Date.now() - ts > 30 * 60 * 1000) {
-          localStorage.setItem("souqi_last_active_ts", String(Date.now()));
-          base44.auth.updateMe({ last_active: new Date().toISOString() }).catch(() => {});
-        }
-      } catch {}
+      touchLastActive();
       // Check if this user is blacklisted
       await checkBlacklistStatus();
     } catch (error) {

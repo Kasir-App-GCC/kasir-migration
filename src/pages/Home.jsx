@@ -163,11 +163,7 @@ export default function Home() {
     if (!prefs.showSold && it.status === "sold") return false;
     return matchLocation(it, locationFilter, country);
   });
-  // Surface the user's onboarding interest categories first.
-  const interestCats = user?.interests || [];
-  const ordered = interestCats.length
-    ? [...filtered].sort((a, b) => (interestCats.includes(a.category) ? 0 : 1) - (interestCats.includes(b.category) ? 0 : 1))
-    : filtered;
+  const ordered = filtered;
   const now = Date.now();
   const featured = featuredItems.filter((it) => {
     if (it.status === "sold") return false;

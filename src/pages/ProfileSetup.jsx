@@ -6,6 +6,7 @@ import { base44 } from "@/api/base44Client";
 import { syncAvatarToEntities } from "@/lib/syncAvatar";
 import { Camera, Loader2, User } from "lucide-react";
 import { COUNTRIES } from "@/lib/countries";
+import { AGE_RANGES, GENDERS } from "@/lib/demographics";
 
 export default function ProfileSetup() {
   const { user, checkUserAuth } = useAuth();
@@ -21,6 +22,8 @@ export default function ProfileSetup() {
   const [username, setUsername] = useState(user?.username || "");
   const [avatar, setAvatar] = useState(user?.avatar || null);
   const [intent, setIntent] = useState(user?.intent || "");
+  const [ageRange, setAgeRange] = useState(user?.age_range || "");
+  const [gender, setGender] = useState(user?.gender || "");
   const [country, setCountryState] = useState(user?.country || "SA");
 
   const [uploading, setUploading] = useState(false);
@@ -75,6 +78,14 @@ export default function ProfileSetup() {
       setError(ar ? "اختر وش جاي تسويه" : "Please pick what you're here for");
       return;
     }
+    if (!ageRange) {
+      setError(ar ? "اختر الفئة العمرية" : "Please select your age range");
+      return;
+    }
+    if (!gender) {
+      setError(ar ? "اختر الجنس" : "Please select your gender");
+      return;
+    }
     setSaving(true);
     try {
       const check = await base44.functions.invoke("checkUsername", { username: uname });
@@ -93,6 +104,8 @@ export default function ProfileSetup() {
         country,
         avatar,
         intent,
+        age_range: ageRange,
+        gender,
       });
       await checkUserAuth();
       setCountry(country);
@@ -207,6 +220,38 @@ export default function ProfileSetup() {
                   className={`py-3 rounded-2xl text-sm font-semibold border transition ${intent === o.id ? "bg-primary text-primary-foreground border-transparent" : "bg-muted border-border/60"}`}
                 >
                   {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold">{ar ? "الفئة العمرية" : "Age range"} *</label>
+            <div className="grid grid-cols-3 gap-2">
+              {AGE_RANGES.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => setAgeRange(o.id)}
+                  className={`py-2.5 rounded-2xl text-sm font-semibold border transition ${ageRange === o.id ? "bg-primary text-primary-foreground border-transparent" : "bg-muted border-border/60"}`}
+                >
+                  {ar ? o.ar : o.en}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold">{ar ? "الجنس" : "Gender"} *</label>
+            <div className="grid grid-cols-3 gap-2">
+              {GENDERS.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => setGender(o.id)}
+                  className={`py-3 rounded-2xl text-sm font-semibold border transition ${gender === o.id ? "bg-primary text-primary-foreground border-transparent" : "bg-muted border-border/60"}`}
+                >
+                  {ar ? o.ar : o.en}
                 </button>
               ))}
             </div>

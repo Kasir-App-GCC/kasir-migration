@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { formatPrice } from "@/lib/format";
 import { VERIFICATION_FEE } from "@/lib/verificationPayment";
+import { AGE_RANGES, GENDERS } from "@/lib/demographics";
 
 export default function AdminDashboard() {
   const { lang, country } = useStore();
@@ -49,6 +50,12 @@ export default function AdminDashboard() {
         const totalSpent = soldOffers.reduce((s, o) => s + (o.amount || 0), 0);
         const trusted = (users || []).filter((u) => u.is_trusted).length;
         const banned = (users || []).filter((u) => u.is_banned).length;
+        const ageBuckets = { under_16: 0, "16_19": 0, "20_29": 0, "30_39": 0, "40_49": 0, "50_plus": 0 };
+        const genderBuckets = { male: 0, female: 0, prefer_not_say: 0 };
+        (users || []).forEach((u) => {
+          if (u.age_range && ageBuckets[u.age_range] != null) ageBuckets[u.age_range]++;
+          if (u.gender && genderBuckets[u.gender] != null) genderBuckets[u.gender]++;
+        });
         const openTickets = (tickets || []).filter((t) => t.status === "open").length;
         const openReports = (reports || []).filter((r) => !r.resolved).length;
         const resets = getResets();
@@ -66,6 +73,8 @@ export default function AdminDashboard() {
           banned,
           reports: openReports,
           tickets: openTickets,
+          ageBuckets,
+          genderBuckets,
         });
       } catch {
       } finally {
@@ -134,6 +143,48 @@ export default function AdminDashboard() {
           {ar ? `${stats.banned} مستخدم محظور حالياً` : `${stats.banned} user(s) currently banned`}
         </div>
       )}
+
+      <div className="rounded-2xl bg-card border border-border/60 p-4">
+        <h3 className="font-bold text-sm mb-3">{ar ? "الديموغرافيا" : "Demographics"}</h3>
+        <div className="grid sm:grid-cols-2 gap-5">
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground mb-2">{ar ? "الفئة العمرية" : "Age range"}</p>
+            <div className="space-y-1.5">
+              {AGE_RANGES.map((o) => {
+                const count = stats.ageBuckets[o.id] || 0;
+                const pct = stats.users ? Math.round((count / stats.users) * 100) : 0;
+                return (
+                  <div key={o.id} className="flex items-center gap-2">
+                    <span className="text-xs w-20 shrink-0">{ar ? o.ar : o.en}</span>
+                    <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                      <div className="h-full bg-blue-500 rounded-full" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="text-xs font-semibold w-10 text-end">{count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground mb-2">{ar ? "الجنس" : "Gender"}</p>
+            <div className="space-y-1.5">
+              {GENDERS.map((o) => {
+                const count = stats.genderBuckets[o.id] || 0;
+                const pct = stats.users ? Math.round((count / stats.users) * 100) : 0;
+                return (
+                  <div key={o.id} className="flex items-center gap-2">
+                    <span className="text-xs w-28 shrink-0">{ar ? o.ar : o.en}</span>
+                    <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                      <div className="h-full bg-violet-500 rounded-full" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="text-xs font-semibold w-10 text-end">{count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {showRevenue && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">

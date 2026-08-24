@@ -37,6 +37,27 @@
         "both"
       ]
     },
+    "age_range": {
+      "type": "string",
+      "description": "Self-reported age band collected at signup for admin demographics",
+      "enum": [
+        "under_16",
+        "16_19",
+        "20_29",
+        "30_39",
+        "40_49",
+        "50_plus"
+      ]
+    },
+    "gender": {
+      "type": "string",
+      "description": "Self-reported gender collected at signup for admin demographics",
+      "enum": [
+        "male",
+        "female",
+        "prefer_not_say"
+      ]
+    },
     "phone": {
       "type": "string",
       "description": "The user's phone number (digits only)"

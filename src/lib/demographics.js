@@ -13,5 +13,5 @@ export const AGE_RANGES = [
 export const GENDERS = [
   { id: "male", ar: "ذكر", en: "Male" },
   { id: "female", ar: "أنثى", en: "Female" },
-  { id: "prefer_not_say", ar: "أفضّل عدم الإفصاح", en: "Prefer not to say" },
+
 ];

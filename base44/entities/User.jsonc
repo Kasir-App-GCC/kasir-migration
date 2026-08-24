@@ -54,8 +54,7 @@
       "description": "Self-reported gender collected at signup for admin demographics",
       "enum": [
         "male",
-        "female",
-        "prefer_not_say"
+        "female"
       ]
     },
     "phone": {

@@ -51,7 +51,7 @@ export default function AdminDashboard() {
         const trusted = (users || []).filter((u) => u.is_trusted).length;
         const banned = (users || []).filter((u) => u.is_banned).length;
         const ageBuckets = { under_16: 0, "16_19": 0, "20_29": 0, "30_39": 0, "40_49": 0, "50_plus": 0 };
-        const genderBuckets = { male: 0, female: 0, prefer_not_say: 0 };
+        const genderBuckets = { male: 0, female: 0 };
         (users || []).forEach((u) => {
           if (u.age_range && ageBuckets[u.age_range] != null) ageBuckets[u.age_range]++;
           if (u.gender && genderBuckets[u.gender] != null) genderBuckets[u.gender]++;

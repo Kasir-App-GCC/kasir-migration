@@ -163,6 +163,11 @@ export default function Home() {
     if (!prefs.showSold && it.status === "sold") return false;
     return matchLocation(it, locationFilter, country);
   });
+  // Surface the user's onboarding interest categories first.
+  const interestCats = user?.interests || [];
+  const ordered = interestCats.length
+    ? [...filtered].sort((a, b) => (interestCats.includes(a.category) ? 0 : 1) - (interestCats.includes(b.category) ? 0 : 1))
+    : filtered;
   const now = Date.now();
   const featured = featuredItems.filter((it) => {
     if (it.status === "sold") return false;
@@ -260,7 +265,7 @@ export default function Home() {
       ) : (
         <div className="space-y-3">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {filtered.map((it) => (
+            {ordered.map((it) => (
               <ItemCard key={it.id} item={it} onClick={() => nav(`/item/${it.id}`)} sellerInfo={sellers[it.seller_id]} />
             ))}
           </div>

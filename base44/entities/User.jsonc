@@ -28,25 +28,13 @@
       "type": "string",
       "description": "URL of the user's profile picture"
     },
-    "age_range": {
+    "intent": {
       "type": "string",
-      "description": "Self-reported age bracket collected at registration for aggregate admin demographics",
+      "description": "Whether the user is here to buy, sell, or both",
       "enum": [
-        "under_18",
-        "18_24",
-        "25_34",
-        "35_44",
-        "45_54",
-        "55_plus"
-      ]
-    },
-    "gender": {
-      "type": "string",
-      "description": "Self-reported gender collected at registration for aggregate admin demographics",
-      "enum": [
-        "male",
-        "female",
-        "prefer_not"
+        "buy",
+        "sell",
+        "both"
       ]
     },
     "phone": {

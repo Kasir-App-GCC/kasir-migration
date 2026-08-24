@@ -4,13 +4,11 @@ import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { formatPrice } from "@/lib/format";
 import { VERIFICATION_FEE } from "@/lib/verificationPayment";
-import { AGE_RANGES, GENDERS } from "@/lib/demographics";
 
 export default function AdminDashboard() {
   const { lang, country } = useStore();
   const ar = lang === "ar";
   const [stats, setStats] = useState(null);
-  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showRevenue, setShowRevenue] = useState(false);
   const RESETS_KEY = "admin_dashboard_resets";
@@ -33,7 +31,6 @@ export default function AdminDashboard() {
         ]);
         // Exclude generated seed/test listings (seller_id starts with "seed-")
         // so dashboard stats reflect real marketplace activity only.
-        setUsers(users || []);
         const realItems = (items || []).filter((i) => !(i.seller_id || "").startsWith("seed-"));
         // Total Sales = count of agreed (accepted/completed) offers, not item
         // status — so deleting the item or chat doesn't change the sales count.
@@ -80,17 +77,6 @@ export default function AdminDashboard() {
 
   if (loading) return <div className="py-10 text-center text-muted-foreground">Loading…</div>;
   if (!stats) return null;
-
-  const ageCounts = {};
-  const genderCounts = {};
-  AGE_RANGES.forEach((r) => (ageCounts[r.id] = 0));
-  GENDERS.forEach((g) => (genderCounts[g.id] = 0));
-  users.forEach((u) => {
-    if (u.age_range && ageCounts[u.age_range] != null) ageCounts[u.age_range]++;
-    if (u.gender && genderCounts[u.gender] != null) genderCounts[u.gender]++;
-  });
-  const totalWithAge = Object.values(ageCounts).reduce((a, b) => a + b, 0);
-  const totalWithGender = Object.values(genderCounts).reduce((a, b) => a + b, 0);
 
   const cards = [
     { icon: Users, label: ar ? "المستخدمين" : "Users", value: stats.users, color: "text-blue-500 bg-blue-50 dark:bg-blue-950/30" },
@@ -143,48 +129,6 @@ export default function AdminDashboard() {
           );
         })}
       </div>
-      {/* Demographics: age range + gender distribution */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="rounded-2xl bg-card border border-border/60 p-4">
-          <h3 className="font-bold text-sm mb-3 flex items-center gap-2"><Users size={16} className="text-blue-500" /> {ar ? "الفئة العمرية" : "Age range"}{totalWithAge > 0 && <span className="text-xs font-normal text-muted-foreground">· {totalWithAge}</span>}</h3>
-          <div className="space-y-2">
-            {AGE_RANGES.map((r) => {
-              const count = ageCounts[r.id] || 0;
-              const pct = totalWithAge ? Math.round((count / totalWithAge) * 100) : 0;
-              return (
-                <div key={r.id} className="flex items-center gap-2">
-                  <span className="text-xs w-16 shrink-0">{ar ? r.ar : r.en}</span>
-                  <div className="flex-1 h-2.5 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
-                  </div>
-                  <span className="text-xs font-semibold w-10 text-end">{count}</span>
-                </div>
-              );
-            })}
-            {totalWithAge === 0 && <p className="text-xs text-muted-foreground">{ar ? "لا بيانات بعد" : "No data yet"}</p>}
-          </div>
-        </div>
-        <div className="rounded-2xl bg-card border border-border/60 p-4">
-          <h3 className="font-bold text-sm mb-3 flex items-center gap-2"><Users size={16} className="text-violet-500" /> {ar ? "الجنس" : "Gender"}{totalWithGender > 0 && <span className="text-xs font-normal text-muted-foreground">· {totalWithGender}</span>}</h3>
-          <div className="space-y-2">
-            {GENDERS.map((g) => {
-              const count = genderCounts[g.id] || 0;
-              const pct = totalWithGender ? Math.round((count / totalWithGender) * 100) : 0;
-              return (
-                <div key={g.id} className="flex items-center gap-2">
-                  <span className="text-xs w-24 shrink-0">{ar ? g.ar : g.en}</span>
-                  <div className="flex-1 h-2.5 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full bg-violet-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
-                  </div>
-                  <span className="text-xs font-semibold w-10 text-end">{count}</span>
-                </div>
-              );
-            })}
-            {totalWithGender === 0 && <p className="text-xs text-muted-foreground">{ar ? "لا بيانات بعد" : "No data yet"}</p>}
-          </div>
-        </div>
-      </div>
-
       {stats.banned > 0 && (
         <div className="rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 p-3 text-sm text-rose-700 dark:text-rose-300">
           {ar ? `${stats.banned} مستخدم محظور حالياً` : `${stats.banned} user(s) currently banned`}

@@ -195,31 +195,22 @@ export default function ItemDetail() {
 
   const shareItem = async () => {
     const url = window.location.href;
-    const done = () => toast({ title: lang === "ar" ? "تم نسخ الرابط" : "Link copied" });
-    const fail = () => toast({ title: lang === "ar" ? "تعذّر النسخ" : "Couldn't copy", variant: "destructive" });
-    // Prefer the native Web Share sheet on mobile when available.
     if (navigator.share) {
-      try { await navigator.share({ title: item.title, text: item.title, url }); return; }
-      catch (err) { if (err?.name === "AbortError") return; }
+      try {
+        await navigator.share({ title: item.title, text: item.title, url });
+      } catch (err) {
+        if (err?.name !== "AbortError") toast({ title: lang === "ar" ? "تعذّر المشاركة" : "Couldn't share", variant: "destructive" });
+      }
+    } else if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(url);
+        toast({ title: lang === "ar" ? "تم نسخ الرابط" : "Link copied" });
+      } catch {
+        toast({ title: lang === "ar" ? "تعذّر النسخ" : "Couldn't copy", variant: "destructive" });
+      }
+    } else {
+      toast({ title: lang === "ar" ? "المتصفح لا يدعم المشاركة" : "Sharing not supported", variant: "destructive" });
     }
-    // Clipboard API (blocked inside some iframes).
-    try { await navigator.clipboard.writeText(url); done(); return; } catch {}
-    // Legacy fallback — works in iframes where the async Clipboard API is blocked.
-    try {
-      const ta = document.createElement("textarea");
-      ta.value = url;
-      ta.style.position = "fixed";
-      ta.style.top = "-1000px";
-      ta.setAttribute("readonly", "");
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-      done();
-      return;
-    } catch {}
-    fail();
   };
 
   const openSold = async () => {

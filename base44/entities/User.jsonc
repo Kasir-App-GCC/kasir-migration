@@ -30,23 +30,11 @@
     },
     "intent": {
       "type": "string",
-      "description": "Whether the user is here to buy, sell, or both (legacy \u2014 no longer collected at signup)",
+      "description": "Whether the user is here to buy, sell, or both",
       "enum": [
         "buy",
         "sell",
         "both"
-      ]
-    },
-    "age_range": {
-      "type": "string",
-      "description": "Self-reported age range collected during profile setup, used for admin demographics",
-      "enum": [
-        "10-15",
-        "16-19",
-        "20-30",
-        "31-40",
-        "41-50",
-        "51+"
       ]
     },
     "phone": {

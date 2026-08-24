@@ -512,9 +512,9 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
 
       <div className="space-y-1">
         <label className="text-sm font-semibold flex items-center gap-0.5">{t("location")} <span className="text-rose-500">*</span></label>
-        <div className="rounded-2xl bg-muted p-3 space-y-2.5">
+        <div className={`rounded-2xl bg-muted p-3 space-y-2.5 ${lat != null && lng != null ? "ring-2 ring-emerald-500/50 border border-emerald-500/40" : ""}`}>
           <div className="flex items-center gap-2">
-            <MapPin size={16} className="text-muted-foreground shrink-0" />
+            <MapPin size={16} className={`${lat != null && lng != null ? "text-emerald-600" : "text-muted-foreground"} shrink-0`} />
             <SheetSelect
               value={city}
               onChange={(v) => {
@@ -530,10 +530,15 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             
           </div>
           {lat != null && lng != null &&
-          <p className="text-[11px] text-muted-foreground ps-6">
+          <div className="ps-6 space-y-1">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 text-[11px] font-bold">
+              <Check size={11} /> {ar ? "تم تحديد موقعك تلقائياً" : "Location detected automatically"}
+            </span>
+            <p className="text-[11px] text-muted-foreground">
               {locationName ? <span className="font-semibold text-foreground">{locationName}</span> : (ar ? "الإحداثيات" : "Coordinates") + ": "}
               {!locationName ? `${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}` : ""}
             </p>
+          </div>
           }
           <div className="flex gap-2">
             <button type="button" onClick={detectLocation} disabled={locating} className="flex-1 py-2.5 rounded-xl bg-card border border-border/60 text-xs font-semibold flex items-center justify-center gap-1.5 disabled:opacity-50">

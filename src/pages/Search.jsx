@@ -9,6 +9,7 @@ import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { CATEGORIES, CONDITIONS } from "@/lib/constants";
 import { matchLocation } from "@/lib/location";
+import { nearbyCities } from "@/lib/countries";
 import { fetchSellerInfos } from "@/lib/useTrusted";
 import PullToRefresh from "@/components/PullToRefresh";
 import SavedSearchChips from "@/components/SavedSearchChips";
@@ -61,7 +62,10 @@ export default function Search() {
       if (maxPrice) query.price.$lte = Number(maxPrice);
     }
     if (!prefs.showSold) query.status = "available";
-    if (locationFilter.mode === "city" && locationFilter.city) query.city = locationFilter.city;
+    if (locationFilter.mode === "city" && locationFilter.city) {
+      const nearby = nearbyCities(locationFilter.city, country, 25);
+      query.city = nearby.length > 1 ? { $in: nearby } : nearby[0];
+    }
     if (debouncedQ) {
       query.$or = [
         { title: { $regex: debouncedQ, $options: "i" } },
@@ -164,8 +168,10 @@ export default function Search() {
   // Radius/map location can't be expressed server-side, so narrow the loaded
   // pages client-side. City mode is already handled by the server query.
   const filtered = useMemo(() => {
-    if (locationFilter.mode !== "radius" && locationFilter.mode !== "map") return items;
-    return items.filter((it) => matchLocation(it, locationFilter, country));
+    if (locationFilter.mode === "city" || locationFilter.mode === "radius" || locationFilter.mode === "map") {
+      return items.filter((it) => matchLocation(it, locationFilter, country));
+    }
+    return items;
   }, [items, locationFilter, country]);
 
   // Interleave promoted (sponsored) items into search results every 5 slots.

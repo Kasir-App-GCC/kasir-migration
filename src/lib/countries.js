@@ -264,6 +264,25 @@ export function nearestCity(lat, lng) {
   return best;
 }
 
+function distKm(a, b) {
+  const toRad = (d) => (d * Math.PI) / 180;
+  const R = 6371;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+// Returns the canonical city names within radiusKm of the given city — used to
+// broaden a city filter server-side so neighborhoods/sub-cities (e.g. Diriyah
+// within Riyadh) are returned alongside the major city.
+export function nearbyCities(cityEn, code, radiusKm = 25) {
+  const cities = getCities(code);
+  const center = cities.find((c) => c.en === cityEn);
+  if (!center || !center.lat) return [cityEn];
+  return cities.filter((c) => c.lat && distKm(center, c) <= radiusKm).map((c) => c.en);
+}
+
 export function lookupCityCountry(name) {
   if (!name) return null;
   for (const c of COUNTRIES) {

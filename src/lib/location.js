@@ -25,7 +25,16 @@ export function matchLocation(it, loc, country) {
   if (!loc) return true;
   if (loc.mode === "city") {
     if (!loc.city) return true;
-    return it.city === loc.city;
+    // Exact city match is always included.
+    if (it.city === loc.city) return true;
+    // Also include items in the city's greater metropolitan area by
+    // coordinates, so neighborhoods/sub-cities (e.g. Diriyah within Riyadh)
+    // show up when filtering by the major city — not just exact string matches.
+    const center = cityCoords(loc.city);
+    if (!center) return false;
+    const c = (it.lat && it.lng) ? { lat: it.lat, lng: it.lng } : cityCoords(it.city);
+    if (!c) return false;
+    return distanceKm(center.lat, center.lng, c.lat, c.lng) <= (loc.radius || 25);
   }
   if (loc.mode === "radius" || loc.mode === "map") {
     if (!loc.lat || !loc.lng) return true;

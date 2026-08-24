@@ -59,7 +59,14 @@ export default function EditListing() {
     }
     // A boost requested from the edit screen creates a pending BoostRequest
     // for admin review — same as the new-listing flow.
-    if (boost_hours > 0) {
+    if (data.claim_free_boost) {
+      try {
+        await base44.functions.invoke("claimFreeBoost", { item_id: id });
+        toast({ title: ar ? "تم حفظ التعديلات وتفعيل التعزيز المجاني" : "Changes saved — free boost activated", description: ar ? "تعزيز مجاني ليوم واحد" : "1-day free boost is live" });
+      } catch (e) {
+        toast({ title: ar ? "تم حفظ التعديلات" : "Changes saved", description: ar ? "تعذّر تفعيل التعزيز المجاني" : "Couldn't activate the free boost", variant: "destructive" });
+      }
+    } else if (boost_hours > 0) {
       try {
         await base44.functions.invoke("createBoostRequest", {
           item_id: id,

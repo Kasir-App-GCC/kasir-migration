@@ -68,7 +68,7 @@ export default async function (req) {
       if (existing && existing.length && existing[0].status !== "cancelled")
         return Response.json({ meetup: existing[0] });
 
-      const meetupType = ["meet_at_place", "buyer_pickup", "agree_separately"].includes(body.meetup_type)
+      const meetupType = ["meet_at_place", "buyer_pickup", "seller_delivery", "agree_separately"].includes(body.meetup_type)
         ? body.meetup_type
         : "meet_at_place";
       let item = null;
@@ -234,6 +234,12 @@ export default async function (req) {
         return Response.json({ error: "Invalid outcome" }, { status: 400 });
       if (!isBuyer && !sellerOutcomes.includes(outcome))
         return Response.json({ error: "Invalid outcome" }, { status: 400 });
+      // For mapped meetups, the acting party must have checked in before
+      // recording an outcome — claims require verified physical presence.
+      if (m.meetup_type !== "agree_separately") {
+        const checkedIn = isBuyer ? !!m.buyer_checked_in : !!m.seller_checked_in;
+        if (!checkedIn) return Response.json({ error: "Check in first to record the outcome" }, { status: 400 });
+      }
       const upd = isBuyer ? { buyer_outcome: outcome } : { seller_outcome: outcome };
       await svc.update(meetupId, upd);
       const fresh = await meetups.get(meetupId);

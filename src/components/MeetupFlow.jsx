@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import {
-  MapPin, Clock, Check, X, Navigation, ShieldAlert, Loader2, Handshake, Package, Banknote, CalendarClock, MapPinned, Star,
+  MapPin, Clock, Check, X, Navigation, ShieldAlert, Loader2, Handshake, Package, Banknote, CalendarClock, MapPinned, Star, Truck,
 } from "lucide-react";
 import MapPinPicker from "@/components/MapPinPicker";
 import RatingDialog from "@/components/RatingDialog";
@@ -26,6 +26,7 @@ function toLocalInput(dt) {
 const TYPE_CARDS = [
   { id: "meet_at_place", icon: MapPin, ar: "لقاء في مكان عام", en: "Meet at a public place" },
   { id: "buyer_pickup", icon: Package, ar: "يستلم المشتري من البائع", en: "Buyer picks up from seller" },
+  { id: "seller_delivery", icon: Truck, ar: "البائع يوصل إلى المشتري", en: "Seller delivers to buyer" },
   { id: "agree_separately", icon: Handshake, ar: "نتفق على اللقاء في المحادثة", en: "Agree on the meetup in chat" },
 ];
 
@@ -176,7 +177,7 @@ export default function MeetupFlow({ offer, user, lang, otherName, meetup, onMee
             </button>
           ))}
         </div>
-        {mtype === "meet_at_place" && (
+        {(mtype === "meet_at_place" || mtype === "seller_delivery") && (
           <>
             <input
               value={placeName}
@@ -189,6 +190,9 @@ export default function MeetupFlow({ offer, user, lang, otherName, meetup, onMee
         )}
         {mtype === "buyer_pickup" && (
           <p className="text-xs text-muted-foreground">{ar ? "سيكون المكان هو موقع الإعلان." : "The place will be the listing's location."}</p>
+        )}
+        {mtype === "seller_delivery" && (
+          <p className="text-xs text-muted-foreground">{ar ? "حدّد موقع التسليم على الخريطة ليوصل إليه البائع." : "Pin the delivery spot on the map so the seller can reach you."}</p>
         )}
         {mtype === "agree_separately" && (
           <p className="text-xs text-muted-foreground">{ar ? "ستتفقان على التفاصيل داخل المحادثة، ثم تثبّتان الموعد هنا." : "You'll arrange details in chat, then lock the time here."}</p>

@@ -49,6 +49,7 @@
       "enum": [
         "meet_at_place",
         "buyer_pickup",
+        "seller_delivery",
         "agree_separately"
       ],
       "default": "meet_at_place"

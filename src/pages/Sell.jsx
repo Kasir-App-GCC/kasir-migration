@@ -27,7 +27,14 @@ export default function Sell() {
       featured_until: null,
       featured_cross_country: false,
     });
-    if (boosted) {
+    if (data.claim_free_boost) {
+      try {
+        await base44.functions.invoke("claimFreeBoost", { item_id: item.id });
+        toast({ title: ar ? "تم نشر إعلانك وتفعيل التعزيز المجاني" : "Listing posted — free boost activated", description: ar ? "تعزيز مجاني ليوم واحد" : "1-day free boost is live" });
+      } catch (e) {
+        toast({ title: ar ? "تم نشر إعلانك" : "Listing posted", description: ar ? "تعذّر تفعيل التعزيز المجاني" : "Couldn't activate the free boost", variant: "destructive" });
+      }
+    } else if (boosted) {
       try {
         await base44.functions.invoke("createBoostRequest", {
           item_id: item.id,

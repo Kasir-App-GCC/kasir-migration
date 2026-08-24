@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ImagePlus, X, Sparkles, LocateFixed, MapPin, GripVertical, Globe, Lock, Check, Camera, Wand2, Truck } from "lucide-react";
+import { ImagePlus, X, Sparkles, LocateFixed, MapPin, GripVertical, Globe, Lock, Check, Camera, Wand2, Truck, Gift } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -64,6 +64,8 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [willingToShip, setWillingToShip] = useState(!!initial?.willing_to_ship);
   const [shippingFee, setShippingFee] = useState(initial?.shipping_fee != null ? String(initial.shipping_fee) : "");
   const [deliversWithinCity, setDeliversWithinCity] = useState(!!initial?.delivers_within_city);
+  const [useFreeBoost, setUseFreeBoost] = useState(false);
+  const [freeBoostAvailable, setFreeBoostAvailable] = useState(null);
 
   // Reverse-geocode coordinates to an accurate place name for display.
   const reverseGeocode = async (la, ln) => {
@@ -135,6 +137,20 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
     if (!city) detectLocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // A verified user gets one free 1-day boost (lifetime) — check if already used.
+  useEffect(() => {
+    if (!user?.id || !user?.is_trusted) return;
+    (async () => {
+      try {
+        const existing = await base44.entities.BoostRequest.filter({ user_id: user.id, is_free: true }, "-created_date", 1);
+        setFreeBoostAvailable(!existing || existing.length === 0);
+      } catch {
+        setFreeBoostAvailable(true);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, user?.is_trusted]);
 
   const onPick = (e) => {
     const files = Array.from(e.target.files || []).slice(0, maxPhotos - images.length);
@@ -249,9 +265,10 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         shipping_fee: willingToShip && shippingFee ? Number(shippingFee) : null,
         delivers_within_city: deliversWithinCity,
         featured: false,
-        boost_hours: boostHours,
+        boost_hours: useFreeBoost ? 0 : boostHours,
         boost_cross_country: boostCross,
-        boost_amount: boostAmount
+        boost_amount: boostAmount,
+        claim_free_boost: useFreeBoost
       });
     } catch (e) {
       setPosting(false);
@@ -582,7 +599,34 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             </p>
           </div>
         }
-        <div className={boostLocked ? "opacity-50 pointer-events-none" : ""}>
+        {/* Free 1-day boost reward for verified users (one per user, enforced server-side) */}
+        {verified && freeBoostAvailable && !boostLocked && (
+          <button
+            type="button"
+            onClick={() => { setUseFreeBoost((v) => !v); if (!useFreeBoost) setBoostHours(0); }}
+            className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition ${useFreeBoost ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800" : "bg-muted border-dashed border-emerald-300 dark:border-emerald-800/60"}`}>
+            <span className="flex items-center gap-2 text-start">
+              <Gift size={16} className="text-emerald-600" />
+              <span>
+                <span className="text-sm font-semibold block">{ar ? "تعزيز مجاني ليوم واحد" : "Free 1-day boost"}</span>
+                <span className="text-[11px] text-muted-foreground">{ar ? "مكافأة التوثيق — تُفعَّل فور النشر" : "Verification reward — activates on post"}</span>
+              </span>
+            </span>
+            <span className={`w-11 h-6 rounded-full p-0.5 transition ${useFreeBoost ? "bg-emerald-500" : "bg-muted-foreground/30"}`}>
+              <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${useFreeBoost ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
+            </span>
+          </button>
+        )}
+        {verified && freeBoostAvailable === false && (
+          <p className="text-[11px] text-muted-foreground flex items-center gap-1"><Check size={12} className="text-emerald-600" /> {ar ? "لقد استخدمت تعزيزك المجاني." : "You've used your free boost."}</p>
+        )}
+        {!verified && (
+          <button type="button" onClick={() => setVerifyOpen(true)} className="w-full flex items-center gap-2 p-2.5 rounded-xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900/50 text-start">
+            <Lock size={15} className="text-sky-600 shrink-0" />
+            <span className="text-[11px] font-semibold text-sky-700 dark:text-sky-300">{ar ? "وثّق حسابك لتحصل على تعزيز مجاني ليوم واحد" : "Verify your account to unlock a free 1-day boost"}</span>
+          </button>
+        )}
+        <div className={(boostLocked || useFreeBoost) ? "opacity-50 pointer-events-none" : ""}>
           <div className="flex items-center justify-between text-sm mb-1.5">
             <span className="font-semibold">{ar ? "المدة المضافة" : "Hours to add"}</span>
             <span className="font-bold">{boostHours > 0 ? (() => {const days = boostHours / 24;const dayLabel = days >= 1 && boostHours % 24 === 0 ? ` (${days} ${ar ? days === 1 ? "يوم" : days === 2 ? "يومان" : days <= 10 ? "أيام" : "يوم" : days === 1 ? "day" : "days"})` : "";return `${boostHours} ${ar ? "ساعة" : "h"}${dayLabel}`;})() : ar ? "بدون تعزيز" : "No boost"}</span>

@@ -44,6 +44,11 @@
     "reviewed_by": {
       "type": "string",
       "description": "The admin user id who reviewed the request"
+    },
+    "is_free": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for the one-time free 1-day verified-user boost (auto-approved, no payment)"
     }
   },
   "required": [

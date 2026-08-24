@@ -1,0 +1,190 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+
+// Server-side state machine for offers. All status transitions (and the
+// initial offer creation) are validated here and written with the service
+// role, so clients cannot tamper with status/amount/party fields directly
+// (Offer RLS create/update is admin-only). Rules enforced:
+//  - create: the caller must be the initiator (buyer for buyer_offer, seller
+//    for seller_counter); amount > 0; for a buyer offer the item must be
+//    available and the seller id must match the listing owner. Status is forced
+//    to "pending".
+//  - accept/reject/not_match/counter: only the recipient (non-initiator) of a
+//    PENDING offer can act. Accept supersedes any previously accepted offer in
+//    the same chat (set to countered).
+//  - modify: only the initiator of a PENDING offer can change its amount.
+//  - request_modification: either party on an ACCEPTED/COMPLETED offer can
+//    create a fresh pending offer at a new amount.
+//  - confirm_receipt: only the buyer of an ACCEPTED offer; marks the item sold.
+
+export default async function (req) {
+  try {
+    const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const body = await req.json().catch(() => ({}));
+    const action = body.action;
+    const offers = base44.asServiceRole.entities.Offer;
+
+    const getOffer = async (id) => {
+      try { return await base44.entities.Offer.get(id); } catch { return null; }
+    };
+
+    // ---- CREATE (initial buyer offer, or seller counter on a Buy Request) ----
+    if (action === "create") {
+      const amount = Number(body.amount);
+      if (!amount || amount <= 0) return Response.json({ error: "Invalid amount" }, { status: 400 });
+      const direction = body.direction === "seller_counter" ? "seller_counter" : "buyer_offer";
+      const buyerId = String(body.buyer_id || "");
+      const sellerId = String(body.seller_id || "");
+      if (!buyerId || !sellerId) return Response.json({ error: "Missing parties" }, { status: 400 });
+      const initiator = direction === "buyer_offer" ? buyerId : sellerId;
+      if (String(user.id) !== String(initiator)) return Response.json({ error: "Not allowed" }, { status: 403 });
+      if (direction === "buyer_offer") {
+        let item;
+        try { item = await base44.entities.Item.get(String(body.item_id)); } catch { item = null; }
+        if (!item) return Response.json({ error: "Item not found" }, { status: 404 });
+        if (item.status === "sold") return Response.json({ error: "Item sold" }, { status: 400 });
+        if (String(item.seller_id) !== String(sellerId)) return Response.json({ error: "Seller mismatch" }, { status: 400 });
+      }
+      const created = await offers.create({
+        chatroom_id: String(body.chatroom_id || ""),
+        item_id: String(body.item_id || ""),
+        item_title: String(body.item_title || ""),
+        buyer_id: buyerId,
+        buyer_name: String(body.buyer_name || ""),
+        seller_id: sellerId,
+        seller_name: String(body.seller_name || ""),
+        amount,
+        status: "pending",
+        direction,
+        image: body.image || null,
+      });
+      if (body.message && String(body.message).trim()) {
+        const text = String(body.message).trim().slice(0, 1000);
+        try {
+          await base44.asServiceRole.entities.Message.create({
+            chatroom_id: String(body.chatroom_id || ""),
+            sender_id: String(user.id),
+            sender_name: String(user.name || ""),
+            text,
+          });
+        } catch {}
+      }
+      return Response.json({ ok: true, offer: created });
+    }
+
+    // ---- Transitions on an existing offer ----
+    const offerId = String(body.offer_id || "");
+    if (!offerId) return Response.json({ error: "offer_id required" }, { status: 400 });
+    const offer = await getOffer(offerId);
+    if (!offer) return Response.json({ error: "Offer not found" }, { status: 404 });
+    if (String(offer.buyer_id) !== String(user.id) && String(offer.seller_id) !== String(user.id))
+      return Response.json({ error: "Not a party" }, { status: 403 });
+    const initiator = offer.direction === "buyer_offer" ? offer.buyer_id : offer.seller_id;
+    const isInitiator = String(initiator) === String(user.id);
+    const isRecipient = !isInitiator;
+
+    if (action === "accept") {
+      if (!isRecipient) return Response.json({ error: "Only the recipient can accept" }, { status: 403 });
+      if (offer.status !== "pending") return Response.json({ error: "Offer not pending" }, { status: 400 });
+      const prevAccepted = await base44.entities.Offer.filter({ chatroom_id: offer.chatroom_id, status: "accepted" }, "-created_date", 50);
+      const isMod = (prevAccepted || []).some((o) => o.id !== offer.id);
+      if (isMod) {
+        for (const o of (prevAccepted || [])) {
+          if (o.id !== offer.id) { try { await offers.update(o.id, { status: "countered" }); } catch {} }
+        }
+      }
+      const updated = await offers.update(offerId, { status: "accepted" });
+      return Response.json({ ok: true, offer: updated, is_mod_acceptance: !!isMod });
+    }
+
+    if (action === "reject") {
+      if (!isRecipient) return Response.json({ error: "Only the recipient can reject" }, { status: 403 });
+      if (offer.status !== "pending") return Response.json({ error: "Offer not pending" }, { status: 400 });
+      const updated = await offers.update(offerId, { status: "rejected" });
+      return Response.json({ ok: true, offer: updated });
+    }
+
+    if (action === "not_match") {
+      if (!isRecipient) return Response.json({ error: "Only the recipient can reject" }, { status: 403 });
+      if (offer.status !== "pending") return Response.json({ error: "Offer not pending" }, { status: 400 });
+      const updated = await offers.update(offerId, { status: "not_match" });
+      return Response.json({ ok: true, offer: updated });
+    }
+
+    if (action === "counter") {
+      if (!isRecipient) return Response.json({ error: "Only the recipient can counter" }, { status: 403 });
+      if (offer.status !== "pending") return Response.json({ error: "Offer not pending" }, { status: 400 });
+      const amount = Number(body.amount);
+      if (!amount || amount <= 0) return Response.json({ error: "Invalid amount" }, { status: 400 });
+      await offers.update(offerId, { status: "countered" });
+      const newDirection = offer.direction === "buyer_offer" ? "seller_counter" : "buyer_offer";
+      const created = await offers.create({
+        chatroom_id: offer.chatroom_id,
+        item_id: offer.item_id,
+        item_title: offer.item_title,
+        buyer_id: offer.buyer_id,
+        buyer_name: offer.buyer_name,
+        seller_id: offer.seller_id,
+        seller_name: offer.seller_name,
+        amount,
+        status: "pending",
+        direction: newDirection,
+        previous_offer_id: offerId,
+      });
+      return Response.json({ ok: true, created });
+    }
+
+    if (action === "modify") {
+      if (!isInitiator) return Response.json({ error: "Only the initiator can modify" }, { status: 403 });
+      if (offer.status !== "pending") return Response.json({ error: "Offer not pending" }, { status: 400 });
+      const amount = Number(body.amount);
+      if (!amount || amount <= 0) return Response.json({ error: "Invalid amount" }, { status: 400 });
+      const updated = await offers.update(offerId, { amount });
+      return Response.json({ ok: true, offer: updated });
+    }
+
+    if (action === "request_modification") {
+      if (offer.status !== "accepted" && offer.status !== "completed")
+        return Response.json({ error: "Offer not accepted" }, { status: 400 });
+      const amount = Number(body.amount);
+      if (!amount || amount <= 0) return Response.json({ error: "Invalid amount" }, { status: 400 });
+      const isSeller = String(offer.seller_id) === String(user.id);
+      const newDirection = isSeller ? "seller_counter" : "buyer_offer";
+      const created = await offers.create({
+        chatroom_id: offer.chatroom_id,
+        item_id: offer.item_id,
+        item_title: offer.item_title,
+        buyer_id: offer.buyer_id,
+        buyer_name: offer.buyer_name,
+        seller_id: offer.seller_id,
+        seller_name: offer.seller_name,
+        amount,
+        status: "pending",
+        direction: newDirection,
+        previous_offer_id: offerId,
+      });
+      return Response.json({ ok: true, created });
+    }
+
+    if (action === "confirm_receipt") {
+      if (String(offer.buyer_id) !== String(user.id))
+        return Response.json({ error: "Only the buyer can confirm receipt" }, { status: 403 });
+      if (offer.status !== "accepted")
+        return Response.json({ error: "Offer not accepted" }, { status: 400 });
+      const updated = await offers.update(offerId, { status: "completed", received_confirmed: true });
+      try {
+        await base44.asServiceRole.entities.Item.update(offer.item_id, {
+          status: "sold",
+          sold_to: offer.buyer_id,
+          sold_to_name: offer.buyer_name,
+        });
+      } catch {}
+      return Response.json({ ok: true, offer: updated });
+    }
+
+    return Response.json({ error: "Unknown action" }, { status: 400 });
+  } catch (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+}

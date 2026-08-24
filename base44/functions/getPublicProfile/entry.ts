@@ -3,8 +3,10 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    // Public browsing/SEO: unauthenticated callers are allowed, but get a safe
+    // subset (no contact details) so WhatsApp numbers can't be indexed.
+    const user = await base44.auth.me().catch(() => null);
+    const isAuthed = !!user;
 
     const body = await req.json().catch(() => ({}));
     const userId = (body.user_id || "").toString();
@@ -30,20 +32,23 @@ export default async function (req) {
       }
     } catch {}
 
-    return Response.json({
+    const safe = {
       username: u.username || "",
       first_name: u.first_name || "",
       last_name: u.last_name || "",
       full_name: u.full_name || [u.first_name, u.last_name].filter(Boolean).join(" "),
       avatar: u.avatar || "",
-      whatsapp_enabled: !!u.whatsapp_enabled,
-      whatsapp_number: u.whatsapp_enabled ? (u.whatsapp_number || "") : "",
       is_trusted: !!u.is_trusted,
       rating_avg,
       rating_count,
       created_date: u.created_date || null,
       followers_override: typeof u.followers_override === "number" ? u.followers_override : null,
-    });
+    };
+    return Response.json(
+      isAuthed
+        ? { ...safe, whatsapp_enabled: !!u.whatsapp_enabled, whatsapp_number: u.whatsapp_enabled ? (u.whatsapp_number || "") : "" }
+        : { ...safe, whatsapp_enabled: false, whatsapp_number: "" }
+    );
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

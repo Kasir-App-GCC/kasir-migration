@@ -79,21 +79,13 @@ export default function RatingDialog({ offer, user, lang, onClose, onDone }) {
     try {
       const tagText = tags.map((k) => tagOptions.find((o) => o.en === k)).filter(Boolean).map((o) => (ar ? o.ar : o.en)).join(" · ");
       const fullReview = [tagText, review].filter(Boolean).join(" · ");
-      await base44.entities.Rating.create({
-        rated_user_id: ratedId,
-        rated_user_name: ratedName,
-        rater_user_id: user.id,
-        rater_name: user.name,
-        score,
-        review: fullReview,
-        item_id: offer.item_id,
-        offer_id: offer.id,
-        role,
-      });
+      await base44.functions.invoke("submitRating", { offer_id: offer.id, score, review: fullReview });
       toast({ title: ar ? "تم إرسال التقييم" : "Rating submitted" });
       onDone?.();
-    } catch {
-      toast({ title: ar ? "فشل" : "Failed", variant: "destructive" });
+    } catch (e) {
+      const msg = String(e?.response?.data?.error || e?.message || "");
+      if (msg.includes("already_rated")) { setAlreadyRated(true); }
+      else toast({ title: ar ? "فشل" : "Failed", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }

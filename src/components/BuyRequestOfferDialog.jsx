@@ -57,7 +57,9 @@ export default function BuyRequestOfferDialog({ req, user, lang, country, onClos
         roomId = room.id;
       }
 
-      await base44.entities.Offer.create({
+      const customMsg = message.trim();
+      await base44.functions.invoke("manageOffer", {
+        action: "create",
         chatroom_id: roomId,
         item_id: req.id,
         item_title: req.title,
@@ -66,20 +68,10 @@ export default function BuyRequestOfferDialog({ req, user, lang, country, onClos
         seller_id: user.id,
         seller_name: user.name,
         amount: Number(amount),
-        status: "pending",
         direction: "seller_counter",
         image: file_url,
+        message: customMsg || undefined,
       });
-
-      const customMsg = message.trim();
-      if (customMsg) {
-        await base44.entities.Message.create({
-          chatroom_id: roomId,
-          sender_id: user.id,
-          sender_name: user.name,
-          text: customMsg,
-        });
-      }
       const lastMsg = customMsg || (lang === "ar" ? "تم إرسال عرض" : "Offer sent");
       await base44.entities.ChatRoom.update(roomId, { last_message: lastMsg, hidden_for_buyer: false, hidden_for_seller: false });
 

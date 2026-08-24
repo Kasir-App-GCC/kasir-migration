@@ -155,7 +155,8 @@ export default function ItemDetail() {
     setSending(true);
     try {
       const room = await getOrCreateRoom(offerPrice);
-      await base44.entities.Offer.create({
+      await base44.functions.invoke("manageOffer", {
+        action: "create",
         chatroom_id: room.id,
         item_id: item.id,
         item_title: item.title,
@@ -164,7 +165,6 @@ export default function ItemDetail() {
         seller_id: item.seller_id,
         seller_name: item.seller_name,
         amount: offerPrice,
-        status: "pending",
         direction: "buyer_offer",
       });
       const text = (lang === "ar" ? "أبي أعرض عليك بسعر " : "I'd like to offer ") + formatPrice(offerPrice, lang, item.country);

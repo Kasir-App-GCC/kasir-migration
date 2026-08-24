@@ -165,12 +165,15 @@ export default function ChatRoom() {
     if (isBlocked) return;
     const body = (value ?? text).trim();
     if (!body) return;
-    const senderName = isOfficial && isSeller ? officialLabel : user.name;
-    const msg = { chatroom_id: id, sender_id: user.id, sender_name: senderName, text: body };
     setText("");
     try {
-      await base44.entities.Message.create(msg);
-      await base44.entities.ChatRoom.update(id, { last_message: msg.text, hidden_for_buyer: false, hidden_for_seller: false });
+      const res = await base44.functions.invoke("sendMessage", { chatroom_id: id, text: body });
+      const msg = res?.data?.message;
+      if (msg) setMessages((prev) => {
+        const i = prev.findIndex((x) => x.id === msg.id);
+        if (i === -1) return [...prev, msg];
+        const copy = [...prev]; copy[i] = msg; return copy;
+      });
     } catch {}
   };
 
@@ -185,7 +188,6 @@ export default function ChatRoom() {
     const isModAcceptance = prevAccepted.length > 0;
     if (isModAcceptance) {
       setOffers((prev) => prev.map((o) => (prevAccepted.some((a) => a.id === o.id) ? { ...o, status: "countered" } : o)));
-      for (const a of prevAccepted) { try { await base44.entities.Offer.update(a.id, { status: "countered" }); } catch {} }
     }
     setOffers((prev) => prev.map((o) => (o.id === offer.id ? { ...o, status: "accepted" } : o)));
     const otherId = offer.direction === "buyer_offer" ? offer.buyer_id : offer.seller_id;
@@ -212,7 +214,7 @@ export default function ChatRoom() {
         text: lang === "ar" ? "قيّم المشتري" : "Rate the buyer", actor_name: offer.buyer_name, chatroom_id: id,
       }).catch(() => {});
     }
-    try { await base44.entities.Offer.update(offer.id, { status: "accepted" }); } catch {}
+    try { await base44.functions.invoke("manageOffer", { action: "accept", offer_id: offer.id }); } catch {}
     try { await base44.entities.ChatRoom.update(id, { last_message: agreeTxt, hidden_for_buyer: false, hidden_for_seller: false }); } catch {}
   };
 
@@ -225,7 +227,7 @@ export default function ChatRoom() {
       item_id: offer.item_id, item_title: offer.item_title, chatroom_id: id,
       offer_amount: offer.amount, actor_name: user.name,
     }).catch(() => {});
-    await base44.entities.Offer.update(offer.id, { status: "rejected" });
+    try { await base44.functions.invoke("manageOffer", { action: "reject", offer_id: offer.id }); } catch {}
     const txt = lang === "ar" ? "تم رفض العرض" : "Offer rejected";
     await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false });
   };
@@ -239,7 +241,7 @@ export default function ChatRoom() {
       item_id: offer.item_id, item_title: offer.item_title, chatroom_id: id,
       offer_amount: offer.amount, actor_name: user.name,
     }).catch(() => {});
-    await base44.entities.Offer.update(offer.id, { status: "not_match" });
+    try { await base44.functions.invoke("manageOffer", { action: "not_match", offer_id: offer.id }); } catch {}
     await base44.entities.ChatRoom.update(id, { last_message: ntxt, hidden_for_buyer: false, hidden_for_seller: false });
   };
 
@@ -255,21 +257,11 @@ export default function ChatRoom() {
       item_id: offer.item_id, item_title: offer.item_title, chatroom_id: id,
       offer_amount: amount, actor_name: user.name,
     }).catch(() => {});
-    await base44.entities.Offer.update(offer.id, { status: "countered" });
-    const direction = isSeller ? "seller_counter" : "buyer_offer";
-    await base44.entities.Offer.create({
-      chatroom_id: id,
-      item_id: offer.item_id,
-      item_title: offer.item_title,
-      buyer_id: offer.buyer_id,
-      buyer_name: offer.buyer_name,
-      seller_id: offer.seller_id,
-      seller_name: offer.seller_name,
-      amount,
-      status: "pending",
-      direction,
-      previous_offer_id: offer.id,
-    });
+    try {
+      const res = await base44.functions.invoke("manageOffer", { action: "counter", offer_id: offer.id, amount });
+      const created = res?.data?.created;
+      if (created) setOffers((prev) => [...prev, created]);
+    } catch {}
     const preview = (isSeller
       ? (lang === "ar" ? `عارض البائع بسعر ${formatPrice(amount, lang, itemCountry, country)}` : `Seller counters at ${formatPrice(amount, lang, itemCountry, country)}`)
       : (lang === "ar" ? `عرض جديد بسعر ${formatPrice(amount, lang, itemCountry, country)}` : `New offer at ${formatPrice(amount, lang, itemCountry, country)}`));
@@ -287,16 +279,14 @@ export default function ChatRoom() {
       item_id: offer.item_id, item_title: offer.item_title, chatroom_id: id,
       offer_amount: amount, actor_name: user.name,
     }).catch(() => {});
-    await base44.entities.Offer.update(offer.id, { amount });
+    try { await base44.functions.invoke("manageOffer", { action: "modify", offer_id: offer.id, amount }); } catch {}
     const txt = lang === "ar" ? `تم تعديل العرض إلى ${formatPrice(amount, lang, itemCountry, country)}` : `Offer updated to ${formatPrice(amount, lang, itemCountry, country)}`;
     await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false });
   };
 
   const confirmReceipt = async (offer) => {
-    await base44.entities.Offer.update(offer.id, { status: "completed", received_confirmed: true });
-    try {
-      await base44.entities.Item.update(offer.item_id, { status: "sold", sold_to: offer.buyer_id, sold_to_name: offer.buyer_name });
-    } catch {}
+    try { await base44.functions.invoke("manageOffer", { action: "confirm_receipt", offer_id: offer.id }); } catch {}
+    setOffers((prev) => prev.map((o) => (o.id === offer.id ? { ...o, status: "completed", received_confirmed: true } : o)));
   };
 
   // Request a modification to an accepted offer WITHOUT ending it: create a
@@ -304,17 +294,12 @@ export default function ChatRoom() {
   // valid — only if the other party accepts the modification does it supersede.
   // Rejecting the modification simply rejects the new pending offer.
   const requestModification = async (offer, amount) => {
-    const direction = isSeller ? "seller_counter" : "buyer_offer";
     let created;
     try {
-      created = await base44.entities.Offer.create({
-        chatroom_id: id, item_id: offer.item_id, item_title: offer.item_title,
-        buyer_id: offer.buyer_id, buyer_name: offer.buyer_name,
-        seller_id: offer.seller_id, seller_name: offer.seller_name,
-        amount, status: "pending", direction, previous_offer_id: offer.id,
-      });
+      const res = await base44.functions.invoke("manageOffer", { action: "request_modification", offer_id: offer.id, amount });
+      created = res?.data?.created;
     } catch { return; }
-    setOffers((prev) => [...prev, created]);
+    if (created) setOffers((prev) => [...prev, created]);
     const otherId = isSeller ? offer.buyer_id : offer.seller_id;
     const ntxt = ar
       ? `طلب تعديل العرض المقبول إلى ${formatPrice(amount, lang, itemCountry, country)}`

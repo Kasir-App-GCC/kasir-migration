@@ -36,15 +36,16 @@ export default function ReportDialog({ open, onClose, seller, item }) {
     try {
       const tagText = tags.map((k) => REPORT_TAGS.find((o) => o.en === k)).filter(Boolean).map((o) => (lang === "ar" ? o.ar : o.en)).join(" · ");
       const fullDetails = [tagText, details].filter(Boolean).join(" · ");
-      await base44.entities.Report.create({
+      await base44.functions.invoke("submitReport", {
         reported_user_id: seller?.id,
         reported_user_name: seller?.name,
-        reporter_user_id: user?.id,
         reason,
         details: fullDetails,
         item_id: item?.id,
       });
       setDone(true);
+    } catch {
+      // rate-limited or failed — stay on the form so the user can retry
     } finally {
       setSubmitting(false);
     }

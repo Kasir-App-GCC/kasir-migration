@@ -32,23 +32,14 @@ export default function DisputeDialog({ offer, user, lang, onClose }) {
     }
     setSaving(true);
     try {
-      await base44.entities.Dispute.create({
-        item_id: offer.item_id,
-        item_title: offer.item_title,
-        offer_id: offer.id,
-        chatroom_id: offer.chatroom_id,
-        complainant_id: user.id,
-        complainant_name: user.name,
-        respondent_id: respondentId,
-        respondent_name: respondentName,
-        reason,
-        description: desc.trim(),
-        status: "open",
-      });
+      await base44.functions.invoke("submitDispute", { offer_id: offer.id, reason, description: desc.trim() });
       toast({ title: ar ? "تم فتح النزاع — ستراجعه الإدارة" : "Dispute opened — admin will review" });
       onClose();
-    } catch {
-      toast({ title: ar ? "فشل" : "Failed", variant: "destructive" });
+    } catch (e) {
+      const msg = String(e?.response?.data?.error || e?.message || "");
+      if (msg.includes("dispute_already_open")) toast({ title: ar ? "يوجد نزاع مفتوح بالفعل" : "A dispute is already open" });
+      else if (msg.includes("rate_limit")) toast({ title: ar ? "لقد فتحت نزاعات كثيرة، حاول لاحقاً" : "Too many disputes, try later" });
+      else toast({ title: ar ? "فشل" : "Failed", variant: "destructive" });
     } finally {
       setSaving(false);
     }

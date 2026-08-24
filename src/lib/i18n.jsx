@@ -277,6 +277,13 @@ const en = {
   chatsCount: "Chats",
   favoritesCount: "Saved",
   read: "Read",
+  verifiedOnly: "Verified only",
+  specsTitle: "Specifications",
+  lastActive: "Last active",
+  onlineNow: "Online now",
+  typicallyReplies: "Typically replies",
+  completedMeetups: "Completed meetups",
+  noShows: "No-shows",
   };
 
 const ar = {
@@ -556,6 +563,13 @@ const ar = {
   chatsCount: "محادثات",
   favoritesCount: "محفوظ",
   read: "تمت القراءة",
+  verifiedOnly: "موثّق فقط",
+  specsTitle: "المواصفات",
+  lastActive: "آخر ظهور",
+  onlineNow: "متصل الآن",
+  typicallyReplies: "يرد عادة خلال",
+  completedMeetups: "لقاءات مكتملة",
+  noShows: "تغيّب",
   };
 
 export function useT() {

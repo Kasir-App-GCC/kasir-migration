@@ -1,12 +1,29 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Star, BadgeCheck, UserPlus, UserCheck, Ban, Package, CheckCircle } from "lucide-react";
+import { ArrowLeft, Star, BadgeCheck, UserPlus, UserCheck, Ban, Package, CheckCircle, Clock, MessageSquare, ShieldCheck } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import ItemCard from "@/components/ItemCard";
 import ReviewCard from "@/components/ReviewCard";
 import { useBlockStatus } from "@/lib/useBlockStatus";
+
+function timeAgoShort(iso, ar) {
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 60) return ar ? `قبل ${mins} د` : `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return ar ? `قبل ${hrs} س` : `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return ar ? `قبل ${days} يوم` : `${days}d ago`;
+  const mos = Math.floor(days / 30);
+  return ar ? `قبل ${mos} شهر` : `${mos}mo ago`;
+}
+function replyLabel(hours, ar) {
+  if (hours < 1) return ar ? "أقل من ساعة" : "under an hour";
+  if (hours < 24) return ar ? `خلال ${Math.round(hours)} ساعة` : `within ${Math.round(hours)}h`;
+  const days = Math.round(hours / 24);
+  return ar ? `خلال ${days} يوم` : `within ${days}d`;
+}
 
 export default function UserProfile() {
   const { id } = useParams();
@@ -26,6 +43,7 @@ export default function UserProfile() {
   const [followingCount, setFollowingCount] = useState(0);
   const [followBusy, setFollowBusy] = useState(false);
   const [listingTab, setListingTab] = useState("active");
+  const [stats, setStats] = useState(null);
   const { blockedByMe, block, unblock } = useBlockStatus(id, user?.id);
 
   const isOwn = !!user && user.id === id;
@@ -40,6 +58,10 @@ export default function UserProfile() {
         try {
           const p = await base44.functions.invoke("getPublicProfile", { user_id: id });
           setProfile(p?.data || null);
+        } catch {}
+        try {
+          const s = await base44.functions.invoke("getUserStats", { user_id: id });
+          setStats(s?.data || null);
         } catch {}
         const [mine, rs, followers, following, myFollow] = await Promise.all([
           base44.entities.Item.filter({ seller_id: id }, "-created_date", 200),
@@ -134,6 +156,26 @@ export default function UserProfile() {
             {joined && (
               <p className="text-xs opacity-70 mt-0.5">{t("memberSince")} {joined.toLocaleDateString(ar ? "ar-SA" : "en-US", { month: "short", year: "numeric" })}</p>
             )}
+            {stats && (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs">
+                {stats.last_active && (() => {
+                  const mins = Math.floor((Date.now() - new Date(stats.last_active).getTime()) / 60000);
+                  const online = mins < 5;
+                  const label = online ? t("onlineNow") : (ar ? `آخر ظهور ${timeAgoShort(stats.last_active, ar)}` : `Active ${timeAgoShort(stats.last_active, ar)}`);
+                  return (
+                    <span className="inline-flex items-center gap-1">
+                      <span className={`w-2 h-2 rounded-full ${online ? "bg-emerald-400 animate-pulse" : "bg-white/40"}`} />
+                      {label}
+                    </span>
+                  );
+                })()}
+                {stats.reply_hours != null && (
+                  <span className="inline-flex items-center gap-1 opacity-80">
+                    <MessageSquare size={12} /> {t("typicallyReplies")} {replyLabel(stats.reply_hours, ar)}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -151,6 +193,16 @@ export default function UserProfile() {
             <p className="text-[11px] opacity-80">{t("followers")}</p>
           </div>
         </div>
+
+        {stats && (stats.meetups_completed > 0 || stats.no_shows > 0) && (
+          <div className="flex items-center gap-2 mt-3 text-xs">
+            <ShieldCheck size={14} className="shrink-0 opacity-80" />
+            <span className="opacity-80">
+              {stats.meetups_completed} {t("completedMeetups")}
+              {stats.no_shows > 0 && <span className="opacity-70"> · {stats.no_shows} {t("noShows")}</span>}
+            </span>
+          </div>
+        )}
 
         {!isOwn && (
           <div className="flex gap-2 mt-3">

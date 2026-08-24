@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { Search as SearchIcon, SlidersHorizontal, X, Sparkles, ShoppingBag, Megaphone, Bookmark } from "lucide-react";
+import { Search as SearchIcon, SlidersHorizontal, X, Sparkles, ShoppingBag, Megaphone, Bookmark, BadgeCheck } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import ItemCard from "@/components/ItemCard";
 import SearchLocationControl from "@/components/SearchLocationControl";
@@ -8,7 +8,7 @@ import UserSearchDropdown from "@/components/UserSearchDropdown";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { CATEGORIES, CONDITIONS } from "@/lib/constants";
-import { matchLocation } from "@/lib/location";
+import { matchLocation, cityCoords, distanceKm } from "@/lib/location";
 import { nearbyCities } from "@/lib/countries";
 import { fetchSellerInfos } from "@/lib/useTrusted";
 import PullToRefresh from "@/components/PullToRefresh";
@@ -31,6 +31,7 @@ export default function Search() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [sort, setSort] = useState("newest");
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
@@ -174,6 +175,28 @@ export default function Search() {
     return items;
   }, [items, locationFilter, country]);
 
+  // "Verified only" narrows to sellers with the trusted badge (best-effort
+  // against the already-fetched seller map).
+  const verifiedFiltered = useMemo(() => {
+    if (!verifiedOnly) return filtered;
+    return filtered.filter((it) => !!sellers[it.seller_id]?.is_trusted);
+  }, [filtered, verifiedOnly, sellers]);
+
+  // Distance sort is client-side (over the loaded page) since the server can't
+  // rank by proximity. Falls back to the server order when no center is set.
+  const sorted = useMemo(() => {
+    if (sort !== "distance") return verifiedFiltered;
+    const center = (locationFilter.lat && locationFilter.lng)
+      ? { lat: locationFilter.lat, lng: locationFilter.lng }
+      : (locationFilter.mode === "city" && locationFilter.city ? cityCoords(locationFilter.city) : null);
+    if (!center) return verifiedFiltered;
+    const distOf = (it) => {
+      const c = (it.lat && it.lng) ? { lat: it.lat, lng: it.lng } : cityCoords(it.city);
+      return c ? distanceKm(center.lat, center.lng, c.lat, c.lng) : 1e9;
+    };
+    return [...verifiedFiltered].sort((a, b) => distOf(a) - distOf(b));
+  }, [verifiedFiltered, sort, locationFilter]);
+
   // Interleave promoted (sponsored) items into search results every 5 slots.
   const { displayItems, promotedIds } = useMemo(() => {
     const now = Date.now();
@@ -187,7 +210,7 @@ export default function Search() {
       return true;
     }).slice(0, 5);
     const ids = new Set(promoted.map((p) => p.id));
-    const clean = filtered.filter((it) => !ids.has(it.id));
+    const clean = sorted.filter((it) => !ids.has(it.id));
     const result = [];
     let pIdx = 0;
     clean.forEach((it, i) => {
@@ -198,10 +221,10 @@ export default function Search() {
       }
     });
     return { displayItems: result, promotedIds: ids };
-  }, [filtered, featuredItems, country, categories]);
+  }, [sorted, featuredItems, country, categories]);
 
   const reset = () => {
-    setMinPrice(""); setMaxPrice(""); setCondition([]); setSort("newest");
+    setMinPrice(""); setMaxPrice(""); setCondition([]); setSort("newest"); setVerifiedOnly(false);
     setCategories([]); setSubcategories([]);
     setLocationFilter({ mode: "city", city: null, radius: 25 });
   };
@@ -312,13 +335,19 @@ export default function Search() {
       <SavedSearchChips onApply={applySaved} />
 
       <div className="flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">{filtered.length} {t("results")}</span>
+        <span className="text-muted-foreground">{sorted.length} {t("results")}</span>
         <div className="flex items-center gap-3">
           {hasActiveFilter && (
             <button onClick={saveSearch} className="inline-flex items-center gap-1 text-primary font-semibold active:scale-95 transition">
               <Bookmark size={13} /> {lang === "ar" ? "حفظ البحث" : "Save search"}
             </button>
           )}
+          <button
+            onClick={() => setVerifiedOnly((v) => !v)}
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition ${verifiedOnly ? "bg-sky-500 text-white" : "bg-muted text-muted-foreground"}`}
+          >
+            <BadgeCheck size={13} /> {t("verifiedOnly")}
+          </button>
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
@@ -327,6 +356,7 @@ export default function Search() {
             <option value="newest">{t("newest")}</option>
             <option value="priceLowHigh">{t("priceLowHigh")}</option>
             <option value="priceHighLow">{t("priceHighLow")}</option>
+            <option value="distance">{t("distance")}</option>
           </select>
         </div>
       </div>

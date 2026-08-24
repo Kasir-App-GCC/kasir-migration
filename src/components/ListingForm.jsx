@@ -15,6 +15,7 @@ import { useToast } from "@/components/ui/use-toast";
 import SheetSelect from "@/components/SheetSelect";
 import ReviewTagChips from "@/components/ReviewTagChips";
 import { getListingTags } from "@/lib/listingTags";
+import { getSpecFields } from "@/lib/specs";
 import ImageEditor from "@/components/ImageEditor";
 import CameraCapture from "@/components/CameraCapture";
 import VerificationDialog from "@/components/VerificationDialog";
@@ -46,6 +47,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
     Array.isArray(initial?.subcategory) ? initial.subcategory : initial?.subcategory ? [initial.subcategory] : []
   );
   const [tags, setTags] = useState(Array.isArray(initial?.tags) ? initial.tags : []);
+  const [specs, setSpecs] = useState(initial?.specs && typeof initial.specs === "object" ? initial.specs : {});
   const [boostHours, setBoostHours] = useState(0);
   const [boostCross, setBoostCross] = useState(false);
   const ar = lang === "ar";
@@ -255,6 +257,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         subcategory: subcats.length ? subcats : undefined,
         condition,
         tags: tags.length ? tags : undefined,
+        specs: Object.keys(specs).length ? specs : undefined,
         city,
         location_name: locationName || undefined,
         country: country || "SA",
@@ -457,7 +460,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         <label className="text-sm font-semibold flex items-center gap-0.5">{t("category")} <span className="text-rose-500">*</span></label>
         <SheetSelect
           value={category}
-          onChange={(v) => {setCategory(v);setSubcats([]);setTags([]);}}
+          onChange={(v) => {setCategory(v);setSubcats([]);setTags([]);setSpecs({});}}
           placeholder={t("selectCategory")}
           label={t("category")}
           options={CATEGORIES.filter((c) => c.id !== "all").map((c) => ({ value: c.id, label: lang === "ar" ? c.ar : c.en }))} />
@@ -495,6 +498,37 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
           options={CONDITIONS.map((c) => ({ value: c.id, label: lang === "ar" ? c.ar : c.en }))} />
         
       </div>
+
+      {getSpecFields(category).length > 0 && (
+        <div className="space-y-1.5">
+          <label className="text-sm font-semibold">{ar ? "المواصفات" : "Specifications"}</label>
+          <div className="grid grid-cols-2 gap-2">
+            {getSpecFields(category).map((f) => (
+              <div key={f.key}>
+                {f.type === "select" ? (
+                  <SheetSelect
+                    value={specs[f.key] || ""}
+                    onChange={(v) => setSpecs((s) => ({ ...s, [f.key]: v }))}
+                    label={ar ? f.ar : f.en}
+                    placeholder={ar ? f.ar : f.en}
+                    options={(f.options || []).map((o) => ({ value: o.value, label: ar ? o.ar : o.en }))} />
+                ) : (
+                  <input
+                    value={specs[f.key] || ""}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      const val = f.type === "number" ? normalizeDigits(raw).replace(/[^\d.]/g, "").slice(0, 12) : raw.slice(0, 60);
+                      setSpecs((s) => ({ ...s, [f.key]: val }));
+                    }}
+                    placeholder={f.placeholder || (ar ? f.ar : f.en)}
+                    inputMode={f.type === "number" ? "numeric" : "text"}
+                    className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm" />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {tagOptions.length > 0 &&
       <div className="space-y-1">

@@ -101,6 +101,11 @@
     "followers_override": {
       "type": "number",
       "description": "Optional admin-set floor for the displayed follower count (used when higher than the real follow-record count)"
+    },
+    "last_active": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last time the user was active in the app (updated throttled on app load)"
     }
   },
   "required": [

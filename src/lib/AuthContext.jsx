@@ -139,6 +139,14 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
       setAuthChecked(true);
+      // Throttle last_active to once per 30 min so we don't write on every load.
+      try {
+        const ts = Number(localStorage.getItem("souqi_last_active_ts") || 0);
+        if (Date.now() - ts > 30 * 60 * 1000) {
+          localStorage.setItem("souqi_last_active_ts", String(Date.now()));
+          base44.auth.updateMe({ last_active: new Date().toISOString() }).catch(() => {});
+        }
+      } catch {}
       // Check if this user is blacklisted
       await checkBlacklistStatus();
     } catch (error) {

@@ -9,6 +9,7 @@ import Price from "@/components/Price";
 import ItemCard from "@/components/ItemCard";
 import { getCategory, getCityName, getCondition } from "@/lib/constants";
 import { localizeListingTag } from "@/lib/listingTags";
+import { specsForDisplay } from "@/lib/specs";
 import { getCountry } from "@/lib/countries";
 import RatingStars from "@/components/RatingStars";
 import ReviewTagChips from "@/components/ReviewTagChips";
@@ -462,6 +463,24 @@ export default function ItemDetail() {
           ))}
         </div>
       )}
+
+      {(() => {
+        const specRows = specsForDisplay(item.category, item.specs, lang);
+        if (!specRows.length) return null;
+        return (
+          <div className="mt-4">
+            <h3 className="font-bold mb-2">{t("specsTitle")}</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {specRows.map((r) => (
+                <div key={r.key} className="rounded-xl bg-card border border-border/60 px-3 py-2">
+                  <p className="text-[11px] text-muted-foreground">{r.label}</p>
+                  <p className="text-sm font-semibold">{r.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Seller card */}
       {seller && (

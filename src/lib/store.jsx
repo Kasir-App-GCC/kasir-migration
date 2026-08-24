@@ -35,7 +35,7 @@ export function StoreProvider({ children }) {
   });
   const [prefs, setPrefsState] = useState(() => {
     const s = localStorage.getItem("souqi_prefs");
-    return s ? JSON.parse(s) : { showSold: true, defaultRadius: 25 };
+    return s ? JSON.parse(s) : { showSold: false, defaultRadius: 25 };
   });
   const [lastChatsSeen, setLastChatsSeenState] = useState(() => localStorage.getItem("souqi_chats_seen") || null);
   const [notifsClearedAt, setNotifsClearedAtState] = useState(() => localStorage.getItem("souqi_notifs_cleared") || null);

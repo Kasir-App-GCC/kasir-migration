@@ -33,6 +33,10 @@
       },
       "description": "Quick attribute tags selected by the seller, relevant to the item's category"
     },
+    "specs": {
+      "type": "object",
+      "description": "Structured per-category attributes (e.g. car year/make/mileage, real-estate beds/area, electronics brand/model)"
+    },
     "condition": {
       "type": "string",
       "enum": [

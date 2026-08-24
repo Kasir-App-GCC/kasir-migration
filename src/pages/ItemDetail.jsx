@@ -196,24 +196,25 @@ export default function ItemDetail() {
 
   const shareItem = async () => {
     if (sharingRef.current || !item) return;
+    // Use a clean item URL based on the current origin so that, when the app is
+    // accessed via its custom domain, the shared link uses that domain instead
+    // of a raw base44/API link. Unregistered recipients can open it and view the
+    // item; action buttons route to login.
     const url = `${window.location.origin}/item/${item.id}`;
-    // Native device share sheet (email, WhatsApp, messages, etc.). When the app
-    // is published and viewed at top-level this opens the OS share dialog. In the
-    // builder preview (sandboxed iframe) the Web Share API is blocked, so we fall
-    // back to copying the link there.
-    if (navigator.share) {
-      sharingRef.current = true;
-      try {
+    sharingRef.current = true;
+    try {
+      if (navigator.share) {
         await navigator.share({ title: item.title, text: item.title, url });
-      } catch (err) {
-        if (err?.name !== "AbortError" && navigator.clipboard?.writeText) {
-          try { await navigator.clipboard.writeText(url); toast({ title: lang === "ar" ? "تم نسخ الرابط" : "Link copied" }); } catch {}
-        }
-      } finally {
-        sharingRef.current = false;
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        toast({ title: lang === "ar" ? "تم نسخ الرابط" : "Link copied" });
+      } else {
+        toast({ title: lang === "ar" ? "المتصفح لا يدعم المشاركة" : "Sharing not supported", variant: "destructive" });
       }
-    } else if (navigator.clipboard?.writeText) {
-      try { await navigator.clipboard.writeText(url); toast({ title: lang === "ar" ? "تم نسخ الرابط" : "Link copied" }); } catch {}
+    } catch (err) {
+      if (err?.name !== "AbortError") toast({ title: lang === "ar" ? "تعذّر المشاركة" : "Couldn't share", variant: "destructive" });
+    } finally {
+      sharingRef.current = false;
     }
   };
 

@@ -125,8 +125,10 @@ export default function ItemDetail() {
     });
   };
 
+  const goLogin = () => nav("/login?returnTo=" + encodeURIComponent(window.location.pathname + window.location.search));
   const messageSeller = async () => {
-    if (!user || !item) return;
+    if (!item) return;
+    if (!user) { goLogin(); return; }
     if (item.seller_id === user.id) { nav("/chats"); return; }
     if (item.status === "sold" || blockedByMe || blockedMe) { setOfferOpen(false); return; }
     const room = await getOrCreateRoom();
@@ -136,7 +138,8 @@ export default function ItemDetail() {
   const isOwner = user && item && item.seller_id === user.id;
 
   const sendOffer = async (pct) => {
-    if (!user || !item) return;
+    if (!item) return;
+    if (!user) { setOfferOpen(false); goLogin(); return; }
     if (item.status === "sold" || blockedByMe || blockedMe) { setOfferOpen(false); return; }
     // Lock further offers once an offer for this item is already accepted.
     const alreadyAccepted = await base44.entities.Offer.filter(
@@ -373,7 +376,7 @@ export default function ItemDetail() {
         )}
         <div className="absolute top-3 end-3 flex gap-2" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
           <button onClick={shareItem} className="w-9 h-9 rounded-full bg-white/85 dark:bg-slate-900/55 backdrop-blur flex items-center justify-center" title={t("share") || "Share"}><Share2 size={16} /></button>
-          <button onClick={() => setReportOpen(true)} className="w-9 h-9 rounded-full bg-white/85 dark:bg-slate-900/55 backdrop-blur flex items-center justify-center" title={t("report")}><Flag size={16} /></button>
+          <button onClick={() => (user ? setReportOpen(true) : goLogin())} className="w-9 h-9 rounded-full bg-white/85 dark:bg-slate-900/55 backdrop-blur flex items-center justify-center" title={t("report")}><Flag size={16} /></button>
         </div>
         {imgs.length > 1 && (
           <div className="absolute bottom-3 inset-x-0 flex justify-center gap-1.5">
@@ -503,7 +506,7 @@ export default function ItemDetail() {
                 </a>
               );
             })()}
-            <button onClick={() => setReportOpen(true)} className="p-2 rounded-full hover:bg-muted text-muted-foreground shrink-0" title={t("report")}>
+            <button onClick={() => (user ? setReportOpen(true) : goLogin())} className="p-2 rounded-full hover:bg-muted text-muted-foreground shrink-0" title={t("report")}>
               <Flag size={18} />
             </button>
           </div>

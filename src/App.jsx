@@ -108,19 +108,23 @@ const AuthenticatedApp = () => {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
-      <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
+      {/* Public browse pages — open to everyone, no login required (SEO-indexable) */}
+      <Route element={<AppLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/search" element={<Search />} />
+        <Route path="/item/:id" element={<ItemDetail />} />
+        <Route path="/map" element={<MapView />} />
+      </Route>
+      {/* Action flows + AI features — login required (protects integration credits) */}
+      <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
         <Route path="/sell" element={<Sell />} />
         <Route path="/chats" element={<Chats />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/item/:id" element={<ItemDetail />} />
         <Route path="/chat/:id" element={<ChatRoom />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/user/:id" element={<UserProfile />} />
         <Route path="/assistant" element={<ShoppingAssistant />} />
         <Route path="/edit/:id" element={<EditListing />} />
-        <Route path="/map" element={<MapView />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/buy-requests" element={<BuyRequests />} />
       </Route>

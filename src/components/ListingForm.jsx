@@ -532,7 +532,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
           {lat != null && lng != null &&
           <div className="ps-6 space-y-1">
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 text-[11px] font-bold">
-              <Check size={11} /> {ar ? "تم تحديد موقعك تلقائياً" : "Location detected automatically"}
+              <Check size={11} /> {ar ? "تم تحديد موقعك" : "Location set"}
             </span>
             <p className="text-[11px] text-muted-foreground">
               {locationName ? <span className="font-semibold text-foreground">{locationName}</span> : (ar ? "الإحداثيات" : "Coordinates") + ": "}

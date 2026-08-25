@@ -9,7 +9,7 @@ import { isInternalInvocation } from "../../shared/internalAuth.ts";
 // exists (web preview / unconfigured), so it never blocks.
 export default async function (req) {
   try {
-    if (!isInternalInvocation(req)) {
+    if (!(await isInternalInvocation(req))) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
     const base44 = createClientFromRequest(req);

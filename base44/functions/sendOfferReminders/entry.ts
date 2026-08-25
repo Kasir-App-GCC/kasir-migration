@@ -13,7 +13,7 @@ import { isInternalInvocation } from "../../shared/internalAuth.ts";
 // external public callers are rejected.
 export default async function (req) {
   try {
-    if (!isInternalInvocation(req)) {
+    if (!(await isInternalInvocation(req))) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
     const base44 = createClientFromRequest(req);

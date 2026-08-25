@@ -16,17 +16,40 @@ export default async function(req: Request): Promise<Response> {
 
     const authHeader = 'Basic ' + btoa(secretKey + ':');
 
-    // Fetch the payment from Moyasar to confirm it was actually paid.
-    const moyasarRes = await fetch('https://api.moyasar.com/v1/payments/' + paymentId, {
+    // The redirect from Moyasar invoice checkout may append either a payment ID
+    // or an invoice ID. Try the payments API first; if that fails, fall back to
+    // the invoices API and look for a paid payment in its payments array.
+    let paid = false;
+    let resolvedPaymentId = paymentId;
+
+    const payRes = await fetch('https://api.moyasar.com/v1/payments/' + paymentId, {
       headers: { 'Authorization': authHeader },
     });
-    const data = await moyasarRes.json();
-    if (!moyasarRes.ok) {
-      return Response.json({ error: data?.message || 'Payment lookup failed' }, { status: 400 });
+    if (payRes.ok) {
+      const payData = await payRes.json();
+      if (payData.status === 'paid') {
+        paid = true;
+      }
+    } else {
+      // Not a payment ID — try looking it up as an invoice.
+      const invRes = await fetch('https://api.moyasar.com/v1/invoices/' + paymentId, {
+        headers: { 'Authorization': authHeader },
+      });
+      if (invRes.ok) {
+        const invData = await invRes.json();
+        const paidPayment = (invData.payments || []).find((p) => p.status === 'paid');
+        if (paidPayment) {
+          paid = true;
+          resolvedPaymentId = paidPayment.id;
+        }
+      } else {
+        const invData = await invRes.json().catch(() => ({}));
+        return Response.json({ error: invData?.message || 'Payment lookup failed' }, { status: 400 });
+      }
     }
 
-    if (data.status !== 'paid') {
-      return Response.json({ ok: false, status: data.status, error: 'Payment not completed' });
+    if (!paid) {
+      return Response.json({ ok: false, error: 'Payment not completed' });
     }
 
     // Find the pending verification request for this user and auto-approve it.
@@ -44,7 +67,7 @@ export default async function(req: Request): Promise<Response> {
     await base44.entities.VerificationRequest.update(verification.id, {
       status: 'approved',
       reviewed_by: 'system',
-      payment_receipt_url: 'moyasar:' + paymentId,
+      payment_receipt_url: 'moyasar:' + resolvedPaymentId,
     });
 
     // Grant the trusted badge immediately — no admin review needed.

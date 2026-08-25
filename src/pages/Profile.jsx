@@ -90,9 +90,10 @@ export default function Profile() {
   // Moyasar appends ?payment_id=xxx to the callback_url on return.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (!params.get("verify_payment") || !params.get("payment_id")) return;
+    // Moyasar appends the payment/invoice `id` as a query parameter after redirect.
+    if (!params.get("verify_payment") || !params.get("id")) return;
     setVerifyingPayment(true);
-    base44.functions.invoke("confirmVerificationPayment", { paymentId: params.get("payment_id") })
+    base44.functions.invoke("confirmVerificationPayment", { paymentId: params.get("id") })
       .then(async (res) => {
         if (res?.data?.ok) {
           toast({ title: ar ? "تم توثيق حسابك! 🎉" : "Account verified! 🎉" });
@@ -105,7 +106,7 @@ export default function Profile() {
       .finally(() => {
         setVerifyingPayment(false);
         params.delete("verify_payment");
-        params.delete("payment_id");
+        params.delete("id");
         window.history.replaceState({}, "", window.location.pathname + (params.toString() ? "?" + params.toString() : ""));
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps

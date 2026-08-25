@@ -25,6 +25,8 @@ export default function VerificationDialog({ open, onClose }) {
   const [pendingRequest, setPendingRequest] = useState(null);
 
   const idRule = nationalIdRule(user?.country);
+  const idCheck = validateNationalId(nationalId, user?.country);
+  const formValid = hasAvatar && fullName.trim() && phoneVerified && idCheck.valid;
 
   useEffect(() => {
     if (!open) return;
@@ -161,11 +163,10 @@ export default function VerificationDialog({ open, onClose }) {
                 
               </div>
 
-              <div className="rounded-xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900 p-3 text-xs text-sky-700 dark:text-sky-300 text-center space-y-1">
+              <div className="rounded-xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900 p-3 text-xs text-sky-700 dark:text-sky-300 text-center">
                 <p className="font-bold">{ar ? "رسوم التوثيق: 12 ريال (دفعة واحدة)" : "Verification fee: 12 SAR (one-time)"}</p>
-                <p className="opacity-90">{ar ? "يتم التوثيق فور إتمام الدفع — بدون مراجعة يدوية" : "Verified instantly upon payment — no manual review"}</p>
               </div>
-              <button onClick={submit} disabled={submitting || !hasAvatar || !phoneVerified} className="w-full py-3.5 rounded-2xl bg-sky-600 text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50">
+              <button onClick={submit} disabled={submitting || !formValid} className="w-full py-3.5 rounded-2xl bg-sky-600 text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                 {submitting && <Loader2 size={18} className="animate-spin" />}
                 {submitting ? (ar ? "جاري التحضير…" : "Preparing…") : (ar ? "ادفع 12 ريال وتوّقّق" : "Pay 12 SAR & verify")}
               </button>

@@ -40,6 +40,8 @@ export default async function(req: Request): Promise<Response> {
         currency: 'SAR',
         description: 'رسوم توثيق الحساب - كاسر',
         callback_url: 'https://kasir-ksa.base44.app/profile?verify_payment=1',
+        success_url: 'https://kasir-ksa.base44.app/profile?verify_payment=1',
+        back_url: 'https://kasir-ksa.base44.app/profile',
         metadata: { type: 'verification', user_id: user.id },
       }),
     });

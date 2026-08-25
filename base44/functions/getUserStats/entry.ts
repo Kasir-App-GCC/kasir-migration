@@ -13,6 +13,10 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
+    // Authenticate the caller — this stats endpoint is only used on pages
+    // behind login, so reject unauthenticated public-URL requests.
+    const caller = await base44.auth.me();
+    if (!caller) return Response.json({ error: "Unauthorized" }, { status: 401 });
     const body = await req.json().catch(() => ({}));
     const userId = String(body.user_id || "");
     if (!userId) return Response.json({ error: "user_id required" }, { status: 400 });

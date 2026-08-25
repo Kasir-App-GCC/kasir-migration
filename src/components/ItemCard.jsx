@@ -63,7 +63,7 @@ export default function ItemCard({ item, onClick, promoted = false, refreshButto
         <div className="absolute top-2.5 start-2.5 z-20" style={{ filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.4))" }}>
           <div
             className="relative bg-gradient-to-br from-amber-300 to-amber-400 text-slate-900 px-3.5 py-1.5 pr-4"
-            style={{ clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 58%, 7px 50%, 0% 42%)" }}
+            style={{ clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 63%, 11px 50%, 0% 37%)" }}
           >
             <span className="text-[13px] font-extrabold whitespace-nowrap"><Price value={item.price} lang={lang} country={item.country} /></span>
           </div>

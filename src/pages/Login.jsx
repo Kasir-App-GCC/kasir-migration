@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,12 +9,44 @@ import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import AppleIcon from "@/components/AppleIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
+import { useAuth } from "@/lib/AuthContext";
+import { appParams } from "@/lib/app-params";
+
+// On mobile inside an iframe (e.g. the builder preview), the SDK's popup-based
+// OAuth flow doesn't complete reliably — the popup tab can't postMessage back
+// to the backgrounded opener, so the first Apple/Google tap silently fails and
+// the user has to tap again. Break out of the iframe with a full-page redirect
+// so OAuth runs in the top window, which always works in one tap.
+const oauthRedirect = (provider, fromUrl) => {
+  const inIframe = typeof window !== "undefined" && window.top && window !== window.top;
+  const isMobile = typeof window !== "undefined" &&
+    (window.matchMedia?.("(max-width: 767px)")?.matches ||
+      /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent || ""));
+  if (inIframe && isMobile) {
+    const redirectUrl = new URL(fromUrl, window.location.origin).toString();
+    const providerPath = provider === "google" ? "" : `/${provider}`;
+    const loginUrl = `${appParams.appBaseUrl}/api/apps/auth${providerPath}/login?app_id=${appParams.appId}&from_url=${encodeURIComponent(redirectUrl)}`;
+    window.top.location.href = loginUrl;
+    return;
+  }
+  base44.auth.loginWithProvider(provider, fromUrl);
+};
 
 export default function Login() {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // If an OAuth (Apple/Google) redirect lands back on /login with a valid
+  // token already set, bounce to the post-login destination instead of
+  // leaving the user staring at the login form. This is what made Apple
+  // login feel like it needed two taps on mobile.
+  useEffect(() => {
+    if (isAuthenticated) navigate(safeReturnTo(), { replace: true });
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -31,11 +63,11 @@ export default function Login() {
   };
 
   const handleGoogle = () => {
-    base44.auth.loginWithProvider("google", safeReturnTo());
+    oauthRedirect("google", safeReturnTo());
   };
 
   const handleApple = () => {
-    base44.auth.loginWithProvider("apple", safeReturnTo());
+    oauthRedirect("apple", safeReturnTo());
   };
 
   return (

@@ -166,16 +166,21 @@ export default function About() {
       </div>
 
       {/* Donation card */}
-      <div className="rounded-3xl bg-gradient-to-br from-amber-500 to-orange-500 text-white p-6 sm:p-8 space-y-4 shadow-lg">
+      <div className="rounded-3xl bg-gradient-to-br from-teal-700 to-emerald-800 text-white p-6 sm:p-8 space-y-4 shadow-xl">
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center">
             <Heart size={20} className="fill-white" />
           </div>
           <div>
-            <h2 className="text-lg font-extrabold">ادعمنا ❤️</h2>
-            <p className="text-xs opacity-90">تبرع يساعدنا نستمر ونطوّر كاسر</p>
+            <h2 className="text-lg font-extrabold">ادعمنا 🌱</h2>
+            <p className="text-xs opacity-90">تبرعك يخلي كاسير تستمر وتتطور</p>
           </div>
         </div>
+
+        <p className="text-sm leading-relaxed opacity-95">
+          عجبك التطبيق؟ تبرعك البسيط يساعدنا نكمّل ونطوّر ونخلّي التجربة أفضل للجميع.
+          كل ريال يفرّق، ويدعمنا نقدّم مزيد من المزايا بدون إعلانات مزعجة. ❤️
+        </p>
 
         <div className="grid grid-cols-5 gap-2">
           {QUICK_AMOUNTS.map((amt) => (
@@ -184,7 +189,7 @@ export default function About() {
               onClick={() => { setSelected(amt); setCustom(""); }}
               className={`py-2.5 rounded-xl font-bold text-sm transition ${
                 !custom && selected === amt
-                  ? "bg-white text-orange-600 shadow"
+                  ? "bg-white text-emerald-700 shadow"
                   : "bg-white/15 hover:bg-white/25"
               }`}
             >
@@ -211,7 +216,7 @@ export default function About() {
         <button
           onClick={donate}
           disabled={loading}
-          className="w-full py-3 rounded-xl bg-white text-orange-600 font-extrabold text-sm flex items-center justify-center gap-2 disabled:opacity-60 hover:bg-white/90 transition"
+          className="w-full py-3 rounded-xl bg-white text-emerald-700 font-extrabold text-sm flex items-center justify-center gap-2 disabled:opacity-60 hover:bg-white/90 transition"
         >
           {loading ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
           تبرع الآن

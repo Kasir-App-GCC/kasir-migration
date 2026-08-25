@@ -12,6 +12,8 @@ import PullToRefreshScroll from "@/components/PullToRefreshScroll";
 import RatingDialog from "@/components/RatingDialog";
 import DisputeDialog from "@/components/DisputeDialog";
 import MeetupFlow from "@/components/MeetupFlow";
+import WhatsAppIcon from "@/components/WhatsAppIcon";
+import WhatsAppContactDialog from "@/components/WhatsAppContactDialog";
 import { useBlockStatus } from "@/lib/useBlockStatus";
 
 export default function ChatRoom() {
@@ -32,6 +34,8 @@ export default function ChatRoom() {
   const [ratingOffer, setRatingOffer] = useState(null);
   const [disputeOffer, setDisputeOffer] = useState(null);
   const [acceptedMeetup, setAcceptedMeetup] = useState(null);
+  const [waContacts, setWaContacts] = useState([]);
+  const [waDialogOpen, setWaDialogOpen] = useState(false);
   const endRef = useRef(null);
   const [kbInset, setKbInset] = useState(0);
 
@@ -54,12 +58,14 @@ export default function ChatRoom() {
   }, []);
 
   const loadAll = useCallback(async () => {
-    const [ms, ofs] = await Promise.all([
+    const [ms, ofs, was] = await Promise.all([
       base44.entities.Message.filter({ chatroom_id: id }, "created_date", 200),
       base44.entities.Offer.filter({ chatroom_id: id }, "created_date", 100),
+      base44.entities.WhatsAppContact.filter({ chatroom_id: id }, "created_date", 100),
     ]);
     setMessages(ms || []);
     setOffers(ofs || []);
+    setWaContacts(was || []);
     if (ofs && ofs.length && user?.id) {
       try {
         const offerIds = ofs.map((o) => o.id);
@@ -138,7 +144,19 @@ export default function ChatRoom() {
     const unsubR = base44.entities.ChatRoom.subscribe((event) => {
       if (event?.data?.id === id) setRoom(event.data);
     });
-    return () => { unsubM?.(); unsubO?.(); unsubR?.(); };
+    const unsubW = base44.entities.WhatsAppContact.subscribe((event) => {
+      if (event?.type === "delete") {
+        const w = event.data;
+        if (w?.chatroom_id === id) setWaContacts((prev) => prev.filter((x) => x.id !== w.id));
+      } else if (event?.data?.chatroom_id === id) {
+        setWaContacts((prev) => {
+          const i = prev.findIndex((x) => x.id === event.data.id);
+          if (i === -1) return [...prev, event.data];
+          const copy = [...prev]; copy[i] = event.data; return copy;
+        });
+      }
+    });
+    return () => { unsubM?.(); unsubO?.(); unsubR?.(); unsubW?.(); };
   }, [id]);
 
   // Mark this chat as seen by the current user so the other party gets read receipts
@@ -336,8 +354,9 @@ export default function ChatRoom() {
     () => [
       ...messages.filter((m) => m.sender_id !== "system").map((m) => ({ type: "message", ...m })),
       ...offers.map((o) => ({ type: "offer", ...o })),
+      ...waContacts.map((w) => ({ type: "whatsapp", ...w })),
     ].sort((a, b) => new Date(a.created_date) - new Date(b.created_date)),
-    [messages, offers]
+    [messages, offers, waContacts]
   );
 
   const acceptedOffer = useMemo(
@@ -439,6 +458,29 @@ export default function ChatRoom() {
                 </div>
               );
             }
+            if (item.type === "whatsapp") {
+              const w = item;
+              const mine = w.sender_id === user.id;
+              const digits = w.phone.replace(/[^\d]/g, "");
+              return (
+                <div key={`w-${w.id}`} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                  <a
+                    href={`https://wa.me/${digits}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={`max-w-[75%] flex items-center gap-3 px-4 py-3 rounded-2xl ${mine ? "bg-emerald-600 text-white rounded-br-md" : "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-bl-md"}`}
+                  >
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${mine ? "bg-white/20" : "bg-emerald-500 text-white"}`}>
+                      <WhatsAppIcon size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className={`text-xs font-bold ${mine ? "text-white/90" : "text-emerald-700 dark:text-emerald-300"}`}>{ar ? "بطاقة واتساب" : "WhatsApp contact"}</p>
+                      <p className={`text-sm font-mono ${mine ? "text-white" : "text-foreground"}`} dir="ltr">{w.phone}</p>
+                    </div>
+                  </a>
+                </div>
+              );
+            }
             const m = item;
             if (m.sender_id === "system") {
               const offer = offers.find((o) => o.id === m.offer_id);
@@ -521,6 +563,15 @@ export default function ChatRoom() {
           </div>
         ) : (
           <>
+            {!isOfficial && (
+              <button
+                onClick={() => setWaDialogOpen(true)}
+                className="w-11 h-11 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0"
+                title={ar ? "مشاركة رقم واتساب" : "Share WhatsApp number"}
+              >
+                <WhatsAppIcon size={20} />
+              </button>
+            )}
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -529,11 +580,14 @@ export default function ChatRoom() {
               className="flex-1 px-4 py-3 rounded-full bg-muted outline-none focus:ring-2 ring-primary/30 text-base"
             />
             <button onClick={() => sendText()} disabled={!text.trim()} className="w-11 h-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50">
-              <Send size={18} className="rtl:rotate-180" />
+              <Send size={18} className="rtl:-scale-x-100" />
             </button>
           </>
         )}
       </div>
+      {waDialogOpen && (
+        <WhatsAppContactDialog open={waDialogOpen} onClose={() => setWaDialogOpen(false)} chatroomId={id} user={user} lang={lang} />
+      )}
       {disputeOffer && (
         <DisputeDialog offer={disputeOffer} user={user} lang={lang} onClose={() => setDisputeOffer(null)} />
       )}

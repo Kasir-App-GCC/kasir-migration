@@ -1,0 +1,65 @@
+{
+  "name": "WhatsAppContact",
+  "type": "object",
+  "properties": {
+    "chatroom_id": {
+      "type": "string",
+      "description": "The chatroom where this contact card was shared"
+    },
+    "sender_id": {
+      "type": "string",
+      "description": "The user who shared the number"
+    },
+    "sender_name": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string",
+      "description": "WhatsApp number in E.164 format (e.g. +966512345678)"
+    }
+  },
+  "required": [
+    "chatroom_id",
+    "sender_id",
+    "phone"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "data.sender_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": null,
+    "update": {
+      "$or": [
+        {
+          "data.sender_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.sender_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

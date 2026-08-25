@@ -7,10 +7,10 @@ import { getCities, nearestCityInCountry } from "@/lib/countries";
 import MapPinPicker from "@/components/MapPinPicker";
 import { base44 } from "@/api/base44Client";
 
-export default function LocationFilter({ open, onClose }) {
+export default function LocationFilter({ open, onClose, defaultTab }) {
   const { lang, locationFilter, setLocationFilter, country } = useStore();
   const t = useT();
-  const [tab, setTab] = useState(locationFilter.mode === "map" ? "map" : locationFilter.mode);
+  const [tab, setTab] = useState(defaultTab || (locationFilter.mode === "map" ? "map" : locationFilter.mode));
   const [radius, setRadius] = useState(locationFilter.radius);
   const [city, setCity] = useState(locationFilter.city);
   const [query, setQuery] = useState("");
@@ -60,7 +60,7 @@ export default function LocationFilter({ open, onClose }) {
 
   useEffect(() => {
     if (open) {
-      setTab(locationFilter.mode === "map" ? "map" : locationFilter.mode);
+      setTab(defaultTab || (locationFilter.mode === "map" ? "map" : locationFilter.mode));
       setRadius(locationFilter.radius);
       setCity(locationFilter.city);
       setQuery("");

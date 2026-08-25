@@ -6,10 +6,10 @@ import CategoryBar from "./CategoryBar";
 import LocationFilter from "./LocationFilter";
 
 // Sub-pages hide the root TopBar (they have their own back header).
-const SUB_PAGE = /^\/(item|chat|edit|user)\/.+/;
+const SUB_PAGE = /^\/(item|chat|edit|user)\/.+|^\/terms$/;
 // Bottom nav stays visible on item pages so users can navigate away, but is
 // hidden on chat/edit/user sub-pages (full-bleed or editor flows).
-const NO_BOTTOMNAV = /^\/(chat|edit|user)\/.+/;
+const NO_BOTTOMNAV = /^\/(chat|edit|user)\/.+|^\/terms$/;
 
 export default function AppLayout() {
   const [locOpen, setLocOpen] = useState(false);

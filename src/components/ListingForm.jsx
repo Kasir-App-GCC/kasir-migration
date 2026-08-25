@@ -500,11 +500,12 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
       </div>
 
       {getSpecFields(category).length > 0 && (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <label className="text-sm font-semibold">{ar ? "المواصفات" : "Specifications"}</label>
           <div className="grid grid-cols-2 gap-2">
             {getSpecFields(category).map((f) => (
-              <div key={f.key}>
+              <div key={f.key} className="space-y-1">
+                <label className="text-xs font-semibold text-muted-foreground">{ar ? f.ar : f.en}</label>
                 {f.type === "select" ? (
                   <SheetSelect
                     value={specs[f.key] || ""}
@@ -524,6 +525,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
                     inputMode={f.type === "number" ? "numeric" : "text"}
                     className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm" />
                 )}
+                {f.hint && <p className="text-[10px] text-muted-foreground leading-tight">{ar ? f.hint.ar : f.hint.en}</p>}
               </div>
             ))}
           </div>

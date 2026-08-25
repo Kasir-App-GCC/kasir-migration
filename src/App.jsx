@@ -31,6 +31,7 @@ import EditListing from "@/pages/EditListing";
 import MapView from "@/pages/MapView";
 import Admin from "@/pages/Admin";
 import BuyRequests from "@/pages/BuyRequests";
+import Terms from "@/pages/Terms";
 
 function routeDepth(pathname) {
   if (pathname === "/") return 0;
@@ -114,6 +115,7 @@ const AuthenticatedApp = () => {
         <Route path="/search" element={<Search />} />
         <Route path="/item/:id" element={<ItemDetail />} />
         <Route path="/map" element={<MapView />} />
+        <Route path="/terms" element={<Terms />} />
       </Route>
       {/* Action flows + AI features — login required (protects integration credits) */}
       <Route element={<RequireAuth><AppLayout /></RequireAuth>}>

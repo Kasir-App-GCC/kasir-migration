@@ -42,6 +42,7 @@ export default function AdminUsers() {
   const [filter, setFilter] = useState("all");
   const [activity, setActivity] = useState("all");
   const [ratings, setRatings] = useState({});
+  const [meetups, setMeetups] = useState([]);
   // Aggregate rating averages per user (rated_user_id -> { avg, count }),
   // computed once on load so the "low ratings" filter can surface bad sellers
   // without opening each user individually.
@@ -200,10 +201,46 @@ export default function AdminUsers() {
     } catch {}
   };
 
+  // Reliability comes from Meetup records (completed vs no-show outcomes).
+  // Admins can correct a wrongly-marked no-show or delete a meetup entirely.
+  const loadMeetups = async (userId) => {
+    try {
+      const [asSeller, asBuyer] = await Promise.all([
+        base44.entities.Meetup.filter({ seller_id: userId }, "-created_date", 100),
+        base44.entities.Meetup.filter({ buyer_id: userId }, "-created_date", 100),
+      ]);
+      const seen = new Set();
+      const merged = [...(asSeller || []), ...(asBuyer || [])]
+        .filter((m) => (seen.has(m.id) ? false : (seen.add(m.id), true)))
+        .sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+      setMeetups(merged);
+    } catch { setMeetups([]); }
+  };
+
+  const clearNoShow = async (m) => {
+    const isBuyer = m.buyer_id === selected.id;
+    const patch = isBuyer ? { seller_outcome: "" } : { buyer_outcome: "" };
+    try {
+      await base44.entities.Meetup.update(m.id, patch);
+      setMeetups((prev) => prev.map((x) => (x.id === m.id ? { ...x, ...patch } : x)));
+      toast({ title: ar ? "تم إلغاء عدم الحضور" : "No-show cleared" });
+    } catch { toast({ title: ar ? "فشل" : "Failed", variant: "destructive" }); }
+  };
+
+  const deleteMeetupAdmin = async (m) => {
+    if (!window.confirm(ar ? "حذف هذا اللقاء؟" : "Delete this meetup?")) return;
+    try {
+      await base44.entities.Meetup.delete(m.id);
+      setMeetups((prev) => prev.filter((x) => x.id !== m.id));
+      toast({ title: ar ? "تم الحذف" : "Deleted" });
+    } catch { toast({ title: ar ? "فشل" : "Failed", variant: "destructive" }); }
+  };
+
   const openUser = (u) => {
     setSelected(u);
     startEdit(u);
     if (!ratings[u.id]) loadRatings(u.id);
+    loadMeetups(u.id);
   };
 
   const toggleTrusted = async (u) => {
@@ -314,6 +351,9 @@ export default function AdminUsers() {
       toast({ title: ar ? "فشل إنشاء المحادثة" : "Failed to start chat", variant: "destructive" });
     }
   };
+
+  const meetupsCompleted = meetups.filter((m) => m.status === "completed" || m.completed).length;
+  const noShows = meetups.filter((m) => (m.buyer_id === selected?.id && m.seller_outcome === "buyer_no_show") || (m.seller_id === selected?.id && m.buyer_outcome === "seller_no_show")).length;
 
   if (loading) return <div className="py-10 text-center text-muted-foreground">Loading…</div>;
 
@@ -553,6 +593,53 @@ export default function AdminUsers() {
             <button onClick={() => blacklistUser(selected)} className="w-full py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5 bg-rose-600 text-white mb-4">
               <ShieldX size={16} /> {ar ? "حظر نهائي وحذف" : "Blacklist & Delete"}
             </button>
+
+            {/* Reliability — meetups & no-shows (admin can correct) */}
+            <div className="rounded-2xl border border-border/60 p-3 mb-3">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 mb-2"><Clock size={12} /> {ar ? "الموثوقية" : "Reliability"}</p>
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/30 p-2 text-center">
+                  <p className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">{meetupsCompleted}</p>
+                  <p className="text-[11px] text-muted-foreground">{ar ? "لقاءات مكتملة" : "Meetups done"}</p>
+                </div>
+                <div className="rounded-xl bg-rose-50 dark:bg-rose-950/30 p-2 text-center">
+                  <p className="text-lg font-extrabold text-rose-600 dark:text-rose-400">{noShows}</p>
+                  <p className="text-[11px] text-muted-foreground">{ar ? "عدم الحضور" : "No-shows"}</p>
+                </div>
+              </div>
+              {meetups.length ? (
+                <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                  {meetups.map((m) => {
+                    const isBuyer = m.buyer_id === selected.id;
+                    const isNoShow = (isBuyer && m.seller_outcome === "buyer_no_show") || (!isBuyer && m.buyer_outcome === "seller_no_show");
+                    const done = m.status === "completed" || m.completed;
+                    return (
+                      <div key={m.id} className="rounded-xl bg-muted p-2 text-xs">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold truncate">{m.item_title || "—"}</span>
+                          <span className={`px-1.5 py-0.5 rounded font-bold shrink-0 ${done ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" : isNoShow ? "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300" : "bg-muted-foreground/15 text-muted-foreground"}`}>
+                            {done ? (ar ? "مكتمل" : "Done") : isNoShow ? (ar ? "لم يحضر" : "No-show") : (ar ? "غير مكتمل" : "Pending")}
+                          </span>
+                        </div>
+                        <div className="flex gap-1.5 mt-1.5">
+                          {isNoShow && (
+                            <button onClick={() => clearNoShow(m)} className="px-2 py-1 rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 font-bold text-[11px]">
+                              {ar ? "إلغاء عدم الحضور" : "Clear no-show"}
+                            </button>
+                          )}
+                          <button onClick={() => deleteMeetupAdmin(m)} className="px-2 py-1 rounded-lg bg-rose-100 text-rose-600 dark:bg-rose-950/40 font-bold text-[11px] flex items-center gap-1">
+                            <Trash2 size={11} /> {ar ? "حذف" : "Delete"}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">{ar ? "لا توجد لقاءات" : "No meetups"}</p>
+              )}
+            </div>
+
             <div>
               <p className="text-sm font-semibold mb-2 flex items-center gap-1.5"><Star size={16} className="text-amber-500" /> {ar ? "التقييمات" : "Ratings"}</p>
               {ratings[selected.id]?.length ? (

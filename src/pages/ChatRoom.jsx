@@ -33,6 +33,25 @@ export default function ChatRoom() {
   const [disputeOffer, setDisputeOffer] = useState(null);
   const [acceptedMeetup, setAcceptedMeetup] = useState(null);
   const endRef = useRef(null);
+  const [kbInset, setKbInset] = useState(0);
+
+  // Keep the input bar above the mobile keyboard (visualViewport) so it never
+  // gets pushed off-screen, and re-scroll to the latest message when it opens.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const kb = window.innerHeight - vv.height - vv.offsetTop;
+      setKbInset(kb > 0 ? kb : 0);
+    };
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    update();
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
 
   const loadAll = useCallback(async () => {
     const [ms, ofs] = await Promise.all([
@@ -80,7 +99,7 @@ export default function ChatRoom() {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, offers]);
+  }, [messages, offers, kbInset]);
 
   useEffect(() => {
     setLastChatsSeen(new Date().toISOString());
@@ -492,7 +511,7 @@ export default function ChatRoom() {
         <div ref={endRef} />
       </PullToRefreshScroll>
 
-      <div className="p-3 border-t border-border/60 flex items-center gap-2 pb-[env(safe-area-inset-bottom)] shrink-0">
+      <div className="p-3 border-t border-border/60 flex items-center gap-2 shrink-0" style={{ paddingBottom: `calc(env(safe-area-inset-bottom) + ${kbInset}px)` }}>
         {isBlocked ? (
           <div className="flex-1 flex items-center justify-between gap-2 py-2.5 px-4 rounded-full bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 text-sm font-semibold">
             <span className="flex items-center gap-1.5"><Ban size={15} /> {blockedByMe ? t("blockedUserMsg") : t("blockedByThem")}</span>
@@ -507,7 +526,7 @@ export default function ChatRoom() {
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendText()}
               placeholder={t("typeMessage")}
-              className="flex-1 px-4 py-3 rounded-full bg-muted outline-none focus:ring-2 ring-primary/30 text-sm"
+              className="flex-1 px-4 py-3 rounded-full bg-muted outline-none focus:ring-2 ring-primary/30 text-base"
             />
             <button onClick={() => sendText()} disabled={!text.trim()} className="w-11 h-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50">
               <Send size={18} className="rtl:rotate-180" />

@@ -48,6 +48,14 @@
       "type": "string",
       "description": "Admin's resolution message"
     },
+    "respondent_reply": {
+      "type": "string",
+      "description": "The respondent's side of the story (one response per dispute)"
+    },
+    "respondent_reply_date": {
+      "type": "string",
+      "format": "date-time"
+    },
     "complainant_feedback": {
       "type": "string",
       "enum": [

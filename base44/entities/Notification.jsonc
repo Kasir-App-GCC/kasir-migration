@@ -25,6 +25,7 @@
         "saved_search_match",
         "new_follower",
         "price_drop",
+        "dispute_opened",
         "dispute_resolved",
         "admin_message"
       ],
@@ -47,7 +48,7 @@
     },
     "dispute_id": {
       "type": "string",
-      "description": "The dispute this notification refers to (dispute_resolved type)"
+      "description": "The dispute this notification refers to (dispute_opened / dispute_resolved type)"
     },
     "offer_amount": {
       "type": "number"

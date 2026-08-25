@@ -173,13 +173,12 @@ export default function About() {
           </div>
           <div>
             <h2 className="text-lg font-extrabold">ادعمنا 🌱</h2>
-            <p className="text-xs opacity-90">تبرعك يخلي كاسير تستمر وتتطور</p>
+            <p className="text-xs opacity-90">ساهم في تطوير كاسر</p>
           </div>
         </div>
 
         <p className="text-sm leading-relaxed opacity-95">
-          عجبك التطبيق؟ تبرعك البسيط يساعدنا نكمّل ونطوّر ونخلّي التجربة أفضل للجميع.
-          كل ريال يفرّق، ويدعمنا نقدّم مزيد من المزايا بدون إعلانات مزعجة. ❤️
+          عجبك كاسر؟ تبرعك يساعدنا نطوّر التطبيق ونقدّم الأفضل. 🌿
         </p>
 
         <div className="grid grid-cols-5 gap-2">

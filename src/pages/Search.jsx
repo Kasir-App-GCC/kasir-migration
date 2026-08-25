@@ -11,6 +11,7 @@ import { CATEGORIES, CONDITIONS } from "@/lib/constants";
 import { matchLocation, cityCoords, distanceKm } from "@/lib/location";
 import { nearbyCities } from "@/lib/countries";
 import { fetchSellerInfos } from "@/lib/useTrusted";
+import { readFeedCache, writeFeedCache } from "@/lib/feedCache";
 import PullToRefresh from "@/components/PullToRefresh";
 import SavedSearchChips from "@/components/SavedSearchChips";
 import { useToast } from "@/components/ui/use-toast";
@@ -38,6 +39,7 @@ export default function Search() {
   const [condition, setCondition] = useState([]);
   const [featuredItems, setFeaturedItems] = useState([]);
   const skipRef = useRef(0);
+  const refreshingRef = useRef(false);
   const sentinelRef = useRef(null);
 
   // Debounce the text query so each keystroke doesn't fire a server request.
@@ -90,7 +92,7 @@ export default function Search() {
     locationFilter.mode === "map"
   );
 
-  const loadInitial = useCallback(async () => {
+  const refresh = useCallback(async (silent) => {
     if (!hasActiveFilter) {
       setItems([]);
       setSellers({});
@@ -98,9 +100,13 @@ export default function Search() {
       setLoading(false);
       return;
     }
-    setLoading(true);
-    skipRef.current = 0;
-    setHasMore(true);
+    if (silent && refreshingRef.current) return;
+    refreshingRef.current = true;
+    if (!silent) {
+      setLoading(true);
+      skipRef.current = 0;
+      setHasMore(true);
+    }
     try {
       const first = await base44.entities.Item.filter(buildQuery(), sortKey, PAGE_SIZE, 0);
       const list = first || [];
@@ -110,12 +116,18 @@ export default function Search() {
       setItems(list);
       setHasMore(list.length === PAGE_SIZE);
     } catch {
-      setItems([]);
-      setHasMore(false);
+      if (!silent) { setItems([]); setHasMore(false); }
     } finally {
-      setLoading(false);
+      refreshingRef.current = false;
+      if (!silent) setLoading(false);
     }
   }, [buildQuery, sortKey, hasActiveFilter]);
+
+  // Stable cache key for this exact filter/sort combination.
+  const cacheKey = useMemo(
+    () => `search:${country}:${JSON.stringify(buildQuery())}:${sortKey}`,
+    [country, buildQuery, sortKey]
+  );
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
@@ -141,7 +153,25 @@ export default function Search() {
     }
   }, [loadingMore, hasMore, buildQuery, sortKey]);
 
-  useEffect(() => { loadInitial(); }, [loadInitial]);
+  useEffect(() => {
+    const cached = readFeedCache(cacheKey);
+    if (cached && hasActiveFilter) {
+      setItems(cached.items || []);
+      setSellers(cached.sellers || {});
+      setHasMore((cached.items || []).length >= PAGE_SIZE);
+      setLoading(false);
+      refresh(true);   // background SWR refresh
+    } else {
+      refresh(false);
+    }
+  }, [cacheKey, refresh, hasActiveFilter]);
+
+  // Persist the result snapshot so returning to the same search renders instantly.
+  useEffect(() => {
+    if (hasActiveFilter && (items.length || Object.keys(sellers).length)) {
+      writeFeedCache(cacheKey, { items, sellers });
+    }
+  }, [items, sellers, cacheKey, hasActiveFilter]);
 
   // Fetch featured (promoted) listings to inject as sponsored slots in results.
   const loadFeatured = useCallback(async () => {
@@ -270,7 +300,7 @@ export default function Search() {
   };
 
   return (
-    <PullToRefresh onRefresh={loadInitial}>
+    <PullToRefresh onRefresh={() => refresh(false)}>
     <div className="pt-2 space-y-3">
       {/* AI Shopping Assistant button */}
       <button

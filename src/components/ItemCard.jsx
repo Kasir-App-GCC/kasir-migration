@@ -6,6 +6,7 @@ import { timeAgo } from "@/lib/format";
 import Price from "@/components/Price";
 import { getCategory, getCityName, getCondition } from "@/lib/constants";
 import { useSellerInfo } from "@/lib/useTrusted";
+import { Image } from "@/components/ui/image";
 import TrustedBadge from "@/components/TrustedBadge";
 
 export default function ItemCard({ item, onClick, promoted = false, refreshButton = null }) {
@@ -50,11 +51,12 @@ export default function ItemCard({ item, onClick, promoted = false, refreshButto
           }
         }}
       >
-        <img
+        <Image
           src={imgs[idx]}
           alt={item.title}
+          fittingType="fill"
           draggable={false}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 pointer-events-none select-none"
+          className="w-full h-full block transition-transform duration-500 group-hover:scale-105 pointer-events-none select-none"
         />
 
         {/* Price tag — hanging from the top by a string */}

@@ -9,6 +9,7 @@ import { useT } from "@/lib/i18n";
 import { getCategory, getCityName } from "@/lib/constants";
 import { matchLocation } from "@/lib/location";
 import { fetchSellerInfos } from "@/lib/useTrusted";
+import { readFeedCache, writeFeedCache, FEED_STALE_MS } from "@/lib/feedCache";
 import PullToRefresh from "@/components/PullToRefresh";
 
 function Skeleton() {
@@ -29,37 +30,55 @@ export default function Home() {
   const t = useT();
   const nav = useNavigate();
   const PAGE_SIZE = 60;
+  const cacheKey = `home:${country}`;
   const [items, setItems] = useState([]);
   const [featuredItems, setFeaturedItems] = useState([]);
   const [sellers, setSellers] = useState({});
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const skipRef = useRef(0);
+  const itemsRef = useRef([]);
   const sentinelRef = useRef(null);
+  const refreshingRef = useRef(false);
 
-  const loadInitial = useCallback(async () => {
-    setLoading(true);
-    skipRef.current = 0;
-    setHasMore(true);
+  // Cursor (keyset) pagination: fetch items older than the oldest loaded
+  // created_date. More reliable than offset — no duplicate/shift when new
+  // listings arrive mid-browse (what OfferUp uses).
+  const fetchPage = useCallback(async (cursor) => {
+    const query = { country, archived: { $ne: true } };
+    if (cursor) query.created_date = { $lt: cursor };
+    return base44.entities.Item.filter(query, "-created_date", PAGE_SIZE);
+  }, [country]);
+
+  // silent = stale-while-revalidate: prepend only items newer than the newest
+  // loaded one (no scroll jump, no cards disappearing). non-silent = cold
+  // start / pull-to-refresh: replace page 1.
+  const refresh = useCallback(async (silent) => {
+    if (silent && refreshingRef.current) return;
+    refreshingRef.current = true;
     try {
-      const first = await base44.entities.Item.filter({ country, archived: { $ne: true } }, "-created_date", PAGE_SIZE, 0);
-      const list = first || [];
-      // Fetch all seller profiles in ONE batched call before cards mount, so
-      // the per-card useSellerInfo hook hits the cache instead of firing N
-      // individual getPublicProfile requests (the old N+1 that hung phones).
+      const list = await fetchPage(null);
       const ids = [...new Set(list.map((i) => i.seller_id).filter(Boolean))];
       const sMap = ids.length ? await fetchSellerInfos(ids) : {};
       setSellers((prev) => ({ ...prev, ...sMap }));
-      setItems(list);
-      setHasMore(list.length === PAGE_SIZE);
+      if (silent && itemsRef.current.length) {
+        const newest = itemsRef.current[0]?.created_date;
+        const existing = new Set(itemsRef.current.map((x) => x.id));
+        const fresh = newest
+          ? list.filter((i) => new Date(i.created_date) > new Date(newest) && !existing.has(i.id))
+          : list.filter((i) => !existing.has(i.id));
+        if (fresh.length) setItems((prev) => [...fresh, ...prev]);
+      } else {
+        setItems(list);
+        setHasMore(list.length === PAGE_SIZE);
+      }
     } catch {
-      setItems([]);
-      setHasMore(false);
+      if (!silent) { setItems([]); setHasMore(false); }
     } finally {
-      setLoading(false);
+      refreshingRef.current = false;
+      if (!silent) setLoading(false);
     }
-  }, [country]);
+  }, [fetchPage]);
 
   // Featured listings are fetched independently of the feed page so the
   // paid carousel works even with a small feed page size — a boosted but
@@ -80,11 +99,11 @@ export default function Home() {
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
+    const oldest = itemsRef.current[itemsRef.current.length - 1]?.created_date;
+    if (!oldest) return;
     setLoadingMore(true);
-    const skip = skipRef.current + PAGE_SIZE;
-    skipRef.current = skip; // reserve the page synchronously so self-heal can't wipe it
     try {
-      const next = await base44.entities.Item.filter({ country, archived: { $ne: true } }, "-created_date", PAGE_SIZE, skip);
+      const next = await fetchPage(oldest);
       const list = next || [];
       const ids = [...new Set(list.map((i) => i.seller_id).filter(Boolean))];
       const sMap = ids.length ? await fetchSellerInfos(ids) : {};
@@ -95,16 +114,38 @@ export default function Home() {
       });
       setHasMore(list.length === PAGE_SIZE);
     } catch {
-      skipRef.current = skip - PAGE_SIZE; // roll back on failure
       setHasMore(false);
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, hasMore, country]);
+  }, [loadingMore, hasMore, fetchPage]);
+
+  // Keep a ref of loaded items for the cursor + SWR prepend (avoids stale state).
+  useEffect(() => { itemsRef.current = items; }, [items]);
+
+  // Persist the feed snapshot so returning from an item detail page renders
+  // instantly from cache (stale-while-revalidate).
+  useEffect(() => {
+    if (items.length || featuredItems.length) {
+      writeFeedCache(cacheKey, { items, featured: featuredItems, sellers });
+    }
+  }, [items, featuredItems, sellers, cacheKey]);
 
   useEffect(() => {
-    loadInitial();
-    loadFeatured();
+    const cached = readFeedCache(cacheKey);
+    if (cached) {
+      setItems(cached.items || []);
+      setFeaturedItems(cached.featured || []);
+      setSellers(cached.sellers || {});
+      setHasMore((cached.items || []).length >= PAGE_SIZE);
+      setLoading(false);
+      refresh(true);   // background SWR refresh
+      loadFeatured();
+    } else {
+      setLoading(true);
+      refresh(false);
+      loadFeatured();
+    }
     // Keep the feed live: apply any item change in-place as it happens.
     const unsub = base44.entities.Item.subscribe((event) => {
       if (!event) return;
@@ -134,9 +175,16 @@ export default function Home() {
         });
       }
     });
-    // Self-heal only while idle on the first page, so deep pagination isn't wiped.
-    const onFocus = () => { if (skipRef.current === 0 && !loadingMore) { loadInitial(); loadFeatured(); } };
-    const onVis = () => { if (!document.hidden && skipRef.current === 0 && !loadingMore) { loadInitial(); loadFeatured(); } };
+    // Only self-heal on focus when the cache is stale AND the user is near the
+    // top — never wipe a deep-scroll session, never reload on every tab switch.
+    const onFocus = () => {
+      const cached = readFeedCache(cacheKey);
+      if ((!cached || Date.now() - cached.ts > FEED_STALE_MS) && window.scrollY < 300) {
+        refresh(true);
+        loadFeatured();
+      }
+    };
+    const onVis = () => { if (!document.hidden) onFocus(); };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVis);
     return () => {
@@ -144,7 +192,7 @@ export default function Home() {
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [loadInitial, loadFeatured]);
+  }, [cacheKey, refresh, loadFeatured]);
 
   // Infinite scroll: fetch the next page when the sentinel nears the viewport.
   useEffect(() => {
@@ -177,7 +225,7 @@ export default function Home() {
   const showFeatured = categories.length === 0 && featured.length > 0;
 
   return (
-    <PullToRefresh onRefresh={async () => { await loadInitial(); await loadFeatured(); }}>
+    <PullToRefresh onRefresh={async () => { await refresh(false); await loadFeatured(); }}>
     <div className="space-y-5 pt-2">
       {/* AI Shopping Assistant button */}
       <button

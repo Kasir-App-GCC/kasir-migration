@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck, RefreshCw, Info } from "lucide-react";
+import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck, RefreshCw, Info, Loader2 } from "lucide-react";
 import VerificationDialog from "@/components/VerificationDialog";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -35,6 +35,7 @@ export default function Profile() {
   const [editOpen, setEditOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const [verificationOpen, setVerificationOpen] = useState(false);
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [waSaving, setWaSaving] = useState(false);
 
@@ -82,6 +83,31 @@ export default function Profile() {
   // each time the profile is visited.
   useEffect(() => {
     refreshUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Handle the redirect back from Moyasar after the verification payment.
+  // Moyasar appends ?payment_id=xxx to the callback_url on return.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.get("verify_payment") || !params.get("payment_id")) return;
+    setVerifyingPayment(true);
+    base44.functions.invoke("confirmVerificationPayment", { paymentId: params.get("payment_id") })
+      .then(async (res) => {
+        if (res?.data?.ok) {
+          toast({ title: ar ? "تم توثيق حسابك! 🎉" : "Account verified! 🎉" });
+          await refreshUser();
+        } else {
+          toast({ title: ar ? "لم يكتمل الدفع بعد" : "Payment not completed yet", variant: "destructive" });
+        }
+      })
+      .catch(() => toast({ title: ar ? "فشل التحقق من الدفع" : "Payment verification failed", variant: "destructive" }))
+      .finally(() => {
+        setVerifyingPayment(false);
+        params.delete("verify_payment");
+        params.delete("payment_id");
+        window.history.replaceState({}, "", window.location.pathname + (params.toString() ? "?" + params.toString() : ""));
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -431,6 +457,14 @@ export default function Profile() {
 
       <EditProfileDialog open={editOpen} onClose={() => setEditOpen(false)} />
       <ContactSupportDialog open={supportOpen} onClose={() => setSupportOpen(false)} />
+      {verifyingPayment && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+          <div className="bg-card rounded-2xl px-6 py-5 flex flex-col items-center gap-3">
+            <Loader2 size={28} className="animate-spin text-sky-500" />
+            <p className="text-sm font-semibold">{ar ? "جاري التحقق من الدفع…" : "Verifying payment…"}</p>
+          </div>
+        </div>
+      )}
       <VerificationDialog open={verificationOpen} onClose={() => setVerificationOpen(false)} />
     </div>
     </PullToRefresh>

@@ -66,14 +66,15 @@ export default function VerificationDialog({ open, onClose }) {
     }
     setSubmitting(true);
     try {
-      const res = await base44.functions.invoke("submitVerification", {
+      const res = await base44.functions.invoke("createVerificationPayment", {
         fullName: fullName.trim(),
         phone: digitsOnly(phoneE164),
         nationalId: idCheck.digits
       });
       if (res?.data?.error) throw new Error(res.data.error);
-      toast({ title: ar ? "تم إرسال طلب التوثيق" : "Verification request submitted", description: ar ? "سنطلعك عند المراجعة" : "We'll notify you once reviewed" });
-      onClose();
+      if (res?.data?.url) {
+        window.location.href = res.data.url;
+      }
     } catch (err) {
       setError(apiErrorMessage(err, ar ? "فشل الإرسال" : "Failed to submit"));
     } finally {
@@ -160,12 +161,13 @@ export default function VerificationDialog({ open, onClose }) {
                 
               </div>
 
-              <div className="rounded-xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900 p-2.5 text-xs text-sky-700 dark:text-sky-300 text-center">
-                {ar ? "رسوم التوثيق معطّلة حالياً — سيتم المراجعة مجاناً." : "Verification fee is disabled for now — review is free."}
+              <div className="rounded-xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900 p-3 text-xs text-sky-700 dark:text-sky-300 text-center space-y-1">
+                <p className="font-bold">{ar ? "رسوم التوثيق: 12 ريال (دفعة واحدة)" : "Verification fee: 12 SAR (one-time)"}</p>
+                <p className="opacity-90">{ar ? "يتم التوثيق فور إتمام الدفع — بدون مراجعة يدوية" : "Verified instantly upon payment — no manual review"}</p>
               </div>
-              <button onClick={submit} disabled={submitting || !hasAvatar || !phoneVerified} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold flex items-center justify-center gap-2 disabled:opacity-50">
+              <button onClick={submit} disabled={submitting || !hasAvatar || !phoneVerified} className="w-full py-3.5 rounded-2xl bg-sky-600 text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50">
                 {submitting && <Loader2 size={18} className="animate-spin" />}
-                {submitting ? ar ? "جاري الإرسال…" : "Submitting…" : ar ? "إرسال الطلب" : "Submit request"}
+                {submitting ? (ar ? "جاري التحضير…" : "Preparing…") : (ar ? "ادفع 12 ريال وتوّقّق" : "Pay 12 SAR & verify")}
               </button>
             </div>
           </>

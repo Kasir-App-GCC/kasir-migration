@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { parseVerificationInput, validateVerificationInput, hasPendingVerification } from '../../shared/verificationValidation.ts';
 
 const SUPPORT_EMAIL = "support@kasir-app.com";
 
@@ -9,25 +10,14 @@ export default async function(req) {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const fullName = (body.fullName || "").trim();
-    const phone = (body.phone || "").trim();
-    const nationalId = (body.nationalId || "").trim();
-
-    if (!fullName || !phone || !nationalId) {
-      return Response.json({ error: 'Missing required fields' }, { status: 400 });
-    }
-    // A profile photo is required before requesting verification.
-    if (!user.avatar) {
-      return Response.json({ error: 'Profile photo required' }, { status: 400 });
+    const input = parseVerificationInput(body);
+    const validationError = validateVerificationInput(input, user);
+    if (validationError) {
+      return Response.json({ error: validationError }, { status: 400 });
     }
 
     // Block duplicate pending requests — a user cannot submit another while under review.
-    const existing = await base44.entities.VerificationRequest.filter(
-      { user_id: user.id, status: 'pending' },
-      '-created_date',
-      1
-    );
-    if (existing && existing.length > 0) {
+    if (await hasPendingVerification(base44, user.id)) {
       return Response.json({ error: 'You already have a pending verification request' }, { status: 409 });
     }
 
@@ -35,11 +25,11 @@ export default async function(req) {
     // verification dialog, so the number the user verified is already theirs.
     const request = await base44.entities.VerificationRequest.create({
       user_id: user.id,
-      user_name: user.name || fullName,
+      user_name: user.name || input.fullName,
       user_email: user.email,
-      full_name: fullName,
-      phone,
-      national_id: nationalId,
+      full_name: input.fullName,
+      phone: input.phone,
+      national_id: input.nationalId,
       status: 'pending',
     });
 
@@ -55,11 +45,11 @@ export default async function(req) {
       'New verification request.',
       '',
       'Request #: ' + reqNumber,
-      'User: ' + (user.name || fullName),
+      'User: ' + (user.name || input.fullName),
       'Email: ' + (user.email || '—'),
-      'Full name: ' + fullName,
-      'Phone: ' + phone,
-      'National ID: ' + nationalId,
+      'Full name: ' + input.fullName,
+      'Phone: ' + input.phone,
+      'National ID: ' + input.nationalId,
       '',
       'Review it in the Admin Panel > Verifications.',
     ].join('\n');

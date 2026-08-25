@@ -32,7 +32,7 @@ export default async function(req: Request): Promise<Response> {
       body: JSON.stringify({
         amount: amountHalalas,
         currency: 'SAR',
-        description: 'تبرع لكاسر',
+        description: 'دعم لكاسر',
         callback_url: `${origin}/about`,
         metadata: { type: 'donation', user_id: user.id },
       }),

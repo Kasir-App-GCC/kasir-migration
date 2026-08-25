@@ -141,10 +141,10 @@ export default function About() {
     } catch (e) {
       const needLogin = e?.message?.includes("Unauthorized") || e?.message?.includes("401");
       if (needLogin) {
-        toast({ title: ar ? "سجّل الدخول أولاً للتبرع" : "Please log in to donate" });
+        toast({ title: ar ? "سجّل الدخول أولاً للدعم" : "Please log in to support us" });
         base44.auth.redirectToLogin?.(window.location.pathname);
       } else {
-        toast({ title: ar ? "تعذّر إنشاء رابط التبرع" : "Couldn't create donation link", description: e.message, variant: "destructive" });
+        toast({ title: ar ? "تعذّر إنشاء رابط الدعم" : "Couldn't create support link", description: e.message, variant: "destructive" });
       }
     } finally {
       setLoading(false);
@@ -178,7 +178,7 @@ export default function About() {
         </div>
 
         <p className="text-sm leading-relaxed opacity-95">
-          عجبك كاسر؟ تبرعك يساعدنا نطوّر التطبيق ونقدّم الأفضل. 🌿
+          عجبك كاسر؟ دعمك يساعدنا نطوّر التطبيق ونقدّم الأفضل. 🌿
         </p>
 
         <div className="grid grid-cols-5 gap-2">
@@ -218,7 +218,7 @@ export default function About() {
           className="w-full py-3 rounded-xl bg-white text-emerald-700 font-extrabold text-sm flex items-center justify-center gap-2 disabled:opacity-60 hover:bg-white/90 transition"
         >
           {loading ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
-          تبرع الآن
+          ادعمنا الآن
         </button>
         <p className="text-[11px] text-center opacity-80">الدفع آمن عبر Moyasar · بطاقة أو Apple Pay</p>
       </div>

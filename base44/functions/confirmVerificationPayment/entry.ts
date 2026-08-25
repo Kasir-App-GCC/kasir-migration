@@ -21,6 +21,7 @@ export default async function(req: Request): Promise<Response> {
     // the invoices API and look for a paid payment in its payments array.
     let paid = false;
     let resolvedPaymentId = paymentId;
+    let metadata: any = null;
 
     const payRes = await fetch('https://api.moyasar.com/v1/payments/' + paymentId, {
       headers: { 'Authorization': authHeader },
@@ -29,6 +30,7 @@ export default async function(req: Request): Promise<Response> {
       const payData = await payRes.json();
       if (payData.status === 'paid') {
         paid = true;
+        metadata = payData.metadata || null;
       }
     } else {
       // Not a payment ID — try looking it up as an invoice.
@@ -41,6 +43,7 @@ export default async function(req: Request): Promise<Response> {
         if (paidPayment) {
           paid = true;
           resolvedPaymentId = paidPayment.id;
+          metadata = invData.metadata || paidPayment.metadata || null;
         }
       } else {
         const invData = await invRes.json().catch(() => ({}));
@@ -52,19 +55,20 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ ok: false, error: 'Payment not completed' });
     }
 
-    // Find the pending verification request for this user and auto-approve it.
-    const requests = await base44.entities.VerificationRequest.filter(
-      { user_id: user.id, status: 'pending' },
-      '-created_date',
-      5
-    );
-    if (!requests || requests.length === 0) {
-      return Response.json({ error: 'No pending verification request found' }, { status: 404 });
-    }
+    // Create the approved verification request from the data stored in the
+    // Moyasar invoice metadata. No pending request was created up-front, so
+    // nothing appears in the admin review queue until payment is confirmed.
+    const fullName = metadata?.full_name || user.name || '';
+    const phone = metadata?.phone || '';
+    const nationalId = metadata?.national_id || '';
 
-    const verification = requests[0];
-
-    await base44.entities.VerificationRequest.update(verification.id, {
+    await base44.asServiceRole.entities.VerificationRequest.create({
+      user_id: user.id,
+      user_name: user.name || fullName,
+      user_email: user.email,
+      full_name: fullName,
+      phone: phone,
+      national_id: nationalId,
       status: 'approved',
       reviewed_by: 'system',
       payment_receipt_url: 'moyasar:' + resolvedPaymentId,

@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { secrets } from 'base44:runtime';
-import { parseVerificationInput, validateVerificationInput, hasPendingVerification } from '../../shared/verificationValidation.ts';
+import { parseVerificationInput, validateVerificationInput } from '../../shared/verificationValidation.ts';
 
 const VERIFICATION_FEE = 12; // SAR
 
@@ -17,10 +17,19 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ error: validationError }, { status: 400 });
     }
 
-    // Block duplicate pending requests — a user cannot submit another while one is in flight.
-    if (await hasPendingVerification(base44, user.id)) {
-      return Response.json({ error: 'You already have a pending verification request' }, { status: 409 });
+    // Block already-verified users from paying again.
+    if (user.is_trusted) {
+      return Response.json({ error: 'Your account is already verified' }, { status: 409 });
     }
+
+    // Clean up any old pending requests from previous attempts so the user can
+    // retry freely (these no longer block the dialog or appear in admin review).
+    try {
+      await base44.asServiceRole.entities.VerificationRequest.updateMany(
+        { user_id: user.id, status: 'pending' },
+        { $set: { status: 'rejected', reviewed_by: 'system_stale' } }
+      );
+    } catch (e) {}
 
     const secretKey = secrets.get('MOYASAR_SECRET_KEY');
     if (!secretKey) return Response.json({ error: 'MOYASAR_SECRET_KEY not set' }, { status: 500 });
@@ -42,7 +51,13 @@ export default async function(req: Request): Promise<Response> {
         callback_url: 'https://kasir-ksa.base44.app/profile?verify_payment=1',
         success_url: 'https://kasir-ksa.base44.app/profile?verify_payment=1',
         back_url: 'https://kasir-ksa.base44.app/profile',
-        metadata: { type: 'verification', user_id: user.id },
+        metadata: {
+          type: 'verification',
+          user_id: user.id,
+          full_name: input.fullName,
+          phone: input.phone,
+          national_id: input.nationalId,
+        },
       }),
     });
 
@@ -53,27 +68,14 @@ export default async function(req: Request): Promise<Response> {
       });
     }
 
-    // Create the verification request tagged with the Moyasar invoice ID so the
-    // confirmation step can match it back after the user pays.
-    const request = await base44.entities.VerificationRequest.create({
-      user_id: user.id,
-      user_name: user.name || input.fullName,
-      user_email: user.email,
-      full_name: input.fullName,
-      phone: input.phone,
-      national_id: input.nationalId,
-      status: 'pending',
-      payment_receipt_url: 'moyasar:' + data.id,
-    });
-
-    // Mark the phone as verified on the user profile so it persists.
+    // Mark the phone as verified on the user profile so it persists across
+    // payment retries (the user won't need to re-verify if the payment fails).
     try {
       await base44.asServiceRole.entities.User.update(user.id, { phone_verified: true });
     } catch (e) {}
 
     return Response.json({
       ok: true,
-      requestId: request.id,
       invoiceId: data.id,
       url: data.url,
     });

@@ -39,7 +39,11 @@ export default function VerificationDialog({ open, onClose }) {
           "-created_date",
           1
         );
-        if (res && res.length > 0) setPendingRequest(res[0]);
+        // Only block the form for manual-review requests (no Moyasar payment).
+        // Old payment-flow requests are cleaned up by createVerificationPayment.
+        if (res && res.length > 0 && !(res[0].payment_receipt_url || "").startsWith("moyasar:")) {
+          setPendingRequest(res[0]);
+        }
       } catch (e) {}
     })();
   }, [open]);

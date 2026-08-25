@@ -59,6 +59,7 @@ export default function AdminDisputes() {
         item_id: d.item_id || null,
         item_title: d.item_title || "",
         chatroom_id: d.chatroom_id || null,
+        dispute_id: d.id,
         actor_name: "Admin",
       });
       setReply((p) => ({ ...p, [d.id]: "" }));
@@ -78,6 +79,7 @@ export default function AdminDisputes() {
         item_id: d.item_id || null,
         item_title: d.item_title || "",
         chatroom_id: d.chatroom_id || null,
+        dispute_id: d.id,
         actor_name: "Admin",
       });
       load();
@@ -158,6 +160,12 @@ export default function AdminDisputes() {
             {d.admin_reply && (
               <div className="text-sm ps-2 border-s-2 border-primary/30">
                 <span className="font-semibold text-primary">{ar ? "رد الإدارة" : "Admin"}:</span> {d.admin_reply}
+              </div>
+            )}
+            {d.complainant_feedback && (
+              <div className={`text-sm rounded-xl px-3 py-2 flex items-start gap-2 ${d.complainant_feedback === "satisfied" ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300" : "bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300"}`}>
+                <span className="font-bold shrink-0">{d.complainant_feedback === "satisfied" ? (ar ? "راضٍ" : "Satisfied") : (ar ? "غير راضٍ" : "Unsatisfied")}</span>
+                {d.complainant_reply && <span className="whitespace-pre-line">— {d.complainant_reply}</span>}
               </div>
             )}
             {d.status !== "resolved" && d.status !== "closed" && (

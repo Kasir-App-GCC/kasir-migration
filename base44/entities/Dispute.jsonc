@@ -47,6 +47,18 @@
     "admin_reply": {
       "type": "string",
       "description": "Admin's resolution message"
+    },
+    "complainant_feedback": {
+      "type": "string",
+      "enum": [
+        "satisfied",
+        "unsatisfied"
+      ],
+      "description": "The complainant's response to the admin's resolution"
+    },
+    "complainant_reply": {
+      "type": "string",
+      "description": "The complainant's reply when they mark the resolution as unsatisfied"
     }
   },
   "required": [

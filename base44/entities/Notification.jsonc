@@ -45,6 +45,10 @@
     "chatroom_id": {
       "type": "string"
     },
+    "dispute_id": {
+      "type": "string",
+      "description": "The dispute this notification refers to (dispute_resolved type)"
+    },
     "offer_amount": {
       "type": "number"
     },

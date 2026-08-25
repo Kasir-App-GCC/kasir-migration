@@ -1,15 +1,17 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MessageCircle, Star, Tag, CheckCircle, Check, X, ArrowLeftRight, Pencil, BadgeCheck, TrendingUp, TrendingDown, Flag, LifeBuoy, Clock, Radar, UserPlus, Scale, Megaphone } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { timeAgo } from "@/lib/format";
+import DisputeReviewDialog from "@/components/DisputeReviewDialog";
 
 export default function NotificationItem({ n, onMarkRead, onClick }) {
   const { lang } = useStore();
   const t = useT();
   const nav = useNavigate();
+  const [showDispute, setShowDispute] = useState(false);
 
   const handle = () => {
     if (n.type === "admin_report" || n.type === "admin_ticket" || n.type === "admin_verification" || n.type === "admin_boost" || n.type === "admin_dispute") {
@@ -19,7 +21,7 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
     }
     if (n.type === "new_follower") { onMarkRead?.(n); if (n.actorId) nav(`/user/${n.actorId}`); onClick?.(); return; }
     if (n.type === "price_drop") { onMarkRead?.(n); if (n.itemId) nav(`/item/${n.itemId}`); onClick?.(); return; }
-    if (n.type === "dispute_resolved") { onMarkRead?.(n); if (n.roomId) nav(`/chat/${n.roomId}`); else if (n.itemId) nav(`/item/${n.itemId}`); onClick?.(); return; }
+    if (n.type === "dispute_resolved") { onMarkRead?.(n); setShowDispute(true); onClick?.(); return; }
     if (n.type === "support_resolved") { onMarkRead?.(n); onClick?.(); return; }
     if (n.type === "rate") { onMarkRead?.(n); if (n.roomId) nav(`/chat/${n.roomId}`); else if (n.itemId) nav(`/item/${n.itemId}`); }
     else if (n.type === "sold" || n.type === "boost_approved" || n.type === "saved_search_match") { onMarkRead?.(n); if (n.itemId) nav(`/item/${n.itemId}`); }
@@ -29,6 +31,7 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
   };
 
   return (
+    <>
     <button
       onClick={handle}
       className={`w-full flex items-start gap-3 p-2.5 rounded-xl bg-card border border-border/60 hover:bg-muted/50 transition text-start ${n.unread ? "ring-1 ring-primary/30" : ""}`}
@@ -141,5 +144,13 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
       </div>
       {n.unread && <span className="w-2 h-2 rounded-full bg-primary mt-2 shrink-0" />}
     </button>
+      {showDispute && (
+        <DisputeReviewDialog
+          disputeId={n.disputeId}
+          chatroomId={n.roomId}
+          onClose={() => setShowDispute(false)}
+        />
+      )}
+    </>
   );
 }

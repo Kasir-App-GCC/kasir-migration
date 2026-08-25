@@ -15,6 +15,7 @@ const NO_BOTTOMNAV = /^\/(chat|edit|user)\/.+|^\/terms$/;
 export default function AppLayout() {
   const [locOpen, setLocOpen] = useState(false);
   const [locDefaultTab, setLocDefaultTab] = useState(null);
+  const [locAutoDetect, setLocAutoDetect] = useState(false);
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
   const location = useLocation();
@@ -35,12 +36,14 @@ export default function AppLayout() {
     if (localStorage.getItem("kasir_loc_prompted")) return;
     localStorage.setItem("kasir_loc_prompted", "1");
     setLocDefaultTab("radius");
+    setLocAutoDetect(true);
     setLocOpen(true);
   }, [location.pathname]);
 
   const closeLoc = () => {
     setLocOpen(false);
     setLocDefaultTab(null);
+    setLocAutoDetect(false);
   };
 
   return (
@@ -51,7 +54,7 @@ export default function AppLayout() {
         <Outlet context={{ categories, setCategories, subcategories, setSubcategories }} />
       </main>
       {!noBottomNav && <BottomNav />}
-      <LocationFilter open={locOpen} onClose={closeLoc} defaultTab={locDefaultTab} />
+      <LocationFilter open={locOpen} onClose={closeLoc} defaultTab={locDefaultTab} autoDetect={locAutoDetect} />
     </div>
   );
 }

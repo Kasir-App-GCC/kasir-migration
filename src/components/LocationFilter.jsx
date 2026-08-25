@@ -7,7 +7,7 @@ import { getCities, nearestCityInCountry } from "@/lib/countries";
 import MapPinPicker from "@/components/MapPinPicker";
 import { base44 } from "@/api/base44Client";
 
-export default function LocationFilter({ open, onClose, defaultTab }) {
+export default function LocationFilter({ open, onClose, defaultTab, autoDetect }) {
   const { lang, locationFilter, setLocationFilter, country } = useStore();
   const t = useT();
   const [tab, setTab] = useState(defaultTab || (locationFilter.mode === "map" ? "map" : locationFilter.mode));
@@ -61,7 +61,7 @@ export default function LocationFilter({ open, onClose, defaultTab }) {
   useEffect(() => {
     if (open) {
       setTab(defaultTab || (locationFilter.mode === "map" ? "map" : locationFilter.mode));
-      setRadius(locationFilter.radius);
+      setRadius(autoDetect ? 10 : locationFilter.radius);
       setCity(locationFilter.city);
       setQuery("");
       if (locationFilter.mode === "radius" && locationFilter.lat) {
@@ -81,14 +81,6 @@ export default function LocationFilter({ open, onClose, defaultTab }) {
       }
     }
   }, [open]);
-
-  if (!open) return null;
-
-  const filtered = getCities(country).filter((c) =>
-    (lang === "ar" ? c.ar : c.en).toLowerCase().includes(query.toLowerCase()) ||
-    c.en.toLowerCase().includes(query.toLowerCase()) ||
-    c.ar.includes(query)
-  );
 
   const detectLocation = () => {
     if (!navigator.geolocation) {
@@ -110,6 +102,23 @@ export default function LocationFilter({ open, onClose, defaultTab }) {
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
+
+  // Auto-detect location on first-visit auto-open so the user doesn't have to
+  // tap "use my location" — the browser permission prompt fires immediately.
+  useEffect(() => {
+    if (open && autoDetect && !detectedCoords && !locating) {
+      detectLocation();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, autoDetect]);
+
+  if (!open) return null;
+
+  const filtered = getCities(country).filter((c) =>
+    (lang === "ar" ? c.ar : c.en).toLowerCase().includes(query.toLowerCase()) ||
+    c.en.toLowerCase().includes(query.toLowerCase()) ||
+    c.ar.includes(query)
+  );
 
   const apply = () => {
     if (tab === "city") {

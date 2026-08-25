@@ -131,7 +131,7 @@ export default function About() {
     }
     setLoading(true);
     try {
-      const res = await base44.functions.invoke("createDonationLink", { amount: amt });
+      const res = await base44.functions.invoke("createDonationLink", { amount: amt, origin: window.location.origin });
       if (res?.data?.ok && res.data.url) {
         window.open(res.data.url, "_blank");
         toast({ title: ar ? "تم فتح صفحة الدفع" : "Opening payment page" });

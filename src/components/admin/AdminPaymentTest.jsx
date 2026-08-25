@@ -22,7 +22,7 @@ export default function AdminPaymentTest() {
     setLoading(true);
     setResult(null);
     try {
-      const res = await base44.functions.invoke("testMoyasarPayment", { amount: amt, scenario });
+      const res = await base44.functions.invoke("testMoyasarPayment", { amount: amt, scenario, origin: window.location.origin });
       if (res?.data?.ok) {
         setResult(res.data);
         toast({ title: ar ? "تمت العملية" : "Payment processed", description: res.data.status });

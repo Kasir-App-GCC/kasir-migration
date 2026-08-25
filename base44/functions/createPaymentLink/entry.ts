@@ -18,6 +18,10 @@ export default async function(req: Request): Promise<Response> {
     const secretKey = secrets.get('MOYASAR_SECRET_KEY');
     if (!secretKey) return Response.json({ error: 'MOYASAR_SECRET_KEY not set' }, { status: 500 });
 
+    // Use the origin the request came from so Moyasar redirects back to the
+    // domain the user is actually browsing (custom domain or base44 fallback).
+    const origin = (body?.origin || 'https://kasir-ksa.base44.app').replace(/\/$/, '');
+
     // Moyasar amounts are in halalas (1 SAR = 100 halalas).
     const amountHalalas = Math.round(amountSar * 100);
     const authHeader = 'Basic ' + btoa(secretKey + ':');
@@ -32,7 +36,7 @@ export default async function(req: Request): Promise<Response> {
         amount: amountHalalas,
         currency: 'SAR',
         description,
-        callback_url: 'https://kasir-ksa.base44.app',
+        callback_url: origin,
       }),
     });
 

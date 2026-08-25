@@ -21,7 +21,7 @@ export default function AdminPaymentLinks() {
     }
     setLoading(true);
     try {
-      const res = await base44.functions.invoke("createPaymentLink", { amount: amt, description: description.trim() });
+      const res = await base44.functions.invoke("createPaymentLink", { amount: amt, description: description.trim(), origin: window.location.origin });
       if (res?.data?.ok) {
         setLinks((prev) => [{ ...res.data, created: Date.now() }, ...prev]);
         setAmount("");

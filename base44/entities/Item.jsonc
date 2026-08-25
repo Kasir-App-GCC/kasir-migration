@@ -75,6 +75,11 @@
     "seller_avatar": {
       "type": "string"
     },
+    "seller_trusted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Denormalized copy of the seller's is_trusted flag, kept in sync on trust changes so the 'verified only' search filter can run server-side without joining the User collection"
+    },
     "status": {
       "type": "string",
       "enum": [

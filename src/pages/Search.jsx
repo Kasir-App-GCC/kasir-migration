@@ -70,6 +70,7 @@ export default function Search() {
       if (maxPrice) query.price.$lte = Number(maxPrice);
     }
     if (!prefs.showSold) query.status = "available";
+    if (verifiedOnly) query.seller_trusted = true;
     if (locationFilter.mode === "city" && locationFilter.city) {
       const nearby = nearbyCities(locationFilter.city, country, 25);
       query.city = nearby.length > 1 ? { $in: nearby } : nearby[0];
@@ -81,7 +82,7 @@ export default function Search() {
       ];
     }
     return query;
-  }, [country, categories, subcategories, condition, minPrice, maxPrice, prefs.showSold, locationFilter.mode, locationFilter.city, debouncedQ]);
+  }, [country, categories, subcategories, condition, minPrice, maxPrice, prefs.showSold, verifiedOnly, locationFilter.mode, locationFilter.city, debouncedQ]);
 
   // Only fetch when the user has specified some search criteria — otherwise
   // the search page would just duplicate the home feed.
@@ -222,27 +223,21 @@ export default function Search() {
     return items;
   }, [items, locationFilter, country]);
 
-  // "Verified only" narrows to sellers with the trusted badge (best-effort
-  // against the already-fetched seller map).
-  const verifiedFiltered = useMemo(() => {
-    if (!verifiedOnly) return filtered;
-    return filtered.filter((it) => !!sellers[it.seller_id]?.trusted);
-  }, [filtered, verifiedOnly, sellers]);
-
   // Distance sort is client-side (over the loaded page) since the server can't
   // rank by proximity. Falls back to the server order when no center is set.
+  // ("Verified only" is already enforced server-side via seller_trusted.)
   const sorted = useMemo(() => {
-    if (sort !== "distance") return verifiedFiltered;
+    if (sort !== "distance") return filtered;
     const center = (locationFilter.lat && locationFilter.lng)
       ? { lat: locationFilter.lat, lng: locationFilter.lng }
       : (locationFilter.mode === "city" && locationFilter.city ? cityCoords(locationFilter.city) : null);
-    if (!center) return verifiedFiltered;
+    if (!center) return filtered;
     const distOf = (it) => {
       const c = (it.lat && it.lng) ? { lat: it.lat, lng: it.lng } : cityCoords(it.city);
       return c ? distanceKm(center.lat, center.lng, c.lat, c.lng) : 1e9;
     };
-    return [...verifiedFiltered].sort((a, b) => distOf(a) - distOf(b));
-  }, [verifiedFiltered, sort, locationFilter]);
+    return [...filtered].sort((a, b) => distOf(a) - distOf(b));
+  }, [filtered, sort, locationFilter]);
 
   // Interleave promoted (sponsored) items into search results every 5 slots.
   const { displayItems, promotedIds } = useMemo(() => {

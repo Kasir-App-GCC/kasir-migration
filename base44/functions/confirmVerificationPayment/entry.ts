@@ -104,6 +104,15 @@ export default async function(req: Request): Promise<Response> {
     // Grant the trusted badge immediately — no admin review needed.
     await base44.asServiceRole.entities.User.update(user.id, { is_trusted: true });
 
+    // Sync the denormalized seller_trusted flag on all the seller's listings
+    // so the "verified only" search filter includes them server-side.
+    try {
+      await base44.asServiceRole.entities.Item.updateMany(
+        { seller_id: user.id },
+        { $set: { seller_trusted: true } }
+      );
+    } catch (e) {}
+
     try {
       await base44.entities.Notification.create({
         user_id: user.id,

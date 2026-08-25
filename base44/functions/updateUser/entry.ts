@@ -25,6 +25,18 @@ export default async function(req) {
     }
 
     const updated = await base44.asServiceRole.entities.User.update(userId, update);
+
+    // Keep the denormalized seller_trusted flag on the seller's listings in
+    // sync so the "verified only" search filter works server-side without
+    // joining the User collection.
+    if ("is_trusted" in update) {
+      try {
+        await base44.asServiceRole.entities.Item.updateMany(
+          { seller_id: userId },
+          { $set: { seller_trusted: !!update.is_trusted } }
+        );
+      } catch {}
+    }
     return Response.json({ success: true, user: updated });
   } catch (error) {
     return Response.json({ error: error.message || "Update failed" }, { status: 500 });

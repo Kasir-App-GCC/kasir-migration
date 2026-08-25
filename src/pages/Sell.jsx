@@ -21,6 +21,7 @@ export default function Sell() {
       seller_id: user?.id,
       seller_name: user?.name,
       seller_avatar: user?.avatar || null,
+      seller_trusted: !!user?.is_trusted,
       is_family: false,
       status: "available",
       featured: false,

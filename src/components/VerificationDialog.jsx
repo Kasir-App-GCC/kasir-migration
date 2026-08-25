@@ -74,7 +74,8 @@ export default function VerificationDialog({ open, onClose }) {
       const res = await base44.functions.invoke("createVerificationPayment", {
         fullName: fullName.trim(),
         phone: digitsOnly(phoneE164),
-        nationalId: idCheck.digits
+        nationalId: idCheck.digits,
+        origin: window.location.origin
       });
       if (res?.data?.error) throw new Error(res.data.error);
       if (res?.data?.url) {

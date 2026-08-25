@@ -37,6 +37,11 @@ export default async function(req: Request): Promise<Response> {
     const amountHalalas = VERIFICATION_FEE * 100;
     const authHeader = 'Basic ' + btoa(secretKey + ':');
 
+    // Use the origin the request came from so Moyasar redirects back to the
+    // domain the user is actually browsing (custom domain or base44 fallback)
+    // — hardcoding the base44 host breaks the back button on custom domains.
+    const origin = (body?.origin || 'https://kasir-ksa.base44.app').replace(/\/$/, '');
+
     // Create the Moyasar hosted invoice for the one-time verification fee.
     const moyasarRes = await fetch('https://api.moyasar.com/v1/invoices', {
       method: 'POST',
@@ -48,9 +53,9 @@ export default async function(req: Request): Promise<Response> {
         amount: amountHalalas,
         currency: 'SAR',
         description: 'رسوم توثيق الحساب - كاسر',
-        callback_url: 'https://kasir-ksa.base44.app/profile?verify_payment=1',
-        success_url: 'https://kasir-ksa.base44.app/profile?verify_payment=1',
-        back_url: 'https://kasir-ksa.base44.app/profile',
+        callback_url: `${origin}/profile?verify_payment=1`,
+        success_url: `${origin}/profile?verify_payment=1`,
+        back_url: `${origin}/profile`,
         metadata: {
           type: 'verification',
           user_id: user.id,

@@ -7,9 +7,10 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 // Uses updated_date as the "last action" timestamp so modifying an offer
 // restarts the 2-day clock. reminder_sent_at prevents duplicate reminders
 // (only re-notifies if the offer was touched since the last reminder).
-// Called from a scheduled workflow. Only the platform's internal workflow
-// runner can reach this — we verify the dispatcher's signed service token, so
-// external public callers are rejected.
+// Called from a scheduled workflow; runs as the service role (no user
+// context). We query the server for offers already past the 2-day threshold
+// (oldest first) so we process the most stale ones first — instead of only
+// the 500 newest pending offers, which at scale would miss older stale ones.
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -17,16 +18,15 @@ export default async function (req) {
     const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
     const now = Date.now();
 
+    const cutoff = new Date(now - TWO_DAYS_MS).toISOString();
     const offers = await base44.asServiceRole.entities.Offer.filter(
-      { status: "pending" },
-      "-created_date",
+      { status: "pending", updated_date: { $lt: cutoff } },
+      "updated_date",
       500
     );
 
     const stale = (offers || []).filter((o) => {
-      if (!o.updated_date) return false;
-      const updated = new Date(o.updated_date).getTime();
-      if (now - updated < TWO_DAYS_MS) return false; // not yet 2 days stale
+      const updated = o.updated_date ? new Date(o.updated_date).getTime() : 0;
       const reminded = o.reminder_sent_at ? new Date(o.reminder_sent_at).getTime() : 0;
       // Only remind if we haven't reminded since the last update
       return reminded < updated;

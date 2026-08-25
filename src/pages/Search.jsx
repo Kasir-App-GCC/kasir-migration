@@ -39,6 +39,7 @@ export default function Search() {
   const [condition, setCondition] = useState([]);
   const [featuredItems, setFeaturedItems] = useState([]);
   const skipRef = useRef(0);
+  const itemsRef = useRef([]);
   const refreshingRef = useRef(false);
   const sentinelRef = useRef(null);
 
@@ -47,6 +48,10 @@ export default function Search() {
     const id = setTimeout(() => setDebouncedQ(q.trim()), 350);
     return () => clearTimeout(id);
   }, [q]);
+
+  // Mirror loaded items into a ref so cursor pagination reads the latest oldest
+  // created_date without re-creating the loadMore callback on every render.
+  useEffect(() => { itemsRef.current = items; }, [items]);
 
   const sortKey = sort === "priceLowHigh" ? "price" : sort === "priceHighLow" ? "-price" : "-created_date";
 
@@ -132,26 +137,38 @@ export default function Search() {
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
-    const skip = skipRef.current + PAGE_SIZE;
-    skipRef.current = skip;
     try {
-      const next = await base44.entities.Item.filter(buildQuery(), sortKey, PAGE_SIZE, skip);
-      const list = next || [];
-      const ids = [...new Set(list.map((i) => i.seller_id).filter(Boolean))];
+      let list;
+      if (sort === "newest") {
+        // Cursor (keyset) pagination: fetch items older than the oldest loaded
+        // one. Stable under new inserts — no drift, no skipped items on deep
+        // scroll (unlike offset, which shifts when new listings arrive).
+        const oldest = itemsRef.current[itemsRef.current.length - 1]?.created_date;
+        if (!oldest) { setHasMore(false); return; }
+        list = await base44.entities.Item.filter({ ...buildQuery(), created_date: { $lt: oldest } }, sortKey, PAGE_SIZE);
+      } else {
+        // Price/distance sorts can't use a created_date cursor; fall back to
+        // offset. Deep scroll is rare in these modes so the cost is acceptable.
+        const skip = skipRef.current + PAGE_SIZE;
+        skipRef.current = skip;
+        list = await base44.entities.Item.filter(buildQuery(), sortKey, PAGE_SIZE, skip);
+      }
+      const next = list || [];
+      const ids = [...new Set(next.map((i) => i.seller_id).filter(Boolean))];
       const sMap = ids.length ? await fetchSellerInfos(ids) : {};
       setSellers((prev) => ({ ...prev, ...sMap }));
       setItems((prev) => {
         const seen = new Set(prev.map((x) => x.id));
-        return [...prev, ...list.filter((x) => !seen.has(x.id))];
+        return [...prev, ...next.filter((x) => !seen.has(x.id))];
       });
-      setHasMore(list.length === PAGE_SIZE);
+      setHasMore(next.length === PAGE_SIZE);
     } catch {
-      skipRef.current = skip - PAGE_SIZE;
+      if (sort !== "newest") skipRef.current = Math.max(0, skipRef.current - PAGE_SIZE);
       setHasMore(false);
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, hasMore, buildQuery, sortKey]);
+  }, [loadingMore, hasMore, buildQuery, sortKey, sort]);
 
   useEffect(() => {
     const cached = readFeedCache(cacheKey);

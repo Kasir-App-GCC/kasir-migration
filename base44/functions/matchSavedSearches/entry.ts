@@ -1,12 +1,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 
 // Called by the "Saved Search Alert" workflow whenever a new Item is created.
-// Reads all SavedSearch records (service role), matches them against the new
-// item, and creates a "saved_search_match" Notification for each matching
-// buyer (excluding the seller's own searches). The existing Notification Push
-// workflow then fires the native push. Only the platform's internal workflow
-// runner can reach this — we verify the dispatcher's signed service token, so
-// external public callers are rejected.
+// Narrows saved searches server-side by category + city + country (a superset
+// of true matches) so we don't load all saved searches (capped at 500) — at
+// scale the load-all approach would miss most saved searches entirely.
+// matchSearch() then applies the precise subcategory/price/condition/text
+// checks client-side and creates a "saved_search_match" Notification for each
+// matching buyer (excluding the seller's own searches). Runs as the service
+// role (no user context).
 
 function matchSearch(s, item) {
   if (s.country && item.country && s.country !== item.country) return false;
@@ -40,7 +41,21 @@ export default async function (req) {
     if (!item) return Response.json({ error: "Item not found" }, { status: 404 });
     if (item.status && item.status !== "available") return Response.json({ matched: 0 });
 
-    const searches = await base44.asServiceRole.entities.SavedSearch.list("-created_date", 500);
+    // Narrow server-side by category + city + country so we only fetch saved
+    // searches that could possibly match this item. "" / "all" = "any" for
+    // category; "" = "any" for city/country. matchSearch() is still the source
+    // of truth for the precise checks below.
+    const cats = ["", "all"];
+    if (item.category) cats.push(item.category);
+    const cities = [""];
+    if (item.city) cities.push(item.city);
+    const countries = [""];
+    if (item.country) countries.push(item.country);
+    const searches = await base44.asServiceRole.entities.SavedSearch.filter(
+      { category: { $in: cats }, city: { $in: cities }, country: { $in: countries } },
+      "-created_date",
+      500
+    );
     const list = searches || [];
 
     let matched = 0;

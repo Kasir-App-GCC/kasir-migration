@@ -66,6 +66,24 @@ export default function AdminDisputes() {
     } catch {}
   };
 
+  // Mark a dispute as under review (in_progress) without replying — lets the
+  // admin acknowledge it while gathering more info, separate from resolving.
+  const markReview = async (d) => {
+    try {
+      await base44.entities.Dispute.update(d.id, { status: "in_progress" });
+      await base44.entities.Notification.create({
+        user_id: d.complainant_id,
+        type: "dispute_resolved",
+        text: ar ? `نزاعك على "${d.item_title || ""}" قيد النظر` : `Your dispute on "${d.item_title || ""}" is under review`,
+        item_id: d.item_id || null,
+        item_title: d.item_title || "",
+        chatroom_id: d.chatroom_id || null,
+        actor_name: "Admin",
+      });
+      load();
+    } catch {}
+  };
+
   const filtered = disputes.filter((d) => (filter === "all" ? true : d.status === filter));
 
   if (loading) return <div className="py-10 text-center text-muted-foreground">Loading…</div>;
@@ -151,6 +169,9 @@ export default function AdminDisputes() {
                   className="w-full px-3 py-2 rounded-xl bg-muted outline-none text-sm"
                 />
                 <div className="flex gap-2">
+                  {d.status === "open" && (
+                    <button onClick={() => markReview(d)} className="px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-bold">{ar ? "قيد النظر" : "Under review"}</button>
+                  )}
                   <button onClick={() => resolve(d, "resolved")} className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold">{ar ? "حل" : "Resolve"}</button>
                   <button onClick={() => resolve(d, "closed")} className="px-3 py-1.5 rounded-lg bg-muted text-xs font-bold">{ar ? "إغلاق" : "Close"}</button>
                 </div>

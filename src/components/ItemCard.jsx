@@ -59,10 +59,12 @@ export default function ItemCard({ item, onClick, promoted = false, refreshButto
           className="w-full h-full block transition-transform duration-500 group-hover:scale-105 pointer-events-none select-none"
         />
 
-        {/* Price tag — hanging from the top by a string */}
-        <div className="absolute top-0 start-2.5 z-20 flex flex-col items-center">
-          <div className="w-1 h-3.5 bg-amber-600/80 rounded-full" />
-          <div className="relative bg-gradient-to-br from-amber-300 to-amber-400 text-slate-900 px-3 py-1.5 rounded-md shadow-lg shadow-black/30 rotate-[-3deg] border border-amber-500/40">
+        {/* Price tag — notched ticket badge */}
+        <div className="absolute top-2.5 start-2.5 z-20" style={{ filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.4))" }}>
+          <div
+            className="relative bg-gradient-to-br from-amber-300 to-amber-400 text-slate-900 px-3.5 py-1.5 pr-4"
+            style={{ clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 58%, 7px 50%, 0% 42%)" }}
+          >
             <span className="text-[13px] font-extrabold whitespace-nowrap"><Price value={item.price} lang={lang} country={item.country} /></span>
           </div>
         </div>

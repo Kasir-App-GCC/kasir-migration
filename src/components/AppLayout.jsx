@@ -32,8 +32,8 @@ export default function AppLayout() {
   useEffect(() => {
     if (location.pathname !== "/") return;
     if (locationFilter.mode !== "city" || locationFilter.city) return;
-    if (sessionStorage.getItem("kasir_loc_prompted")) return;
-    sessionStorage.setItem("kasir_loc_prompted", "1");
+    if (localStorage.getItem("kasir_loc_prompted")) return;
+    localStorage.setItem("kasir_loc_prompted", "1");
     setLocDefaultTab("radius");
     setLocOpen(true);
   }, [location.pathname]);

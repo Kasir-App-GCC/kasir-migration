@@ -110,6 +110,10 @@ export default function ProfileSetup() {
       await checkUserAuth();
       setCountry(country);
       await syncAvatarToEntities(user.id, avatar);
+      // New users should always land on Home after completing their profile,
+      // regardless of the returnTo URL they started the registration flow from
+      // (e.g. /profile from an expired session would otherwise keep them there).
+      window.location.href = "/";
     } catch (err) {
       setError(err.message || (ar ? "فشل الحفظ" : "Failed to save"));
       setSaving(false);

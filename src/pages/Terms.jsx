@@ -47,7 +47,7 @@ export default function Terms() {
         </div>
       </div>
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
-        <p className="text-sm text-muted-foreground">{ar ? "آخر تحديث: أغسطس 2025" : "Last updated: August 2025"}</p>
+        <p className="text-sm text-muted-foreground">{ar ? "آخر تحديث: أغسطس 2026" : "Last updated: August 2026"}</p>
         {sections.map((s, i) => (
           <div key={i}>
             <h2 className="font-bold text-base mb-1.5">{s.title}</h2>

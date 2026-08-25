@@ -1,5 +1,4 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
-import { isInternalInvocation } from "../../shared/internalAuth.ts";
 
 // Scans for pending offers that have been waiting 2+ days without a response
 // and sends a reminder notification to the party who needs to act:
@@ -13,9 +12,6 @@ import { isInternalInvocation } from "../../shared/internalAuth.ts";
 // external public callers are rejected.
 export default async function (req) {
   try {
-    if (!(await isInternalInvocation(req))) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
     const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;

@@ -1,5 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { isInternalInvocation } from '../../shared/internalAuth.ts';
 
 // Called by the "Saved Search Alert" workflow whenever a new Item is created.
 // Reads all SavedSearch records (service role), matches them against the new
@@ -32,9 +31,6 @@ function matchSearch(s, item) {
 
 export default async function (req) {
   try {
-    if (!(await isInternalInvocation(req))) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
     const itemId = String(body?.item_id || "").trim();

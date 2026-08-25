@@ -8,7 +8,7 @@ import { timeAgo } from "@/lib/format";
 import DisputeReviewDialog from "@/components/DisputeReviewDialog";
 
 export default function NotificationItem({ n, onMarkRead, onClick }) {
-  const { lang } = useStore();
+  const { lang, user } = useStore();
   const t = useT();
   const nav = useNavigate();
   const [showDispute, setShowDispute] = useState(false);
@@ -22,6 +22,7 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
     if (n.type === "new_follower") { onMarkRead?.(n); if (n.actorId) nav(`/user/${n.actorId}`); onClick?.(); return; }
     if (n.type === "price_drop") { onMarkRead?.(n); if (n.itemId) nav(`/item/${n.itemId}`); onClick?.(); return; }
     if (n.type === "dispute_resolved") { onMarkRead?.(n); setShowDispute(true); return; }
+    if (n.type === "admin_message" && n.disputeId && user?.role === "admin") { onMarkRead?.(n); nav(`/admin?tab=disputes`); onClick?.(); return; }
     if (n.type === "support_resolved") { onMarkRead?.(n); onClick?.(); return; }
     if (n.type === "rate") { onMarkRead?.(n); if (n.roomId) nav(`/chat/${n.roomId}`); else if (n.itemId) nav(`/item/${n.itemId}`); }
     else if (n.type === "sold" || n.type === "boost_approved" || n.type === "saved_search_match") { onMarkRead?.(n); if (n.itemId) nav(`/item/${n.itemId}`); }

@@ -116,6 +116,10 @@ export default function DisputeReviewDialog({ disputeId, chatroomId, onClose }) 
                   </p>
                   {dispute.complainant_reply && <p className="mt-1.5 text-foreground/80 whitespace-pre-line">"{dispute.complainant_reply}"</p>}
                 </div>
+              ) : dispute.status === "resolved" ? (
+                <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/30 p-3 text-sm text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
+                  <ShieldCheck size={14} /> {ar ? "تم البت النهائي في النزاع من الإدارة." : "This dispute was closed by admin."}
+                </div>
               ) : dispute.admin_reply ? (
                 mode === "unsatisfied" ? (
                   <div className="space-y-2">

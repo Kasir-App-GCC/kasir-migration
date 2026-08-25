@@ -44,16 +44,17 @@ export default async function (req) {
         if (admins && admins.length) {
           const txt = `Complainant unsatisfied with dispute resolution on "${dispute.item_title || ""}"${reply ? ": " + reply : ""}`;
           await base44.asServiceRole.entities.Notification.bulkCreate(
-            admins.map((a) => ({
-              user_id: a.id,
-              type: "admin_message",
-              text: txt,
-              item_id: dispute.item_id || null,
-              item_title: dispute.item_title || "",
-              chatroom_id: dispute.chatroom_id || null,
-              actor_name: String(user.name || ""),
-              read: false,
-            }))
+          admins.map((a) => ({
+          user_id: a.id,
+          type: "admin_message",
+          text: txt,
+          item_id: dispute.item_id || null,
+          item_title: dispute.item_title || "",
+          chatroom_id: dispute.chatroom_id || null,
+          dispute_id: disputeId,
+          actor_name: String(user.name || ""),
+          read: false,
+          }))
           );
         }
       } catch {}

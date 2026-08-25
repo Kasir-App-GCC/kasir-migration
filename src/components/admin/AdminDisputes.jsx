@@ -44,18 +44,21 @@ export default function AdminDisputes() {
   };
   useEffect(() => { load(); }, []);
 
-  const resolve = async (d, status) => {
+  // Admin replies → dispute goes "under review" (in_progress) and the
+  // complainant is notified so they can mark satisfied (closes) or unsatisfied
+  // (reopens for re-review). It is NOT marked resolved here.
+  const sendReply = async (d) => {
     const txt = (reply[d.id] || "").trim();
     if (!txt) {
       alert(ar ? "اكتب رد الإدارة" : "Write an admin reply");
       return;
     }
     try {
-      await base44.entities.Dispute.update(d.id, { status, admin_reply: txt });
+      await base44.entities.Dispute.update(d.id, { status: "in_progress", admin_reply: txt });
       await base44.entities.Notification.create({
         user_id: d.complainant_id,
         type: "dispute_resolved",
-        text: ar ? `تم البت في نزاعك على "${d.item_title || ""}"` : `Your dispute on "${d.item_title || ""}" was resolved`,
+        text: ar ? `رد الإدارة على نزاعك على "${d.item_title || ""}"` : `Admin replied to your dispute on "${d.item_title || ""}"`,
         item_id: d.item_id || null,
         item_title: d.item_title || "",
         chatroom_id: d.chatroom_id || null,
@@ -67,21 +70,27 @@ export default function AdminDisputes() {
     } catch {}
   };
 
-  // Mark a dispute as under review (in_progress) without replying — lets the
-  // admin acknowledge it while gathering more info, separate from resolving.
-  const markReview = async (d) => {
+  // Force-resolve closes the dispute as "resolved" without waiting for the
+  // complainant's feedback (used when the complainant never replies). The
+  // complainant is informed but cannot reopen it.
+  const forceResolve = async (d) => {
+    if (!confirm(ar ? "تأكيد البت النهائي في النزاع؟ لن يتمكن المُشتكي من الرد." : "Force resolve this dispute? The complainant won't be able to reply.")) return;
     try {
-      await base44.entities.Dispute.update(d.id, { status: "in_progress" });
+      const update = { status: "resolved" };
+      const txt = (reply[d.id] || "").trim();
+      if (txt) update.admin_reply = txt;
+      await base44.entities.Dispute.update(d.id, update);
       await base44.entities.Notification.create({
         user_id: d.complainant_id,
         type: "dispute_resolved",
-        text: ar ? `نزاعك على "${d.item_title || ""}" قيد النظر` : `Your dispute on "${d.item_title || ""}" is under review`,
+        text: ar ? `تم البت النهائي في نزاعك على "${d.item_title || ""}"` : `Your dispute on "${d.item_title || ""}" was closed`,
         item_id: d.item_id || null,
         item_title: d.item_title || "",
         chatroom_id: d.chatroom_id || null,
         dispute_id: d.id,
         actor_name: "Admin",
       });
+      setReply((p) => ({ ...p, [d.id]: "" }));
       load();
     } catch {}
   };
@@ -177,11 +186,8 @@ export default function AdminDisputes() {
                   className="w-full px-3 py-2 rounded-xl bg-muted outline-none text-sm"
                 />
                 <div className="flex gap-2">
-                  {d.status === "open" && (
-                    <button onClick={() => markReview(d)} className="px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-bold">{ar ? "قيد النظر" : "Under review"}</button>
-                  )}
-                  <button onClick={() => resolve(d, "resolved")} className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold">{ar ? "حل" : "Resolve"}</button>
-                  <button onClick={() => resolve(d, "closed")} className="px-3 py-1.5 rounded-lg bg-muted text-xs font-bold">{ar ? "إغلاق" : "Close"}</button>
+                  <button onClick={() => sendReply(d)} className="px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-bold">{ar ? "إرسال الرد" : "Send reply"}</button>
+                  <button onClick={() => forceResolve(d)} className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold">{ar ? "بت نهائي" : "Force resolve"}</button>
                 </div>
               </div>
             )}

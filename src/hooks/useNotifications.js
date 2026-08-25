@@ -70,6 +70,9 @@ export default function useNotifications() {
           if (n.type === "dispute_resolved") {
             return { id: n.id, type: "dispute_resolved", text: n.text, name: n.item_title, itemId: n.item_id, roomId: n.chatroom_id, disputeId: n.dispute_id, date: n.created_date, unread: !n.read };
           }
+          if (n.type === "dispute_opened") {
+            return { id: n.id, type: "dispute_opened", text: n.text, name: n.item_title, itemId: n.item_id, roomId: n.chatroom_id, disputeId: n.dispute_id, date: n.created_date, unread: !n.read };
+          }
           if (n.type === "admin_message") {
             return { id: n.id, type: "admin_message", text: n.text, name: n.actor_name, itemId: n.item_id, roomId: n.chatroom_id, disputeId: n.dispute_id, date: n.created_date, unread: !n.read };
           }

@@ -38,10 +38,14 @@ export default async function (req) {
     hits.push(now);
     ipHits.set(ip, hits);
 
-    // De-duplicate repeated views of the same item from the same IP.
-    const dedupeKey = `${ip}|${itemId}`;
+    // De-duplicate repeated views: per-user (24h) for authenticated viewers,
+    // per-IP (1h) for public/unauthenticated viewers — IP-based so guest views
+    // can't be inflated by replaying the public URL.
+    const isAuth = !!body.viewer_id;
+    const dedupeKey = isAuth ? `user|${body.viewer_id}|${itemId}` : `ip|${ip}|${itemId}`;
+    const dedupeMs = isAuth ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000;
     const last = recentItemViews.get(dedupeKey);
-    if (last && now - last < DEDUPE_MS) {
+    if (last && now - last < dedupeMs) {
       return Response.json({ ok: true, counted: false });
     }
     recentItemViews.set(dedupeKey, now);

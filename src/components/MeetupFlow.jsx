@@ -144,7 +144,7 @@ export default function MeetupFlow({ offer, user, lang, otherName, meetup, onMee
     await act({ action: "check_in", meetup_id: meetup.id, lat, lng });
   };
 
-  const concluded = meetup && (meetup.status === "completed" || meetup.status === "no_show");
+  const concluded = meetup && (meetup.status === "completed" || meetup.status === "no_show" || meetup.status === "contested");
 
   // ---- No meetup yet ----
   if (!meetup && !plannerOpen) {
@@ -237,6 +237,7 @@ export default function MeetupFlow({ offer, user, lang, otherName, meetup, onMee
       confirmed: { ar: "تم تأكيد الموعد", en: "Meetup confirmed" },
       completed: { ar: "اكتمل اللقاء", en: "Meetup completed" },
       no_show: { ar: "تخلّف عن الحضور", en: "No-show" },
+      contested: { ar: "نتيجة متنازع عليها", en: "Contested" },
       cancelled: { ar: "ملغى", en: "Cancelled" },
     };
     const s = map[meetup.status] || { ar: meetup.status, en: meetup.status };
@@ -464,6 +465,8 @@ export default function MeetupFlow({ offer, user, lang, otherName, meetup, onMee
         <div className="space-y-2 pt-1 border-t border-border/60">
           {meetup.status === "completed" ? (
             <p className="text-[11px] text-emerald-600 font-semibold text-center flex items-center justify-center gap-1"><Check size={12} /> {ar ? "اكتمل اللقاء بنجاح" : "Meetup completed successfully"}</p>
+          ) : meetup.status === "contested" ? (
+            <p className="text-[11px] text-amber-600 font-semibold text-center flex items-center justify-center gap-1"><ShieldAlert size={12} /> {ar ? "نتيجة متنازع عليها — يمكنك فتح نزاع للمراجعة" : "Contested outcome — open a dispute for review"}</p>
           ) : (
             <p className="text-[11px] text-rose-500 font-semibold text-center flex items-center justify-center gap-1"><ShieldAlert size={12} /> {ar ? "تم تسجيل تخلّف عن الحضور — راجعه الإدارة" : "No-show recorded — admin will review"}</p>
           )}

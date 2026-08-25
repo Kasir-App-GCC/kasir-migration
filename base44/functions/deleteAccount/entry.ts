@@ -1,4 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
+import { sweepUserData } from "../../shared/sweepUser.ts";
 
 export default async function (req) {
   try {
@@ -6,10 +7,8 @@ export default async function (req) {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-    // Delete the user's listings
-    try {
-      await base44.asServiceRole.entities.Item.deleteMany({ seller_id: user.id });
-    } catch {}
+    // Delete ALL of the user's data so nothing dangles after the account is gone.
+    await sweepUserData(base44, String(user.id));
 
     // Disable the account (effectively a soft delete)
     try {

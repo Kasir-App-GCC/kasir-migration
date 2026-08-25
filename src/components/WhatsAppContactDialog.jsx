@@ -5,7 +5,7 @@ import { COUNTRIES, getCountry } from "@/lib/countries";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { useToast } from "@/components/ui/use-toast";
 
-export default function WhatsAppContactDialog({ open, onClose, chatroomId, user, lang }) {
+export default function WhatsAppContactDialog({ open, onClose, chatroomId, user, lang, buyerId, sellerId }) {
   const ar = lang === "ar";
   const { toast } = useToast();
   const [phoneCode, setPhoneCode] = useState("966");
@@ -32,6 +32,8 @@ export default function WhatsAppContactDialog({ open, onClose, chatroomId, user,
     try {
       await base44.entities.WhatsAppContact.create({
         chatroom_id: chatroomId,
+        buyer_id: buyerId || null,
+        seller_id: sellerId || null,
         sender_id: user.id,
         sender_name: user.name,
         phone: e164,

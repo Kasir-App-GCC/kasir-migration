@@ -31,6 +31,8 @@ export default async function (req) {
 
     const msg = await base44.asServiceRole.entities.Message.create({
       chatroom_id: chatroomId,
+      buyer_id: String(room.buyer_id),
+      seller_id: String(room.seller_id),
       sender_id: String(user.id),
       sender_name: senderName,
       text,

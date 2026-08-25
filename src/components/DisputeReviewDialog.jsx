@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { X, Scale, ThumbsUp, ThumbsDown, ShieldCheck, Clock } from "lucide-react";
+import { X, Scale, ThumbsUp, ThumbsDown, ShieldCheck, Clock, ShieldAlert } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { timeAgo } from "@/lib/format";
@@ -9,7 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 // Displays the admin's resolution and lets them mark it Satisfied (closes the
 // dispute) or Unsatisfied with a reply (reopens it for admin re-review).
 export default function DisputeReviewDialog({ disputeId, chatroomId, onClose }) {
-  const { lang } = useStore();
+  const { lang, user } = useStore();
   const ar = lang === "ar";
   const { toast } = useToast();
   const [dispute, setDispute] = useState(null);
@@ -65,6 +65,29 @@ export default function DisputeReviewDialog({ disputeId, chatroomId, onClose }) 
   }[s] || s);
 
   const alreadyDone = !!dispute?.complainant_feedback;
+  const isRespondent = !!user && !!dispute && String(dispute.respondent_id) === String(user.id);
+  const isComplainant = !!user && !!dispute && String(dispute.complainant_id) === String(user.id);
+  const [rReply, setRReply] = useState("");
+  const [rSubmitting, setRSubmitting] = useState(false);
+
+  const submitRespondent = async () => {
+    if (!rReply.trim()) {
+      toast({ title: ar ? "اكتب ردك أولاً" : "Please write your reply first", variant: "destructive" });
+      return;
+    }
+    setRSubmitting(true);
+    try {
+      await base44.functions.invoke("respondDispute", { dispute_id: dispute.id || disputeId, reply: rReply.trim() });
+      const fresh = await base44.entities.Dispute.get(dispute.id || disputeId);
+      setDispute(fresh);
+      setRReply("");
+      toast({ title: ar ? "تم إرسال ردك للمراجعة" : "Your reply was sent for review" });
+    } catch (e) {
+      const msg = String(e?.response?.data?.error || e?.message || "");
+      if (msg.includes("already_submitted")) toast({ title: ar ? "أرسلت ردك مسبقاً" : "You already submitted a reply" });
+      else toast({ title: ar ? "حدث خطأ" : "Something went wrong", variant: "destructive" });
+    } finally { setRSubmitting(false); }
+  };
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
@@ -107,8 +130,30 @@ export default function DisputeReviewDialog({ disputeId, chatroomId, onClose }) 
                 </div>
               )}
 
-              {/* Already submitted feedback */}
-              {alreadyDone ? (
+              {/* Respondent's side of the story */}
+              {dispute.respondent_reply ? (
+                <div className="rounded-xl bg-muted/60 p-3">
+                  <p className="text-[11px] font-bold text-muted-foreground uppercase mb-1">{ar ? "رد الطرف الآخر" : "The other party's reply"}</p>
+                  <p className="text-sm whitespace-pre-line">{dispute.respondent_reply}</p>
+                </div>
+              ) : isRespondent ? (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold flex items-center gap-1.5"><ShieldAlert size={13} className="text-rose-500" /> {ar ? "تم فتح نزاع ضدك — اكتب ردك" : "A dispute was opened against you — post your reply"}</p>
+                  <textarea
+                    value={rReply}
+                    onChange={(e) => setRReply(e.target.value)}
+                    rows={3}
+                    placeholder={ar ? "اشرح وجهة نظرك..." : "Explain your side..."}
+                    className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none text-sm resize-none"
+                  />
+                  <button onClick={submitRespondent} disabled={rSubmitting} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold disabled:opacity-50">
+                    {rSubmitting ? (ar ? "جاري..." : "Sending...") : (ar ? "إرسال ردك" : "Submit your reply")}
+                  </button>
+                </div>
+              ) : null}
+
+              {/* Complainant feedback (only the complainant can act) */}
+              {isComplainant && (alreadyDone ? (
                 <div className={`rounded-xl p-3 text-sm ${dispute.complainant_feedback === "satisfied" ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300" : "bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300"}`}>
                   <p className="font-bold flex items-center gap-1.5">
                     {dispute.complainant_feedback === "satisfied" ? <ThumbsUp size={14} /> : <ThumbsDown size={14} />}
@@ -148,7 +193,7 @@ export default function DisputeReviewDialog({ disputeId, chatroomId, onClose }) 
                     </button>
                   </div>
                 )
-              ) : null}
+              ) : null)}
             </>
           )}
         </div>

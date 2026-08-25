@@ -7,13 +7,26 @@ export default async function (req) {
     if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
-    const query = String(body?.query || "").trim().toLowerCase().replace(/^@/, "");
+    const rawQuery = String(body?.query || "").trim().replace(/^@/, "");
+    const query = rawQuery.toLowerCase();
     if (query.length < 1) return Response.json({ users: [] });
 
-    const all = await base44.asServiceRole.entities.User.list("-created_date", 200);
-    const matches = (all || [])
+    // Scan the newest 500 users for partial matches, AND look up the exact
+    // username so an older user (beyond the 500 newest) is still found when
+    // the buyer types their exact handle.
+    const [all, exact] = await Promise.all([
+      base44.asServiceRole.entities.User.list("-created_date", 500),
+      rawQuery
+        ? base44.asServiceRole.entities.User.filter({ username: rawQuery }, "-created_date", 10)
+        : Promise.resolve([]),
+    ]);
+
+    const seen = new Set();
+    const matches = [...(exact || []), ...(all || [])]
       .filter((u) => u.id !== user.id)
       .filter((u) => {
+        if (seen.has(u.id)) return false;
+        seen.add(u.id);
         const uname = (u.username || "").toLowerCase();
         const full = (u.full_name || [u.first_name, u.last_name].filter(Boolean).join(" ") || "").toLowerCase();
         return uname.includes(query) || full.includes(query);

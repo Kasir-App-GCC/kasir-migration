@@ -46,6 +46,15 @@ export default async function (req) {
         if (item.status === "sold") return Response.json({ error: "Item sold" }, { status: 400 });
         if (String(item.seller_id) !== String(sellerId)) return Response.json({ error: "Seller mismatch" }, { status: 400 });
       }
+      // Prevent injecting an offer into someone else's chatroom: when a
+      // chatroom is provided, the offer's buyer/seller must match the room's.
+      if (body.chatroom_id) {
+        let room;
+        try { room = await base44.entities.ChatRoom.get(String(body.chatroom_id)); } catch { room = null; }
+        if (room && (String(room.buyer_id) !== String(buyerId) || String(room.seller_id) !== String(sellerId))) {
+          return Response.json({ error: "Chat participants mismatch" }, { status: 400 });
+        }
+      }
       const created = await offers.create({
         chatroom_id: String(body.chatroom_id || ""),
         item_id: String(body.item_id || ""),
@@ -64,6 +73,8 @@ export default async function (req) {
         try {
           await base44.asServiceRole.entities.Message.create({
             chatroom_id: String(body.chatroom_id || ""),
+            buyer_id: buyerId,
+            seller_id: sellerId,
             sender_id: String(user.id),
             sender_name: String(user.name || ""),
             text,

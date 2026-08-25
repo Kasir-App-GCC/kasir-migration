@@ -47,6 +47,15 @@ export default function AdminReports() {
     try {
       await base44.entities.Report.update(r.id, { resolved: true });
       setReports((prev) => prev.map((x) => (x.id === r.id ? { ...x, resolved: true } : x)));
+      // Let the reporter know their report was acted on.
+      if (r.reporter_user_id) {
+        base44.entities.Notification.create({
+          user_id: r.reporter_user_id,
+          type: "admin_message",
+          text: ar ? "تمت مراجعة بلاغك واتخاذ الإجراء المناسب" : "Your report was reviewed and action was taken",
+          actor_name: ar ? "الإدارة" : "Admin",
+        }).catch(() => {});
+      }
       toast({ title: ar ? "تم حل البلاغ" : "Report resolved" });
     } catch {
       toast({ title: ar ? "فشل" : "Failed", variant: "destructive" });
@@ -138,6 +147,14 @@ export default function AdminReports() {
       await base44.entities.Item.delete(r.item_id);
       await base44.entities.Report.update(r.id, { resolved: true });
       setReports((prev) => prev.map((x) => (x.id === r.id ? { ...x, resolved: true } : x)));
+      if (r.reporter_user_id) {
+        base44.entities.Notification.create({
+          user_id: r.reporter_user_id,
+          type: "admin_message",
+          text: ar ? "تم حذف الإعلان الذي بلغت عنه" : "The listing you reported was removed",
+          actor_name: ar ? "الإدارة" : "Admin",
+        }).catch(() => {});
+      }
       toast({ title: ar ? "تم حذف الإعلان وحل البلاغ" : "Listing deleted & report resolved" });
     } catch {
       toast({ title: ar ? "فشل الحذف" : "Delete failed", variant: "destructive" });

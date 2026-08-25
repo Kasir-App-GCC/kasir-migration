@@ -586,7 +586,7 @@ export default function ChatRoom() {
         )}
       </div>
       {waDialogOpen && (
-        <WhatsAppContactDialog open={waDialogOpen} onClose={() => setWaDialogOpen(false)} chatroomId={id} user={user} lang={lang} />
+        <WhatsAppContactDialog open={waDialogOpen} onClose={() => setWaDialogOpen(false)} chatroomId={id} user={user} lang={lang} buyerId={room?.buyer_id} sellerId={room?.seller_id} />
       )}
       {disputeOffer && (
         <DisputeDialog offer={disputeOffer} user={user} lang={lang} onClose={() => setDisputeOffer(null)} />

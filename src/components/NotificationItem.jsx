@@ -21,7 +21,7 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
     }
     if (n.type === "new_follower") { onMarkRead?.(n); if (n.actorId) nav(`/user/${n.actorId}`); onClick?.(); return; }
     if (n.type === "price_drop") { onMarkRead?.(n); if (n.itemId) nav(`/item/${n.itemId}`); onClick?.(); return; }
-    if (n.type === "dispute_resolved") { onMarkRead?.(n); setShowDispute(true); return; }
+    if (n.type === "dispute_resolved" || n.type === "dispute_opened") { onMarkRead?.(n); setShowDispute(true); return; }
     if (n.type === "admin_message" && n.disputeId && user?.role === "admin") { onMarkRead?.(n); nav(`/admin?tab=disputes`); onClick?.(); return; }
     if (n.type === "support_resolved") { onMarkRead?.(n); onClick?.(); return; }
     if (n.type === "rate") { onMarkRead?.(n); if (n.roomId) nav(`/chat/${n.roomId}`); else if (n.itemId) nav(`/item/${n.itemId}`); }
@@ -117,7 +117,7 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
         <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300">
           <TrendingDown size={18} />
         </div>
-      ) : n.type === "dispute_resolved" ? (
+      ) : n.type === "dispute_resolved" || n.type === "dispute_opened" ? (
         <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-300">
           <Scale size={18} />
         </div>

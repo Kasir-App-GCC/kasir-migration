@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { sweepUserData } from '../../shared/sweepUser.ts';
 
 export default async function(req) {
   try {
@@ -12,10 +13,8 @@ export default async function(req) {
     if (!userId) return Response.json({ error: "userId is required" }, { status: 400 });
     if (userId === caller.id) return Response.json({ error: "Cannot delete yourself" }, { status: 400 });
 
-    // Clean up the user's data
-    try { await base44.asServiceRole.entities.Item.deleteMany({ seller_id: userId }); } catch {}
-    try { await base44.asServiceRole.entities.ChatRoom.deleteMany({ $or: [{ seller_id: userId }, { buyer_id: userId }] }); } catch {}
-    try { await base44.asServiceRole.entities.Message.deleteMany({ sender_id: userId }); } catch {}
+    // Clean up ALL of the user's data so nothing dangles after the account is gone.
+    await sweepUserData(base44, userId);
 
     // Hard-delete the user account so it disappears from the admin user list
     try {

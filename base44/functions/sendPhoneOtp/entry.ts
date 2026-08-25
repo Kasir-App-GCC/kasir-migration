@@ -35,6 +35,17 @@ export default async function(req) {
       return Response.json({ error: 'Too many attempts. Please try again in 30 minutes.' }, { status: 429 });
     }
 
+    // Per-phone rate limit (across ALL users) to prevent SMS-bombing arbitrary
+    // victim numbers from multiple accounts.
+    const phoneRecent = await base44.entities.PhoneOtp.filter(
+      { phone, created_date: { $gte: sinceIso } },
+      '-created_date',
+      10
+    );
+    if ((phoneRecent || []).length >= 3) {
+      return Response.json({ error: 'Too many attempts to this number. Please try again in 30 minutes.' }, { status: 429 });
+    }
+
     const apiKey = secrets.get('AUTHENTICA_API_KEY');
     if (!apiKey) return Response.json({ error: 'Authentica not configured' }, { status: 500 });
 

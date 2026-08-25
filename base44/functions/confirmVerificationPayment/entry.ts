@@ -33,7 +33,6 @@ export default async function(req: Request): Promise<Response> {
         metadata = payData.metadata || null;
       }
     } else {
-      // Not a payment ID — try looking it up as an invoice.
       const invRes = await fetch('https://api.moyasar.com/v1/invoices/' + paymentId, {
         headers: { 'Authorization': authHeader },
       });
@@ -55,29 +54,56 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ ok: false, error: 'Payment not completed' });
     }
 
-    // Create the approved verification request from the data stored in the
-    // Moyasar invoice metadata. No pending request was created up-front, so
-    // nothing appears in the admin review queue until payment is confirmed.
-    const fullName = metadata?.full_name || user.name || '';
-    const phone = metadata?.phone || '';
-    const nationalId = metadata?.national_id || '';
+    // Ownership + idempotency: the invoice metadata carries the user_id and
+    // verification_request_id set at checkout. We verify the payment belongs to
+    // the calling user (so a leaked payment ID can't verify someone else's
+    // account) and resolve the pending VerificationRequest created at checkout
+    // — granting the trusted badge exactly once.
+    const metaUserId = metadata?.user_id ? String(metadata.user_id) : "";
+    if (metaUserId && metaUserId !== String(user.id)) {
+      return Response.json({ error: 'Payment does not belong to this account' }, { status: 403 });
+    }
+    const requestId = metadata?.verification_request_id ? String(metadata.verification_request_id) : "";
 
-    await base44.asServiceRole.entities.VerificationRequest.create({
-      user_id: user.id,
-      user_name: user.name || fullName,
-      user_email: user.email,
-      full_name: fullName,
-      phone: phone,
-      national_id: nationalId,
-      status: 'approved',
-      reviewed_by: 'system',
-      payment_receipt_url: 'moyasar:' + resolvedPaymentId,
-    });
+    let request = null;
+    if (requestId) {
+      try { request = await base44.asServiceRole.entities.VerificationRequest.get(requestId); } catch { request = null; }
+    }
+
+    // Idempotency: if the request is already approved, the user is already
+    // verified — don't re-grant or create duplicates.
+    if (request && request.status === "approved") {
+      return Response.json({ ok: true, verified: true, already: true });
+    }
+
+    if (request) {
+      if (String(request.user_id) !== String(user.id)) {
+        return Response.json({ error: 'Verification request ownership mismatch' }, { status: 403 });
+      }
+      await base44.asServiceRole.entities.VerificationRequest.update(request.id, {
+        status: 'approved',
+        reviewed_by: 'system',
+        payment_receipt_url: 'moyasar:' + resolvedPaymentId,
+      });
+    } else {
+      // Fallback (legacy/edge case): create an approved record from metadata.
+      // national_id is no longer stored in Moyasar metadata, so it's blank here.
+      await base44.asServiceRole.entities.VerificationRequest.create({
+        user_id: user.id,
+        user_name: user.name || '',
+        user_email: user.email,
+        full_name: metadata?.full_name || user.name || '',
+        phone: metadata?.phone || '',
+        national_id: '',
+        status: 'approved',
+        reviewed_by: 'system',
+        payment_receipt_url: 'moyasar:' + resolvedPaymentId,
+      });
+    }
 
     // Grant the trusted badge immediately — no admin review needed.
     await base44.asServiceRole.entities.User.update(user.id, { is_trusted: true });
 
-    // Notify the user that they're now verified.
     try {
       await base44.entities.Notification.create({
         user_id: user.id,

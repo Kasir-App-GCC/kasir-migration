@@ -266,7 +266,14 @@ export default async function (req) {
         } else if (anyNoShow) {
           await svc.update(meetupId, { status: "no_show" });
         } else {
-          await svc.update(meetupId, { status: "completed", completed: true });
+          // Contested (not_as_described / not_paid): flag for dispute review
+          // instead of auto-completing the sale and burying the complaint.
+          const contested = b === "not_as_described" || s === "not_paid";
+          if (contested) {
+            await svc.update(meetupId, { status: "contested" });
+          } else {
+            await svc.update(meetupId, { status: "completed", completed: true });
+          }
         }
         notify(otherId, "تم تسجيل نتيجة اللقاء · Meetup outcome recorded", ctx);
       } else {

@@ -52,6 +52,13 @@ export default function EditListing() {
     // The featured clock started at posting time and survives any number of edits.
     const { boost_hours, boost_cross_country, boost_amount, featured, featured_until, featured_cross_country, ...itemData } = data;
     const oldPrice = Number(item?.price);
+    // While a boost is active, only allow lowering (or keeping) the price —
+    // raising it would devalue the paid promotion.
+    const promotedNow = !!(item?.featured && item?.featured_until && new Date(item.featured_until) > new Date());
+    if (promotedNow && Number.isFinite(oldPrice) && Number(itemData.price) > oldPrice) {
+      toast({ title: ar ? "لا يمكن رفع السعر أثناء الترويج" : "Can't raise the price while promoted", variant: "destructive" });
+      throw new Error("price_increase_blocked");
+    }
     await base44.entities.Item.update(id, itemData);
     // Price-drop alert: notify users who saved this listing when the price drops.
     if (Number.isFinite(oldPrice) && Number(itemData.price) > 0 && Number(itemData.price) < oldPrice) {

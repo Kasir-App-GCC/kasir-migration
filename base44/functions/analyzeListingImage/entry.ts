@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { checkUserThrottle } from '../../shared/userThrottle.ts';
 
 // Valid category ids (kept in sync with src/lib/constants.js)
 const CATEGORY_IDS = [
@@ -34,6 +35,12 @@ export default async function(req) {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+    // Per-user daily throttle (20 analyses/day) to curb integration-credit abuse.
+    const throttle = checkUserThrottle(String(user.id), 20, 24 * 60 * 60 * 1000);
+    if (!throttle.allowed) {
+      return Response.json({ error: "Daily photo-analysis limit reached. Try again tomorrow." }, { status: 429 });
+    }
 
     const body = await req.json().catch(() => ({}));
     const imageUrls = Array.isArray(body?.image_urls)

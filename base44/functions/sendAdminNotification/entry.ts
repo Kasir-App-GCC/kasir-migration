@@ -30,8 +30,19 @@ export default async function (req) {
     if (target === "user") {
       recipientIds = [userId];
     } else {
-      const users = await base44.asServiceRole.entities.User.list("-created_date", 5000);
-      recipientIds = (users || []).map((u) => u.id).filter(Boolean);
+      // Paginate through ALL users (not just the newest 5000) so broadcasts
+      // reach everyone as the user base grows beyond a single page.
+      recipientIds = [];
+      let lastDate = null;
+      for (;;) {
+        const batch = lastDate
+          ? await base44.asServiceRole.entities.User.filter({ created_date: { $lt: lastDate } }, "-created_date", 5000)
+          : await base44.asServiceRole.entities.User.list("-created_date", 5000);
+        if (!batch || !batch.length) break;
+        recipientIds.push(...batch.map((u) => u.id).filter(Boolean));
+        if (batch.length < 5000) break;
+        lastDate = batch[batch.length - 1].created_date;
+      }
     }
 
     if (recipientIds.length === 0) {

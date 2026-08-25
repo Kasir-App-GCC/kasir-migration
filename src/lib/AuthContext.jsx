@@ -111,6 +111,15 @@ export const AuthProvider = ({ children }) => {
   const checkBlacklistStatus = async () => {
     try {
       const res = await base44.functions.invoke("checkBlacklist", {});
+      if (res?.data?.session_invalid) {
+        // Session is genuinely invalid (account deleted/token revoked, confirmed
+        // by a retried 401). Log the user out cleanly to the login page — do NOT
+        // show the "banned" screen, which is misleading for a session issue.
+        setBlocked(false);
+        setBlockedReason(null);
+        logout();
+        return false;
+      }
       if (res?.data?.blocked) {
         setBlocked(true);
         setBlockedReason(res.data.reason || null);

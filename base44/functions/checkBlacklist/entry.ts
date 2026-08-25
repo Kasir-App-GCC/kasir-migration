@@ -7,14 +7,27 @@ export default async function(req) {
     try {
       user = await base44.auth.me();
     } catch (e) {
-      // me() fails when the account was deleted/revoked (admin "block & delete")
-      // or the session expired. A 401/403 means the session is no longer valid,
-      // so treat the user as blocked — the client will log them out. Transient
-      // network errors (no HTTP status) must NOT kick users out.
+      // A 401/403 from me() can mean the account was deleted/revoked (admin
+      // "block & delete") OR a transient token-refresh race / brief auth blip.
+      // The old code immediately returned blocked:true on any 401/403, which
+      // made a momentary blip flash a false "you were banned" screen to users
+      // whose accounts were perfectly fine. Retry once before deciding — if
+      // the retry succeeds it was transient; if it still 401s the session is
+      // genuinely invalid and we signal the client to log out cleanly.
       if (e && (e.status === 401 || e.status === 403)) {
-        return Response.json({ blocked: true, reason: 'account_removed' });
+        await new Promise((r) => setTimeout(r, 800));
+        try {
+          user = await base44.auth.me();
+        } catch (e2) {
+          if (e2 && (e2.status === 401 || e2.status === 403)) {
+            return Response.json({ session_invalid: true });
+          }
+          return Response.json({ blocked: false });
+        }
+      } else {
+        // Transient network error (no HTTP status) — don't kick the user out.
+        return Response.json({ blocked: false });
       }
-      return Response.json({ blocked: false });
     }
     if (!user) return Response.json({ blocked: false });
 

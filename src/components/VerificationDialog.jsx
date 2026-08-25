@@ -25,6 +25,7 @@ export default function VerificationDialog({ open, onClose }) {
   const [pendingRequest, setPendingRequest] = useState(null);
 
   const idRule = nationalIdRule(user?.country);
+  const hasAvatar = !!user?.avatar;
   const idCheck = validateNationalId(nationalId, user?.country);
   const formValid = hasAvatar && fullName.trim() && phoneVerified && idCheck.valid;
 
@@ -44,8 +45,6 @@ export default function VerificationDialog({ open, onClose }) {
   }, [open]);
 
   if (!open) return null;
-
-  const hasAvatar = !!user?.avatar;
 
   const submit = async () => {
     setError("");

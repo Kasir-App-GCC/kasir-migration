@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { LayoutDashboard, Users, Tag, Flag, LifeBuoy, ArrowLeft, MessageSquare, ShieldX, BadgeCheck, TrendingUp, ShieldCheck, Megaphone, ShieldAlert, Bell, CreditCard } from "lucide-react";
+import { LayoutDashboard, Users, Tag, Flag, LifeBuoy, ArrowLeft, MessageSquare, ShieldX, BadgeCheck, TrendingUp, ShieldCheck, Megaphone, ShieldAlert, Bell, CreditCard, Link2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminUsers from "@/components/admin/AdminUsers";
@@ -14,6 +14,7 @@ import AdminBoosts from "@/components/admin/AdminBoosts";
 import AdminBuyRequests from "@/components/admin/AdminBuyRequests";
 import AdminOtpTest from "@/components/admin/AdminOtpTest";
 import AdminPaymentTest from "@/components/admin/AdminPaymentTest";
+import AdminPaymentLinks from "@/components/admin/AdminPaymentLinks";
 import AdminDisputes from "@/components/admin/AdminDisputes";
 import AdminBroadcast from "@/components/admin/AdminBroadcast";
 import { base44 } from "@/api/base44Client";
@@ -77,6 +78,7 @@ export default function Admin() {
     { id: "broadcast", icon: Bell, label: ar ? "إشعار" : "Broadcast" },
     { id: "otp", icon: ShieldCheck, label: ar ? "تجربة OTP" : "OTP Test" },
     { id: "payment", icon: CreditCard, label: ar ? "تجربة الدفع" : "Payment Test" },
+    { id: "payment_links", icon: Link2, label: ar ? "روابط الدفع" : "Payment Links" },
   ];
 
   return (
@@ -118,6 +120,7 @@ export default function Admin() {
       {tab === "broadcast" && <AdminBroadcast />}
       {tab === "otp" && <AdminOtpTest />}
       {tab === "payment" && <AdminPaymentTest />}
+      {tab === "payment_links" && <AdminPaymentLinks />}
     </div>
   );
 }

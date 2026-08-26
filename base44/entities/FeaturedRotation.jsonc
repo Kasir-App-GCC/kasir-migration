@@ -1,0 +1,46 @@
+{
+  "name": "FeaturedRotation",
+  "type": "object",
+  "properties": {
+    "country": {
+      "type": "string",
+      "description": "Country code this rotation cache covers (SA, AE, OM, BH, KW, QA)"
+    },
+    "sample_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Fair reservoir-sampled ids of currently-active boosted listings for this country (local + cross-country). Refreshed every ~15 min by the Featured Rotation workflow so the Home carousel scales to any number of concurrent boosts without fetching them all per page load."
+    },
+    "count_active": {
+      "type": "number",
+      "description": "Total active boosted listings seen for this country during the last refresh (for observability)"
+    },
+    "refreshed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "country"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": null,
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

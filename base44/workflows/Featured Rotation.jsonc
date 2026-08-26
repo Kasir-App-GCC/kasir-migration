@@ -1,0 +1,44 @@
+{
+  "name": "Featured Rotation",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "*/15 * * * *",
+      "one_time_date": null,
+      "timezone": "Asia/Riyadh",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "description": "Refreshes the per-country featured-carousel cache (fair reservoir sample of all active boosts) every 15 minutes so the carousel scales to any number of concurrent boosts.",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "featured_rotation",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "refresh": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "refreshFeaturedRotation"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "\u062a\u062d\u062f\u064a\u062b \u062f\u0648\u0631\u0627\u0646 \u0627\u0644\u0645\u0645\u064a\u0632",
+            "description": "Refresh featured rotation cache"
+          }
+        }
+      }
+    ]
+  }
+}

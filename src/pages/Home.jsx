@@ -85,9 +85,27 @@ export default function Home() {
   // older listing (low created_date) would otherwise never reach the top
   // of the feed. Sorted by featured_until so the longest-remaining boosts
   // surface first; country/cross-country filtering is applied client-side.
+  // Featured listings are read from a precomputed fair-sample cache
+  // (FeaturedRotation) refreshed every ~15 min by a scheduled workflow that
+  // reservoir-samples across ALL active boosts — so the carousel scales to
+  // any number of concurrent boosts (10K+) without fetching them all on
+  // every page load. The viewer's own active boosts are always merged in so
+  // a paying seller sees their own card even if it wasn't sampled this window.
   const loadFeatured = useCallback(async () => {
     try {
-      const list = await base44.entities.Item.filter({ featured: true, featured_until: { $gt: new Date().toISOString() }, archived: { $ne: true }, review_status: { $nin: ["pending", "rejected"] } }, "-featured_until", 500);
+      const nowIso = new Date().toISOString();
+      const rotation = await base44.entities.FeaturedRotation.filter({ country }, "-updated_date", 1);
+      const sampleIds = (rotation && rotation[0]?.sample_ids) || [];
+      let ownIds = [];
+      if (user?.id) {
+        const own = await base44.entities.Item.filter({ seller_id: user.id, featured: true, featured_until: { $gt: nowIso } }, "-featured_until", 20);
+        ownIds = (own || []).map((i) => i.id);
+      }
+      const allIds = [...new Set([...ownIds, ...sampleIds])].slice(0, 150);
+      let list = [];
+      if (allIds.length) {
+        list = await base44.entities.Item.filter({ id: { $in: allIds }, featured_until: { $gt: nowIso }, archived: { $ne: true }, review_status: { $nin: ["pending", "rejected"] } }, "-featured_until", 150);
+      }
       const ids = [...new Set((list || []).map((i) => i.seller_id).filter(Boolean))];
       const sMap = ids.length ? await fetchSellerInfos(ids) : {};
       setSellers((prev) => ({ ...prev, ...sMap }));
@@ -95,7 +113,7 @@ export default function Home() {
     } catch {
       setFeaturedItems([]);
     }
-  }, []);
+  }, [country, user?.id]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;

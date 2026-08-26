@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck, RefreshCw, Info, Loader2 } from "lucide-react";
+import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck, RefreshCw, Info, Loader2, Building2 } from "lucide-react";
 import VerificationDialog from "@/components/VerificationDialog";
-import RealEstateLicenseSection from "@/components/RealEstateLicenseSection";
+import RealEstateLicenseDialog from "@/components/RealEstateLicenseDialog";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -36,6 +36,7 @@ export default function Profile() {
   const [editOpen, setEditOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const [verificationOpen, setVerificationOpen] = useState(false);
+  const [reLicenseOpen, setReLicenseOpen] = useState(false);
   const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [waSaving, setWaSaving] = useState(false);
@@ -217,7 +218,6 @@ export default function Profile() {
         )}
       </div>
 
-      <RealEstateLicenseSection />
       <SellerDashboard myListings={myListings} ratings={ratings} />
 
       {/* Tabs */}
@@ -440,6 +440,10 @@ export default function Profile() {
           <span className="flex items-center gap-2 text-sm font-semibold"><Info size={18} /> {ar ? "من نحن" : "About Us"}</span>
           <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
         </button>
+        <button onClick={() => setReLicenseOpen(true)} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
+          <span className="flex items-center gap-2 text-sm font-semibold"><Building2 size={18} /> {ar ? "ترخيص الوساطة العقارية" : "Real Estate License"}{user.re_license_status === "approved" && <BadgeCheck size={14} className="text-emerald-500" />}</span>
+          <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
+        </button>
         <button onClick={() => nav("/terms")} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
           <span className="flex items-center gap-2 text-sm font-semibold"><Shield size={18} /> {ar ? "الشروط والأحكام" : "Terms & Conditions"}</span>
           <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
@@ -468,6 +472,7 @@ export default function Profile() {
           </div>
         </div>
       )}
+      <RealEstateLicenseDialog open={reLicenseOpen} onClose={() => setReLicenseOpen(false)} />
       <VerificationDialog open={verificationOpen} onClose={() => setVerificationOpen(false)} />
     </div>
     </PullToRefresh>

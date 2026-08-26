@@ -1,15 +1,14 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { secrets } from 'base44:runtime';
 import { parseVerificationInput, validateVerificationInput } from '../../shared/verificationValidation.ts';
+import { createMoyasarInvoice } from '../../shared/moyasarInvoice.ts';
 
 const VERIFICATION_FEE = 12; // SAR
 
-// Prepares an in-app verification payment: validates the user's details,
-// creates a pending VerificationRequest (holding the sensitive national_id
-// server-side), marks the phone verified, and returns the amount + Moyasar
-// publishable key. The client renders the embedded card form with metadata
-// pointing to this request; after payment, confirmVerificationPayment
-// verifies the Moyasar payment and grants the trusted badge.
+// Creates a pending VerificationRequest (holding the sensitive national_id
+// server-side), marks the phone verified, then creates a Moyasar invoice and
+// returns the hosted checkout URL. The client redirects there; after payment,
+// Moyasar redirects back to /profile?verify_payment=1&id=<payment_id>, where
+// confirmVerificationPayment verifies the payment and grants the trusted badge.
 export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
@@ -38,9 +37,8 @@ export default async function(req: Request): Promise<Response> {
     } catch (e) {}
 
     // Persist the verification details (incl. national_id) in a pending
-    // VerificationRequest BEFORE the in-app payment. The national_id never
-    // leaves our system to Moyasar — only the request id is passed as
-    // metadata on the client-side payment.
+    // VerificationRequest BEFORE the payment. The national_id never leaves our
+    // system to Moyasar — only the request id is passed as invoice metadata.
     let pending;
     try {
       pending = await base44.asServiceRole.entities.VerificationRequest.create({
@@ -63,14 +61,23 @@ export default async function(req: Request): Promise<Response> {
       await base44.asServiceRole.entities.User.update(user.id, { phone_verified: true });
     } catch (e) {}
 
-    const publishableKey = secrets.get('MOYASAR_PUBLISHABLE_KEY');
-    if (!publishableKey) return Response.json({ error: 'MOYASAR_PUBLISHABLE_KEY not set' }, { status: 500 });
+    const origin = (body?.origin || 'https://kasir-ksa.base44.app').replace(/\/$/, '');
+    const { url } = await createMoyasarInvoice({
+      amountSar: VERIFICATION_FEE,
+      description: 'رسوم توثيق الحساب - كاسر',
+      callbackUrl: `${origin}/profile?verify_payment=1`,
+      metadata: {
+        type: 'verification',
+        user_id: String(user.id),
+        verification_request_id: String(pending.id),
+      },
+    });
 
     return Response.json({
       ok: true,
       requestId: pending.id,
       amount: VERIFICATION_FEE,
-      publishableKey,
+      url,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

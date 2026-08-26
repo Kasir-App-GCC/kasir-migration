@@ -1,12 +1,12 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
-import { secrets } from "base44:runtime";
 import { computeBoostPrice, BOOST_MIN_HOURS, BOOST_MAX_HOURS } from "../../shared/boostPricing.ts";
+import { createMoyasarInvoice } from "../../shared/moyasarInvoice.ts";
 
-// Prepares an in-app boost payment: creates a pending BoostRequest with the
-// promotion amount computed server-side from the item's stored price, and
-// returns the amount + Moyasar publishable key. The client renders the
-// embedded card form with metadata pointing to this request; after payment,
-// confirmBoostPayment verifies the Moyasar payment and activates the boost.
+// Creates a pending BoostRequest with the promotion amount computed
+// server-side, then creates a Moyasar invoice and returns the hosted checkout
+// URL. The client redirects there; after payment, Moyasar redirects back to
+// /item/<id>?boost_payment=1&id=<payment_id>, where confirmBoostPayment
+// verifies the payment and activates the boost.
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -43,12 +43,21 @@ export default async function (req) {
       status: "pending",
     });
 
-    const publishableKey = secrets.get("MOYASAR_PUBLISHABLE_KEY");
-    if (!publishableKey) {
-      return Response.json({ error: "MOYASAR_PUBLISHABLE_KEY not set" }, { status: 500 });
-    }
+    const origin = (body?.origin || "https://kasir-ksa.base44.app").replace(/\/$/, "");
+    const { url } = await createMoyasarInvoice({
+      amountSar: amount,
+      description: `تعزيز إعلان - كاسر (${hours} ساعة)`,
+      callbackUrl: `${origin}/item/${item.id}?boost_payment=1`,
+      metadata: {
+        type: "boost",
+        user_id: String(user.id),
+        boost_request_id: String(created.id),
+        item_id: String(item.id),
+        hours: String(hours),
+      },
+    });
 
-    return Response.json({ ok: true, amount, requestId: created.id, itemId: item.id, hours, publishableKey });
+    return Response.json({ ok: true, amount, requestId: created.id, itemId: item.id, hours, url });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

@@ -8,7 +8,6 @@ import PhoneOtpVerifier from "@/components/PhoneOtpVerifier";
 import { userPhoneE164, digitsOnly } from "@/lib/phone";
 import { apiErrorMessage } from "@/lib/apiError";
 import { validateNationalId, nationalIdRule } from "@/lib/nationalId";
-import MoyasarPaymentDialog from "@/components/MoyasarPaymentDialog";
 
 export default function VerificationDialog({ open, onClose }) {
   const { user, lang } = useStore();
@@ -24,7 +23,6 @@ export default function VerificationDialog({ open, onClose }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [pendingRequest, setPendingRequest] = useState(null);
-  const [payState, setPayState] = useState(null);
 
   const idRule = nationalIdRule(user?.country);
   const hasAvatar = !!user?.avatar;
@@ -77,32 +75,17 @@ export default function VerificationDialog({ open, onClose }) {
         fullName: fullName.trim(),
         phone: digitsOnly(phoneE164),
         nationalId: idCheck.digits,
+        origin: window.location.origin,
       });
       if (res?.data?.error) throw new Error(res.data.error);
       if (!res?.data?.ok) throw new Error(ar ? "تعذّر بدء الدفع" : "Couldn't start payment");
       setSubmitting(false);
-      setPayState({
-        amount: res.data.amount,
-        publishableKey: res.data.publishableKey,
-        callbackUrl: `${window.location.origin}/profile?verify_payment=1`,
-        metadata: {
-          type: "verification",
-          user_id: String(user.id),
-          verification_request_id: String(res.data.requestId),
-        },
-      });
+      window.location.href = res.data.url;
     } catch (err) {
       setError(apiErrorMessage(err, ar ? "تعذّر بدء الدفع" : "Couldn't start payment"));
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const onPaidVerification = async (payment) => {
-    const res = await base44.functions.invoke("confirmVerificationPayment", { paymentId: payment.id });
-    if (res?.data?.error) throw new Error(res.data.error);
-    await refreshUser();
-    toast({ title: ar ? "تم توثيق حسابك بنجاح! 🎉" : "Account verified! 🎉" });
   };
 
   return (
@@ -195,19 +178,7 @@ export default function VerificationDialog({ open, onClose }) {
           </>
         }
 
-      {payState && (
-        <MoyasarPaymentDialog
-          open
-          lang={lang}
-          amount={payState.amount}
-          publishableKey={payState.publishableKey}
-          callbackUrl={payState.callbackUrl}
-          metadata={payState.metadata}
-          description="رسوم توثيق الحساب - كاسر"
-          onPaid={onPaidVerification}
-          onClose={() => { setPayState(null); onClose(); }}
-        />
-      )}
+
       </div>
     </div>);
 

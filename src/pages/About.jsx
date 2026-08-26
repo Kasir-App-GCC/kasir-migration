@@ -5,7 +5,6 @@ import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
-import MoyasarPaymentDialog from "@/components/MoyasarPaymentDialog";
 
 const STORY = `👋 من وين بدأت الحكاية؟
 
@@ -123,8 +122,6 @@ export default function About() {
   const [selected, setSelected] = useState(10);
   const [custom, setCustom] = useState("");
   const [loading, setLoading] = useState(false);
-  const [payState, setPayState] = useState(null);
-
   const donate = async () => {
     const amt = custom ? parseFloat(custom) : selected;
     if (!amt || amt < 1) {
@@ -133,14 +130,10 @@ export default function About() {
     }
     setLoading(true);
     try {
-      const res = await base44.functions.invoke("createDonationLink", { amount: amt });
+      const res = await base44.functions.invoke("createDonationLink", { amount: amt, origin: window.location.origin });
       if (res?.data?.error) throw new Error(res.data.error);
       if (!res?.data?.ok) throw new Error("Failed");
-      setPayState({
-        amount: res.data.amount,
-        publishableKey: res.data.publishableKey,
-        metadata: { type: "donation", user_id: String(user?.id || "") },
-      });
+      window.location.href = res.data.url;
     } catch (e) {
       const needLogin = e?.message?.includes("Unauthorized") || e?.message?.includes("401");
       if (needLogin) {
@@ -226,18 +219,6 @@ export default function About() {
         <p className="text-[11px] text-center opacity-80">الدفع آمن عبر Moyasar · بطاقة أو Apple Pay</p>
       </div>
 
-      {payState && (
-        <MoyasarPaymentDialog
-          open
-          lang={lang}
-          amount={payState.amount}
-          publishableKey={payState.publishableKey}
-          callbackUrl={`${window.location.origin}/about`}
-          metadata={payState.metadata}
-          description="دعم لكاسر"
-          onClose={() => { setPayState(null); toast({ title: ar ? "شكراً لدعمك! 🌿" : "Thank you! 🌿" }); }}
-        />
-      )}
     </div>
   );
 }

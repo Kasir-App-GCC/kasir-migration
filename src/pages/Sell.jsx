@@ -5,7 +5,6 @@ import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { useToast } from "@/components/ui/use-toast";
 import ListingForm from "@/components/ListingForm";
-import MoyasarPaymentDialog from "@/components/MoyasarPaymentDialog";
 
 export default function Sell() {
   const { user, lang } = useStore();
@@ -13,8 +12,6 @@ export default function Sell() {
   const nav = useNavigate();
   const { toast } = useToast();
   const ar = lang === "ar";
-  const [boostPay, setBoostPay] = useState(null);
-
   const submit = async (data) => {
     const { boost_hours, boost_cross_country, boost_amount, ...itemData } = data;
     const boosted = boost_hours > 0;
@@ -43,28 +40,17 @@ export default function Sell() {
         const res = await base44.functions.invoke("createBoostRequest", {
           item_id: item.id,
           hours: boost_hours,
+          origin: window.location.origin,
         });
         if (res?.data?.ok) {
           toast({ title: ar ? "تم نشر إعلانك — أكمل الدفع للتعزيز" : "Listing posted — complete payment to boost" });
-          setBoostPay({
-            itemId: item.id,
-            amount: res.data.amount,
-            publishableKey: res.data.publishableKey,
-            requestId: res.data.requestId,
-            hours: res.data.hours,
-          });
+          window.location.href = res.data.url;
           return;
         }
       } catch {}
       toast({ title: ar ? "تم نشر إعلانك" : "Listing posted", description: ar ? "تعذّر بدء الدفع" : "Couldn't start payment", variant: "destructive" });
     }
     nav("/");
-  };
-
-  const onPaidBoost = async (payment) => {
-    const res = await base44.functions.invoke("confirmBoostPayment", { paymentId: payment.id });
-    if (res?.data?.error) throw new Error(res.data.error);
-    toast({ title: ar ? "تم تفعيل التعزيز ⭐" : "Boost activated ⭐" });
   };
 
   return (
@@ -76,19 +62,6 @@ export default function Sell() {
         submittingLabel={t("posting")}
         onSubmit={submit}
       />
-      {boostPay && (
-        <MoyasarPaymentDialog
-          open
-          lang={lang}
-          amount={boostPay.amount}
-          publishableKey={boostPay.publishableKey}
-          callbackUrl={`${window.location.origin}/item/${boostPay.itemId}?boost_payment=1`}
-          metadata={{ type: "boost", user_id: String(user.id), boost_request_id: String(boostPay.requestId), item_id: String(boostPay.itemId), hours: String(boostPay.hours) }}
-          description={`تعزيز إعلان - كاسر (${boostPay.hours} ساعة)`}
-          onPaid={onPaidBoost}
-          onClose={() => { const id = boostPay.itemId; setBoostPay(null); nav(`/item/${id}`); }}
-        />
-      )}
     </div>
   );
 }

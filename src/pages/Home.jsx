@@ -235,9 +235,11 @@ export default function Home() {
     if (it.status === "sold") return false;
     if (it.featured_until && new Date(it.featured_until).getTime() < now) return false;
     if (it.country !== country) return false;
+    if (categories.length && !categories.includes(it.category)) return false;
+    if (subcategories.length && !(Array.isArray(it.subcategory) ? it.subcategory.some((s) => subcategories.includes(s)) : subcategories.includes(it.subcategory))) return false;
     return matchLocation(it, locationFilter, country);
   });
-  const showFeatured = categories.length === 0 && featured.length > 0;
+  const showFeatured = featured.length > 0;
 
   return (
     <PullToRefresh onRefresh={async () => { await refresh(false); await loadFeatured(); }}>

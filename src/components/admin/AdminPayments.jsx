@@ -1,11 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Wallet, TrendingUp, ShieldCheck, Heart, Link2, ExternalLink, Search, Copy } from "lucide-react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import { Wallet, TrendingUp, ShieldCheck, Heart, Link2, ExternalLink, Search, Copy, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
 import { timeAgo } from "@/lib/format";
-import { VERIFICATION_FEE } from "@/lib/verificationPayment";
 
 const TYPE_META = {
   boost: { ar: "تعزيز", en: "Boost", icon: TrendingUp, color: "text-amber-600 bg-amber-50 dark:bg-amber-950/30" },
@@ -14,6 +13,8 @@ const TYPE_META = {
   payment_link: { ar: "رابط دفع", en: "Payment Link", icon: Link2, color: "text-violet-600 bg-violet-50 dark:bg-violet-950/30" },
 };
 
+const EMPTY_COUNTS = { all: 0, boost: 0, verification: 0, donation: 0, payment_link: 0 };
+const EMPTY_TOTALS = { total: 0, byType: { boost: 0, verification: 0, donation: 0, payment_link: 0 } };
 const fmt = (n, ar) => Number(n || 0).toLocaleString(ar ? "ar-SA" : "en-US", { maximumFractionDigits: 2 });
 
 export default function AdminPayments() {
@@ -22,94 +23,58 @@ export default function AdminPayments() {
   const { toast } = useToast();
   const nav = useNavigate();
   const [rows, setRows] = useState([]);
+  const [counts, setCounts] = useState(EMPTY_COUNTS);
+  const [countsTruncated, setCountsTruncated] = useState(false);
+  const [totals, setTotals] = useState(EMPTY_TOTALS);
+  const [hasMore, setHasMore] = useState(false);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
+  const reqId = useRef(0);
 
   const copyId = (id) => {
     if (!id) return;
     try { navigator.clipboard?.writeText(id); toast({ title: ar ? "تم نسخ المعرّف" : "ID copied" }); } catch {}
   };
 
-  const build = async () => {
-    const [payments, boosts, verifications] = await Promise.all([
-      base44.entities.Payment.list("-created_date", 500).catch(() => []),
-      base44.entities.BoostRequest.list("-created_date", 500).catch(() => []),
-      base44.entities.VerificationRequest.list("-created_date", 500).catch(() => []),
-    ]);
-    const boostRows = (boosts || [])
-      .filter((b) => b.status === "approved" && !b.is_free)
-      .map((b) => ({
-        id: "boost:" + b.id, type: "boost", amount: Number(b.amount) || 0,
-        user_id: b.user_id, user_name: b.user_name || "", description: b.item_title || "",
-        created_date: b.created_date,
-        moyasar_payment_id: (b.receipt_url || "").startsWith("moyasar:") ? b.receipt_url.slice("moyasar:".length) : "",
-        moyasar_invoice_id: "",
-      }));
-    const verRows = (verifications || [])
-      .filter((v) => v.status === "approved")
-      .map((v) => ({
-        id: "ver:" + v.id, type: "verification", amount: VERIFICATION_FEE,
-        user_id: v.user_id, user_name: v.user_name || v.full_name || "", description: ar ? "رسوم توثيق الحساب" : "Account verification fee",
-        created_date: v.created_date,
-        moyasar_payment_id: (v.payment_receipt_url || "").startsWith("moyasar:") ? v.payment_receipt_url.slice("moyasar:".length) : "",
-        moyasar_invoice_id: "",
-      }));
-    const payRows = (payments || []).map((p) => ({
-      id: "pay:" + p.id, type: p.type, amount: Number(p.amount) || 0,
-      user_id: p.user_id, user_name: p.user_name || "", description: p.description || "",
-      created_date: p.created_date, moyasar_payment_id: p.moyasar_payment_id,
-      moyasar_invoice_id: p.moyasar_invoice_id,
-    }));
-    let all = [...payRows, ...boostRows, ...verRows].sort(
-      (a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0)
-    );
-    const idsToResolve = Array.from(new Set(all.filter((r) => r.user_id && !r.user_name).map((r) => r.user_id)));
-    if (idsToResolve.length) {
-      try {
-        const res = await base44.functions.invoke("getPublicProfiles", { user_ids: idsToResolve });
-        const map = res?.data?.results || {};
-        all = all.map((r) => {
-          if (!r.user_id || r.user_name) return r;
-          const p = map[r.user_id];
-          if (!p) return r;
-          const name = [p.first_name, p.last_name].filter(Boolean).join(" ") || p.username || p.full_name || "";
-          return { ...r, user_name: name || r.user_name };
-        });
-      } catch {}
-    }
-    setRows(all);
-  };
+  const fetchPage = useCallback(async (p, reset) => {
+    const id = ++reqId.current;
+    if (reset) { setLoading(true); setPage(1); }
+    else setLoadingMore(true);
+    try {
+      const res = await base44.functions.invoke("searchPayments", { q, type: filter, page: reset ? 1 : p, limit: 50 });
+      if (id !== reqId.current) return;
+      const d = res?.data || {};
+      setRows((prev) => reset ? (d.rows || []) : [...prev, ...(d.rows || [])]);
+      setCounts(d.counts || EMPTY_COUNTS);
+      setCountsTruncated(!!d.counts_truncated);
+      setTotals(d.totals || EMPTY_TOTALS);
+      setHasMore(!!d.has_more);
+      setPage(reset ? 1 : p);
+    } catch {}
+    if (reset) setLoading(false); else setLoadingMore(false);
+  }, [q, filter]);
 
+  // Initial: sync Moyasar ledger then load page 1.
   useEffect(() => {
     (async () => {
-      setLoading(true);
-      try {
-        await base44.functions.invoke("syncMoyasarPayments", {});
-      } catch {}
-      try { await build(); } catch {}
-      finally { setLoading(false); }
+      try { await base44.functions.invoke("syncMoyasarPayments", {}); } catch {}
+      fetchPage(1, true);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const totals = useMemo(() => {
-    const byType = {};
-    for (const r of rows) byType[r.type] = (byType[r.type] || 0) + (r.amount || 0);
-    const total = rows.reduce((s, r) => s + (r.amount || 0), 0);
-    return { total, byType };
-  }, [rows]);
-
-  const filtered = useMemo(() => {
-    const ql = q.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (filter !== "all" && r.type !== filter) return false;
-      if (!ql) return true;
-      return (r.user_name || "").toLowerCase().includes(ql) || (r.description || "").toLowerCase().includes(ql) || (r.moyasar_payment_id || "").toLowerCase().includes(ql);
-    });
-  }, [rows, filter, q]);
+  // Debounced search / filter change → fresh page 1.
+  useEffect(() => {
+    const t = setTimeout(() => fetchPage(1, true), 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, filter]);
 
   const filterChips = ["all", "boost", "verification", "donation", "payment_link"];
+  const fmtCount = (n) => countsTruncated && n > 0 ? `${n}+` : `${n}`;
 
   if (loading) return <div className="py-10 text-center text-muted-foreground"><div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin mx-auto" /></div>;
 
@@ -119,7 +84,7 @@ export default function AdminPayments() {
         <div className="flex items-center gap-2.5">
           <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center"><Wallet size={20} /></div>
           <div>
-            <p className="text-xs opacity-90 font-semibold">{ar ? "إجمالي المدفوعات المُستلمة" : "Total Payments Received"}</p>
+            <p className="text-xs opacity-90 font-semibold">{ar ? "إجمالي المدفوعات (أحدث السجلات)" : "Total Payments (recent records)"}</p>
             <p className="text-2xl font-extrabold">{fmt(totals.total, ar)} {ar ? "ر.س" : "SAR"}</p>
           </div>
         </div>
@@ -146,24 +111,24 @@ export default function AdminPayments() {
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${filter === c ? "bg-card shadow-sm" : "text-muted-foreground"}`}
             >
               {c === "all" ? (ar ? "الكل" : "All") : (ar ? TYPE_META[c].ar : TYPE_META[c].en)}
-              <span className="ms-1 opacity-70">{c === "all" ? rows.length : (rows.filter((r) => r.type === c).length)}</span>
+              <span className="ms-1 opacity-70">{fmtCount(c === "all" ? counts.all : (counts[c] || 0))}</span>
             </button>
           ))}
         </div>
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted flex-1 min-w-[180px]">
           <Search size={14} className="text-muted-foreground" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={ar ? "بحث بالاسم أو الوصف..." : "Search name or description..."} className="bg-transparent outline-none text-sm flex-1" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={ar ? "بحث بالاسم أو الوصف أو معرّف الدفع..." : "Search name, description, or payment ID..."} className="bg-transparent outline-none text-sm flex-1" />
         </div>
       </div>
 
-      {filtered.length === 0 ? (
+      {rows.length === 0 ? (
         <div className="text-center py-10 text-muted-foreground">
           <Wallet size={32} className="mx-auto mb-2 opacity-40" />
           <p className="font-semibold text-sm">{ar ? "لا توجد مدفوعات" : "No payments"}</p>
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((r) => {
+          {rows.map((r) => {
             const m = TYPE_META[r.type] || TYPE_META.payment_link;
             const Icon = m.icon;
             return (
@@ -171,7 +136,7 @@ export default function AdminPayments() {
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${m.color}`}><Icon size={18} /></div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="font-bold text-sm truncate">{r.user_name || (ar ? "غير معروف" : "Unknown")}</span>
+                    <span className="font-bold text-sm truncate">{r.user_name || (ar ? "زائر" : "Guest")}</span>
                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${m.color}`}>{ar ? m.ar : m.en}</span>
                   </div>
                   <p className="text-xs text-muted-foreground truncate">{r.description || "—"}</p>
@@ -196,6 +161,14 @@ export default function AdminPayments() {
               </div>
             );
           })}
+          {hasMore && (
+            <button
+              onClick={() => fetchPage(page + 1, false)}
+              disabled={loadingMore}
+              className="w-full py-3 rounded-2xl bg-muted text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60">
+              {loadingMore ? <><Loader2 size={15} className="animate-spin" /> {ar ? "جارٍ التحميل…" : "Loading…"}</> : (ar ? "تحميل المزيد" : "Load more")}
+            </button>
+          )}
         </div>
       )}
     </div>

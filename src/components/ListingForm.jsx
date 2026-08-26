@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ImagePlus, X, Sparkles, LocateFixed, MapPin, GripVertical, Globe, Lock, Check, Camera, Wand2, Truck, Gift } from "lucide-react";
+import { ImagePlus, X, Sparkles, LocateFixed, MapPin, GripVertical, Globe, Lock, Check, Camera, Wand2, Truck, Gift, ShieldCheck } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -68,6 +68,10 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [deliversWithinCity, setDeliversWithinCity] = useState(!!initial?.delivers_within_city);
   const [useFreeBoost, setUseFreeBoost] = useState(false);
   const [freeBoostAvailable, setFreeBoostAvailable] = useState(null);
+  const [reLicenseType, setReLicenseType] = useState(initial?.re_license_type || "");
+  const [reLicenseNumber, setReLicenseNumber] = useState(initial?.re_license_number || "");
+  const [reLicenseDoc, setReLicenseDoc] = useState(initial?.re_license_doc || "");
+  const [reDocUploading, setReDocUploading] = useState(false);
 
   // Reverse-geocode coordinates to an accurate place name for display.
   const reverseGeocode = async (la, ln) => {
@@ -267,6 +271,9 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         willing_to_ship: willingToShip,
         shipping_fee: willingToShip && shippingFee ? Number(shippingFee) : null,
         delivers_within_city: deliversWithinCity,
+        re_license_type: category === "realestate" ? reLicenseType || undefined : undefined,
+        re_license_number: category === "realestate" ? reLicenseNumber || undefined : undefined,
+        re_license_doc: category === "realestate" ? reLicenseDoc || undefined : undefined,
         featured: false,
         boost_hours: useFreeBoost ? 0 : boostHours,
         boost_cross_country: boostCross,
@@ -278,7 +285,9 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
     }
   };
 
-  const valid = title && price && category && city && images.length > 0;
+  const isRealEstate = category === "realestate";
+  const reValid = !isRealEstate || (!!reLicenseType && !!reLicenseNumber && !!reLicenseDoc);
+  const valid = title && price && category && city && images.length > 0 && reValid;
   // Featured-listing promotion price: basePrice = 5 + 20·ln(1 + P/500), then
   // × (H/24)^0.70, floored at SAR 5. P is the item price, H the selected hours.
   const existingHours = existingBoostHours(initial?.featured_until);
@@ -487,6 +496,80 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
           </div>
         </div>
       }
+
+      {category === "realestate" && (
+      <div className="p-3.5 rounded-2xl border-2 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 space-y-3">
+        <div className="flex items-start gap-2">
+          <ShieldCheck size={18} className="text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-bold">{ar ? "ترخيص الإعلان العقاري" : "Real Estate Ad License"}</p>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              {ar ? "يتطلب نظام الوساطة العقارية في السعودية ترخيصاً للإعلان عن العقارات. أدخل بيانات ترخيصك وسيتم مراجعة إعلانك من الإدارة قبل نشره." : "Saudi real estate law requires a REGA license to advertise property. Enter your license details — your listing will be reviewed by admin before publishing."}
+            </p>
+          </div>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-semibold">{ar ? "نوع الترخيص" : "License type"} <span className="text-rose-500">*</span></label>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: "individual_fal", ar: "رخصة فال (فرد)", en: "FAL (Individual)" },
+              { id: "establishment_fal", ar: "رخصة فال (منشأة)", en: "FAL (Establishment)" },
+              { id: "ad_license", ar: "ترخيص إعلان عقاري", en: "Ad License" },
+            ].map((lt) => (
+              <button
+                key={lt.id}
+                type="button"
+                onClick={() => setReLicenseType(lt.id)}
+                className={`px-3 py-2 rounded-xl text-xs font-semibold border ${reLicenseType === lt.id ? "bg-primary text-primary-foreground border-transparent" : "bg-card border-border/70"}`}
+              >
+                {ar ? lt.ar : lt.en}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-semibold">{ar ? "رقم الترخيص" : "License number"} <span className="text-rose-500">*</span></label>
+          <input
+            value={reLicenseNumber}
+            onChange={(e) => setReLicenseNumber(e.target.value.slice(0, 50))}
+            placeholder={ar ? "أدخل رقم الترخيص" : "Enter license number"}
+            className="w-full px-3 py-2.5 rounded-xl bg-card border border-border/60 outline-none focus:ring-2 ring-primary/30 text-sm"
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-semibold">{ar ? "مستند الترخيص" : "License document"} <span className="text-rose-500">*</span></label>
+          {reLicenseDoc ? (
+            <div className="flex items-center gap-2 p-2 rounded-xl bg-card border border-border/60">
+              <a href={reLicenseDoc} target="_blank" rel="noreferrer" className="flex-1 text-sm text-primary font-semibold truncate">{ar ? "عرض الترخيص" : "View license"}</a>
+              <button type="button" onClick={() => setReLicenseDoc("")} className="p-1 rounded-full hover:bg-muted"><X size={14} /></button>
+            </div>
+          ) : (
+            <label className="flex items-center justify-center gap-2 p-3 rounded-xl bg-card border-2 border-dashed border-border/60 cursor-pointer hover:bg-muted">
+              {reDocUploading ? <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" /> : <ImagePlus size={18} />}
+              <span className="text-xs font-semibold">{ar ? "ارفع صورة أو PDF للترخيص" : "Upload license image or PDF"}</span>
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                className="hidden"
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!f) return;
+                  setReDocUploading(true);
+                  try {
+                    const r = await base44.integrations.Core.UploadFile({ file: f });
+                    setReLicenseDoc(r.file_url);
+                  } catch {
+                    toast({ title: ar ? "تعذّر رفع الملف" : "Upload failed", variant: "destructive" });
+                  }
+                  setReDocUploading(false);
+                }}
+              />
+            </label>
+          )}
+        </div>
+      </div>
+      )}
 
       <div className="space-y-1">
         <label className="text-sm font-semibold">{t("selectCondition")}</label>

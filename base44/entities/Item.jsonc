@@ -137,6 +137,37 @@
       "type": "boolean",
       "default": false,
       "description": "Auto-set when the listing hasn't been refreshed in N days; excluded from public feeds until the seller refreshes it"
+    },
+    "review_status": {
+      "type": "string",
+      "enum": [
+        "approved",
+        "pending",
+        "rejected"
+      ],
+      "default": "approved",
+      "description": "Admin moderation status. Real estate listings start as 'pending' (Saudi REGA license requirement) and are hidden from public feeds until approved. All other categories default to 'approved'."
+    },
+    "review_reason": {
+      "type": "string",
+      "description": "Admin's rejection reason when review_status is 'rejected'"
+    },
+    "re_license_type": {
+      "type": "string",
+      "enum": [
+        "individual_fal",
+        "establishment_fal",
+        "ad_license"
+      ],
+      "description": "Type of REGA license attached to a real estate listing (FAL individual, FAL establishment, or advertisement license)"
+    },
+    "re_license_number": {
+      "type": "string",
+      "description": "REGA license number for real estate listings"
+    },
+    "re_license_doc": {
+      "type": "string",
+      "description": "URL of the uploaded license document (image or PDF) for real estate listings"
     }
   },
   "required": [

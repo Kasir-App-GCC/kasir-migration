@@ -59,6 +59,11 @@ export default function EditListing() {
       toast({ title: ar ? "لا يمكن رفع السعر أثناء الترويج" : "Can't raise the price while promoted", variant: "destructive" });
       throw new Error("price_increase_blocked");
     }
+    // Re-submit a rejected real estate listing for admin re-review.
+    if (item?.review_status === "rejected" && itemData.category === "realestate") {
+      itemData.review_status = "pending";
+      itemData.review_reason = "";
+    }
     await base44.entities.Item.update(id, itemData);
     // Price-drop alert: notify users who saved this listing when the price drops.
     if (Number.isFinite(oldPrice) && Number(itemData.price) > 0 && Number(itemData.price) < oldPrice) {

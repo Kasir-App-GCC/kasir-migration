@@ -27,7 +27,9 @@
         "price_drop",
         "dispute_opened",
         "dispute_resolved",
-        "admin_message"
+        "admin_message",
+        "listing_approved",
+        "listing_rejected"
       ],
       "default": "sold"
     },

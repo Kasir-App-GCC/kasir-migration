@@ -45,7 +45,7 @@ export default function Home() {
   // created_date. More reliable than offset — no duplicate/shift when new
   // listings arrive mid-browse (what OfferUp uses).
   const fetchPage = useCallback(async (cursor) => {
-    const query = { country, archived: { $ne: true } };
+    const query = { country, archived: { $ne: true }, review_status: { $nin: ["pending", "rejected"] } };
     if (cursor) query.created_date = { $lt: cursor };
     return base44.entities.Item.filter(query, "-created_date", PAGE_SIZE);
   }, [country]);
@@ -87,7 +87,7 @@ export default function Home() {
   // surface first; country/cross-country filtering is applied client-side.
   const loadFeatured = useCallback(async () => {
     try {
-      const list = await base44.entities.Item.filter({ featured: true, archived: { $ne: true } }, "-featured_until", 100);
+      const list = await base44.entities.Item.filter({ featured: true, archived: { $ne: true }, review_status: { $nin: ["pending", "rejected"] } }, "-featured_until", 100);
       const ids = [...new Set((list || []).map((i) => i.seller_id).filter(Boolean))];
       const sMap = ids.length ? await fetchSellerInfos(ids) : {};
       setSellers((prev) => ({ ...prev, ...sMap }));

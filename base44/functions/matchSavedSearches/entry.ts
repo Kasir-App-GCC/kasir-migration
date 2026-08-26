@@ -44,6 +44,9 @@ export default async function (req) {
     const item = await base44.asServiceRole.entities.Item.get(itemId);
     if (!item) return Response.json({ error: "Item not found" }, { status: 404 });
     if (item.status && item.status !== "available") return Response.json({ matched: 0 });
+    // Real estate listings pending admin review (REGA license check) must not
+    // trigger saved-search alerts until approved.
+    if (item.review_status === "pending" || item.review_status === "rejected") return Response.json({ matched: 0 });
 
     // Narrow server-side by category + city + country so we only fetch saved
     // searches that could possibly match this item. "" / "all" = "any" for

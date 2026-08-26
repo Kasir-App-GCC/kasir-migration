@@ -59,7 +59,7 @@ export default function Search() {
   // the text search via $regex) to the server so we don't have to load the
   // whole catalog to find matches.
   const buildQuery = useCallback(() => {
-    const query = { country, archived: { $ne: true } };
+    const query = { country, archived: { $ne: true }, review_status: { $nin: ["pending", "rejected"] } };
     if (categories.length === 1) query.category = categories[0];
     else if (categories.length > 1) query.category = { $in: categories };
     if (subcategories.length) query.subcategory = { $in: subcategories };
@@ -194,7 +194,7 @@ export default function Search() {
   // Fetch featured (promoted) listings to inject as sponsored slots in results.
   const loadFeatured = useCallback(async () => {
     try {
-      const list = await base44.entities.Item.filter({ featured: true, status: "available", archived: { $ne: true } }, "-featured_until", 20);
+      const list = await base44.entities.Item.filter({ featured: true, status: "available", archived: { $ne: true }, review_status: { $nin: ["pending", "rejected"] } }, "-featured_until", 20);
       setFeaturedItems(list || []);
     } catch {
       setFeaturedItems([]);

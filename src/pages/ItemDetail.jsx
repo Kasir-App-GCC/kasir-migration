@@ -276,6 +276,16 @@ export default function ItemDetail() {
         <ArrowLeft size={16} className="rtl:rotate-180" /> {t("back")}
       </button>
 
+      {/* Real estate review status banner — only visible to the seller */}
+      {item.seller_id === user?.id && item.review_status && item.review_status !== "approved" && (
+        <div className={`mb-3 p-3 rounded-2xl border text-sm font-semibold ${item.review_status === "pending" ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300" : "bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300"}`}>
+          {item.review_status === "pending"
+            ? (lang === "ar" ? "إعلانك العقاري قيد المراجعة من الإدارة — سيظهر في النتائج بعد الاعتماد" : "Your real estate listing is pending admin review — it will appear in results once approved")
+            : (lang === "ar" ? `تم رفض إعلانك العقاري${item.review_reason ? `: ${item.review_reason}` : ""} — عدّل الترخيص وأعد النشر` : `Your real estate listing was rejected${item.review_reason ? `: ${item.review_reason}` : ""} — update the license and re-publish`)
+          }
+        </div>
+      )}
+
       {/* Gallery */}
       <div
         className={`relative aspect-[4/3] rounded-3xl overflow-hidden bg-muted ${canHover ? "cursor-zoom-in" : ""}`}

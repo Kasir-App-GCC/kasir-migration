@@ -27,7 +27,7 @@ export default function Sell() {
       featured: false,
       featured_until: null,
       featured_cross_country: false,
-      review_status: itemData.category === "realestate" ? "pending" : "approved",
+      review_status: itemData.category === "realestate" && itemData.country === "SA" ? "pending" : "approved",
     });
     if (data.claim_free_boost) {
       try {

@@ -271,9 +271,9 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         willing_to_ship: willingToShip,
         shipping_fee: willingToShip && shippingFee ? Number(shippingFee) : null,
         delivers_within_city: deliversWithinCity,
-        re_license_type: category === "realestate" ? reLicenseType || undefined : undefined,
-        re_license_number: category === "realestate" ? reLicenseNumber || undefined : undefined,
-        re_license_doc: category === "realestate" ? reLicenseDoc || undefined : undefined,
+        re_license_type: saRealEstate ? reLicenseType || undefined : undefined,
+        re_license_number: saRealEstate ? reLicenseNumber || undefined : undefined,
+        re_license_doc: saRealEstate ? reLicenseDoc || undefined : undefined,
         featured: false,
         boost_hours: useFreeBoost ? 0 : boostHours,
         boost_cross_country: boostCross,
@@ -285,8 +285,11 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
     }
   };
 
-  const isRealEstate = category === "realestate";
-  const reValid = !isRealEstate || (!!reLicenseType && !!reLicenseNumber && !!reLicenseDoc);
+  // The REGA license requirement is Saudi-specific; other GCC countries have
+  // no such ad-license mandate, so the license section and its validation only
+  // apply when the listing's country is Saudi Arabia.
+  const saRealEstate = category === "realestate" && country === "SA";
+  const reValid = !saRealEstate || (!!reLicenseType && !!reLicenseNumber && !!reLicenseDoc);
   const valid = title && price && category && city && images.length > 0 && reValid;
   // Featured-listing promotion price: basePrice = 5 + 20·ln(1 + P/500), then
   // × (H/24)^0.70, floored at SAR 5. P is the item price, H the selected hours.
@@ -497,7 +500,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         </div>
       }
 
-      {category === "realestate" && (
+      {category === "realestate" && country === "SA" && (
       <div className="p-3.5 rounded-2xl border-2 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 space-y-3">
         <div className="flex items-start gap-2">
           <ShieldCheck size={18} className="text-amber-600 shrink-0 mt-0.5" />

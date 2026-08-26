@@ -59,8 +59,8 @@ export default function EditListing() {
       toast({ title: ar ? "لا يمكن رفع السعر أثناء الترويج" : "Can't raise the price while promoted", variant: "destructive" });
       throw new Error("price_increase_blocked");
     }
-    // Re-submit a rejected real estate listing for admin re-review.
-    if (item?.review_status === "rejected" && itemData.category === "realestate") {
+    // Re-submit a rejected Saudi real estate listing for admin re-review.
+    if (item?.review_status === "rejected" && itemData.category === "realestate" && itemData.country === "SA") {
       itemData.review_status = "pending";
       itemData.review_reason = "";
     }

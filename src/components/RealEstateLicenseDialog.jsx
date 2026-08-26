@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Building2, ShieldCheck, BadgeCheck, Clock, X, Loader2, ImagePlus, Check } from "lucide-react";
+import { Building2, ShieldCheck, BadgeCheck, Clock, X, Loader2, ImagePlus, Check, CreditCard } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import LicensePhoneVerifier from "@/components/LicensePhoneVerifier";
+import { usePopupPayment, extractInvoiceId } from "@/hooks/usePopupPayment";
+import PaymentWaitingModal from "@/components/PaymentWaitingModal";
 
 const LICENSE_TYPES = [
   { id: "individual_fal", ar: "رخصة فال (فرد)", en: "FAL (Individual)" },
@@ -31,6 +33,9 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
   const [licensePhone, setLicensePhone] = useState(user?.re_license_phone || "");
   const [licensePhoneVerified, setLicensePhoneVerified] = useState(false);
   const [nationalId, setNationalId] = useState(user?.re_national_id || "");
+  const popup = usePopupPayment();
+  const [payUrl, setPayUrl] = useState("");
+  const [paying, setPaying] = useState(false);
 
   // Reset edit mode whenever the dialog is opened so an approved license
   // shows its read-only view first, not a stale edit form from a prior open.
@@ -67,6 +72,31 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
       toast({ title: ar ? "تعذّر رفع الملف" : "Upload failed", variant: "destructive" });
     }
     setDocUploading(false);
+  };
+
+  const startPayment = async () => {
+    setPaying(true);
+    try {
+      const res = await base44.functions.invoke("createBrokerPayment", { origin: window.location.origin });
+      if (res?.data?.error) throw new Error(res.data.error);
+      if (!res?.data?.url) throw new Error(ar ? "لم يتم إنشاء رابط الدفع" : "No payment URL returned");
+      const invoiceId = extractInvoiceId(res.data.url);
+      setPayUrl(res.data.url);
+      popup.start({
+        url: res.data.url,
+        invoiceId,
+        onSuccess: async (r) => {
+          try {
+            await base44.functions.invoke("confirmBrokerPayment", { paymentId: r.payment_id || invoiceId });
+            await refreshUser();
+            toast({ title: ar ? "تم تفعيل شارة الوسيط العقاري 🎉" : "Broker badge activated 🎉" });
+          } catch {}
+        },
+      });
+    } catch (e) {
+      toast({ title: ar ? "تعذّر بدء الدفع" : "Couldn't start payment", variant: "destructive" });
+    }
+    setPaying(false);
   };
 
   const submit = async () => {
@@ -111,6 +141,7 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
 
         <div className="flex items-center gap-2 mb-3">
           {status === "approved" && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 text-[11px] font-bold"><BadgeCheck size={12} /> {ar ? "معتمد" : "Approved"}</span>}
+          {status === "approved_pending_payment" && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 text-[11px] font-bold"><Clock size={12} /> {ar ? "بانتظار الدفع" : "Pending payment"}</span>}
           {status === "pending" && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 text-[11px] font-bold"><Clock size={12} /> {ar ? "قيد المراجعة" : "Pending"}</span>}
           {status === "rejected" && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 text-[11px] font-bold"><X size={12} /> {ar ? "مرفوض" : "Rejected"}</span>}
           {status === "expired" && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 text-[11px] font-bold"><Clock size={12} /> {ar ? "منتهية" : "Expired"}</span>}
@@ -132,6 +163,20 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
         {status === "expired" && (
           <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 text-xs text-amber-700 dark:text-amber-300 mb-3">
             {ar ? "انتهت صلاحية ترخيصك. يرجى تحديث بيانات الترخيص وإعادة إرسالها للمراجعة." : "Your license has expired. Please update your license details and resubmit for review."}
+          </div>
+        )}
+
+        {status === "approved_pending_payment" && !editing && (
+          <div className="space-y-3">
+            <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900">
+              <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5"><BadgeCheck size={16} /> {ar ? "تم اعتماد طلبك!" : "Your application is approved!"}</p>
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">{ar ? "ادفع 49 ريال (مرة واحدة) لتفعيل شارة الوسيط العقاري والبدء بنشر الإعلانات العقارية." : "Pay 49 SAR (one-time) to activate your broker badge and start posting real estate listings."}</p>
+            </div>
+            <div className="p-2.5 rounded-xl bg-muted text-[11px] text-muted-foreground leading-relaxed">{ar ? "كاسر لا يأخذ عمولة من أي معاملة عقارية — فقط هذه الرسوم الرمزية لمرة واحدة." : "Kasir takes no commission from any real estate transaction — only this small one-time fee."}</div>
+            <button onClick={startPayment} disabled={paying} className="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm flex items-center justify-center gap-1.5 disabled:opacity-50">
+              {paying ? <Loader2 size={16} className="animate-spin" /> : <CreditCard size={16} />}
+              {ar ? "ادفع 49 ريال وفعّل الشارة" : "Pay 49 SAR & activate"}
+            </button>
           </div>
         )}
 
@@ -248,6 +293,10 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
                 </label>
               )}
             </div>
+            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 space-y-1">
+              <p className="text-xs font-bold text-amber-700 dark:text-amber-300">{ar ? "رسوم التفعيل: 49 ريال (دفعة واحدة)" : "Activation fee: 49 SAR (one-time)"}</p>
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 leading-relaxed">{ar ? "بعد مراجعة طلبك واعتماده من الإدارة، يلزم دفع 49 ريال مرة واحدة لتفعيل شارة الوسيط العقاري. كاسر لا يأخذ عمولة من أي معاملة عقارية — فقط هذه الرسوم الرمزية لمرة واحدة." : "Once your application is reviewed and approved, a one-time 49 SAR fee activates your broker badge. Kasir takes no commission from any real estate transaction — only this small one-time fee."}</p>
+            </div>
             <button onClick={submit} disabled={!valid || submitting} className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center gap-1.5 disabled:opacity-50">
               {submitting && <Loader2 size={15} className="animate-spin" />}
               {status === "rejected" || status === "expired" || (status === "approved" && editMode) ? (ar ? "إعادة الإرسال للمراجعة" : "Re-submit for review") : (ar ? "إرسال للمراجعة" : "Submit for review")}
@@ -255,6 +304,13 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
           </div>
         )}
       </div>
+      <PaymentWaitingModal
+        state={popup.state}
+        amount={49}
+        invoiceUrl={payUrl}
+        onCancel={popup.cancel}
+        onDone={() => { const paid = popup.state === "paid"; popup.reset(); if (paid) onClose?.(); }}
+      />
     </div>
   );
 }

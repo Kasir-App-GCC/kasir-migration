@@ -38,7 +38,7 @@ export default function AdminRealEstate() {
     try {
       const [p, a] = await Promise.all([
         base44.entities.User.filter({ re_license_status: "pending" }, "-created_date", 100),
-        base44.entities.User.filter({ re_license_status: "approved" }, "-created_date", 100),
+        base44.entities.User.filter({ re_license_status: { $in: ["approved", "approved_pending_payment"] } }, "-created_date", 100),
       ]);
       setPending(p || []);
       setApproved(a || []);
@@ -62,23 +62,20 @@ export default function AdminRealEstate() {
   const approve = async (u) => {
     setActing(u.id);
     try {
-      await base44.entities.User.update(u.id, { re_license_status: "approved", re_license_review_reason: "" });
-      try {
-        await base44.entities.Item.updateMany(
-          { seller_id: u.id, category: "realestate", review_status: "pending" },
-          { $set: { review_status: "approved", review_reason: "" } }
-        );
-      } catch {}
+      // Admin review passed — but the badge isn't active yet. The seller must
+      // pay the one-time 49 SAR activation fee; until then they're in
+      // "approved_pending_payment" and can't post real estate listings.
+      await base44.entities.User.update(u.id, { re_license_status: "approved_pending_payment", re_license_review_reason: "" });
       try {
         await base44.entities.Notification.create({
           user_id: u.id,
-          type: "listing_approved",
-          text: ar ? "تم اعتماد ترخيصك العقاري — يمكنك الآن نشر إعلانات عقارية" : "Your real estate license was approved — you can now post real estate listings",
+          type: "re_license_approved_pending_payment",
+          text: ar ? "تم اعتماد ترخيصك العقاري! ادفع 49 ريال (مرة واحدة) لتفعيل الشارة والبدء بنشر الإعلانات." : "Your real estate license was approved! Pay 49 SAR (one-time) to activate your badge and start posting listings.",
         });
       } catch {}
       setPending((prev) => prev.filter((x) => x.id !== u.id));
       setApproved((prev) => [u, ...prev]);
-      toast({ title: ar ? "تم الاعتماد" : "Approved" });
+      toast({ title: ar ? "تم الاعتماد — بانتظار الدفع" : "Approved — pending payment" });
     } catch {
       toast({ title: ar ? "تعذّر الاعتماد" : "Failed to approve", variant: "destructive" });
     }
@@ -145,9 +142,14 @@ export default function AdminRealEstate() {
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
           <p className="font-bold text-sm truncate">{userName(u)}</p>
-          {!isPending && (
+          {!isPending && u.re_license_status === "approved" && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-400 text-[10px] font-bold whitespace-nowrap shrink-0">
               <BadgeCheck size={10} /> {ar ? "وسيط عقاري" : "Real Estate Broker"}
+            </span>
+          )}
+          {!isPending && u.re_license_status === "approved_pending_payment" && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 text-[10px] font-bold whitespace-nowrap shrink-0">
+              <Clock size={10} /> {ar ? "بانتظار الدفع" : "Pending payment"}
             </span>
           )}
         </div>

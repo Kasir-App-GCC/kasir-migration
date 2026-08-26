@@ -51,7 +51,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [boostHours, setBoostHours] = useState(0);
   const ar = lang === "ar";
   const verified = !!user?.is_trusted;
-  const maxPhotos = verified ? 20 : 10;
+  const maxPhotos = verified ? 20 : 5;
   const [locating, setLocating] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
   const [mapPos, setMapPos] = useState(null);
@@ -373,7 +373,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
                 <>
                         <ImagePlus size={20} />
                         <span className="text-[9px] font-semibold text-center px-1 leading-tight">{ar ? "إضافة" : "Add"}</span>
-                        <span className="text-[8px] font-medium text-blue-500/80">{ar ? `حتى ${verified ? "٢٠" : "١٠"}` : `up to ${verified ? "20" : "10"}`}</span>
+                        <span className="text-[8px] font-medium text-blue-500/80">{ar ? `حتى ${verified ? "٢٠" : "٥"}` : `up to ${verified ? "20" : "5"}`}</span>
                       </>
                 }
                     <input type="file" accept="image/*" multiple className="hidden" onChange={onPick} />
@@ -392,7 +392,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
                 className="w-24 h-24 rounded-xl border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-950/30 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 gap-1">
                 
                     <Lock size={18} />
-                    <span className="text-[9px] font-semibold text-center px-1 leading-tight">{ar ? "تحقق لإضافة 10 صور" : "Verify for 10 more"}</span>
+                    <span className="text-[9px] font-semibold text-center px-1 leading-tight">{ar ? "تحقق لإضافة 15 صور" : "Verify for 15 more"}</span>
                   </button>
               }
                 {provided.placeholder}
@@ -406,7 +406,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             <ImagePlus size={12} />
             {verified ?
             ar ? "يمكنك إضافة حتى ٢٠ صورة" : "You can upload up to 20 photos" :
-            ar ? "يمكنك إضافة حتى ١٠ صور فقط" : "You can upload up to 10 photos only"}
+            ar ? "يمكنك إضافة حتى ٥ صور فقط" : "You can upload up to 5 photos only"}
           </span>
         </div>
         {images.length > 0 &&
@@ -433,7 +433,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         }
         {!verified &&
         <button type="button" onClick={() => setVerifyOpen(true)} className="text-[11px] text-blue-600 dark:text-blue-400 mt-1 flex items-center gap-1 hover:underline">
-            <Lock size={11} /> {ar ? "وثق حسابك لإضافة 10 صور إضافية" : "Verify your account to add 10 more photos"}
+            <Lock size={11} /> {ar ? "وثق حسابك لإضافة 15 صور إضافية" : "Verify your account to add 15 more photos"}
           </button>
         }
       </div>

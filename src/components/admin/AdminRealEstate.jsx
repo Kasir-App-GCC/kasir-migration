@@ -142,12 +142,17 @@ export default function AdminRealEstate() {
 
   const renderCard = (u, isPending) => (
     <div key={u.id} className="rounded-2xl border border-border bg-card p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="font-bold text-sm">{userName(u)}</p>
-        {isPending ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 text-[11px] font-bold"><Clock size={12} /> {ar ? "قيد المراجعة" : "Pending"}</span>
-        ) : (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 text-[11px] font-bold"><BadgeCheck size={12} /> {ar ? "معتمد" : "Approved"}</span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <p className="font-bold text-sm truncate">{userName(u)}</p>
+          {!isPending && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-400 text-[10px] font-bold whitespace-nowrap shrink-0">
+              <BadgeCheck size={10} /> {ar ? "وسيط معتمد" : "Approved Broker"}
+            </span>
+          )}
+        </div>
+        {isPending && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 text-[11px] font-bold whitespace-nowrap"><Clock size={12} /> {ar ? "قيد المراجعة" : "Pending"}</span>
         )}
       </div>
       <div className="grid grid-cols-2 gap-2 text-xs">

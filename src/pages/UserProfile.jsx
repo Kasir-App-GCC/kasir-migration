@@ -143,9 +143,14 @@ export default function UserProfile() {
             {(profile?.avatar || avatarParam) ? <img src={profile?.avatar || avatarParam} className="w-full h-full object-cover" /> : <span className="w-full h-full flex items-center justify-center text-2xl font-bold">{displayName?.[0]}</span>}
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-extrabold truncate flex items-center gap-1.5">
+            <h1 className="text-xl font-extrabold truncate flex items-center gap-1.5 flex-wrap">
               {displayName}
               {profile?.is_trusted && <BadgeCheck size={18} className="text-sky-400 shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]" />}
+              {profile?.re_license_status === "approved" && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/90 text-white text-[10px] font-bold whitespace-nowrap shrink-0">
+                  <BadgeCheck size={10} /> {ar ? "وسيط عقاري" : "Real Estate Broker"}
+                </span>
+              )}
             </h1>
             {profile?.username && <p className="text-sm opacity-80 -mt-0.5 truncate">@{profile.username}</p>}
             <div className="flex items-center gap-1.5 text-sm mt-0.5">

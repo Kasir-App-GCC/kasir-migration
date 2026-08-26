@@ -39,6 +39,8 @@ export default async function (req) {
       full_name: u.full_name || [u.first_name, u.last_name].filter(Boolean).join(" "),
       avatar: u.avatar || "",
       is_trusted: !!u.is_trusted,
+      re_license_status: u.re_license_status || "",
+      re_license_type: u.re_license_type || "",
       rating_avg,
       rating_count,
       created_date: u.created_date || null,

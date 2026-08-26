@@ -9,6 +9,11 @@ export default async function (req: Request): Promise<Response> {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    // Only verified (trusted) users may submit a real estate license — the
+    // trusted badge is a prerequisite for the REGA license review.
+    if (!user.is_trusted) {
+      return Response.json({ error: "Verify your account first" }, { status: 403 });
+    }
 
     const body = await req.json().catch(() => ({}));
     const licenseType = (body.license_type || "").toString();

@@ -29,7 +29,8 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
 
   if (!open) return null;
 
-  const editing = status === "" || status === "rejected";
+  const trusted = !!user?.is_trusted;
+  const editing = trusted && (status === "" || status === "rejected");
   const valid = licenseType && licenseNumber.trim() && licenseHolder.trim() && licenseExpiry && licenseLink.trim() && licenseDoc;
 
   const uploadDoc = async (file) => {
@@ -86,6 +87,13 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
           {status === "rejected" && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 text-[11px] font-bold"><X size={12} /> {ar ? "مرفوض" : "Rejected"}</span>}
           {status === "" && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[11px] font-bold">{ar ? "غير مُدخل" : "Not added"}</span>}
         </div>
+
+        {!trusted && (
+          <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900 text-sm text-sky-700 dark:text-sky-300 flex items-start gap-2">
+            <ShieldCheck size={16} className="shrink-0 mt-0.5" />
+            <span>{ar ? "يجب توثيق حسابك أولاً قبل إضافة ترخيص الوساطة العقارية." : "You must verify your account before adding a real estate license."}</span>
+          </div>
+        )}
 
         {status === "rejected" && user?.re_license_review_reason && (
           <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 text-xs text-rose-700 dark:text-rose-300 mb-3">

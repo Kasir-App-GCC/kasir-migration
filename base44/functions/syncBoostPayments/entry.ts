@@ -26,27 +26,31 @@ export default async function (req: Request): Promise<Response> {
     let activated = 0;
     let already = 0;
 
+    // Boosts are created as Moyasar INVOICES (createBoostRequest), and the
+    // boost metadata (type/item_id/hours/boost_request_id) lives on the invoice
+    // — not on the derived payment — so we scan the invoices endpoint.
     for (let page = 1; page <= MAX_PAGES; page++) {
-      const res = await fetch(`https://api.moyasar.com/v1/payments?status=paid&page=${page}`, {
+      const res = await fetch(`https://api.moyasar.com/v1/invoices?status=paid&page=${page}`, {
         headers: { Authorization: authHeader },
       });
       if (!res.ok) break;
       const data: any = await res.json();
-      const list: any[] = Array.isArray(data) ? data : (data.payments || data.invoices || data.data || []);
+      const list: any[] = Array.isArray(data) ? data : (data.invoices || data.data || []);
       if (!list.length) break;
       scanned += list.length;
-      for (const p of list) {
-        const meta = p.metadata || {};
+      for (const inv of list) {
+        const meta = inv.metadata || {};
         if (String(meta.type || "") !== "boost") continue;
         boostFound++;
+        const payId = Array.isArray(inv.payments) && inv.payments[0]?.id ? String(inv.payments[0].id) : "";
         try {
           const result = await activateBoost(base44, {
             requestId: meta.boost_request_id ? String(meta.boost_request_id) : "",
             itemId: meta.item_id ? String(meta.item_id) : "",
             hours: Number(meta.hours) || 0,
             userId: meta.user_id ? String(meta.user_id) : "",
-            paymentId: String(p.id || ""),
-            invoiceId: String(p.invoice_id || ""),
+            paymentId: payId,
+            invoiceId: String(inv.id || ""),
           });
           if (result.activated) activated++;
           else if (result.already) already++;

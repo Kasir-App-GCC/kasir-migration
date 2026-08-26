@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { CATEGORIES, CONDITIONS, getSubcategories, getCityName } from "@/lib/constants";
-import { getCities, nearestCityInCountry, getCountry, convertCurrency } from "@/lib/countries";
+import { getCities, nearestCityInCountry, getCountry, convertCurrency, resolveCityFromGeocode } from "@/lib/countries";
 import { computeBoostPrice, existingBoostHours, BOOST_MAX_HOURS, BOOST_MIN_HOURS } from "@/lib/boostPricing";
 import MapPinPicker from "@/components/MapPinPicker";
 import { Image } from "@/components/ui/image";
@@ -81,21 +81,9 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
       });
       const d = res?.data;
       if (d?.name) setLocationName(String(d.name).slice(0, 120));
-      // Override the nearest-static-city guess with the reverse-geocoded
-      // region/city when it matches a standard city. Prefer the region
-      // (maps to major cities, e.g. "Riyadh Region" → "Riyadh") so a
-      // neighborhood in Diriyah governorate resolves to Riyadh, not Diriyah.
-      const cities = getCities(country || "SA") || [];
-      const norm = (s) => (s || "").toLowerCase().replace(/region|منطقة/gi, "").replace(/[^a-z0-9\u0600-\u06ff]/g, "");
-      const tryMatch = (val) => {
-        const raw = norm(val);
-        if (raw.length < 3) return null;
-        return cities.find((c) => {
-          const ce = norm(c.en),ca = norm(c.ar);
-          return raw === ce || raw === ca || raw.includes(ce) || raw.includes(ca);
-        });
-      };
-      const match = tryMatch(d?.state) || tryMatch(d?.city);
+      // Resolve the canonical major city from the reverse-geocoded region
+      // (e.g. "Riyadh Region" → "Riyadh", not the sub-municipality "Diriyah").
+      const match = resolveCityFromGeocode(d, country || "SA");
       if (match) setCity(match.en);
     } catch {}
   };

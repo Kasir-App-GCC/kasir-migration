@@ -3,7 +3,7 @@ import { MapPin, Search, X, Check, Crosshair } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { getCityName } from "@/lib/constants";
-import { getCities, nearestCityInCountry } from "@/lib/countries";
+import { getCities, nearestCityInCountry, resolveCityFromGeocode } from "@/lib/countries";
 import MapPinPicker from "@/components/MapPinPicker";
 import { base44 } from "@/api/base44Client";
 
@@ -36,19 +36,26 @@ export default function LocationFilter({ open, onClose, defaultTab, autoDetect }
     return () => { active = false; };
   }, [mapPos, country, lang]);
 
-  // Reverse-geocode the detected GPS coordinates to an accurate place name.
-  // The snapped list city is kept for filtering, but the user sees the real
-  // locality (e.g. "Al-Aridh, Riyadh" instead of the nearest list entry).
+  // Reverse-geocode the detected GPS coordinates, then resolve the canonical
+  // major city from the region (so "Diriyah" → "Riyadh", not the nearest small
+  // municipality). The matched city drives both filtering and the display name.
   useEffect(() => {
     if (!detectedCoords) { setDetectedName(null); return; }
     let active = true;
     (async () => {
       let name = null;
+      let geo = null;
       try {
         const res = await base44.functions.invoke("geocodeLocation", { lat: detectedCoords.lat, lng: detectedCoords.lng, country: country || "SA", lang });
+        if (res?.data) geo = res.data;
         if (res?.data?.name) name = String(res.data.name).slice(0, 120);
       } catch {}
       if (!active) return;
+      const matched = resolveCityFromGeocode(geo, country);
+      if (matched) {
+        setDetectedCity(matched);
+        name = lang === "ar" ? matched.ar : matched.en;
+      }
       if (!name) {
         const c = nearestCityInCountry(detectedCoords.lat, detectedCoords.lng, country);
         name = c ? (lang === "ar" ? c.ar : c.en) : null;

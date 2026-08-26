@@ -253,6 +253,30 @@ export function nearestCityInCountry(lat, lng, code) {
   return best;
 }
 
+// Resolves a reverse-geocoded result { name, city, state } to a canonical city
+// from the country's city list. Prefers the state/region match so a sub-
+// municipality (e.g. "Diriyah" within Riyadh Region) resolves to its major
+// city ("Riyadh") instead of the smaller locality. Returns null if no match.
+export function resolveCityFromGeocode(geocoded, code) {
+  if (!geocoded) return null;
+  const cities = getCities(code);
+  const norm = (s) =>
+    (s || "")
+      .toLowerCase()
+      .replace(/region|منطقة|province|محافظة|emirate|إمارة/gi, "")
+      .replace(/[^a-z0-9\u0600-\u06ff]/g, "");
+  const tryMatch = (val) => {
+    const raw = norm(val);
+    if (raw.length < 3) return null;
+    return cities.find((c) => {
+      const ce = norm(c.en);
+      const ca = norm(c.ar);
+      return raw === ce || raw === ca || raw.includes(ce) || raw.includes(ca);
+    });
+  };
+  return tryMatch(geocoded.state) || tryMatch(geocoded.city) || null;
+}
+
 export function nearestCity(lat, lng) {
   let best = null;
   let min = Infinity;

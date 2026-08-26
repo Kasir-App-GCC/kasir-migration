@@ -1,5 +1,3 @@
-import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
-
 const CC_BY_COUNTRY = {
   SA: "SA", AE: "AE", OM: "OM", BH: "BH", KW: "KW", QA: "QA",
 };
@@ -93,10 +91,9 @@ async function reverseGeocodeNominatim(lat, lng, lang) {
 
 export default async function (req) {
   try {
-    const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-
+    // Public endpoint: proxies external geocoding APIs (Nominatim/ArcGIS) only
+    // — no user or app data involved. Unauthenticated visitors need location
+    // detection on public pages (Home auto-detect), so no auth check here.
     const body = await req.json().catch(() => ({}));
     const country = String(body?.country || "SA").toUpperCase();
     const lang = body?.lang === "ar" ? "ar" : "en";

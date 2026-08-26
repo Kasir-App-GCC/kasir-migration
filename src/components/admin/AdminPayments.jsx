@@ -10,7 +10,7 @@ import { VERIFICATION_FEE } from "@/lib/verificationPayment";
 const TYPE_META = {
   boost: { ar: "تعزيز", en: "Boost", icon: TrendingUp, color: "text-amber-600 bg-amber-50 dark:bg-amber-950/30" },
   verification: { ar: "توثيق", en: "Verification", icon: ShieldCheck, color: "text-cyan-600 bg-cyan-50 dark:bg-cyan-950/30" },
-  donation: { ar: "دعم", en: "Donation", icon: Heart, color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30" },
+  donation: { ar: "دعم", en: "Support", icon: Heart, color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30" },
   payment_link: { ar: "رابط دفع", en: "Payment Link", icon: Link2, color: "text-violet-600 bg-violet-50 dark:bg-violet-950/30" },
 };
 

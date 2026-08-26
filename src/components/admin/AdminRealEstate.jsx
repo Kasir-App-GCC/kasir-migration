@@ -147,7 +147,7 @@ export default function AdminRealEstate() {
           <p className="font-bold text-sm truncate">{userName(u)}</p>
           {!isPending && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-400 text-[10px] font-bold whitespace-nowrap shrink-0">
-              <BadgeCheck size={10} /> {ar ? "وسيط معتمد" : "Approved Broker"}
+              <BadgeCheck size={10} /> {ar ? "وسيط عقاري" : "Real Estate Broker"}
             </span>
           )}
         </div>

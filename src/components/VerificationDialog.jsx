@@ -71,14 +71,31 @@ export default function VerificationDialog({ open, onClose }) {
     }
     setSubmitting(true);
     try {
-      const res = await base44.functions.invoke("createVerificationPayment", {
-        fullName: fullName.trim(),
-        phone: digitsOnly(phoneE164),
-        nationalId: idCheck.digits,
-        origin: window.location.origin
-      });
+      // Race the function call with a timeout so the dialog never hangs
+      // indefinitely (e.g. if the payment gateway is unreachable).
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(ar ? "انتهت المهلة — حاول مرة أخرى" : "Timed out — please try again")), 25000)
+      );
+      const res = await Promise.race([
+        base44.functions.invoke("createVerificationPayment", {
+          fullName: fullName.trim(),
+          phone: digitsOnly(phoneE164),
+          nationalId: idCheck.digits,
+          origin: window.location.origin
+        }),
+        timeout
+      ]);
       if (res?.data?.error) throw new Error(res.data.error);
-      if (res?.data?.url) {
+      if (!res?.data?.url) throw new Error(ar ? "لم يتم إنشاء رابط الدفع" : "No payment URL returned");
+      // Reset the loading state BEFORE the redirect so the button doesn't
+      // stay stuck on "Preparing…" if the PWA webview stalls the navigation.
+      setSubmitting(false);
+      // window.open with _blank is more reliable in PWA standalone mode on
+      // Android, where window.location.href to an external URL can silently
+      // fail. The callback URL returns to /profile which reopens the app.
+      const win = window.open(res.data.url, "_blank");
+      if (!win) {
+        // Pop-up blocked — fall back to same-window navigation.
         window.location.href = res.data.url;
       }
     } catch (err) {

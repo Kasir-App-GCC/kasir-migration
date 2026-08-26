@@ -25,7 +25,12 @@ export default function AdminVerifications() {
   const load = async () => {
     try {
       const list = await base44.entities.VerificationRequest.list("-created_date", 200);
-      setRequests(list || []);
+      // Verification is automatic after payment — pending requests from the
+      // payment flow (moyasar: prefix) are auto-verified by the payment
+      // confirmation webhook and never need admin review. Hide them so the
+      // admin panel only shows requests that are already decided (history)
+      // or genuinely need manual action.
+      setRequests((list || []).filter((r) => !(r.status === "pending" && (r.payment_receipt_url || "").startsWith("moyasar:"))));
     } catch {} finally { setLoading(false); }
   };
 

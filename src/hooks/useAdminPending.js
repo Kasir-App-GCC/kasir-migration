@@ -38,11 +38,13 @@ export default function useAdminPending() {
             name: x.reported_user_name || (ar ? "بلاغ مستخدم" : "User report"),
             text: x.reason || "", date: x.created_date,
           }));
-          const vItems = (verifications.value || []).map((x) => ({
-            id: `verify-${x.id}`, type: "admin_verification", adminTab: "verifications", unread: true,
-            name: x.full_name || x.user_name || (ar ? "طلب توثيق" : "Verification request"),
-            text: ar ? "طلب توثيق بانتظار المراجعة" : "Verification pending review", date: x.created_date,
-          }));
+          const vItems = (verifications.value || [])
+            .filter((x) => !(x.payment_receipt_url || "").startsWith("moyasar:"))
+            .map((x) => ({
+              id: `verify-${x.id}`, type: "admin_verification", adminTab: "verifications", unread: true,
+              name: x.full_name || x.user_name || (ar ? "طلب توثيق" : "Verification request"),
+              text: ar ? "طلب توثيق بانتظار المراجعة" : "Verification pending review", date: x.created_date,
+            }));
           const bItems = (boosts.value || []).map((x) => ({
             id: `boost-${x.id}`, type: "admin_boost", adminTab: "boosts", unread: true,
             name: x.item_title || (ar ? "طلب تعزيز" : "Boost request"),

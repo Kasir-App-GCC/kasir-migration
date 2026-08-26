@@ -49,7 +49,7 @@ export default function Admin() {
         setCounts({
           tickets: tickets.value?.length || 0,
           reports: (reports.value || []).filter((r) => !r.resolved).length,
-          verifications: verifications.value?.length || 0,
+          verifications: (verifications.value || []).filter((r) => !(r.payment_receipt_url || "").startsWith("moyasar:")).length,
           boosts: boosts.value?.length || 0,
           disputes: disputes.value?.length || 0,
           realestate: realestate.value?.length || 0,

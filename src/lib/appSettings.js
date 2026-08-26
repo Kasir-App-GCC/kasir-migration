@@ -8,9 +8,9 @@ export async function getPaymentsMode() {
   if (modeCache) return modeCache;
   try {
     const rows = await base44.entities.AppSetting.filter({ key: "payments_mode" });
-    modeCache = rows && rows[0] ? rows[0].value : "inapp";
+    modeCache = rows && rows[0] ? rows[0].value : "redirect";
   } catch {
-    modeCache = "inapp";
+    modeCache = "redirect";
   }
   return modeCache;
 }

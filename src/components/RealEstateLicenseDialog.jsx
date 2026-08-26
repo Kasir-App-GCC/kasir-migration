@@ -138,6 +138,13 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
 
         {editing && (
           <div className="space-y-3">
+            <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 text-xs text-amber-700 dark:text-amber-300 flex items-start gap-2">
+              <ShieldCheck size={14} className="shrink-0 mt-0.5" />
+              <span>
+                {ar ? "يجب أن يتطابق رقم جوالك الموثّق مع الرقم المسجّل على الترخيص — وإلا سيُرفض الترخيص." : "Your verified phone number must match the phone number registered on the license — otherwise it will be rejected."}
+                {user?.phone && <span className="font-bold block mt-0.5">{ar ? "جوالك: " : "Your phone: "}{user.country_code ? user.country_code + " " : ""}{user.phone}</span>}
+              </span>
+            </div>
             <div className="space-y-1">
               <label className="text-xs font-semibold">{ar ? "نوع الترخيص" : "License type"} *</label>
               <div className="flex flex-wrap gap-2">

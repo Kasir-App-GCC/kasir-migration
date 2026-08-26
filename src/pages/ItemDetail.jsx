@@ -102,6 +102,29 @@ export default function ItemDetail() {
     })();
   }, [id]);
 
+  // Handle the redirect back from Moyasar after a boost payment. Moyasar
+  // appends ?boost_payment=1&id=<payment|invoice id> to the callback_url.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.get("boost_payment") || !params.get("id")) return;
+    base44.functions.invoke("confirmBoostPayment", { paymentId: params.get("id") })
+      .then(async (res) => {
+        if (res?.data?.ok) {
+          toast({ title: lang === "ar" ? "تم تفعيل التعزيز ⭐" : "Boost activated ⭐" });
+          try { const it = await base44.entities.Item.get(id); setItem(it); } catch {}
+        } else {
+          toast({ title: lang === "ar" ? "لم يكتمل الدفع بعد" : "Payment not completed yet", variant: "destructive" });
+        }
+      })
+      .catch(() => toast({ title: lang === "ar" ? "فشل التحقق من الدفع" : "Payment verification failed", variant: "destructive" }))
+      .finally(() => {
+        params.delete("boost_payment");
+        params.delete("id");
+        window.history.replaceState({}, "", window.location.pathname + (params.toString() ? "?" + params.toString() : ""));
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
   const seller = item ? { id: item.seller_id, name: item.seller_name, rating: ratings.length ? (ratings.reduce((s, r) => s + r.score, 0) / ratings.length).toFixed(1) : "5.0" } : null;
   const cat = item ? getCategory(item.category) : null;
 

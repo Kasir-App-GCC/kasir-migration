@@ -106,6 +106,49 @@
       "type": "string",
       "format": "date-time",
       "description": "Last time the user was active in the app (updated throttled on app load)"
+    },
+    "re_license_type": {
+      "type": "string",
+      "enum": [
+        "individual_fal",
+        "establishment_fal",
+        "ad_license"
+      ],
+      "description": "Type of REGA license the user holds (FAL individual, FAL establishment, or advertisement license) \u2014 filled once in profile settings, reviewed by admin"
+    },
+    "re_license_number": {
+      "type": "string",
+      "description": "REGA license number \u2014 filled once in profile settings"
+    },
+    "re_license_holder": {
+      "type": "string",
+      "description": "Name of the license holder exactly as it appears on the REGA license"
+    },
+    "re_license_expiry": {
+      "type": "string",
+      "format": "date",
+      "description": "Expiry date of the REGA license"
+    },
+    "re_license_link": {
+      "type": "string",
+      "description": "Direct link to the REGA license inquiry result so admins can verify in one click"
+    },
+    "re_license_doc": {
+      "type": "string",
+      "description": "URL of the uploaded license document (image or PDF)"
+    },
+    "re_license_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "description": "Admin review status of the user's real estate license. Only users with 'approved' can post Saudi real estate listings. Replaces the old per-listing review with a single per-user review."
+    },
+    "re_license_review_reason": {
+      "type": "string",
+      "description": "Admin's rejection reason when re_license_status is 'rejected'"
     }
   },
   "required": [

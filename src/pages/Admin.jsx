@@ -45,7 +45,7 @@ export default function Admin() {
           base44.entities.VerificationRequest.filter({ status: "pending" }, "-created_date", 500),
           base44.entities.BoostRequest.filter({ status: "pending" }, "-created_date", 500),
           base44.entities.Dispute.filter({ status: "open" }, "-created_date", 500),
-          base44.entities.Item.filter({ category: "realestate", review_status: "pending" }, "-created_date", 100),
+          base44.entities.User.filter({ re_license_status: "pending" }, "-created_date", 100),
         ]);
         setCounts({
           tickets: tickets.value?.length || 0,

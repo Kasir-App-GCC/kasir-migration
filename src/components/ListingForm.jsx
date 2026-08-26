@@ -19,6 +19,7 @@ import { getSpecFields } from "@/lib/specs";
 import ImageEditor from "@/components/ImageEditor";
 import CameraCapture from "@/components/CameraCapture";
 import VerificationDialog from "@/components/VerificationDialog";
+import { useNavigate } from "react-router-dom";
 
 // Convert Arabic-Indic (٠-٩) and Eastern Arabic (۰-۹) digits to ASCII 0-9
 function normalizeDigits(s) {
@@ -33,6 +34,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const { user, lang, country } = useStore();
   const t = useT();
   const { toast } = useToast();
+  const nav = useNavigate();
   const [images, setImages] = useState(initial?.images || []);
   const [title, setTitle] = useState(initial?.title || "");
   const [price, setPrice] = useState(initial?.price != null ? String(initial.price) : "");
@@ -67,13 +69,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [deliversWithinCity, setDeliversWithinCity] = useState(!!initial?.delivers_within_city);
   const [useFreeBoost, setUseFreeBoost] = useState(false);
   const [freeBoostAvailable, setFreeBoostAvailable] = useState(null);
-  const [reLicenseType, setReLicenseType] = useState(initial?.re_license_type || "");
-  const [reLicenseNumber, setReLicenseNumber] = useState(initial?.re_license_number || "");
-  const [reLicenseHolder, setReLicenseHolder] = useState(initial?.re_license_holder || "");
-  const [reLicenseExpiry, setReLicenseExpiry] = useState(initial?.re_license_expiry ? String(initial.re_license_expiry).slice(0, 10) : "");
-  const [reLicenseLink, setReLicenseLink] = useState(initial?.re_license_link || "");
-  const [reLicenseDoc, setReLicenseDoc] = useState(initial?.re_license_doc || "");
-  const [reDocUploading, setReDocUploading] = useState(false);
+
 
   // Reverse-geocode coordinates to an accurate place name for display.
   const reverseGeocode = async (la, ln) => {
@@ -261,12 +257,12 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         willing_to_ship: willingToShip,
         shipping_fee: willingToShip && shippingFee ? Number(shippingFee) : null,
         delivers_within_city: deliversWithinCity,
-        re_license_type: saRealEstate ? reLicenseType || undefined : undefined,
-        re_license_number: saRealEstate ? reLicenseNumber || undefined : undefined,
-        re_license_holder: saRealEstate ? reLicenseHolder || undefined : undefined,
-        re_license_expiry: saRealEstate ? reLicenseExpiry || undefined : undefined,
-        re_license_link: saRealEstate ? reLicenseLink || undefined : undefined,
-        re_license_doc: saRealEstate ? reLicenseDoc || undefined : undefined,
+        re_license_type: saRealEstate && reApproved ? user.re_license_type : undefined,
+        re_license_number: saRealEstate && reApproved ? user.re_license_number : undefined,
+        re_license_holder: saRealEstate && reApproved ? user.re_license_holder : undefined,
+        re_license_expiry: saRealEstate && reApproved ? user.re_license_expiry : undefined,
+        re_license_link: saRealEstate && reApproved ? user.re_license_link : undefined,
+        re_license_doc: saRealEstate && reApproved ? user.re_license_doc : undefined,
         featured: false,
         boost_hours: useFreeBoost ? 0 : boostHours,
         boost_amount: boostAmount,
@@ -281,11 +277,12 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   // no such ad-license mandate, so the license section and its validation only
   // apply when the listing's country is Saudi Arabia.
   const saRealEstate = category === "realestate" && country === "SA";
-  // Unverified users cannot post Saudi real estate listings — they must obtain
-  // the trusted badge (verification) first. This gate only applies to SA real
-  // estate; all other categories and countries are unaffected.
-  const reBlocked = saRealEstate && !verified;
-  const reValid = !saRealEstate || (!!reLicenseType && !!reLicenseNumber && !!reLicenseHolder && !!reLicenseExpiry && !!reLicenseLink && !!reLicenseDoc);
+  // Saudi real estate requires a one-time REGA license approved in the user's
+  // profile settings. Approved users can post with no per-listing review; the
+  // license is copied from their profile into each listing.
+  const reApproved = saRealEstate && user?.re_license_status === "approved";
+  const reBlocked = saRealEstate && !reApproved;
+  const reValid = !saRealEstate || reApproved;
   const valid = title && price && category && city && images.length > 0 && reValid && !reBlocked;
   // Featured-listing promotion price: basePrice = 5 + 20·ln(1 + P/500), then
   // × (H/24)^0.70, floored at SAR 5. P is the item price, H the selected hours.
@@ -492,126 +489,25 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         </div>
       }
 
-      {category === "realestate" && country === "SA" && !verified && (
-      <div className="p-3.5 rounded-2xl border-2 border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/30 space-y-3">
-        <div className="flex items-start gap-2">
-          <ShieldCheck size={18} className="text-rose-600 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-bold">{ar ? "التوثيق مطلوب" : "Verification required"}</p>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              {ar ? "يجب توثيق حسابك والحصول على شارة الثقة أولاً قبل نشر إعلان عقاري في السعودية." : "You must verify your account and get the trusted badge before posting a real estate listing in Saudi Arabia."}
-            </p>
-          </div>
-        </div>
-        <button type="button" onClick={() => setVerifyOpen(true)} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm">
-          {ar ? "توثيق الحساب" : "Verify account"}
-        </button>
-      </div>
-      )}
-
-      {category === "realestate" && country === "SA" && verified && (
-      <div className="p-3.5 rounded-2xl border-2 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 space-y-3">
-        <div className="flex items-start gap-2">
-          <ShieldCheck size={18} className="text-amber-600 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-bold">{ar ? "ترخيص الإعلان العقاري" : "Real Estate Ad License"}</p>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              {ar ? "يتطلب نظام الوساطة العقارية في السعودية ترخيصاً للإعلان عن العقارات. أدخل بيانات ترخيصك وسيتم مراجعة إعلانك من الإدارة قبل نشره." : "Saudi real estate law requires a REGA license to advertise property. Enter your license details — your listing will be reviewed by admin before publishing."}
-            </p>
-          </div>
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs font-semibold">{ar ? "نوع الترخيص" : "License type"} <span className="text-rose-500">*</span></label>
-          <div className="flex flex-wrap gap-2">
-            {[
-              { id: "individual_fal", ar: "رخصة فال (فرد)", en: "FAL (Individual)" },
-              { id: "establishment_fal", ar: "رخصة فال (منشأة)", en: "FAL (Establishment)" },
-              { id: "ad_license", ar: "ترخيص إعلان عقاري", en: "Ad License" },
-            ].map((lt) => (
-              <button
-                key={lt.id}
-                type="button"
-                onClick={() => setReLicenseType(lt.id)}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold border ${reLicenseType === lt.id ? "bg-primary text-primary-foreground border-transparent" : "bg-card border-border/70"}`}
-              >
-                {ar ? lt.ar : lt.en}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs font-semibold">{ar ? "رقم الترخيص" : "License number"} <span className="text-rose-500">*</span></label>
-          <input
-            value={reLicenseNumber}
-            onChange={(e) => setReLicenseNumber(e.target.value.slice(0, 50))}
-            placeholder={ar ? "أدخل رقم الترخيص" : "Enter license number"}
-            className="w-full px-3 py-2.5 rounded-xl bg-card border border-border/60 outline-none focus:ring-2 ring-primary/30 text-sm"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs font-semibold">{ar ? "اسم صاحب الترخيص" : "License holder name"} <span className="text-rose-500">*</span></label>
-          <input
-            value={reLicenseHolder}
-            onChange={(e) => setReLicenseHolder(e.target.value.slice(0, 80))}
-            placeholder={ar ? "الاسم كما في الترخيص" : "Name as on license"}
-            className="w-full px-3 py-2.5 rounded-xl bg-card border border-border/60 outline-none focus:ring-2 ring-primary/30 text-sm"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs font-semibold">{ar ? "تاريخ انتهاء الرخصة" : "License expiry date"} <span className="text-rose-500">*</span></label>
-          <input
-            type="date"
-            value={reLicenseExpiry}
-            onChange={(e) => setReLicenseExpiry(e.target.value)}
-            min={new Date().toISOString().slice(0, 10)}
-            className="w-full px-3 py-2.5 rounded-xl bg-card border border-border/60 outline-none focus:ring-2 ring-primary/30 text-sm"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs font-semibold">{ar ? "رابط استعلام الترخيص من REGA" : "REGA license inquiry link"} <span className="text-rose-500">*</span></label>
-          <input
-            type="url"
-            value={reLicenseLink}
-            onChange={(e) => setReLicenseLink(e.target.value.slice(0, 500))}
-            placeholder={ar ? "https://eservicesredp.rega.gov.sa/..." : "https://eservicesredp.rega.gov.sa/..."}
-            className="w-full px-3 py-2.5 rounded-xl bg-card border border-border/60 outline-none focus:ring-2 ring-primary/30 text-sm"
-            dir="ltr"
-          />
-          <p className="text-[10px] text-muted-foreground leading-tight">{ar ? "أدخل رابط نتيجة استعلام الترخيص من موقع الهيئة العامة للعقار ليتسنى للإدارة التحقق بنقرة واحدة" : "Paste the REGA inquiry result link so admin can verify in one click"}</p>
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs font-semibold">{ar ? "مستند الترخيص" : "License document"} <span className="text-rose-500">*</span></label>
-          {reLicenseDoc ? (
-            <div className="flex items-center gap-2 p-2 rounded-xl bg-card border border-border/60">
-              <a href={reLicenseDoc} target="_blank" rel="noreferrer" className="flex-1 text-sm text-primary font-semibold truncate">{ar ? "عرض الترخيص" : "View license"}</a>
-              <button type="button" onClick={() => setReLicenseDoc("")} className="p-1 rounded-full hover:bg-muted"><X size={14} /></button>
+      {saRealEstate && (
+        <div className={`p-3.5 rounded-2xl border-2 space-y-2 ${reApproved ? "border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/30" : "border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/30"}`}>
+          <div className="flex items-start gap-2">
+            <ShieldCheck size={18} className={`shrink-0 mt-0.5 ${reApproved ? "text-emerald-600" : "text-rose-600"}`} />
+            <div>
+              <p className="text-sm font-bold">{reApproved ? (ar ? "ترخيصك العقاري معتمد" : "Your real estate license is approved") : (ar ? "ترخيص عقاري مطلوب" : "Real estate license required")}</p>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                {reApproved
+                  ? (ar ? "سيتم إرفاق بيانات ترخيصك بهذا الإعلان تلقائياً." : "Your license details will be attached to this listing automatically.")
+                  : (ar ? "أضف ترخيص الوساطة العقارية من إعدادات ملفك الشخصي مرة واحدة لتتمكن من نشر إعلانات عقارية." : "Add your REGA broker license once in your profile settings to post real estate listings.")}
+              </p>
             </div>
-          ) : (
-            <label className="flex items-center justify-center gap-2 p-3 rounded-xl bg-card border-2 border-dashed border-border/60 cursor-pointer hover:bg-muted">
-              {reDocUploading ? <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" /> : <ImagePlus size={18} />}
-              <span className="text-xs font-semibold">{ar ? "ارفع صورة أو PDF للترخيص" : "Upload license image or PDF"}</span>
-              <input
-                type="file"
-                accept="image/*,application/pdf"
-                className="hidden"
-                onChange={async (e) => {
-                  const f = e.target.files?.[0];
-                  e.target.value = "";
-                  if (!f) return;
-                  setReDocUploading(true);
-                  try {
-                    const r = await base44.integrations.Core.UploadFile({ file: f });
-                    setReLicenseDoc(r.file_url);
-                  } catch {
-                    toast({ title: ar ? "تعذّر رفع الملف" : "Upload failed", variant: "destructive" });
-                  }
-                  setReDocUploading(false);
-                }}
-              />
-            </label>
+          </div>
+          {!reApproved && (
+            <button type="button" onClick={() => nav("/profile")} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm">
+              {ar ? "إضافة الترخيص من الملف الشخصي" : "Add license from profile"}
+            </button>
           )}
         </div>
-      </div>
       )}
 
       <div className="space-y-1">
@@ -857,7 +753,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
               <span className="text-lg font-extrabold text-amber-700 dark:text-amber-300">{fmt(boostDisplay)} {ar ? cur.currencyAr : cur.currency}</span>
             </div>
             <div className="p-3 rounded-2xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900/50">
-              <p className="text-xs text-muted-foreground">{ar ? "سيتم تفعيل التعزيز بعد مراجعة الإدارة والدفع عبر بوابة الدفع الإلكترونية (قريباً)." : "The boost is activated after admin review and payment via the online gateway (coming soon)."}</p>
+              <p className="text-xs text-muted-foreground">{ar ? "سيتم تفعيل التعزيز فور إتمام الدفع عبر بوابة الدفع الإلكترونية." : "The boost activates instantly once payment is completed."}</p>
             </div>
           </>
         }

@@ -27,12 +27,8 @@ export default function Sell() {
       featured: false,
       featured_until: null,
       featured_cross_country: false,
-      review_status: itemData.category === "realestate" && itemData.country === "SA" ? "pending" : "approved",
+      review_status: "approved",
     });
-    // Notify all admins when a Saudi real estate listing is submitted for review.
-    if (item.review_status === "pending") {
-      try { await base44.functions.invoke("notifyRealEstateReview", { item_id: item.id }); } catch {}
-    }
     if (data.claim_free_boost) {
       try {
         await base44.functions.invoke("claimFreeBoost", { item_id: item.id });
@@ -42,16 +38,19 @@ export default function Sell() {
       }
     } else if (boosted) {
       try {
-        await base44.functions.invoke("createBoostRequest", {
+        const res = await base44.functions.invoke("createBoostRequest", {
           item_id: item.id,
           hours: boost_hours,
-          cross_country: !!boost_cross_country,
+          origin: window.location.origin,
         });
+        if (res?.data?.url) {
+          toast({ title: ar ? "تم نشر إعلانك — أكمل الدفع للتعزيز" : "Listing posted — complete payment to boost" });
+          const win = window.open(res.data.url, "_blank");
+          if (!win) window.location.href = res.data.url;
+          return;
+        }
       } catch {}
-      toast({
-        title: ar ? "تم نشر إعلانك" : "Listing posted",
-        description: ar ? "التعزيز قيد المراجعة من الإدارة" : "Promotion is pending admin approval",
-      });
+      toast({ title: ar ? "تم نشر إعلانك" : "Listing posted", description: ar ? "تعذّر إنشاء رابط التعزيز" : "Couldn't create boost link", variant: "destructive" });
     }
     nav("/");
   };

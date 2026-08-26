@@ -1,80 +1,31 @@
 import React, { useEffect, useState } from "react";
-import { Building2, Check, X, ExternalLink, User as UserIcon, ShieldCheck } from "lucide-react";
+import { Building2, Check, X, ExternalLink, ShieldCheck, Clock, BadgeCheck } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
-import { Image } from "@/components/ui/image";
-import Price from "@/components/Price";
-import AdminUserPreview from "@/components/admin/AdminUserPreview";
-import AdminItemPreview from "@/components/admin/AdminItemPreview";
 
 export default function AdminRealEstate() {
   const { lang } = useStore();
   const ar = lang === "ar";
   const { toast } = useToast();
-  const [items, setItems] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [rejecting, setRejecting] = useState(null);
   const [reason, setReason] = useState("");
-  const [previewItem, setPreviewItem] = useState(null);
-  const [previewUser, setPreviewUser] = useState(null);
+  const [acting, setActing] = useState(null);
 
   const load = async () => {
     setLoading(true);
     try {
-      const list = await base44.entities.Item.filter(
-        { category: "realestate", review_status: "pending" },
-        "-created_date",
-        100
-      );
-      setItems(list || []);
+      const list = await base44.entities.User.filter({ re_license_status: "pending" }, "-created_date", 100);
+      setUsers(list || []);
     } catch {
-      setItems([]);
+      setUsers([]);
     }
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
-
-  const approve = async (item) => {
-    try {
-      await base44.entities.Item.update(item.id, { review_status: "approved", review_reason: "" });
-      await base44.entities.Notification.create({
-        user_id: item.seller_id,
-        type: "listing_approved",
-        text: ar ? `تم اعتماد إعلانك العقاري "${item.title}"` : `Your real estate listing "${item.title}" was approved`,
-        item_id: item.id,
-        item_title: item.title,
-      });
-      setItems((prev) => prev.filter((x) => x.id !== item.id));
-      toast({ title: ar ? "تم الاعتماد" : "Approved" });
-    } catch {
-      toast({ title: ar ? "تعذّر الاعتماد" : "Failed to approve", variant: "destructive" });
-    }
-  };
-
-  const reject = async (item) => {
-    if (!reason.trim()) return;
-    try {
-      // Notify the seller first (while the item still exists), then delete
-      // the listing entirely so it no longer appears in "My listings" — a
-      // rejected real estate ad has no valid license to keep on display.
-      await base44.entities.Notification.create({
-        user_id: item.seller_id,
-        type: "listing_rejected",
-        text: ar ? `تم رفض إعلانك العقاري "${item.title}": ${reason.trim()}` : `Your real estate listing "${item.title}" was rejected: ${reason.trim()}`,
-        item_id: item.id,
-        item_title: item.title,
-      });
-      await base44.entities.Item.delete(item.id);
-      setItems((prev) => prev.filter((x) => x.id !== item.id));
-      setRejecting(null);
-      setReason("");
-      toast({ title: ar ? "تم الرفض وحذف الإعلان" : "Rejected & removed" });
-    } catch {
-      toast({ title: ar ? "تعذّر الرفض" : "Failed to reject", variant: "destructive" });
-    }
-  };
 
   const licenseTypeLabel = (t) => {
     const map = {
@@ -85,107 +36,106 @@ export default function AdminRealEstate() {
     return map[t] || t || "-";
   };
 
-  const openItem = (item) => setPreviewItem(item);
-  const openUser = (item) => setPreviewUser(item.seller_id);
+  const approve = async (u) => {
+    setActing(u.id);
+    try {
+      await base44.entities.User.update(u.id, { re_license_status: "approved", re_license_review_reason: "" });
+      // Auto-approve all of this seller's pending real estate listings so the
+      // backlog from the old per-listing flow is cleared in one action.
+      try {
+        await base44.entities.Item.updateMany(
+          { seller_id: u.id, category: "realestate", review_status: "pending" },
+          { $set: { review_status: "approved", review_reason: "" } }
+        );
+      } catch {}
+      try {
+        await base44.entities.Notification.create({
+          user_id: u.id,
+          type: "listing_approved",
+          text: ar ? "تم اعتماد ترخيصك العقاري — يمكنك الآن نشر إعلانات عقارية" : "Your real estate license was approved — you can now post real estate listings",
+        });
+      } catch {}
+      setUsers((prev) => prev.filter((x) => x.id !== u.id));
+      toast({ title: ar ? "تم الاعتماد" : "Approved" });
+    } catch {
+      toast({ title: ar ? "تعذّر الاعتماد" : "Failed to approve", variant: "destructive" });
+    }
+    setActing(null);
+  };
+
+  const reject = async (u) => {
+    if (!reason.trim()) return;
+    setActing(u.id);
+    try {
+      await base44.entities.User.update(u.id, { re_license_status: "rejected", re_license_review_reason: reason.trim() });
+      try {
+        await base44.entities.Notification.create({
+          user_id: u.id,
+          type: "listing_rejected",
+          text: ar ? `تم رفض ترخيصك العقاري: ${reason.trim()}` : `Your real estate license was rejected: ${reason.trim()}`,
+        });
+      } catch {}
+      setUsers((prev) => prev.filter((x) => x.id !== u.id));
+      setRejecting(null);
+      setReason("");
+      toast({ title: ar ? "تم الرفض" : "Rejected" });
+    } catch {
+      toast({ title: ar ? "تعذّر الرفض" : "Failed to reject", variant: "destructive" });
+    }
+    setActing(null);
+  };
+
+  const userName = (u) => [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || u.full_name || u.email || "—";
 
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <Building2 size={18} className="text-indigo-500" />
-        <h2 className="font-bold">{ar ? "مراجعة الإعلانات العقارية" : "Real Estate Review"}</h2>
+        <h2 className="font-bold">{ar ? "مراجعة تراخيص الوساطة العقارية" : "Real Estate License Review"}</h2>
       </div>
-      <p className="text-xs text-muted-foreground">{ar ? "الإعلانات العقارية تتطلب ترخيصاً من الهيئة العامة للعقار (REGA) حسب نظام الوساطة العقارية" : "Real estate listings require a REGA license under the Real Estate Brokerage Law"}</p>
+      <p className="text-xs text-muted-foreground">{ar ? "اعتمد ترخيص البائع مرة واحدة ليتمكن من نشر إعلانات عقارية دون مراجعة لكل إعلان" : "Approve a seller's license once so they can post real estate listings with no per-listing review"}</p>
       {loading ? (
         <div className="text-center py-10"><div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin mx-auto" /></div>
-      ) : items.length === 0 ? (
-        <p className="text-center text-muted-foreground text-sm py-10">{ar ? "لا توجد إعلانات عقارية قيد المراجعة" : "No pending real estate listings"}</p>
+      ) : users.length === 0 ? (
+        <p className="text-center text-muted-foreground text-sm py-10">{ar ? "لا توجد تراخيص قيد المراجعة" : "No pending licenses"}</p>
       ) : (
         <div className="space-y-3">
-          {items.map((item) => (
-            <div key={item.id} className="rounded-2xl border border-border bg-card p-4 space-y-3">
-              <div className="flex items-start gap-3">
-                <button
-                  onClick={() => openItem(item)}
-                  title={ar ? "فتح الإعلان للمراجعة" : "Open listing to review"}
-                  className="w-16 h-16 rounded-xl overflow-hidden bg-muted shrink-0 relative group"
-                >
-                  {item.images?.[0] ? <Image src={item.images[0]} fittingType="fill" className="w-full h-full" /> : <Building2 size={24} className="m-auto text-muted-foreground" />}
-                  <span className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                    <ExternalLink size={16} className="text-white" />
-                  </span>
-                </button>
-                <div className="flex-1 min-w-0">
-                  <button onClick={() => openItem(item)} className="font-bold text-sm truncate hover:text-primary hover:underline text-start block w-full" title={ar ? "فتح الإعلان" : "Open listing"}>
-                    {item.title}
-                  </button>
-                  <p className="text-xs text-muted-foreground">{item.city} · <Price value={item.price} lang={lang} country={item.country || "SA"} /></p>
-                  <button
-                    onClick={() => openUser(item)}
-                    className="text-xs text-muted-foreground mt-0.5 inline-flex items-center gap-1 hover:text-primary hover:underline"
-                    title={ar ? "عرض تفاصيل البائع" : "View seller details"}
-                  >
-                    <UserIcon size={11} className="shrink-0" />
-                    {ar ? "البائع" : "Seller"}: {item.seller_name}
-                  </button>
-                </div>
+          {users.map((u) => (
+            <div key={u.id} className="rounded-2xl border border-border bg-card p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="font-bold text-sm">{userName(u)}</p>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 text-[11px] font-bold"><Clock size={12} /> {ar ? "قيد المراجعة" : "Pending"}</span>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <p className="text-muted-foreground">{ar ? "نوع الترخيص" : "License type"}</p>
-                  <p className="font-semibold">{licenseTypeLabel(item.re_license_type)}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">{ar ? "رقم الترخيص" : "License number"}</p>
-                  <p className="font-semibold font-mono">{item.re_license_number || "-"}</p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-muted-foreground">{ar ? "صاحب الترخيص" : "License holder"}</p>
-                  <p className="font-semibold">{item.re_license_holder || "-"}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">{ar ? "تاريخ انتهاء الرخصة" : "License expiry"}</p>
-                  <p className={`font-semibold ${item.re_license_expiry && new Date(item.re_license_expiry) < new Date() ? "text-rose-600 dark:text-rose-400" : ""}`}>
-                    {item.re_license_expiry ? new Date(item.re_license_expiry).toLocaleDateString(ar ? "ar-SA" : "en-US", { year: "numeric", month: "short", day: "numeric" }) : "-"}
-                    {item.re_license_expiry && new Date(item.re_license_expiry) < new Date() && (ar ? " · منتهية" : " · expired")}
-                  </p>
-                </div>
+                <div><p className="text-muted-foreground">{ar ? "نوع الترخيص" : "License type"}</p><p className="font-semibold">{licenseTypeLabel(u.re_license_type)}</p></div>
+                <div><p className="text-muted-foreground">{ar ? "رقم الترخيص" : "License number"}</p><p className="font-semibold font-mono">{u.re_license_number || "-"}</p></div>
+                <div className="col-span-2"><p className="text-muted-foreground">{ar ? "صاحب الترخيص" : "License holder"}</p><p className="font-semibold">{u.re_license_holder || "-"}</p></div>
+                <div><p className="text-muted-foreground">{ar ? "تاريخ الانتهاء" : "Expiry"}</p><p className={`font-semibold ${u.re_license_expiry && new Date(u.re_license_expiry) < new Date() ? "text-rose-600 dark:text-rose-400" : ""}`}>{u.re_license_expiry ? new Date(u.re_license_expiry).toLocaleDateString(ar ? "ar-SA" : "en-US", { year: "numeric", month: "short", day: "numeric" }) : "-"}{u.re_license_expiry && new Date(u.re_license_expiry) < new Date() && (ar ? " · منتهية" : " · expired")}</p></div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <a
-                  href={item.re_license_link || `https://eservicesredp.rega.gov.sa/auth/queries/Elanat`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition"
-                  title={item.re_license_link ? (ar ? "فتح رابط استعلام الترخيص الذي قدمه البائع" : "Open the REGA inquiry link provided by the seller") : (ar ? "التحقق من الترخيص عبر موقع الهيئة العامة للعقار" : "Verify license on REGA")}
-                >
+                <a href={u.re_license_link || "https://eservicesredp.rega.gov.sa/auth/queries/Elanat"} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition">
                   <ShieldCheck size={14} /> {ar ? "تحقق من REGA" : "Verify on REGA"}
                 </a>
-                {item.re_license_doc && (
-                  <a href={item.re_license_doc} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted text-xs font-semibold">
+                {u.re_license_doc && (
+                  <a href={u.re_license_doc} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted text-xs font-semibold">
                     <ExternalLink size={14} /> {ar ? "مستند الترخيص" : "License document"}
                   </a>
                 )}
               </div>
-              {rejecting === item.id ? (
+              {rejecting === u.id ? (
                 <div className="space-y-2">
-                  <textarea
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    placeholder={ar ? "سبب الرفض" : "Rejection reason"}
-                    rows={2}
-                    className="w-full px-3 py-2 rounded-xl bg-muted outline-none focus:ring-2 ring-rose-500/30 text-sm"
-                  />
+                  <textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder={ar ? "سبب الرفض" : "Rejection reason"} rows={2} className="w-full px-3 py-2 rounded-xl bg-muted outline-none focus:ring-2 ring-rose-500/30 text-sm" />
                   <div className="flex gap-2">
-                    <button onClick={() => reject(item)} disabled={!reason.trim()} className="flex-1 py-2 rounded-xl bg-rose-600 text-white text-sm font-bold disabled:opacity-50">{ar ? "تأكيد الرفض" : "Confirm reject"}</button>
+                    <button onClick={() => reject(u)} disabled={!reason.trim() || acting === u.id} className="flex-1 py-2 rounded-xl bg-rose-600 text-white text-sm font-bold disabled:opacity-50">{ar ? "تأكيد الرفض" : "Confirm reject"}</button>
                     <button onClick={() => { setRejecting(null); setReason(""); }} className="px-3 py-2 rounded-xl bg-muted text-sm font-semibold">{ar ? "إلغاء" : "Cancel"}</button>
                   </div>
                 </div>
               ) : (
                 <div className="flex gap-2">
-                  <button onClick={() => approve(item)} className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold flex items-center justify-center gap-1.5">
+                  <button onClick={() => approve(u)} disabled={acting === u.id} className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
                     <Check size={15} /> {ar ? "اعتماد" : "Approve"}
                   </button>
-                  <button onClick={() => setRejecting(item.id)} className="flex-1 py-2.5 rounded-xl bg-rose-600 text-white text-sm font-bold flex items-center justify-center gap-1.5">
+                  <button onClick={() => setRejecting(u.id)} disabled={acting === u.id} className="flex-1 py-2.5 rounded-xl bg-rose-600 text-white text-sm font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
                     <X size={15} /> {ar ? "رفض" : "Reject"}
                   </button>
                 </div>
@@ -194,9 +144,6 @@ export default function AdminRealEstate() {
           ))}
         </div>
       )}
-
-      {previewItem && <AdminItemPreview item={previewItem} onClose={() => setPreviewItem(null)} />}
-      {previewUser && <AdminUserPreview userId={previewUser} onClose={() => setPreviewUser(null)} />}
     </div>
   );
 }

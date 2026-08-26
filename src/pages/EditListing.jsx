@@ -59,18 +59,14 @@ export default function EditListing() {
       toast({ title: ar ? "لا يمكن رفع السعر أثناء الترويج" : "Can't raise the price while promoted", variant: "destructive" });
       throw new Error("price_increase_blocked");
     }
-    // Re-submit a rejected Saudi real estate listing for admin re-review.
-    let reResubmitted = false;
-    if (item?.review_status === "rejected" && itemData.category === "realestate" && itemData.country === "SA") {
-      itemData.review_status = "pending";
+    // Saudi real estate listings are auto-approved when the seller has an
+    // approved license (enforced by the listing form). Clear any legacy
+    // rejected/pending status on edit so the listing goes live immediately.
+    if (itemData.category === "realestate" && itemData.country === "SA" && item?.review_status !== "approved") {
+      itemData.review_status = "approved";
       itemData.review_reason = "";
-      reResubmitted = true;
     }
     await base44.entities.Item.update(id, itemData);
-    // Notify all admins that a rejected listing was re-submitted for review.
-    if (reResubmitted) {
-      try { await base44.functions.invoke("notifyRealEstateReview", { item_id: id }); } catch {}
-    }
     // Price-drop alert: notify users who saved this listing when the price drops.
     if (Number.isFinite(oldPrice) && Number(itemData.price) > 0 && Number(itemData.price) < oldPrice) {
       try { await base44.functions.invoke("notifyPriceDrop", { item_id: id, old_price: oldPrice, new_price: Number(itemData.price) }); } catch {}
@@ -86,16 +82,19 @@ export default function EditListing() {
       }
     } else if (boost_hours > 0) {
       try {
-        await base44.functions.invoke("createBoostRequest", {
+        const res = await base44.functions.invoke("createBoostRequest", {
           item_id: id,
           hours: boost_hours,
-          cross_country: !!boost_cross_country,
+          origin: window.location.origin,
         });
-        toast({
-          title: ar ? "تم حفظ التعديلات" : "Changes saved",
-          description: ar ? "التعزيز قيد المراجعة من الإدارة" : "Promotion is pending admin approval",
-        });
+        if (res?.data?.url) {
+          toast({ title: ar ? "تم حفظ التعديلات — أكمل الدفع للتعزيز" : "Changes saved — complete payment to boost" });
+          const win = window.open(res.data.url, "_blank");
+          if (!win) window.location.href = res.data.url;
+          return;
+        }
       } catch {}
+      toast({ title: ar ? "تم حفظ التعديلات" : "Changes saved", description: ar ? "تعذّر إنشاء رابط التعزيز" : "Couldn't create boost link", variant: "destructive" });
     }
     nav(`/item/${id}`);
   };

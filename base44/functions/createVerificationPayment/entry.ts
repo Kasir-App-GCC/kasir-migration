@@ -72,8 +72,12 @@ export default async function(req: Request): Promise<Response> {
         amount: amountHalalas,
         currency: 'SAR',
         description: 'رسوم توثيق الحساب - كاسر',
-        callback_url: `${origin}/profile?verify_payment=1`,
-        success_url: `${origin}/profile?verify_payment=1`,
+        // callback_url is a SERVER webhook: Moyasar POSTs the paid invoice here
+        // so the badge is granted even if the user closes the popup before the
+        // client confirm lands.
+        callback_url: `${origin}/functions/confirmVerificationPayment`,
+        // No success_url: the popup stays on Moyasar's "invoice paid" page and
+        // the app closes it via polling (same as donations) — no in-app redirect.
         back_url: `${origin}/profile`,
         metadata: {
           type: 'verification',

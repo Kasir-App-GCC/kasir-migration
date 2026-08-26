@@ -6,6 +6,8 @@ import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { useToast } from "@/components/ui/use-toast";
 import ListingForm from "@/components/ListingForm";
+import BoostCardForm from "@/components/BoostCardForm";
+import { getPaymentsMode } from "@/lib/appSettings";
 
 export default function EditListing() {
   const { id } = useParams();
@@ -16,6 +18,7 @@ export default function EditListing() {
   const ar = lang === "ar";
   const [item, setItem] = useState(undefined);
   const [error, setError] = useState(null);
+  const [card, setCard] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -82,6 +85,12 @@ export default function EditListing() {
         toast({ title: ar ? "تم حفظ التعديلات" : "Changes saved", description: ar ? "تعذّر تفعيل التعزيز المجاني" : "Couldn't activate the free boost", variant: "destructive" });
       }
     } else if (boost_hours > 0) {
+      const mode = await getPaymentsMode();
+      if (mode === "inapp") {
+        toast({ title: ar ? "تم حفظ التعديلات — أكمل الدفع للتعزيز" : "Changes saved — complete payment to boost" });
+        setCard({ itemId: id, hours: boost_hours, amount: boost_amount });
+        return;
+      }
       try {
         const res = await base44.functions.invoke("createBoostRequest", {
           item_id: id,
@@ -115,6 +124,16 @@ export default function EditListing() {
         onSubmit={submit}
         boostLocked={promoted}
       />
+      {card && (
+        <BoostCardForm
+          open
+          itemId={card.itemId}
+          hours={card.hours}
+          amount={card.amount}
+          onSuccess={() => { setCard(null); nav(`/item/${card.itemId}`); }}
+          onClose={() => { setCard(null); nav(`/item/${card.itemId}`); }}
+        />
+      )}
     </div>
   );
 }

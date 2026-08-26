@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Wallet, RefreshCw, TrendingUp, ShieldCheck, Heart, Link2, ExternalLink, Search, Trash2, Copy } from "lucide-react";
+import { Wallet, RefreshCw, TrendingUp, ShieldCheck, Heart, Link2, ExternalLink, Search, Trash2, Copy, CreditCard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
 import { timeAgo } from "@/lib/format";
 import { VERIFICATION_FEE } from "@/lib/verificationPayment";
+import { getPaymentsMode, setPaymentsMode } from "@/lib/appSettings";
 
 const TYPE_META = {
   boost: { ar: "تعزيز", en: "Boost", icon: TrendingUp, color: "text-amber-600 bg-amber-50 dark:bg-amber-950/30" },
@@ -29,6 +30,8 @@ export default function AdminPayments() {
   const [clearing, setClearing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [boostSyncing, setBoostSyncing] = useState(false);
+  const [mode, setMode] = useState("redirect");
+  const [modeLoading, setModeLoading] = useState(false);
 
   const copyId = (id) => {
     if (!id) return;
@@ -151,9 +154,24 @@ export default function AdminPayments() {
       setLoading(true);
       try { await sync(); } catch {}
       finally { setLoading(false); }
+      try { setMode(await getPaymentsMode()); } catch {}
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const toggleMode = async () => {
+    const next = mode === "inapp" ? "redirect" : "inapp";
+    setModeLoading(true);
+    try {
+      await setPaymentsMode(next);
+      setMode(next);
+      toast({ title: next === "inapp" ? (ar ? "الدفع داخل التطبيق مُفعّل" : "In-app payments enabled") : (ar ? "التحويل لـ Moyasar مُفعّل" : "Moyasar redirect enabled") });
+    } catch {
+      toast({ title: ar ? "تعذّر التحديث" : "Couldn't update", variant: "destructive" });
+    } finally {
+      setModeLoading(false);
+    }
+  };
 
   const totals = useMemo(() => {
     const byType = {};
@@ -222,6 +240,22 @@ export default function AdminPayments() {
             );
           })}
         </div>
+      </div>
+
+      {/* In-app payments toggle */}
+      <div className="rounded-2xl bg-card border border-border/60 p-3.5 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-950/40 flex items-center justify-center shrink-0">
+            <CreditCard size={17} className="text-amber-600" />
+          </div>
+          <div>
+            <p className="text-sm font-bold">{ar ? "الدفع داخل التطبيق" : "In-app payments"}</p>
+            <p className="text-[11px] text-muted-foreground">{ar ? "البطاقة داخل التطبيق بدل التحويل لصفحة Moyasar" : "Card form in-app instead of redirecting to Moyasar"}</p>
+          </div>
+        </div>
+        <button onClick={toggleMode} disabled={modeLoading} className={`w-11 h-6 rounded-full p-0.5 transition shrink-0 ${mode === "inapp" ? "bg-emerald-500" : "bg-muted-foreground/30"}`}>
+          <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${mode === "inapp" ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
+        </button>
       </div>
 
       {/* Filters + search */}

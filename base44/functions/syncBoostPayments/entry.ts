@@ -60,6 +60,39 @@ export default async function (req: Request): Promise<Response> {
       if (page >= totalPages) break;
     }
 
+    // Also scan direct-charge payments (in-app flow): those carry the boost
+    // metadata on the payment itself. Redirect-flow payments don't (the
+    // metadata is on their invoice), so there's no overlap/double-activation.
+    for (let page = 1; page <= MAX_PAGES; page++) {
+      const res = await fetch(`https://api.moyasar.com/v1/payments?status=paid&page=${page}`, {
+        headers: { Authorization: authHeader },
+      });
+      if (!res.ok) break;
+      const data: any = await res.json();
+      const list: any[] = Array.isArray(data) ? data : (data.payments || data.data || []);
+      if (!list.length) break;
+      scanned += list.length;
+      for (const p of list) {
+        const meta = p.metadata || {};
+        if (String(meta.type || "") !== "boost") continue;
+        boostFound++;
+        try {
+          const result = await activateBoost(base44, {
+            requestId: meta.boost_request_id ? String(meta.boost_request_id) : "",
+            itemId: meta.item_id ? String(meta.item_id) : "",
+            hours: Number(meta.hours) || 0,
+            userId: meta.user_id ? String(meta.user_id) : "",
+            paymentId: String(p.id || ""),
+            invoiceId: String(p.invoice_id || ""),
+          });
+          if (result.activated) activated++;
+          else if (result.already) already++;
+        } catch (e) {}
+      }
+      const totalPages = Number(data?.meta?.total_pages) || 1;
+      if (page >= totalPages) break;
+    }
+
     return Response.json({ ok: true, scanned, boostFound, activated, already });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

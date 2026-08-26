@@ -20,15 +20,20 @@ export default async function (req: Request): Promise<Response> {
     if (!secretKey) return Response.json({ error: "MOYASAR_SECRET_KEY not set" }, { status: 500 });
     const authHeader = "Basic " + btoa(secretKey + ":");
 
-    // Detect a Moyasar webhook: the body is the full invoice object with a
-    // status and a payments array.
-    const isWebhook = !!body && !!body.id && typeof body.status === "string" && Array.isArray(body.payments);
+    // Detect a Moyasar webhook. Two shapes:
+    //   - invoice webhook (redirect flow): body is the invoice object with a
+    //     `payments` array.
+    //   - payment webhook (in-app direct charge): body is the payment object
+    //     itself (has `source`, no `payments` array). The metadata lives
+    //     directly on it.
+    const isInvoiceWebhook = !!body && !!body.id && typeof body.status === "string" && Array.isArray(body.payments);
+    const isPaymentWebhook = !!body && !!body.id && typeof body.status === "string" && !!body.source && !Array.isArray(body.payments);
 
     let metadata: any = null;
     let resolvedPaymentId = "";
     let invoiceId = "";
 
-    if (isWebhook) {
+    if (isInvoiceWebhook) {
       invoiceId = String(body.id);
       const invRes = await fetch("https://api.moyasar.com/v1/invoices/" + invoiceId, {
         headers: { Authorization: authHeader },
@@ -39,6 +44,17 @@ export default async function (req: Request): Promise<Response> {
       if (!paidPayment) return Response.json({ ok: false, error: "Payment not completed" });
       metadata = invData.metadata || paidPayment.metadata || null;
       resolvedPaymentId = paidPayment.id;
+    } else if (isPaymentWebhook) {
+      // Re-fetch the payment with the secret key to verify (a forged body
+      // without a real paid payment activates nothing).
+      const payRes = await fetch("https://api.moyasar.com/v1/payments/" + String(body.id), {
+        headers: { Authorization: authHeader },
+      });
+      if (!payRes.ok) return Response.json({ error: "Payment lookup failed" }, { status: 400 });
+      const payData = await payRes.json();
+      if (payData.status !== "paid") return Response.json({ ok: false, error: "Payment not completed" });
+      metadata = payData.metadata || null;
+      resolvedPaymentId = String(payData.id);
     } else {
       const user = await base44.auth.me();
       if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });

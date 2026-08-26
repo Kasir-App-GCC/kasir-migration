@@ -8,6 +8,8 @@ import PhoneOtpVerifier from "@/components/PhoneOtpVerifier";
 import { userPhoneE164, digitsOnly } from "@/lib/phone";
 import { apiErrorMessage } from "@/lib/apiError";
 import { validateNationalId, nationalIdRule } from "@/lib/nationalId";
+import { usePopupPayment, extractInvoiceId } from "@/hooks/usePopupPayment";
+import PaymentWaitingModal from "@/components/PaymentWaitingModal";
 
 export default function VerificationDialog({ open, onClose }) {
   const { user, lang } = useStore();
@@ -23,6 +25,8 @@ export default function VerificationDialog({ open, onClose }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [pendingRequest, setPendingRequest] = useState(null);
+  const [payUrl, setPayUrl] = useState("");
+  const popup = usePopupPayment();
 
   const idRule = nationalIdRule(user?.country);
   const hasAvatar = !!user?.avatar;
@@ -87,17 +91,20 @@ export default function VerificationDialog({ open, onClose }) {
       ]);
       if (res?.data?.error) throw new Error(res.data.error);
       if (!res?.data?.url) throw new Error(ar ? "لم يتم إنشاء رابط الدفع" : "No payment URL returned");
-      // Reset the loading state BEFORE the redirect so the button doesn't
-      // stay stuck on "Preparing…" if the PWA webview stalls the navigation.
       setSubmitting(false);
-      // window.open with _blank is more reliable in PWA standalone mode on
-      // Android, where window.location.href to an external URL can silently
-      // fail. The callback URL returns to /profile which reopens the app.
-      const win = window.open(res.data.url, "_blank");
-      if (!win) {
-        // Pop-up blocked — fall back to same-window navigation.
-        window.location.href = res.data.url;
-      }
+      const invoiceId = extractInvoiceId(res.data.url);
+      setPayUrl(res.data.url);
+      popup.start({
+        url: res.data.url,
+        invoiceId,
+        onSuccess: async (r) => {
+          try {
+            await base44.functions.invoke("confirmVerificationPayment", { paymentId: r.payment_id || invoiceId });
+            toast({ title: ar ? "تم توثيق حسابك 🎉" : "Account verified 🎉" });
+            await refreshUser();
+          } catch {}
+        },
+      });
     } catch (err) {
       setError(apiErrorMessage(err, ar ? "فشل الإرسال" : "Failed to submit"));
     } finally {
@@ -195,6 +202,13 @@ export default function VerificationDialog({ open, onClose }) {
           </>
         }
       </div>
+      <PaymentWaitingModal
+        state={popup.state}
+        amount={12}
+        invoiceUrl={payUrl}
+        onCancel={popup.cancel}
+        onDone={() => { const paid = popup.state === "paid"; popup.reset(); if (paid) onClose?.(); }}
+      />
     </div>);
 
 }

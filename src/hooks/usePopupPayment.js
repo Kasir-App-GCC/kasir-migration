@@ -11,6 +11,18 @@ import { base44 } from "@/api/base44Client";
 // etc.). If the popup is blocked, we fall back to a full-page redirect.
 //
 // state: "idle" | "waiting" | "paid" | "failed" | "closed"
+
+// Pulls the Moyasar invoice id out of a hosted-checkout URL
+// (https://checkout.moyasar.com/invoices/<uuid>?lang=en).
+export function extractInvoiceId(url) {
+  try {
+    const path = new URL(url).pathname;
+    const m = path.match(/\/invoices\/([^/?]+)/);
+    if (m) return m[1];
+  } catch {}
+  return "";
+}
+
 export function usePopupPayment() {
   const [state, setState] = useState("idle");
   const popupRef = useRef(null);

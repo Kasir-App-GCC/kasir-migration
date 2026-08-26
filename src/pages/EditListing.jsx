@@ -7,6 +7,7 @@ import { useT } from "@/lib/i18n";
 import { useToast } from "@/components/ui/use-toast";
 import ListingForm from "@/components/ListingForm";
 import BoostCardForm from "@/components/BoostCardForm";
+import BoostPopupPayment from "@/components/BoostPopupPayment";
 import { getPaymentsMode } from "@/lib/appSettings";
 
 export default function EditListing() {
@@ -19,6 +20,7 @@ export default function EditListing() {
   const [item, setItem] = useState(undefined);
   const [error, setError] = useState(null);
   const [card, setCard] = useState(null);
+  const [popupPay, setPopupPay] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -99,8 +101,13 @@ export default function EditListing() {
         });
         if (res?.data?.url) {
           toast({ title: ar ? "تم حفظ التعديلات — أكمل الدفع للتعزيز" : "Changes saved — complete payment to boost" });
-          const win = window.open(res.data.url, "_blank");
-          if (!win) window.location.href = res.data.url;
+          setPopupPay({
+            url: res.data.url,
+            invoiceId: res.data.invoiceId,
+            boostRequestId: res.data.request?.id,
+            amount: boost_amount,
+            itemId: id,
+          });
           return;
         }
       } catch {}
@@ -132,6 +139,17 @@ export default function EditListing() {
           amount={card.amount}
           onSuccess={() => { setCard(null); nav(`/item/${card.itemId}`); }}
           onClose={() => { setCard(null); nav(`/item/${card.itemId}`); }}
+        />
+      )}
+      {popupPay && (
+        <BoostPopupPayment
+          open
+          url={popupPay.url}
+          invoiceId={popupPay.invoiceId}
+          boostRequestId={popupPay.boostRequestId}
+          amount={popupPay.amount}
+          onDone={(paid) => { setPopupPay(null); nav(`/item/${popupPay.itemId}`); }}
+          onClose={() => { setPopupPay(null); nav(`/item/${popupPay.itemId}`); }}
         />
       )}
     </div>

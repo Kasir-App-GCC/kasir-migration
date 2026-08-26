@@ -38,6 +38,11 @@ export default function MoyasarPaymentDialog({
       try {
         await loadMoyasar();
         if (cancelled || !containerRef.current) return;
+        if (!publishableKey) {
+          setErrorMsg(ar ? "تعذّر تحميل بيانات الدفع" : "Payment configuration missing");
+          setStatus("error");
+          return;
+        }
         containerRef.current.innerHTML = "";
         window.Moyasar.init({
           element: containerRef.current,
@@ -97,7 +102,7 @@ export default function MoyasarPaymentDialog({
       if (containerRef.current) containerRef.current.innerHTML = "";
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, retryKey]);
+  }, [open, retryKey, publishableKey]);
 
   if (!open) return null;
 

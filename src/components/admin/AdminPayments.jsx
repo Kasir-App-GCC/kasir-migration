@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { Wallet, TrendingUp, ShieldCheck, Heart, Link2, ExternalLink, Search, Copy, Loader2 } from "lucide-react";
+import { Wallet, TrendingUp, ShieldCheck, Heart, Link2, ExternalLink, Search, Copy, Loader2, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -37,6 +37,13 @@ export default function AdminPayments() {
   const copyId = (id) => {
     if (!id) return;
     try { navigator.clipboard?.writeText(id); toast({ title: ar ? "تم نسخ المعرّف" : "ID copied" }); } catch {}
+  };
+
+  const zeroCounter = () => {
+    setTotals(EMPTY_TOTALS);
+    setCounts(EMPTY_COUNTS);
+    setCountsTruncated(false);
+    toast({ title: ar ? "تم تصفير العدّاد" : "Counter reset to zero" });
   };
 
   const fetchPage = useCallback(async (p, reset) => {
@@ -83,10 +90,17 @@ export default function AdminPayments() {
       <div className="rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white p-5 shadow-lg">
         <div className="flex items-center gap-2.5">
           <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center"><Wallet size={20} /></div>
-          <div>
+          <div className="flex-1">
             <p className="text-xs opacity-90 font-semibold">{ar ? "إجمالي المدفوعات (أحدث السجلات)" : "Total Payments (recent records)"}</p>
             <p className="text-2xl font-extrabold">{fmt(totals.total, ar)} {ar ? "ر.س" : "SAR"}</p>
           </div>
+          <button
+            onClick={zeroCounter}
+            title={ar ? "تصفير العدّاد" : "Reset counter to zero"}
+            className="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-xs font-bold flex items-center gap-1.5 transition"
+          >
+            <RotateCcw size={14} /> {ar ? "تصفير" : "Reset"}
+          </button>
         </div>
         <div className="grid grid-cols-4 gap-2 mt-4">
           {["boost", "verification", "donation", "payment_link"].map((t) => {

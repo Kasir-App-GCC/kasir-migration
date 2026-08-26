@@ -20,11 +20,10 @@ export default function useAdminPending() {
       if (timer) clearTimeout(timer);
       timer = setTimeout(async () => {
         try {
-          const [tickets, reports, verifications, boosts, disputes] = await Promise.allSettled([
+          const [tickets, reports, verifications, disputes] = await Promise.allSettled([
             base44.entities.SupportTicket.filter({ status: "open" }, "-created_date", 50),
             base44.entities.Report.list("-created_date", 50),
             base44.entities.VerificationRequest.filter({ status: "pending" }, "-created_date", 50),
-            base44.entities.BoostRequest.filter({ status: "pending" }, "-created_date", 50),
             base44.entities.Dispute.filter({ status: "open" }, "-created_date", 50),
           ]);
           if (cancelled) return;
@@ -45,11 +44,6 @@ export default function useAdminPending() {
               name: x.full_name || x.user_name || (ar ? "طلب توثيق" : "Verification request"),
               text: ar ? "طلب توثيق بانتظار المراجعة" : "Verification pending review", date: x.created_date,
             }));
-          const bItems = (boosts.value || []).map((x) => ({
-            id: `boost-${x.id}`, type: "admin_boost", adminTab: "boosts", unread: true,
-            name: x.item_title || (ar ? "طلب تعزيز" : "Boost request"),
-            text: ar ? `تعزيز ${x.hours} ساعة` : `Boost ${x.hours}h`, date: x.created_date,
-          }));
           const dItems = (disputes.value || []).map((x) => ({
             id: `dispute-${x.id}`, type: "admin_dispute", adminTab: "disputes", unread: true,
             name: x.item_title || (ar ? "نزاع جديد" : "New dispute"),
@@ -57,7 +51,7 @@ export default function useAdminPending() {
             date: x.created_date,
           }));
           setItems(
-            [...tItems, ...rItems, ...vItems, ...bItems, ...dItems].sort(
+            [...tItems, ...rItems, ...vItems, ...dItems].sort(
               (a, b) => new Date(b.date) - new Date(a.date)
             )
           );
@@ -70,7 +64,6 @@ export default function useAdminPending() {
       base44.entities.SupportTicket.subscribe(load),
       base44.entities.Report.subscribe(load),
       base44.entities.VerificationRequest.subscribe(load),
-      base44.entities.BoostRequest.subscribe(load),
       base44.entities.Dispute.subscribe(load),
     ];
     return () => {

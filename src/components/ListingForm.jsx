@@ -285,7 +285,6 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         re_license_number: saRealEstate && reApproved ? user.re_license_number : undefined,
         re_license_holder: saRealEstate && reApproved ? user.re_license_holder : undefined,
         re_license_expiry: saRealEstate && reApproved ? user.re_license_expiry : undefined,
-        re_license_link: saRealEstate && reApproved ? user.re_license_link : undefined,
         re_license_doc: saRealEstate && reApproved ? user.re_license_doc : undefined,
         re_establishment_number: saRealEstate && reApproved ? user.re_establishment_number : undefined,
         re_ad_license_number: saRealEstate && reApproved ? reAdLicense.re_ad_license_number?.trim() || undefined : undefined,

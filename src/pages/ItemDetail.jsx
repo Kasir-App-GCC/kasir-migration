@@ -567,13 +567,6 @@ export default function ItemDetail() {
               <p className="text-[11px] text-muted-foreground">{lang === "ar" ? "انتهاء رخصة فال" : "FAL expiry"}</p>
               <p className="text-sm font-semibold">{item.re_license_expiry ? new Date(item.re_license_expiry).toLocaleDateString(lang === "ar" ? "ar-SA" : "en-US", { year: "numeric", month: "short", day: "numeric" }) : "-"}</p>
             </div>
-            {item.re_license_link && (
-              <div className="flex items-end">
-                <a href={item.re_license_link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-semibold text-xs hover:underline">
-                  <ExternalLink size={12} /> {lang === "ar" ? "استعلام REGA" : "REGA inquiry"}
-                </a>
-              </div>
-            )}
           </div>
         </div>
       )}

@@ -33,6 +33,14 @@ export default async function (req) {
       { $set: { archived: true } }
     );
 
+    // Auto-expire approved Fal broker licenses whose expiry date has passed.
+    // The broker must resubmit their license to regain real estate posting
+    // privileges (REGA requires an active Fal license to advertise).
+    await base44.asServiceRole.entities.User.updateMany(
+      { re_license_status: "approved", re_license_expiry: { $lt: today } },
+      { $set: { re_license_status: "expired", re_license_review_reason: "" } }
+    );
+
     return Response.json({ ok: true, cutoff });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

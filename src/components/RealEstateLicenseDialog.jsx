@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Building2, ShieldCheck, BadgeCheck, Clock, X, Loader2, ImagePlus, Check, ExternalLink } from "lucide-react";
+import { Building2, ShieldCheck, BadgeCheck, Clock, X, Loader2, ImagePlus, Check } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/AuthContext";
@@ -21,7 +21,6 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
   const [licenseNumber, setLicenseNumber] = useState(user?.re_license_number || "");
   const [licenseHolder, setLicenseHolder] = useState(user?.re_license_holder || "");
   const [licenseExpiry, setLicenseExpiry] = useState(user?.re_license_expiry ? String(user.re_license_expiry).slice(0, 10) : "");
-  const [licenseLink, setLicenseLink] = useState(user?.re_license_link || "");
   const [licenseDoc, setLicenseDoc] = useState(user?.re_license_doc || "");
   const [establishmentNumber, setEstablishmentNumber] = useState(user?.re_establishment_number || "");
   const [docUploading, setDocUploading] = useState(false);
@@ -35,8 +34,8 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
   if (!open) return null;
 
   const trusted = !!user?.is_trusted;
-  const editing = trusted && (status === "" || status === "rejected" || editMode);
-  const valid = licenseType && licenseNumber.trim() && licenseHolder.trim() && licenseExpiry && licenseLink.trim() && licenseDoc && (licenseType !== "establishment_fal" || establishmentNumber.trim());
+  const editing = trusted && (status === "" || status === "rejected" || status === "expired" || editMode);
+  const valid = licenseType && licenseNumber.trim() && licenseHolder.trim() && licenseExpiry && licenseDoc && (licenseType !== "establishment_fal" || establishmentNumber.trim());
 
   const uploadDoc = async (file) => {
     setDocUploading(true);
@@ -58,7 +57,6 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
         license_number: licenseNumber.trim(),
         license_holder: licenseHolder.trim(),
         license_expiry: licenseExpiry,
-        license_link: licenseLink.trim(),
         license_doc: licenseDoc,
         establishment_number: establishmentNumber.trim(),
       });
@@ -92,6 +90,7 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
           {status === "approved" && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 text-[11px] font-bold"><BadgeCheck size={12} /> {ar ? "معتمد" : "Approved"}</span>}
           {status === "pending" && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 text-[11px] font-bold"><Clock size={12} /> {ar ? "قيد المراجعة" : "Pending"}</span>}
           {status === "rejected" && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 text-[11px] font-bold"><X size={12} /> {ar ? "مرفوض" : "Rejected"}</span>}
+          {status === "expired" && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 text-[11px] font-bold"><Clock size={12} /> {ar ? "منتهية" : "Expired"}</span>}
           {status === "" && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[11px] font-bold">{ar ? "غير مُدخل" : "Not added"}</span>}
         </div>
 
@@ -107,6 +106,11 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
             {ar ? "سبب الرفض: " : "Rejection reason: "}{user.re_license_review_reason}
           </div>
         )}
+        {status === "expired" && (
+          <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 text-xs text-amber-700 dark:text-amber-300 mb-3">
+            {ar ? "انتهت صلاحية ترخيصك. يرجى تحديث بيانات الترخيص وإعادة إرسالها للمراجعة." : "Your license has expired. Please update your license details and resubmit for review."}
+          </div>
+        )}
 
         {status === "approved" && !editing && (
           <>
@@ -116,9 +120,6 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
               <div className="col-span-2"><p className="text-muted-foreground">{ar ? "صاحب الترخيص" : "License holder"}</p><p className="font-semibold">{user.re_license_holder}</p></div>
               {user.re_establishment_number && <div className="col-span-2"><p className="text-muted-foreground">{ar ? "الرقم الموحد للمنشأة" : "Establishment number"}</p><p className="font-semibold font-mono">{user.re_establishment_number}</p></div>}
               <div><p className="text-muted-foreground">{ar ? "تاريخ الانتهاء" : "Expiry"}</p><p className="font-semibold">{user.re_license_expiry ? new Date(user.re_license_expiry).toLocaleDateString(ar ? "ar-SA" : "en-US", { year: "numeric", month: "short", day: "numeric" }) : "-"}</p></div>
-              <div className="flex items-end">
-                <a href={user.re_license_link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"><ExternalLink size={12} /> {ar ? "استعلام REGA" : "REGA inquiry"}</a>
-              </div>
             </div>
             <button
               type="button"
@@ -166,10 +167,6 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
               <input type="date" value={licenseExpiry} onChange={(e) => setLicenseExpiry(e.target.value)} min={new Date().toISOString().slice(0, 10)} className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm" />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-semibold">{ar ? "رابط استعلام الترخيص من REGA" : "REGA license inquiry link"} *</label>
-              <input type="url" value={licenseLink} onChange={(e) => setLicenseLink(e.target.value.slice(0, 500))} placeholder="https://eservicesredp.rega.gov.sa/..." dir="ltr" className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm" />
-            </div>
-            <div className="space-y-1">
               <label className="text-xs font-semibold">{ar ? "مستند الترخيص" : "License document"} *</label>
               {licenseDoc ? (
                 <div className="flex items-center gap-2 p-2 rounded-xl bg-muted">
@@ -186,7 +183,7 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
             </div>
             <button onClick={submit} disabled={!valid || submitting} className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center gap-1.5 disabled:opacity-50">
               {submitting && <Loader2 size={15} className="animate-spin" />}
-              {status === "rejected" || (status === "approved" && editMode) ? (ar ? "إعادة الإرسال للمراجعة" : "Re-submit for review") : (ar ? "إرسال للمراجعة" : "Submit for review")}
+              {status === "rejected" || status === "expired" || (status === "approved" && editMode) ? (ar ? "إعادة الإرسال للمراجعة" : "Re-submit for review") : (ar ? "إرسال للمراجعة" : "Submit for review")}
             </button>
           </div>
         )}

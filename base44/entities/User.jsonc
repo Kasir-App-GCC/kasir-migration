@@ -126,11 +126,7 @@
     "re_license_expiry": {
       "type": "string",
       "format": "date",
-      "description": "Expiry date of the REGA Fal license"
-    },
-    "re_license_link": {
-      "type": "string",
-      "description": "Direct link to the REGA Fal license inquiry result so admins can verify in one click"
+      "description": "Expiry date of the REGA Fal license. The daily archive workflow auto-moves approved brokers to 'expired' status once this date passes."
     },
     "re_license_doc": {
       "type": "string",
@@ -145,13 +141,14 @@
       "enum": [
         "pending",
         "approved",
-        "rejected"
+        "rejected",
+        "expired"
       ],
-      "description": "Admin review status of the user's real estate Fal license. Only users with 'approved' can post Saudi real estate listings. Replaces the old per-listing review with a single per-user review."
+      "description": "Admin review status of the user's real estate Fal license. Only 'approved' users can post Saudi real estate listings. 'expired' is set automatically by the daily workflow when the Fal license expiry date passes; the broker must resubmit to regain posting privileges."
     },
     "re_license_review_reason": {
       "type": "string",
-      "description": "Admin's rejection reason when re_license_status is 'rejected'"
+      "description": "Admin's rejection or revocation reason when re_license_status is 'rejected'"
     }
   },
   "required": [

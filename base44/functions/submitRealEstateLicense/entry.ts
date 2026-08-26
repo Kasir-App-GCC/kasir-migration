@@ -20,7 +20,6 @@ export default async function (req: Request): Promise<Response> {
     const licenseNumber = (body.license_number || "").toString().trim();
     const licenseHolder = (body.license_holder || "").toString().trim();
     const licenseExpiry = (body.license_expiry || "").toString();
-    const licenseLink = (body.license_link || "").toString().trim();
     const licenseDoc = (body.license_doc || "").toString().trim();
     const establishmentNumber = (body.establishment_number || "").toString().trim();
 
@@ -33,7 +32,7 @@ export default async function (req: Request): Promise<Response> {
     if (licenseType === "establishment_fal" && !establishmentNumber) {
       return Response.json({ error: "Establishment number is required for establishment brokers" }, { status: 400 });
     }
-    if (!licenseNumber || !licenseHolder || !licenseExpiry || !licenseLink || !licenseDoc) {
+    if (!licenseNumber || !licenseHolder || !licenseExpiry || !licenseDoc) {
       return Response.json({ error: "All license fields are required" }, { status: 400 });
     }
     // Basic expiry sanity: must be a valid date and not in the past.
@@ -50,7 +49,6 @@ export default async function (req: Request): Promise<Response> {
       re_license_number: licenseNumber,
       re_license_holder: licenseHolder,
       re_license_expiry: licenseExpiry,
-      re_license_link: licenseLink,
       re_license_doc: licenseDoc,
       re_establishment_number: licenseType === "establishment_fal" ? establishmentNumber : "",
       re_license_status: "pending",

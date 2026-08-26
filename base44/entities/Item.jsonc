@@ -173,10 +173,6 @@
       "format": "date",
       "description": "Copied from the seller's profile \u2014 the Fal license expiry date."
     },
-    "re_license_link": {
-      "type": "string",
-      "description": "Copied from the seller's profile \u2014 REGA inquiry link for the Fal license."
-    },
     "re_license_doc": {
       "type": "string",
       "description": "Copied from the seller's profile \u2014 uploaded Fal license document."

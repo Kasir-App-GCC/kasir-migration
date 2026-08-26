@@ -20,6 +20,7 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
       return;
     }
     if (n.type === "listing_pending_review") { onMarkRead?.(n); nav(`/admin?tab=realestate`); onClick?.(); return; }
+    if (n.type === "re_license_approved_pending_payment" || n.type === "re_license_activated") { onMarkRead?.(n); nav(`/profile?open_license=1`); onClick?.(); return; }
     if (n.type === "new_follower") { onMarkRead?.(n); if (n.actorId) nav(`/user/${n.actorId}`); onClick?.(); return; }
     if (n.type === "price_drop") { onMarkRead?.(n); if (n.itemId) nav(`/item/${n.itemId}`); onClick?.(); return; }
     if (n.type === "dispute_resolved" || n.type === "dispute_opened") { onMarkRead?.(n); setShowDispute(true); return; }
@@ -129,6 +130,10 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
       ) : n.type === "admin_message" ? (
         <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-primary text-primary-foreground">
           <Megaphone size={18} />
+        </div>
+      ) : n.type === "re_license_approved_pending_payment" || n.type === "re_license_activated" ? (
+        <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-300">
+          <Building2 size={18} />
         </div>
       ) : n.type === "listing_pending_review" ? (
         n.image ? (

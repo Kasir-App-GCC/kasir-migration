@@ -30,7 +30,9 @@
         "admin_message",
         "listing_approved",
         "listing_rejected",
-        "listing_pending_review"
+        "listing_pending_review",
+        "re_license_approved_pending_payment",
+        "re_license_activated"
       ],
       "default": "sold"
     },

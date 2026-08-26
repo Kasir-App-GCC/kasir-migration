@@ -114,6 +114,17 @@ export default function Profile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Open the Real Estate License dialog when navigated here with ?open_license=1
+  // (e.g. from the "approved — pay 49 SAR" notification).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("open_license") === "1") {
+      setReLicenseOpen(true);
+      params.delete("open_license");
+      window.history.replaceState({}, "", window.location.pathname + (params.toString() ? "?" + params.toString() : ""));
+    }
+  }, []);
+
   useEffect(() => {
     loadAll();
   }, [loadAll]);

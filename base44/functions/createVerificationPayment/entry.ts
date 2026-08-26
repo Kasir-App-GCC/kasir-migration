@@ -1,14 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { secrets } from 'base44:runtime';
 import { parseVerificationInput, validateVerificationInput } from '../../shared/verificationValidation.ts';
-import { createMoyasarInvoice } from '../../shared/moyasarInvoice.ts';
 
 const VERIFICATION_FEE = 12; // SAR
 
-// Creates a pending VerificationRequest (holding the sensitive national_id
-// server-side), marks the phone verified, then creates a Moyasar invoice and
-// returns the hosted checkout URL. The client redirects there; after payment,
-// Moyasar redirects back to /profile?verify_payment=1&id=<payment_id>, where
-// confirmVerificationPayment verifies the payment and grants the trusted badge.
 export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
@@ -27,8 +22,8 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ error: 'Your account is already verified' }, { status: 409 });
     }
 
-    // Clean up any old pending requests from previous attempts so the user
-    // can retry freely.
+    // Clean up any old pending requests from previous attempts so the user can
+    // retry freely (these no longer block the dialog or appear in admin review).
     try {
       await base44.asServiceRole.entities.VerificationRequest.updateMany(
         { user_id: user.id, status: 'pending' },
@@ -36,9 +31,12 @@ export default async function(req: Request): Promise<Response> {
       );
     } catch (e) {}
 
+    const secretKey = secrets.get('MOYASAR_SECRET_KEY');
+    if (!secretKey) return Response.json({ error: 'MOYASAR_SECRET_KEY not set' }, { status: 500 });
+
     // Persist the verification details (incl. national_id) in a pending
-    // VerificationRequest BEFORE the payment. The national_id never leaves our
-    // system to Moyasar — only the request id is passed as invoice metadata.
+    // VerificationRequest BEFORE creating the invoice, so the national ID never
+    // leaves our system to Moyasar — only the request id is passed as metadata.
     let pending;
     try {
       pending = await base44.asServiceRole.entities.VerificationRequest.create({
@@ -55,29 +53,60 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ error: 'Could not start verification' }, { status: 500 });
     }
 
+    const amountHalalas = VERIFICATION_FEE * 100;
+    const authHeader = 'Basic ' + btoa(secretKey + ':');
+
+    // Use the origin the request came from so Moyasar redirects back to the
+    // domain the user is actually browsing (custom domain or base44 fallback).
+    const origin = (body?.origin || 'https://kasir-ksa.base44.app').replace(/\/$/, '');
+
+    // Create the Moyasar hosted invoice. national_id is intentionally OMITTED
+    // from the metadata — it's sensitive PII and stays only in our DB.
+    const moyasarRes = await fetch('https://api.moyasar.com/v1/invoices', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authHeader,
+      },
+      body: JSON.stringify({
+        amount: amountHalalas,
+        currency: 'SAR',
+        description: 'رسوم توثيق الحساب - كاسر',
+        callback_url: `${origin}/profile?verify_payment=1`,
+        success_url: `${origin}/profile?verify_payment=1`,
+        back_url: `${origin}/profile`,
+        metadata: {
+          type: 'verification',
+          user_id: user.id,
+          verification_request_id: pending.id,
+          full_name: input.fullName,
+          phone: input.phone,
+        },
+      }),
+    });
+
+    const data = await moyasarRes.json();
+    if (!moyasarRes.ok) {
+      // Roll back the pending request so a failed invoice doesn't linger.
+      try { await base44.asServiceRole.entities.VerificationRequest.update(pending.id, { status: 'rejected', reviewed_by: 'system_invoice_failed' }); } catch (e) {}
+      return Response.json({
+        error: data?.message || data?.errors || `Moyasar error (${moyasarRes.status})`,
+      });
+    }
+
+    // Stamp the invoice id on the pending request for traceability.
+    try { await base44.asServiceRole.entities.VerificationRequest.update(pending.id, { payment_receipt_url: 'moyasar:' + data.id }); } catch (e) {}
+
     // Mark the phone as verified on the user profile so it persists across
     // payment retries (the user won't need to re-verify if the payment fails).
     try {
       await base44.asServiceRole.entities.User.update(user.id, { phone_verified: true });
     } catch (e) {}
 
-    const origin = (body?.origin || 'https://kasir-ksa.base44.app').replace(/\/$/, '');
-    const { url } = await createMoyasarInvoice({
-      amountSar: VERIFICATION_FEE,
-      description: 'رسوم توثيق الحساب - كاسر',
-      callbackUrl: `${origin}/profile?verify_payment=1`,
-      metadata: {
-        type: 'verification',
-        user_id: String(user.id),
-        verification_request_id: String(pending.id),
-      },
-    });
-
     return Response.json({
       ok: true,
-      requestId: pending.id,
-      amount: VERIFICATION_FEE,
-      url,
+      invoiceId: data.id,
+      url: data.url,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

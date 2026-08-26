@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -12,6 +12,7 @@ export default function Sell() {
   const nav = useNavigate();
   const { toast } = useToast();
   const ar = lang === "ar";
+
   const submit = async (data) => {
     const { boost_hours, boost_cross_country, boost_amount, ...itemData } = data;
     const boosted = boost_hours > 0;
@@ -42,13 +43,14 @@ export default function Sell() {
           hours: boost_hours,
           origin: window.location.origin,
         });
-        if (res?.data?.ok) {
+        if (res?.data?.url) {
           toast({ title: ar ? "تم نشر إعلانك — أكمل الدفع للتعزيز" : "Listing posted — complete payment to boost" });
-          window.location.href = res.data.url;
+          const win = window.open(res.data.url, "_blank");
+          if (!win) window.location.href = res.data.url;
           return;
         }
       } catch {}
-      toast({ title: ar ? "تم نشر إعلانك" : "Listing posted", description: ar ? "تعذّر بدء الدفع" : "Couldn't start payment", variant: "destructive" });
+      toast({ title: ar ? "تم نشر إعلانك" : "Listing posted", description: ar ? "تعذّر إنشاء رابط التعزيز" : "Couldn't create boost link", variant: "destructive" });
     }
     nav("/");
   };

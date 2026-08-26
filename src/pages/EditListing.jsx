@@ -16,6 +16,7 @@ export default function EditListing() {
   const ar = lang === "ar";
   const [item, setItem] = useState(undefined);
   const [error, setError] = useState(null);
+
   useEffect(() => {
     (async () => {
       try {
@@ -86,13 +87,14 @@ export default function EditListing() {
           hours: boost_hours,
           origin: window.location.origin,
         });
-        if (res?.data?.ok) {
+        if (res?.data?.url) {
           toast({ title: ar ? "تم حفظ التعديلات — أكمل الدفع للتعزيز" : "Changes saved — complete payment to boost" });
-          window.location.href = res.data.url;
+          const win = window.open(res.data.url, "_blank");
+          if (!win) window.location.href = res.data.url;
           return;
         }
       } catch {}
-      toast({ title: ar ? "تم حفظ التعديلات" : "Changes saved", description: ar ? "تعذّر بدء الدفع" : "Couldn't start payment", variant: "destructive" });
+      toast({ title: ar ? "تم حفظ التعديلات" : "Changes saved", description: ar ? "تعذّر إنشاء رابط التعزيز" : "Couldn't create boost link", variant: "destructive" });
     }
     nav(`/item/${id}`);
   };

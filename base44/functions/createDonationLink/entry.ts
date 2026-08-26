@@ -1,10 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { createMoyasarInvoice } from '../../shared/moyasarInvoice.ts';
+import { secrets } from 'base44:runtime';
 
-// Creates a Moyasar invoice for an in-app donation and returns the hosted
-// checkout URL. The client redirects the user there; after payment, Moyasar
-// redirects back to /about. The donation is recorded as a Payment entity by
-// the syncMoyasarPayments workflow from the Moyasar dashboard.
 export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
@@ -17,15 +13,46 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ error: 'Amount must be at least 1 SAR' }, { status: 400 });
     }
 
+    const secretKey = secrets.get('MOYASAR_SECRET_KEY');
+    if (!secretKey) return Response.json({ error: 'MOYASAR_SECRET_KEY not set' }, { status: 500 });
+
+    // Use the origin the request came from so Moyasar redirects back to the
+    // domain the user is actually browsing (custom domain or base44 fallback).
     const origin = (body?.origin || 'https://kasir-ksa.base44.app').replace(/\/$/, '');
-    const { url } = await createMoyasarInvoice({
-      amountSar,
-      description: 'دعم لكاسر - Kasir Donation',
-      callbackUrl: `${origin}/about`,
-      metadata: { type: 'donation', user_id: String(user.id) },
+
+    const amountHalalas = Math.round(amountSar * 100);
+    const authHeader = 'Basic ' + btoa(secretKey + ':');
+
+    const moyasarRes = await fetch('https://api.moyasar.com/v1/invoices', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authHeader,
+      },
+      body: JSON.stringify({
+        amount: amountHalalas,
+        currency: 'SAR',
+        description: 'دعم لكاسر',
+        callback_url: `${origin}/about`,
+        metadata: { type: 'donation', user_id: user.id },
+      }),
     });
 
-    return Response.json({ ok: true, amount: amountSar, url });
+    const data = await moyasarRes.json();
+    if (!moyasarRes.ok) {
+      return Response.json({
+        error: data?.message || data?.errors || `Moyasar error (${moyasarRes.status})`,
+        raw: data,
+      });
+    }
+
+    return Response.json({
+      ok: true,
+      invoiceId: data.id,
+      url: data.url,
+      status: data.status,
+      amount: amountSar,
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

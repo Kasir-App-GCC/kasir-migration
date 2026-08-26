@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { LayoutDashboard, Users, Tag, Flag, LifeBuoy, ArrowLeft, MessageSquare, ShieldX, BadgeCheck, ShieldCheck, Megaphone, ShieldAlert, Bell, CreditCard, Link2, Building2, Wallet } from "lucide-react";
+import { LayoutDashboard, Users, Tag, Flag, LifeBuoy, ArrowLeft, MessageSquare, ShieldX, BadgeCheck, TrendingUp, ShieldCheck, Megaphone, ShieldAlert, Bell, CreditCard, Link2, Building2, Wallet } from "lucide-react";
 import { useStore } from "@/lib/store";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminUsers from "@/components/admin/AdminUsers";
@@ -10,6 +10,7 @@ import AdminTickets from "@/components/admin/AdminTickets";
 import AdminMessages from "@/components/admin/AdminMessages";
 import AdminBlacklist from "@/components/admin/AdminBlacklist";
 import AdminVerifications from "@/components/admin/AdminVerifications";
+import AdminBoosts from "@/components/admin/AdminBoosts";
 import AdminBuyRequests from "@/components/admin/AdminBuyRequests";
 import AdminOtpTest from "@/components/admin/AdminOtpTest";
 import AdminPaymentTest from "@/components/admin/AdminPaymentTest";
@@ -26,7 +27,7 @@ export default function Admin() {
   const nav = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [tab, setTab] = useState(searchParams.get("tab") || "dashboard");
-  const [counts, setCounts] = useState({ tickets: 0, reports: 0, verifications: 0, disputes: 0, realestate: 0 });
+  const [counts, setCounts] = useState({ tickets: 0, reports: 0, verifications: 0, boosts: 0, disputes: 0, realestate: 0 });
 
   // Keep the active tab in sync with the URL so notification deep-links open
   // the right board section.
@@ -38,10 +39,11 @@ export default function Admin() {
   useEffect(() => {
     (async () => {
       try {
-        const [tickets, reports, verifications, disputes, realestate] = await Promise.allSettled([
+        const [tickets, reports, verifications, boosts, disputes, realestate] = await Promise.allSettled([
           base44.entities.SupportTicket.filter({ status: "open" }, "-created_date", 500),
           base44.entities.Report.list("-created_date", 500),
           base44.entities.VerificationRequest.filter({ status: "pending" }, "-created_date", 500),
+          base44.entities.BoostRequest.filter({ status: "pending" }, "-created_date", 500),
           base44.entities.Dispute.filter({ status: "open" }, "-created_date", 500),
           base44.entities.User.filter({ re_license_status: "pending" }, "-created_date", 100),
         ]);
@@ -49,6 +51,7 @@ export default function Admin() {
           tickets: tickets.value?.length || 0,
           reports: (reports.value || []).filter((r) => !r.resolved).length,
           verifications: (verifications.value || []).filter((r) => !(r.payment_receipt_url || "").startsWith("moyasar:")).length,
+          boosts: boosts.value?.length || 0,
           disputes: disputes.value?.length || 0,
           realestate: realestate.value?.length || 0,
         });
@@ -74,6 +77,7 @@ export default function Admin() {
     { id: "tickets", icon: LifeBuoy, label: ar ? "التذاكر" : "Tickets" },
     { id: "blacklist", icon: ShieldX, label: ar ? "الحظر" : "Blacklist" },
     { id: "verifications", icon: BadgeCheck, label: ar ? "التوثيق" : "Verifications" },
+    { id: "boosts", icon: TrendingUp, label: ar ? "التعزيزات" : "Boosts" },
     { id: "realestate", icon: Building2, label: ar ? "عقارات" : "Real Estate" },
     { id: "disputes", icon: ShieldAlert, label: ar ? "النزاعات" : "Disputes" },
     { id: "broadcast", icon: Bell, label: ar ? "إشعار" : "Broadcast" },
@@ -117,6 +121,7 @@ export default function Admin() {
       {tab === "tickets" && <AdminTickets />}
       {tab === "blacklist" && <AdminBlacklist />}
       {tab === "verifications" && <AdminVerifications />}
+      {tab === "boosts" && <AdminBoosts />}
       {tab === "realestate" && <AdminRealEstate />}
       {tab === "disputes" && <AdminDisputes />}
       {tab === "broadcast" && <AdminBroadcast />}

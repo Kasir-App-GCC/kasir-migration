@@ -155,13 +155,19 @@ export default async function (req: Request): Promise<Response> {
     const notifyUserId = metadata?.user_id ? String(metadata.user_id) : request?.user_id || "";
     if (notifyUserId) {
       try {
-        await base44.asServiceRole.entities.Notification.create({
-          user_id: notifyUserId,
-          type: "boost_approved",
-          item_id: itemId,
-          item_title: request?.item_title || "",
-          text: "تم تفعيل تعزيز إعلانك ⭐",
-        });
+        // Boosts are fully automated now (no admin review), so skip the
+        // confirmation notification for admin accounts — only the end user
+        // gets a "your boost is live" notice.
+        const notifyUser = await base44.asServiceRole.entities.User.get(notifyUserId).catch(() => null);
+        if (notifyUser?.role !== "admin") {
+          await base44.asServiceRole.entities.Notification.create({
+            user_id: notifyUserId,
+            type: "boost_approved",
+            item_id: itemId,
+            item_title: request?.item_title || "",
+            text: "تم تفعيل تعزيز إعلانك ⭐",
+          });
+        }
       } catch (e) {}
     }
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Building2, ShieldCheck, BadgeCheck, Clock, X, Loader2, ImagePlus, Check, ExternalLink } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -26,11 +26,16 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
   const [licenseDoc, setLicenseDoc] = useState(user?.re_license_doc || "");
   const [docUploading, setDocUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+
+  // Reset edit mode whenever the dialog is opened so an approved license
+  // shows its read-only view first, not a stale edit form from a prior open.
+  useEffect(() => { if (open) setEditMode(false); }, [open]);
 
   if (!open) return null;
 
   const trusted = !!user?.is_trusted;
-  const editing = trusted && (status === "" || status === "rejected");
+  const editing = trusted && (status === "" || status === "rejected" || editMode);
   const valid = licenseType && licenseNumber.trim() && licenseHolder.trim() && licenseExpiry && licenseLink.trim() && licenseDoc;
 
   const uploadDoc = async (file) => {
@@ -57,6 +62,7 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
         license_doc: licenseDoc,
       });
       await refreshUser();
+      setEditMode(false);
       toast({ title: ar ? "تم إرسال ترخيصك للمراجعة" : "License submitted for review" });
       onClose();
     } catch (e) {
@@ -112,6 +118,14 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
                 <a href={user.re_license_link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"><ExternalLink size={12} /> {ar ? "استعلام REGA" : "REGA inquiry"}</a>
               </div>
             </div>
+            <button
+              type="button"
+              onClick={() => setEditMode(true)}
+              className="w-full py-2.5 rounded-xl bg-card border border-border/70 text-sm font-bold flex items-center justify-center gap-1.5 hover:bg-muted transition"
+            >
+              {ar ? "تعديل بيانات الترخيص" : "Change details"}
+            </button>
+            <p className="text-[11px] text-muted-foreground text-center">{ar ? "يمكنك تحديث بيانات الترخيص وإعادة إرسالها للمراجعة." : "Update your license details and resubmit for review."}</p>
           </>
         )}
 
@@ -164,7 +178,7 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
             </div>
             <button onClick={submit} disabled={!valid || submitting} className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center gap-1.5 disabled:opacity-50">
               {submitting && <Loader2 size={15} className="animate-spin" />}
-              {status === "rejected" ? (ar ? "إعادة إرسال" : "Re-submit") : (ar ? "إرسال للمراجعة" : "Submit for review")}
+              {status === "rejected" || (status === "approved" && editMode) ? (ar ? "إعادة الإرسال للمراجعة" : "Re-submit for review") : (ar ? "إرسال للمراجعة" : "Submit for review")}
             </button>
           </div>
         )}

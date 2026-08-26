@@ -60,15 +60,19 @@ export default async function (req) {
       reviewed_by: "system",
     });
 
-    try {
-      await base44.entities.Notification.create({
-        user_id: user.id,
-        type: "boost_approved",
-        item_id: item.id,
-        item_title: item.title,
-        text: "Your free 1-day boost is live! 🎁",
-      });
-    } catch {}
+    // Boosts are fully automated now (no admin review), so don't notify admin
+    // accounts about their own boosts — only the end user gets a confirmation.
+    if (user.role !== "admin") {
+      try {
+        await base44.entities.Notification.create({
+          user_id: user.id,
+          type: "boost_approved",
+          item_id: item.id,
+          item_title: item.title,
+          text: "Your free 1-day boost is live! 🎁",
+        });
+      } catch {}
+    }
 
     return Response.json({ ok: true, featured_until: featuredUntil });
   } catch (error) {

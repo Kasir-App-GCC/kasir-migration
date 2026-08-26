@@ -7,9 +7,13 @@ import { secrets } from 'base44:runtime';
 // the fixed fee + user), so we avoid duplicating them. Boosts are tracked in
 // BoostRequest and merged into the admin ledger client-side.
 //
-// The Moyasar invoice metadata only ever stores user_id (never names/national
-// IDs), so the payer's identity is resolved from our User table — no PII is
-// sent to Moyasar.
+// IMPORTANT: Moyasar stores our metadata on the INVOICE (we set it when
+// creating the invoice), NOT on the payment that the hosted checkout later
+// creates. So reading payment.metadata alone returns nothing and every
+// redirect payment shows as "Guest". We therefore fetch recent paid invoices
+// first to build an invoice_id → metadata map, then join it onto each paid
+// payment by invoice_id. Only the user_id (never names/national IDs) is sent
+// to Moyasar; the payer's display name is resolved from our User table.
 export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
@@ -21,7 +25,28 @@ export default async function(req: Request): Promise<Response> {
     if (!secretKey) return Response.json({ error: 'MOYASAR_SECRET_KEY not set' }, { status: 500 });
     const authHeader = 'Basic ' + btoa(secretKey + ':');
 
-    // Scan a few pages of recent paid payments (Moyasar lists newest first).
+    // 1) Build an invoice_id → metadata map from recent paid invoices.
+    //    Moyasar keeps our metadata here (donations, admin payment links).
+    const invoiceMeta: Record<string, any> = {};
+    let invoicesScanned = 0;
+    for (let page = 1; page <= 4; page++) {
+      const r = await fetch(`https://api.moyasar.com/v1/invoices?page=${page}`, {
+        headers: { Authorization: authHeader },
+      });
+      if (!r.ok) break;
+      const d: any = await r.json();
+      const list: any[] = Array.isArray(d) ? d : (d.invoices || d.data || []);
+      if (!list.length) break;
+      invoicesScanned += list.length;
+      for (const inv of list) {
+        if (String(inv.status || '') !== 'paid') continue;
+        invoiceMeta[String(inv.id)] = inv.metadata || {};
+      }
+      const totalPages = Number(d?.meta?.total_pages) || 1;
+      if (page >= totalPages) break;
+    }
+
+    // 2) Scan a few pages of recent paid payments (Moyasar lists newest first).
     const MAX_PAGES = 4;
     let scanned = 0;
     const userIds = new Set<string>();
@@ -37,20 +62,23 @@ export default async function(req: Request): Promise<Response> {
       if (!list.length) break;
       scanned += list.length;
       for (const p of list) {
-        const meta = p.metadata || {};
+        // Metadata lives on the invoice — join by invoice_id. Fall back to the
+        // payment's own metadata for directly-created payments (e.g. test charges).
+        const meta = (p.invoice_id && invoiceMeta[String(p.invoice_id)]) || p.metadata || {};
         const type = String(meta.type || '');
         // Verification is tracked in VerificationRequest — don't duplicate.
         if (type === 'verification') continue;
+        const userId = meta.user_id ? String(meta.user_id) : '';
         candidates.push({
           moyasar_payment_id: String(p.id || ''),
           moyasar_invoice_id: String(p.invoice_id || ''),
           amount: (Number(p.amount) || 0) / 100,
           type: type || 'payment_link',
-          user_id: meta.user_id ? String(meta.user_id) : '',
+          user_id: userId,
           reference_id: meta.verification_request_id ? String(meta.verification_request_id) : '',
           description: String(p.description || ''),
         });
-        if (meta.user_id) userIds.add(String(meta.user_id));
+        if (userId) userIds.add(userId);
       }
       const totalPages = Number(data?.meta?.total_pages) || 1;
       if (page >= totalPages) break;
@@ -77,7 +105,16 @@ export default async function(req: Request): Promise<Response> {
           '-created_date',
           1
         );
-        if (existing && existing.length) continue;
+        if (existing && existing.length) {
+          // Backfill user attribution for records created before the invoice-join fix.
+          if (c.user_id && !existing[0].user_id) {
+            await base44.asServiceRole.entities.Payment.update(existing[0].id, {
+              user_id: c.user_id,
+              user_name: nameMap[c.user_id] || existing[0].user_name || '',
+            });
+          }
+          continue;
+        }
         await base44.asServiceRole.entities.Payment.create({
           user_id: c.user_id,
           user_name: c.user_id ? (nameMap[c.user_id] || '') : '',
@@ -94,7 +131,7 @@ export default async function(req: Request): Promise<Response> {
       } catch (e) {}
     }
 
-    return Response.json({ ok: true, scanned, candidates: candidates.length, new: created });
+    return Response.json({ ok: true, scanned, invoices_scanned: invoicesScanned, candidates: candidates.length, new: created });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

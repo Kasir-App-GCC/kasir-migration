@@ -1,9 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { secrets } from 'base44:runtime';
+import { verifyAuthenticaOtp } from '../../shared/authenticaOtp.ts';
 
 // Verifies the user-entered OTP against Authentica's verify endpoint by phone + code.
-const MAX_ATTEMPTS = 5;
-
+// On success, persists the verified phone on the user profile so it survives
+// page refreshes, and reclaims the number from any unverified squatters.
 export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -17,62 +17,30 @@ export default async function(req) {
       return Response.json({ error: 'Phone and code are required' }, { status: 400 });
     }
 
-    const records = await base44.entities.PhoneOtp.filter(
-      { user_id: user.id, phone },
-      '-created_date',
-      10
-    );
-    const pending = (records || []).find((r) => !r.verified);
-    if (!pending) return Response.json({ error: 'No pending code' }, { status: 400 });
-    if (new Date(pending.expires_at) < new Date()) {
-      return Response.json({ error: 'Code expired' }, { status: 400 });
-    }
-    if ((pending.attempts || 0) >= MAX_ATTEMPTS) {
-      return Response.json({ error: 'Too many attempts' }, { status: 400 });
+    const result = await verifyAuthenticaOtp(base44, user, phone, code);
+    if (!result.verified) {
+      return Response.json({ error: result.error }, { status: result.status || 400 });
     }
 
-    const apiKey = secrets.get('AUTHENTICA_API_KEY');
-    if (!apiKey) return Response.json({ error: 'Authentica not configured' }, { status: 500 });
-
-    await base44.entities.PhoneOtp.update(pending.id, { attempts: (pending.attempts || 0) + 1 });
-
-    const res = await fetch('https://api.authentica.sa/api/v2/verify-otp', {
-      method: 'POST',
-      headers: {
-        'X-Authorization': apiKey,
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ phone, otp: code }),
-    });
-
-    const data = await res.json().catch(() => ({}));
-    if (data?.status === true || data?.verified === true || data?.success === true) {
-      await base44.entities.PhoneOtp.update(pending.id, { verified: true });
-      const digits = phone.replace(/\D/g, "");
-      // Persist the verified phone on the user profile so it survives page
-      // refreshes and dialog reopens (avoids re-sending a paid OTP every time).
-      if (digits) {
-        try {
-          await base44.asServiceRole.entities.User.update(user.id, {
-            phone: digits,
-            phone_verified: true,
-          });
-        } catch (e) {}
-        // Reclaim the number: clear it from any other user who holds it but never
-        // verified it (squatters), so the genuine — now verified — owner is the
-        // sole holder. Verified holders are left untouched (a real conflict).
-        try {
-          await base44.asServiceRole.entities.User.updateMany(
-            { whatsapp_number: digits, whatsapp_verified: { $ne: true } },
-            { $unset: { whatsapp_number: "" } }
-          );
-        } catch {}
-      }
-      return Response.json({ ok: true, verified: true });
+    const digits = phone.replace(/\D/g, "");
+    if (digits) {
+      try {
+        await base44.asServiceRole.entities.User.update(user.id, {
+          phone: digits,
+          phone_verified: true,
+        });
+      } catch (e) {}
+      // Reclaim the number: clear it from any other user who holds it but never
+      // verified it (squatters), so the genuine — now verified — owner is the
+      // sole holder. Verified holders are left untouched (a real conflict).
+      try {
+        await base44.asServiceRole.entities.User.updateMany(
+          { whatsapp_number: digits, whatsapp_verified: { $ne: true } },
+          { $unset: { whatsapp_number: "" } }
+        );
+      } catch {}
     }
-    const msg = data?.message || data?.errors?.[0]?.message || ('HTTP ' + res.status);
-    return Response.json({ error: 'Invalid code: ' + msg }, { status: 400 });
+    return Response.json({ ok: true, verified: true });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

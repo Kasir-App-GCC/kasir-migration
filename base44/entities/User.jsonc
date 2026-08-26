@@ -132,6 +132,10 @@
       "type": "string",
       "description": "URL of the uploaded Fal license document (image or PDF)"
     },
+    "re_license_phone": {
+      "type": "string",
+      "description": "Phone number verified against the broker's Fal license (E.164). Either the user's verified account phone (option 1) or a separate number verified via OTP at license submission (option 2). Shown to admins for cross-referencing against the license document and REGA inquiry."
+    },
     "re_establishment_number": {
       "type": "string",
       "description": "Unified establishment number (\u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0645\u0648\u062d\u062f \u0644\u0644\u0645\u0646\u0634\u0623\u0629) \u2014 required for establishment brokers only; individual brokers leave this empty"

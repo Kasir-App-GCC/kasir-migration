@@ -17,6 +17,8 @@ export default function AdminRealEstate() {
   const [rejecting, setRejecting] = useState(null);
   const [reason, setReason] = useState("");
   const [acting, setActing] = useState(null);
+  const [checked, setChecked] = useState({});
+  const toggle = (key) => setChecked((c) => ({ ...c, [key]: !c[key] }));
 
   const load = async () => {
     setLoading(true);
@@ -143,13 +145,24 @@ export default function AdminRealEstate() {
         <div><p className="text-muted-foreground">{ar ? "تاريخ الانتهاء" : "Expiry"}</p><p className={`font-semibold ${u.re_license_expiry && new Date(u.re_license_expiry) < new Date() ? "text-rose-600 dark:text-rose-400" : ""}`}>{u.re_license_expiry ? new Date(u.re_license_expiry).toLocaleDateString(ar ? "ar-SA" : "en-US", { year: "numeric", month: "short", day: "numeric" }) : "-"}{u.re_license_expiry && new Date(u.re_license_expiry) < new Date() && (ar ? " · منتهية" : " · expired")}</p></div>
       </div>
       <div className="p-2.5 rounded-xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-900 space-y-1.5">
-        <p className="text-[11px] font-bold text-sky-700 dark:text-sky-300 flex items-center gap-1"><ShieldCheck size={12} /> {ar ? "قائمة التحقق قبل الاعتماد" : "Checklist before approving"}</p>
-        <div className="text-[11px] text-sky-700 dark:text-sky-300 space-y-1">
-          <p className="flex items-start gap-1.5"><Check size={12} className="shrink-0 mt-0.5" /> {ar ? "رقم الجوال على الترخيص = جوال الحساب؟" : "Phone on license = account phone?"}</p>
-          <p className="flex items-start gap-1.5"><Check size={12} className="shrink-0 mt-0.5" /> {ar ? "اسم صاحب الترخيص = اسم الحساب؟" : "Holder name = account name?"}</p>
-          <p className="flex items-start gap-1.5"><Check size={12} className="shrink-0 mt-0.5" /> {ar ? "الترخيص فعّال على REGA؟" : "License active on REGA?"}</p>
+        <p className="text-[11px] font-bold text-sky-700 dark:text-sky-300 flex items-center gap-1"><ShieldCheck size={12} /> {ar ? "قائمة المطابقة قبل الاعتماد" : "Match checklist before approving"}</p>
+        <div className="space-y-1">
+          {[
+            { key: "phone", label: ar ? "رقم الجوال" : "Phone number", value: u.re_license_phone || ((u.country_code ? u.country_code + " " : "") + (u.phone || "-")) },
+            { key: "type", label: ar ? "نوع الترخيص" : "License type", value: licenseTypeLabel(u.re_license_type) },
+            { key: "holder", label: ar ? "صاحب الترخيص" : "License holder", value: u.re_license_holder || "-" },
+            { key: "number", label: ar ? "رقم الترخيص" : "License number", value: u.re_license_number || "-" },
+            ...(u.re_license_type === "establishment_fal" ? [{ key: "establishment", label: ar ? "الرقم الموحد للمنشأة" : "Establishment number", value: u.re_establishment_number || "-" }] : []),
+          ].map((item) => (
+            <label key={item.key} className="flex items-start gap-2 cursor-pointer">
+              <input type="checkbox" checked={!!checked[`${u.id}-${item.key}`]} onChange={() => toggle(`${u.id}-${item.key}`)} className="mt-0.5 w-4 h-4 accent-sky-600 shrink-0" />
+              <span className="text-[11px] text-sky-700 dark:text-sky-300 leading-tight">
+                <span className="font-semibold">{item.label}: </span>
+                <span className="font-mono">{item.value}</span>
+              </span>
+            </label>
+          ))}
         </div>
-        <p className="text-[11px] text-muted-foreground pt-1 border-t border-sky-200 dark:border-sky-900">{ar ? "جوال الحساب: " : "Account phone: "}<span className="font-bold text-foreground font-mono">{u.country_code ? u.country_code + " " : ""}{u.phone || "-"}</span></p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <a href={REGA_INQUIRY_URL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition">

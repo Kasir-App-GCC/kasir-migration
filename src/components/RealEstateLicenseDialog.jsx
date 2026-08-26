@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
+import LicensePhoneVerifier from "@/components/LicensePhoneVerifier";
 
 const LICENSE_TYPES = [
   { id: "individual_fal", ar: "رخصة فال (فرد)", en: "FAL (Individual)" },
@@ -26,6 +27,9 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
   const [docUploading, setDocUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [phoneMode, setPhoneMode] = useState(user?.phone_verified && user?.phone ? "verified" : "license");
+  const [licensePhone, setLicensePhone] = useState(user?.re_license_phone || "");
+  const [licensePhoneVerified, setLicensePhoneVerified] = useState(false);
 
   // Reset edit mode whenever the dialog is opened so an approved license
   // shows its read-only view first, not a stale edit form from a prior open.
@@ -35,7 +39,8 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
 
   const trusted = !!user?.is_trusted;
   const editing = trusted && (status === "" || status === "rejected" || status === "expired" || editMode);
-  const valid = licenseType && licenseNumber.trim() && licenseHolder.trim() && licenseExpiry && licenseDoc && (licenseType !== "establishment_fal" || establishmentNumber.trim());
+  const hasLicensePhone = phoneMode === "verified" ? !!(user?.phone_verified && user?.phone) : licensePhoneVerified;
+  const valid = licenseType && licenseNumber.trim() && licenseHolder.trim() && licenseExpiry && licenseDoc && hasLicensePhone && (licenseType !== "establishment_fal" || establishmentNumber.trim());
 
   const uploadDoc = async (file) => {
     setDocUploading(true);
@@ -59,6 +64,7 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
         license_expiry: licenseExpiry,
         license_doc: licenseDoc,
         establishment_number: establishmentNumber.trim(),
+        license_phone: phoneMode === "verified" ? ((user.country_code || "+966") + (user.phone || "")) : licensePhone,
       });
       await refreshUser();
       setEditMode(false);
@@ -138,12 +144,42 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
 
         {editing && (
           <div className="space-y-3">
-            <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 text-xs text-amber-700 dark:text-amber-300 flex items-start gap-2">
-              <ShieldCheck size={14} className="shrink-0 mt-0.5" />
-              <span>
-                {ar ? "يجب أن يتطابق رقم جوالك الموثّق مع الرقم المسجّل على الترخيص — وإلا سيُرفض الترخيص." : "Your verified phone number must match the phone number registered on the license — otherwise it will be rejected."}
-                {user?.phone && <span className="font-bold block mt-0.5">{ar ? "جوالك: " : "Your phone: "}{user.country_code ? user.country_code + " " : ""}{user.phone}</span>}
-              </span>
+            <div className="space-y-2">
+              <p className="text-xs font-semibold flex items-center gap-1"><ShieldCheck size={13} /> {ar ? "رقم جوال الترخيص" : "License phone number"} *</p>
+              <p className="text-[11px] text-muted-foreground -mt-1">{ar ? "يجب أن يكون هذا الرقم هو المسجّل على ترخيصك." : "This must be the phone number registered on your license."}</p>
+              {user?.phone_verified && user?.phone && (
+                <button
+                  type="button"
+                  onClick={() => setPhoneMode("verified")}
+                  className={`w-full p-3 rounded-xl border-2 text-start transition ${phoneMode === "verified" ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-950/30" : "border-border bg-card"}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold flex items-center gap-2">
+                      <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${phoneMode === "verified" ? "border-emerald-500" : "border-muted-foreground/40"}`}>
+                        {phoneMode === "verified" && <span className="w-2 h-2 rounded-full bg-emerald-500" />}
+                      </span>
+                      {ar ? "استخدام رقمي الموثّق" : "Use my verified number"}
+                    </span>
+                    <span dir="ltr" className="text-xs font-mono font-bold whitespace-nowrap">{user.country_code || "+966"} {user.phone}</span>
+                  </div>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setPhoneMode("license")}
+                className={`w-full p-3 rounded-xl border-2 text-start transition ${phoneMode === "license" ? "border-indigo-400 bg-indigo-50 dark:bg-indigo-950/30" : "border-border bg-card"}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold flex items-center gap-2">
+                    <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${phoneMode === "license" ? "border-indigo-500" : "border-muted-foreground/40"}`}>
+                      {phoneMode === "license" && <span className="w-2 h-2 rounded-full bg-indigo-500" />}
+                    </span>
+                    {ar ? "توثيق رقم الترخيص" : "Verify the license number"}
+                  </span>
+                  {licensePhoneVerified && <BadgeCheck size={16} className="text-emerald-500 shrink-0" />}
+                </div>
+              </button>
+              {phoneMode === "license" && (
+                <LicensePhoneVerifier onVerified={(e164) => { setLicensePhone(e164); setLicensePhoneVerified(true); }} />
+              )}
             </div>
             <div className="space-y-1">
               <label className="text-xs font-semibold">{ar ? "نوع الترخيص" : "License type"} *</label>

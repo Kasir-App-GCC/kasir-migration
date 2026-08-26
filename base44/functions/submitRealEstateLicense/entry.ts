@@ -22,6 +22,7 @@ export default async function (req: Request): Promise<Response> {
     const licenseExpiry = (body.license_expiry || "").toString();
     const licenseDoc = (body.license_doc || "").toString().trim();
     const establishmentNumber = (body.establishment_number || "").toString().trim();
+    const licensePhone = (body.license_phone || "").toString().trim();
 
     const validTypes = ["individual_fal", "establishment_fal"];
     if (!validTypes.includes(licenseType)) {
@@ -34,6 +35,9 @@ export default async function (req: Request): Promise<Response> {
     }
     if (!licenseNumber || !licenseHolder || !licenseExpiry || !licenseDoc) {
       return Response.json({ error: "All license fields are required" }, { status: 400 });
+    }
+    if (!licensePhone) {
+      return Response.json({ error: "License phone number is required" }, { status: 400 });
     }
     // Basic expiry sanity: must be a valid date and not in the past.
     const exp = new Date(licenseExpiry);
@@ -51,6 +55,7 @@ export default async function (req: Request): Promise<Response> {
       re_license_expiry: licenseExpiry,
       re_license_doc: licenseDoc,
       re_establishment_number: licenseType === "establishment_fal" ? establishmentNumber : "",
+      re_license_phone: licensePhone,
       re_license_status: "pending",
       re_license_review_reason: "",
     });

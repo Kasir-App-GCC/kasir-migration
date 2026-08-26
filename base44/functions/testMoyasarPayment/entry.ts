@@ -16,6 +16,46 @@ import { secrets } from 'base44:runtime';
 // Using a token source (instead of a raw creditcard source) is what makes a
 // non-3DS test card return "paid" immediately — a raw creditcard source always
 // goes through 3DS ("initiated"), which is why the old test never showed PAID.
+
+// In Moyasar TEST mode, a 3DS card returns "initiated" and the user must open
+// the 3DS simulation page and manually pick "Authentication Successful". In a
+// real in-app payment the bank's 3DS is frictionless (auto-approved), so for
+// the test we drive that simulation server-side: walk the card_auth flow and
+// submit AUTHENTICATED, so the payment flips to "paid" with no manual click.
+async function autoCompleteTest3DS(transactionUrl: string): Promise<boolean> {
+  const m = transactionUrl.match(/\/card_auth\/([^/]+)/);
+  if (!m) return false;
+  const base = 'https://api.moyasar.com/v1/card_auth/' + m[1];
+  try {
+    const r1 = await fetch(base + '/authenticate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'color_depth=24&js_enabled=true&language=en-US&screen_height=800&screen_width=1200&time_zone=0',
+    });
+    const h1 = await r1.text();
+    const cm = h1.match(/name="creq"\s+value="([^"]+)"/);
+    if (!cm) return false;
+    await fetch(base + '/acs_emulator', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'creq=' + encodeURIComponent(cm[1]),
+    });
+    await fetch(base + '/set_auth_result', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'auth_result=AUTHENTICATED',
+    });
+    await fetch(base + '/acs_return', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: '',
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export default async function (req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
@@ -78,6 +118,17 @@ export default async function (req: Request): Promise<Response> {
       });
     }
 
+    // Non-3DS card → "paid" instantly. 3DS card → "initiated"; in test mode we
+    // auto-drive the 3DS simulation to "AUTHENTICATED" (frictionless) so the
+    // admin sees PAID without opening the 3DS page, mirroring real in-app flow.
+    if (data.status === 'initiated' && data.source?.transaction_url) {
+      await autoCompleteTest3DS(data.source.transaction_url);
+      const pr = await fetch('https://api.moyasar.com/v1/payments/' + data.id, { headers: { Authorization: authHeader } });
+      const pd: any = await pr.json();
+      if (pd.status === 'paid') {
+        return Response.json({ ok: true, status: 'paid', payment_id: pd.id, amount: amountSar, auto_3ds: true, source: pd.source });
+      }
+    }
     return Response.json({
       ok: true,
       status: data.status,

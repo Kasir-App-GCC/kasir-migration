@@ -222,8 +222,8 @@ export default function AdminPaymentTest() {
     <div className="space-y-4 max-w-md">
       <div className="rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 p-3 text-xs text-amber-700 dark:text-amber-300">
         {ar
-          ? "تجربة بوابة الدفع Moyasar في وضع الاختبار. أدخل بيانات البطاقة (أو استخدم بطاقة اختبار) لتظهر العملية كـ PAID في لوحة Moyasar."
-          : "Test the Moyasar gateway in test mode. Enter card details (or use a test card) — a successful charge shows as PAID on the Moyasar dashboard."}
+          ? "تجربة بوابة الدفع Moyasar في وضع الاختبار. أدخل بيانات البطاقة (أو استخدم بطاقة اختبار). بطاقات 3DS تُموَّل تلقائياً كـ PAID لمحاكاة الدفع داخل التطبيق (بدون صفحة التحقق)."
+          : "Test the Moyasar gateway in test mode. Enter card details (or use a test card). 3DS test cards are auto-approved to PAID, simulating the frictionless in-app payment (no verification page)."}
       </div>
 
       <div className="rounded-2xl bg-card border border-border/60 p-4 space-y-3">

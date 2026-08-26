@@ -8,6 +8,7 @@ import PhoneOtpVerifier from "@/components/PhoneOtpVerifier";
 import { userPhoneE164, digitsOnly } from "@/lib/phone";
 import { apiErrorMessage } from "@/lib/apiError";
 import { validateNationalId, nationalIdRule } from "@/lib/nationalId";
+import MoyasarPaymentDialog from "@/components/MoyasarPaymentDialog";
 
 export default function VerificationDialog({ open, onClose }) {
   const { user, lang } = useStore();
@@ -23,6 +24,7 @@ export default function VerificationDialog({ open, onClose }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [pendingRequest, setPendingRequest] = useState(null);
+  const [payState, setPayState] = useState(null);
 
   const idRule = nationalIdRule(user?.country);
   const hasAvatar = !!user?.avatar;
@@ -71,38 +73,36 @@ export default function VerificationDialog({ open, onClose }) {
     }
     setSubmitting(true);
     try {
-      // Race the function call with a timeout so the dialog never hangs
-      // indefinitely (e.g. if the payment gateway is unreachable).
-      const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(ar ? "انتهت المهلة — حاول مرة أخرى" : "Timed out — please try again")), 25000)
-      );
-      const res = await Promise.race([
-        base44.functions.invoke("createVerificationPayment", {
-          fullName: fullName.trim(),
-          phone: digitsOnly(phoneE164),
-          nationalId: idCheck.digits,
-          origin: window.location.origin
-        }),
-        timeout
-      ]);
+      const res = await base44.functions.invoke("createVerificationPayment", {
+        fullName: fullName.trim(),
+        phone: digitsOnly(phoneE164),
+        nationalId: idCheck.digits,
+      });
       if (res?.data?.error) throw new Error(res.data.error);
-      if (!res?.data?.url) throw new Error(ar ? "لم يتم إنشاء رابط الدفع" : "No payment URL returned");
-      // Reset the loading state BEFORE the redirect so the button doesn't
-      // stay stuck on "Preparing…" if the PWA webview stalls the navigation.
+      if (!res?.data?.ok) throw new Error(ar ? "تعذّر بدء الدفع" : "Couldn't start payment");
       setSubmitting(false);
-      // window.open with _blank is more reliable in PWA standalone mode on
-      // Android, where window.location.href to an external URL can silently
-      // fail. The callback URL returns to /profile which reopens the app.
-      const win = window.open(res.data.url, "_blank");
-      if (!win) {
-        // Pop-up blocked — fall back to same-window navigation.
-        window.location.href = res.data.url;
-      }
+      setPayState({
+        amount: res.data.amount,
+        publishableKey: res.data.publishableKey,
+        callbackUrl: `${window.location.origin}/profile?verify_payment=1`,
+        metadata: {
+          type: "verification",
+          user_id: String(user.id),
+          verification_request_id: String(res.data.requestId),
+        },
+      });
     } catch (err) {
-      setError(apiErrorMessage(err, ar ? "فشل الإرسال" : "Failed to submit"));
+      setError(apiErrorMessage(err, ar ? "تعذّر بدء الدفع" : "Couldn't start payment"));
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const onPaidVerification = async (payment) => {
+    const res = await base44.functions.invoke("confirmVerificationPayment", { paymentId: payment.id });
+    if (res?.data?.error) throw new Error(res.data.error);
+    await refreshUser();
+    toast({ title: ar ? "تم توثيق حسابك بنجاح! 🎉" : "Account verified! 🎉" });
   };
 
   return (
@@ -194,6 +194,20 @@ export default function VerificationDialog({ open, onClose }) {
             </div>
           </>
         }
+
+      {payState && (
+        <MoyasarPaymentDialog
+          open
+          lang={lang}
+          amount={payState.amount}
+          publishableKey={payState.publishableKey}
+          callbackUrl={payState.callbackUrl}
+          metadata={payState.metadata}
+          description="رسوم توثيق الحساب - كاسر"
+          onPaid={onPaidVerification}
+          onClose={() => { setPayState(null); onClose(); }}
+        />
+      )}
       </div>
     </div>);
 

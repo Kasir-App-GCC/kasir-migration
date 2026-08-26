@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Wallet, RefreshCw, TrendingUp, ShieldCheck, Heart, Link2, ExternalLink, Search } from "lucide-react";
+import { Wallet, RefreshCw, TrendingUp, ShieldCheck, Heart, Link2, ExternalLink, Search, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -26,6 +26,8 @@ export default function AdminPayments() {
   const [syncing, setSyncing] = useState(false);
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
+  const [clearing, setClearing] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const build = async () => {
     const [payments, boosts, verifications] = await Promise.all([
@@ -74,6 +76,27 @@ export default function AdminPayments() {
     }
   };
 
+  // Delete every record that feeds the "Total Payments Received" figure:
+  // all Payment ledger rows, approved paid boosts, and approved verifications.
+  // Pending boosts/verifications and free-boost records are preserved.
+  const clearAll = async () => {
+    setClearing(true);
+    try {
+      await Promise.all([
+        base44.entities.Payment.deleteMany({}),
+        base44.entities.BoostRequest.deleteMany({ status: "approved", is_free: { $ne: true } }),
+        base44.entities.VerificationRequest.deleteMany({ status: "approved" }),
+      ]);
+      await build();
+      toast({ title: ar ? "تم حذف جميع المعاملات" : "All transactions cleared" });
+    } catch (e) {
+      toast({ title: ar ? "فشل الحذف" : "Failed to clear", variant: "destructive" });
+    } finally {
+      setClearing(false);
+      setConfirmClear(false);
+    }
+  };
+
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -115,9 +138,25 @@ export default function AdminPayments() {
               <p className="text-2xl font-extrabold">{fmt(totals.total, ar)} {ar ? "ر.س" : "SAR"}</p>
             </div>
           </div>
-          <button onClick={sync} disabled={syncing} className="px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-sm font-bold flex items-center gap-1.5 disabled:opacity-60 transition">
-            <RefreshCw size={15} className={syncing ? "animate-spin" : ""} /> {ar ? "مزامنة" : "Sync"}
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={sync} disabled={syncing} className="px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-sm font-bold flex items-center gap-1.5 disabled:opacity-60 transition">
+              <RefreshCw size={15} className={syncing ? "animate-spin" : ""} /> {ar ? "مزامنة" : "Sync"}
+            </button>
+            {confirmClear ? (
+              <>
+                <button onClick={clearAll} disabled={clearing} className="px-3 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-sm font-bold flex items-center gap-1.5 disabled:opacity-60 transition">
+                  {clearing ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Trash2 size={15} />} {ar ? "تأكيد الحذف" : "Confirm clear"}
+                </button>
+                <button onClick={() => setConfirmClear(false)} disabled={clearing} className="px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-sm font-bold transition">
+                  {ar ? "إلغاء" : "Cancel"}
+                </button>
+              </>
+            ) : (
+              <button onClick={() => setConfirmClear(true)} className="px-3 py-2 rounded-xl bg-white/15 hover:bg-red-500/80 text-sm font-bold flex items-center gap-1.5 transition">
+                <Trash2 size={15} /> {ar ? "حذف الكل" : "Clear all"}
+              </button>
+            )}
+          </div>
         </div>
         <div className="grid grid-cols-4 gap-2 mt-4">
           {["boost", "verification", "donation", "payment_link"].map((t) => {

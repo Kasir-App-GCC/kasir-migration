@@ -37,6 +37,9 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
   const [payUrl, setPayUrl] = useState("");
   const [paying, setPaying] = useState(false);
 
+  // One-time lifetime activation fee, by license type (matches createBrokerPayment).
+  const brokerFee = user?.re_license_type === "establishment_fal" ? 149 : 99;
+
   // Reset edit mode whenever the dialog is opened so an approved license
   // shows its read-only view first, not a stale edit form from a prior open.
   useEffect(() => { if (open) setEditMode(false); }, [open]);
@@ -172,12 +175,12 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
           <div className="space-y-3">
             <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900">
               <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5"><BadgeCheck size={16} /> {ar ? "تم اعتماد طلبك!" : "Your application is approved!"}</p>
-              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">{ar ? "ادفع 49 ريال (مرة واحدة) لتفعيل شارة الوسيط العقاري والبدء بنشر الإعلانات العقارية." : "Pay 49 SAR (one-time) to activate your broker badge and start posting real estate listings."}</p>
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">{ar ? `ادفع ${brokerFee} ريال (مرة واحدة، مدى الحياة) لتفعيل شارة الوسيط العقاري والبدء بنشر الإعلانات العقارية.` : `Pay ${brokerFee} SAR (one-time, lifetime) to activate your broker badge and start posting real estate listings.`}</p>
             </div>
             <div className="p-2.5 rounded-xl bg-muted text-[11px] text-muted-foreground leading-relaxed">{ar ? "كاسر لا يأخذ عمولة من أي معاملة عقارية — فقط هذه الرسوم الرمزية لمرة واحدة." : "Kasir takes no commission from any real estate transaction — only this small one-time fee."}</div>
             <button onClick={startPayment} disabled={paying} className="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm flex items-center justify-center gap-1.5 disabled:opacity-50">
               {paying ? <Loader2 size={16} className="animate-spin" /> : <CreditCard size={16} />}
-              {ar ? "ادفع 49 ريال وفعّل الشارة" : "Pay 49 SAR & activate"}
+              {ar ? `ادفع ${brokerFee} ريال وفعّل الشارة` : `Pay ${brokerFee} SAR & activate`}
             </button>
           </div>
         )}
@@ -296,8 +299,8 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
               )}
             </div>
             <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 space-y-1">
-              <p className="text-xs font-bold text-amber-700 dark:text-amber-300">{ar ? "رسوم التفعيل: 49 ريال (دفعة واحدة)" : "Activation fee: 49 SAR (one-time)"}</p>
-              <p className="text-[11px] text-amber-600 dark:text-amber-400 leading-relaxed">{ar ? "بعد مراجعة طلبك واعتماده من الإدارة، يلزم دفع 49 ريال مرة واحدة لتفعيل شارة الوسيط العقاري. كاسر لا يأخذ عمولة من أي معاملة عقارية — فقط هذه الرسوم الرمزية لمرة واحدة." : "Once your application is reviewed and approved, a one-time 49 SAR fee activates your broker badge. Kasir takes no commission from any real estate transaction — only this small one-time fee."}</p>
+              <p className="text-xs font-bold text-amber-700 dark:text-amber-300">{ar ? "رسوم التفعيل (مدى الحياة): 99 ريال للفرد · 149 ريال للمنشأة" : "Activation fee (lifetime): 99 SAR individual · 149 SAR establishment"}</p>
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 leading-relaxed">{ar ? "بعد مراجعة طلبك واعتماده من الإدارة، يلزم دفع الرسوم مرة واحدة لتفعيل شارة الوسيط العقاري (99 ريال للفرد، 149 ريال للمنشأة). كاسر لا يأخذ عمولة من أي معاملة عقارية." : "Once your application is reviewed and approved, a one-time fee activates your broker badge for life (99 SAR individual, 149 SAR establishment). Kasir takes no commission from any real estate transaction."}</p>
             </div>
             <button onClick={submit} disabled={!valid || submitting} className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center gap-1.5 disabled:opacity-50">
               {submitting && <Loader2 size={15} className="animate-spin" />}
@@ -308,7 +311,7 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
       </div>
       <PaymentWaitingModal
         state={popup.state}
-        amount={49}
+        amount={brokerFee}
         invoiceUrl={payUrl}
         onCancel={popup.cancel}
         onDone={() => { const paid = popup.state === "paid"; popup.reset(); if (paid) onClose?.(); }}

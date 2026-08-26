@@ -8,7 +8,13 @@ import { secrets } from 'base44:runtime';
 // confirm) so the badge is granted server-side even if the popup is closed
 // before the client confirm lands — same pattern as verification.
 
-const BROKER_FEE = 49; // SAR
+// One-time lifetime activation fee, by license type:
+//   establishment broker (منشأة): 149 SAR
+//   individual broker (فرد):        99 SAR
+const BROKER_FEE_BY_TYPE: Record<string, number> = {
+  establishment_fal: 149,
+  individual_fal: 99,
+};
 
 export default async function(req: Request): Promise<Response> {
   try {
@@ -29,7 +35,8 @@ export default async function(req: Request): Promise<Response> {
     if (!secretKey) return Response.json({ error: 'MOYASAR_SECRET_KEY not set' }, { status: 500 });
 
     const body = await req.json().catch(() => ({}));
-    const amountHalalas = BROKER_FEE * 100;
+    const fee = BROKER_FEE_BY_TYPE[user.re_license_type] ?? 99;
+    const amountHalalas = fee * 100;
     const authHeader = 'Basic ' + btoa(secretKey + ':');
 
     const origin = (body?.origin || 'https://kasir-ksa.base44.app').replace(/\/$/, '');
@@ -49,6 +56,8 @@ export default async function(req: Request): Promise<Response> {
         metadata: {
           type: 'broker_fee',
           user_id: user.id,
+          license_type: user.re_license_type || '',
+          amount: fee,
         },
       }),
     });

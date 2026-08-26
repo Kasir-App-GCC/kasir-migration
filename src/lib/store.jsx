@@ -76,6 +76,13 @@ export function StoreProvider({ children }) {
         role: auth.user.role || "user",
         is_trusted: !!auth.user.is_trusted,
         interests: auth.user.interests || [],
+        re_license_status: auth.user.re_license_status || null,
+        re_license_type: auth.user.re_license_type || null,
+        re_license_number: auth.user.re_license_number || null,
+        re_license_holder: auth.user.re_license_holder || null,
+        re_license_expiry: auth.user.re_license_expiry || null,
+        re_license_link: auth.user.re_license_link || null,
+        re_license_doc: auth.user.re_license_doc || null,
       }
     : null;
 

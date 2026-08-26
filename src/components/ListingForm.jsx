@@ -3,6 +3,7 @@ import { ImagePlus, X, Sparkles, LocateFixed, MapPin, GripVertical, Globe, Lock,
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/AuthContext";
 import { useT } from "@/lib/i18n";
 import { CATEGORIES, CONDITIONS, getSubcategories, getCityName } from "@/lib/constants";
 import { getCities, nearestCityInCountry, getCountry, convertCurrency, resolveCityFromGeocode } from "@/lib/countries";
@@ -35,6 +36,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const t = useT();
   const { toast } = useToast();
   const nav = useNavigate();
+  const { refreshUser } = useAuth();
   const [images, setImages] = useState(initial?.images || []);
   const [title, setTitle] = useState(initial?.title || "");
   const [price, setPrice] = useState(initial?.price != null ? String(initial.price) : "");
@@ -124,6 +126,13 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
+
+  // Refresh the current user on mount so the real estate license status is
+  // current — an admin may have approved the license in another session.
+  useEffect(() => {
+    refreshUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!city) detectLocation();

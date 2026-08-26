@@ -1,5 +1,5 @@
 import {
-  LayoutGrid, Home, Smartphone, Car, Armchair, Shirt,
+  LayoutGrid, Home, Smartphone, Car, Armchair, Shirt, Building2,
   Wrench, Gamepad2, Dumbbell, Book, Package, Cat, Briefcase,
   GraduationCap, PartyPopper, Gem, Palette,
 } from "lucide-react";
@@ -13,6 +13,7 @@ export const CATEGORIES = [
   { id: "cars", en: "Cars", ar: "سيارات", icon: Car, color: "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300" },
   { id: "furniture", en: "Furniture", ar: "أثاث", icon: Armchair, color: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300" },
   { id: "fashion", en: "Fashion", ar: "أزياء", icon: Shirt, color: "bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-300" },
+  { id: "realestate", en: "Real Estate", ar: "عقارات", icon: Building2, color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300" },
   { id: "services", en: "Services", ar: "خدمات", icon: Wrench, color: "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300" },
   { id: "toys", en: "Toys", ar: "ألعاب", icon: Gamepad2, color: "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300" },
   { id: "sports", en: "Sports", ar: "رياضة", icon: Dumbbell, color: "bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300" },
@@ -84,6 +85,16 @@ export const SUBCATEGORIES = {
     { en: "Jewelry", ar: "مجوهرات" },
     { en: "Accessories", ar: "إكسسوارات" },
     { en: "Traditional Wear", ar: "ملابس تراثية" },
+    { en: "Other", ar: "أخرى" },
+  ],
+  realestate: [
+    { en: "For Sale", ar: "للبيع" },
+    { en: "For Rent", ar: "للإيجار" },
+    { en: "Apartments", ar: "شقق" },
+    { en: "Villas", ar: "فلل" },
+    { en: "Land", ar: "أراضي" },
+    { en: "Commercial", ar: "تجاري" },
+    { en: "Shared Room", ar: "غرفة مشتركة" },
     { en: "Other", ar: "أخرى" },
   ],
   services: [

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Wallet, RefreshCw, TrendingUp, ShieldCheck, Heart, Link2, ExternalLink, Search, Trash2 } from "lucide-react";
+import { Wallet, RefreshCw, TrendingUp, ShieldCheck, Heart, Link2, ExternalLink, Search, Trash2, Copy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -29,6 +29,11 @@ export default function AdminPayments() {
   const [clearing, setClearing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
 
+  const copyId = (id) => {
+    if (!id) return;
+    try { navigator.clipboard?.writeText(id); toast({ title: ar ? "تم نسخ المعرّف" : "ID copied" }); } catch {}
+  };
+
   const build = async () => {
     const [payments, boosts, verifications] = await Promise.all([
       base44.entities.Payment.list("-created_date", 500).catch(() => []),
@@ -40,23 +45,45 @@ export default function AdminPayments() {
       .map((b) => ({
         id: "boost:" + b.id, type: "boost", amount: Number(b.amount) || 0,
         user_id: b.user_id, user_name: b.user_name || "", description: b.item_title || "",
-        created_date: b.created_date, moyasar_payment_id: "",
+        created_date: b.created_date,
+        moyasar_payment_id: (b.receipt_url || "").startsWith("moyasar:") ? b.receipt_url.slice("moyasar:".length) : "",
+        moyasar_invoice_id: "",
       }));
     const verRows = (verifications || [])
       .filter((v) => v.status === "approved")
       .map((v) => ({
         id: "ver:" + v.id, type: "verification", amount: VERIFICATION_FEE,
         user_id: v.user_id, user_name: v.user_name || v.full_name || "", description: ar ? "رسوم توثيق الحساب" : "Account verification fee",
-        created_date: v.created_date, moyasar_payment_id: (v.payment_receipt_url || "").replace("moyasar:", ""),
+        created_date: v.created_date,
+        moyasar_payment_id: (v.payment_receipt_url || "").startsWith("moyasar:") ? v.payment_receipt_url.slice("moyasar:".length) : "",
+        moyasar_invoice_id: "",
       }));
     const payRows = (payments || []).map((p) => ({
       id: "pay:" + p.id, type: p.type, amount: Number(p.amount) || 0,
       user_id: p.user_id, user_name: p.user_name || "", description: p.description || "",
       created_date: p.created_date, moyasar_payment_id: p.moyasar_payment_id,
+      moyasar_invoice_id: p.moyasar_invoice_id,
     }));
-    const all = [...payRows, ...boostRows, ...verRows].sort(
+    let all = [...payRows, ...boostRows, ...verRows].sort(
       (a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0)
     );
+    // Resolve real display names for rows that have a user_id but no stored
+    // name (older boost/verification records were created before names were
+    // captured). The Moyasar metadata only stores user_id, never PII.
+    const idsToResolve = Array.from(new Set(all.filter((r) => r.user_id && !r.user_name).map((r) => r.user_id)));
+    if (idsToResolve.length) {
+      try {
+        const res = await base44.functions.invoke("getPublicProfiles", { user_ids: idsToResolve });
+        const map = res?.data?.results || {};
+        all = all.map((r) => {
+          if (!r.user_id || r.user_name) return r;
+          const p = map[r.user_id];
+          if (!p) return r;
+          const name = [p.first_name, p.last_name].filter(Boolean).join(" ") || p.username || p.full_name || "";
+          return { ...r, user_name: name || r.user_name };
+        });
+      } catch {}
+    }
     setRows(all);
   };
 
@@ -212,9 +239,18 @@ export default function AdminPayments() {
                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${m.color}`}>{ar ? m.ar : m.en}</span>
                   </div>
                   <p className="text-xs text-muted-foreground truncate">{r.description || "—"}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
                     {r.user_id && <button onClick={() => nav(`/user/${r.user_id}`)} className="text-[11px] text-primary font-semibold hover:underline inline-flex items-center gap-0.5"><ExternalLink size={10} /> {ar ? "الملف" : "Profile"}</button>}
-                    {r.moyasar_payment_id && <span className="text-[10px] text-muted-foreground font-mono truncate" dir="ltr">{r.moyasar_payment_id.slice(0, 13)}…</span>}
+                    {r.moyasar_payment_id && (
+                      <button onClick={() => copyId(r.moyasar_payment_id)} className="text-[10px] text-muted-foreground font-mono inline-flex items-center gap-1 hover:text-foreground transition" dir="ltr" title={ar ? "نسخ معرّف الدفع" : "Copy payment ID"}>
+                        <Copy size={10} /> {r.moyasar_payment_id}
+                      </button>
+                    )}
+                    {r.moyasar_payment_id && (
+                      <a href={`https://dashboard.moyasar.com/payments/${r.moyasar_payment_id}`} target="_blank" rel="noreferrer" className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold hover:underline inline-flex items-center gap-0.5" title={ar ? "فتح في Moyasar للاسترداد" : "Open in Moyasar to refund"}>
+                        <ExternalLink size={10} /> {ar ? "Moyasar" : "Moyasar"}
+                      </a>
+                    )}
                   </div>
                 </div>
                 <div className="text-end shrink-0">

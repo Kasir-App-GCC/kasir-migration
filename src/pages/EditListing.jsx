@@ -71,8 +71,9 @@ export default function EditListing() {
     if (Number.isFinite(oldPrice) && Number(itemData.price) > 0 && Number(itemData.price) < oldPrice) {
       try { await base44.functions.invoke("notifyPriceDrop", { item_id: id, old_price: oldPrice, new_price: Number(itemData.price) }); } catch {}
     }
-    // A boost requested from the edit screen creates a pending BoostRequest
-    // for admin review — same as the new-listing flow.
+    // A boost requested from the edit screen creates a Moyasar invoice; the
+    // boost auto-activates on payment (webhook + redirect confirmation) —
+    // same as the new-listing flow.
     if (data.claim_free_boost) {
       try {
         await base44.functions.invoke("claimFreeBoost", { item_id: id });

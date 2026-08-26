@@ -148,11 +148,12 @@ export default function AdminRealEstate() {
         <p className="text-[11px] font-bold text-sky-700 dark:text-sky-300 flex items-center gap-1"><ShieldCheck size={12} /> {ar ? "قائمة المطابقة قبل الاعتماد" : "Match checklist before approving"}</p>
         <div className="space-y-1">
           {[
-            { key: "phone", label: ar ? "رقم الجوال" : "Phone number", value: u.re_license_phone || ((u.country_code ? u.country_code + " " : "") + (u.phone || "-")) },
-            { key: "type", label: ar ? "نوع الترخيص" : "License type", value: licenseTypeLabel(u.re_license_type) },
-            { key: "holder", label: ar ? "صاحب الترخيص" : "License holder", value: u.re_license_holder || "-" },
-            { key: "number", label: ar ? "رقم الترخيص" : "License number", value: u.re_license_number || "-" },
+            { key: "type", label: ar ? "نوع الوسيط" : "Broker type", value: licenseTypeLabel(u.re_license_type) },
+            { key: "holder", label: ar ? "اسم الوسيط" : "Broker name", value: u.re_license_holder || "-" },
             ...(u.re_license_type === "establishment_fal" ? [{ key: "establishment", label: ar ? "الرقم الموحد للمنشأة" : "Establishment number", value: u.re_establishment_number || "-" }] : []),
+            { key: "number", label: ar ? "رقم الرخصة" : "License number", value: u.re_license_number || "-" },
+            { key: "expiry", label: ar ? "تاريخ الانتهاء" : "Expiry date", value: u.re_license_expiry ? new Date(u.re_license_expiry).toLocaleDateString(ar ? "ar-SA" : "en-US", { year: "numeric", month: "short", day: "numeric" }) : "-" },
+            { key: "phone", label: ar ? "رقم الجوال" : "Phone number", value: u.re_license_phone || (u.phone ? "+" + u.phone : "-") },
           ].map((item) => (
             <label key={item.key} className="flex items-start gap-2 cursor-pointer">
               <input type="checkbox" checked={!!checked[`${u.id}-${item.key}`]} onChange={() => toggle(`${u.id}-${item.key}`)} className="mt-0.5 w-4 h-4 accent-sky-600 shrink-0" />

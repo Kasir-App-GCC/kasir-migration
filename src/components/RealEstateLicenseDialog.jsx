@@ -39,6 +39,7 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
 
   const trusted = !!user?.is_trusted;
   const editing = trusted && (status === "" || status === "rejected" || status === "expired" || editMode);
+  const verifiedPhoneE164 = user?.phone ? "+" + user.phone.replace(/\D/g, "") : "";
   const hasLicensePhone = phoneMode === "verified" ? !!(user?.phone_verified && user?.phone) : licensePhoneVerified;
   const valid = licenseType && licenseNumber.trim() && licenseHolder.trim() && licenseExpiry && licenseDoc && hasLicensePhone && (licenseType !== "establishment_fal" || establishmentNumber.trim());
 
@@ -64,7 +65,7 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
         license_expiry: licenseExpiry,
         license_doc: licenseDoc,
         establishment_number: establishmentNumber.trim(),
-        license_phone: phoneMode === "verified" ? ((user.country_code || "+966") + (user.phone || "")) : licensePhone,
+        license_phone: phoneMode === "verified" ? verifiedPhoneE164 : licensePhone,
       });
       await refreshUser();
       setEditMode(false);
@@ -159,7 +160,7 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
                       </span>
                       {ar ? "استخدام رقمي الموثّق" : "Use my verified number"}
                     </span>
-                    <span dir="ltr" className="text-xs font-mono font-bold whitespace-nowrap">{user.country_code || "+966"} {user.phone}</span>
+                    <span dir="ltr" className="text-xs font-mono font-bold whitespace-nowrap">{verifiedPhoneE164 || "-"}</span>
                   </div>
                 </button>
               )}

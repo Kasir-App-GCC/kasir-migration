@@ -5,6 +5,8 @@ import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
 import { Image } from "@/components/ui/image";
 import Price from "@/components/Price";
+import AdminUserPreview from "@/components/admin/AdminUserPreview";
+import AdminItemPreview from "@/components/admin/AdminItemPreview";
 
 export default function AdminRealEstate() {
   const { lang } = useStore();
@@ -14,6 +16,8 @@ export default function AdminRealEstate() {
   const [loading, setLoading] = useState(true);
   const [rejecting, setRejecting] = useState(null);
   const [reason, setReason] = useState("");
+  const [previewItem, setPreviewItem] = useState(null);
+  const [previewUser, setPreviewUser] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -78,12 +82,8 @@ export default function AdminRealEstate() {
     return map[t] || t || "-";
   };
 
-  const openItem = (item) => window.open(`/item/${item.id}`, "_blank");
-  const openUser = (item) => {
-    const name = encodeURIComponent(item.seller_name || "");
-    const avatar = encodeURIComponent(item.seller_avatar || "");
-    window.open(`/user/${item.seller_id}?name=${name}&avatar=${avatar}`, "_blank");
-  };
+  const openItem = (item) => setPreviewItem(item);
+  const openUser = (item) => setPreviewUser(item.seller_id);
 
   return (
     <div className="space-y-3">
@@ -169,6 +169,9 @@ export default function AdminRealEstate() {
           ))}
         </div>
       )}
+
+      {previewItem && <AdminItemPreview item={previewItem} onClose={() => setPreviewItem(null)} />}
+      {previewUser && <AdminUserPreview userId={previewUser} onClose={() => setPreviewUser(null)} />}
     </div>
   );
 }

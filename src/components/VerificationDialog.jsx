@@ -8,6 +8,7 @@ import PhoneOtpVerifier from "@/components/PhoneOtpVerifier";
 import { userPhoneE164, digitsOnly } from "@/lib/phone";
 import { apiErrorMessage } from "@/lib/apiError";
 import { validateNationalId, nationalIdRule } from "@/lib/nationalId";
+import MoyasarPaymentDialog from "@/components/MoyasarPaymentDialog";
 
 export default function VerificationDialog({ open, onClose }) {
   const { user, lang } = useStore();
@@ -23,6 +24,7 @@ export default function VerificationDialog({ open, onClose }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [pendingRequest, setPendingRequest] = useState(null);
+  const [payment, setPayment] = useState(null);
 
   const idRule = nationalIdRule(user?.country);
   const hasAvatar = !!user?.avatar;
@@ -86,18 +88,13 @@ export default function VerificationDialog({ open, onClose }) {
         timeout
       ]);
       if (res?.data?.error) throw new Error(res.data.error);
-      if (!res?.data?.url) throw new Error(ar ? "لم يتم إنشاء رابط الدفع" : "No payment URL returned");
-      // Reset the loading state BEFORE the redirect so the button doesn't
-      // stay stuck on "Preparing…" if the PWA webview stalls the navigation.
+      if (!res?.data?.requestId) throw new Error(ar ? "تعذّر بدء الدفع" : "Couldn't start payment");
       setSubmitting(false);
-      // window.open with _blank is more reliable in PWA standalone mode on
-      // Android, where window.location.href to an external URL can silently
-      // fail. The callback URL returns to /profile which reopens the app.
-      const win = window.open(res.data.url, "_blank");
-      if (!win) {
-        // Pop-up blocked — fall back to same-window navigation.
-        window.location.href = res.data.url;
-      }
+      setPayment({
+        amount: res.data.amount,
+        publishableKey: res.data.publishableKey,
+        requestId: res.data.requestId,
+      });
     } catch (err) {
       setError(apiErrorMessage(err, ar ? "فشل الإرسال" : "Failed to submit"));
     } finally {
@@ -195,6 +192,30 @@ export default function VerificationDialog({ open, onClose }) {
           </>
         }
       </div>
+      <MoyasarPaymentDialog
+        open={!!payment}
+        onClose={() => setPayment(null)}
+        amount={payment?.amount}
+        description="رسوم توثيق الحساب - كاسر"
+        metadata={{
+          type: "verification",
+          user_id: user?.id,
+          verification_request_id: payment?.requestId,
+          full_name: fullName,
+          phone: digitsOnly(phoneE164),
+        }}
+        publishableKey={payment?.publishableKey}
+        callbackUrl={`${window.location.origin}/profile?verify_payment=1`}
+        confirmFunction="confirmVerificationPayment"
+        lang={lang}
+        title={ar ? "توثيق الحساب" : "Account verification"}
+        onSuccess={async () => {
+          try { await refreshUser(); } catch {}
+          setPayment(null);
+          onClose();
+          toast({ title: ar ? "تم توثيق حسابك! 🎉" : "Account verified! 🎉" });
+        }}
+      />
     </div>);
 
 }

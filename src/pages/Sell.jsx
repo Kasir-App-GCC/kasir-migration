@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { useToast } from "@/components/ui/use-toast";
 import ListingForm from "@/components/ListingForm";
+import MoyasarPaymentDialog from "@/components/MoyasarPaymentDialog";
 
 export default function Sell() {
   const { user, lang } = useStore();
@@ -12,6 +13,7 @@ export default function Sell() {
   const nav = useNavigate();
   const { toast } = useToast();
   const ar = lang === "ar";
+  const [payment, setPayment] = useState(null);
 
   const submit = async (data) => {
     const { boost_hours, boost_cross_country, boost_amount, ...itemData } = data;
@@ -43,14 +45,21 @@ export default function Sell() {
           hours: boost_hours,
           origin: window.location.origin,
         });
-        if (res?.data?.url) {
+        if (res?.data?.ok) {
           toast({ title: ar ? "تم نشر إعلانك — أكمل الدفع للتعزيز" : "Listing posted — complete payment to boost" });
-          const win = window.open(res.data.url, "_blank");
-          if (!win) window.location.href = res.data.url;
+          setPayment({
+            amount: res.data.amount,
+            publishableKey: res.data.publishableKey,
+            requestId: res.data.requestId,
+            itemId: res.data.itemId,
+            hours: res.data.hours,
+          });
           return;
         }
       } catch {}
-      toast({ title: ar ? "تم نشر إعلانك" : "Listing posted", description: ar ? "تعذّر إنشاء رابط التعزيز" : "Couldn't create boost link", variant: "destructive" });
+      toast({ title: ar ? "تم نشر إعلانك" : "Listing posted", description: ar ? "تعذّر بدء الدفع" : "Couldn't start payment", variant: "destructive" });
+      nav("/");
+      return;
     }
     nav("/");
   };
@@ -63,6 +72,28 @@ export default function Sell() {
         submitLabel={t("postListing")}
         submittingLabel={t("posting")}
         onSubmit={submit}
+      />
+      <MoyasarPaymentDialog
+        open={!!payment}
+        onClose={() => setPayment(null)}
+        amount={payment?.amount}
+        description={`تعزيز إعلان - كاسر (${payment?.hours} ساعة)`}
+        metadata={{
+          type: "boost",
+          user_id: user?.id,
+          boost_request_id: payment?.requestId,
+          item_id: payment?.itemId,
+          hours: String(payment?.hours || ""),
+        }}
+        publishableKey={payment?.publishableKey}
+        callbackUrl={`${window.location.origin}/item/${payment?.itemId}?boost_payment=1`}
+        confirmFunction="confirmBoostPayment"
+        lang={lang}
+        title={ar ? "تعزيز الإعلان" : "Boost listing"}
+        onSuccess={() => {
+          setPayment(null);
+          nav(`/item/${payment?.itemId}`);
+        }}
       />
     </div>
   );

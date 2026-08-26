@@ -6,6 +6,7 @@ import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { useToast } from "@/components/ui/use-toast";
 import ListingForm from "@/components/ListingForm";
+import MoyasarPaymentDialog from "@/components/MoyasarPaymentDialog";
 
 export default function EditListing() {
   const { id } = useParams();
@@ -16,6 +17,7 @@ export default function EditListing() {
   const ar = lang === "ar";
   const [item, setItem] = useState(undefined);
   const [error, setError] = useState(null);
+  const [payment, setPayment] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -87,14 +89,19 @@ export default function EditListing() {
           hours: boost_hours,
           origin: window.location.origin,
         });
-        if (res?.data?.url) {
+        if (res?.data?.ok) {
           toast({ title: ar ? "تم حفظ التعديلات — أكمل الدفع للتعزيز" : "Changes saved — complete payment to boost" });
-          const win = window.open(res.data.url, "_blank");
-          if (!win) window.location.href = res.data.url;
+          setPayment({
+            amount: res.data.amount,
+            publishableKey: res.data.publishableKey,
+            requestId: res.data.requestId,
+            itemId: res.data.itemId,
+            hours: res.data.hours,
+          });
           return;
         }
       } catch {}
-      toast({ title: ar ? "تم حفظ التعديلات" : "Changes saved", description: ar ? "تعذّر إنشاء رابط التعزيز" : "Couldn't create boost link", variant: "destructive" });
+      toast({ title: ar ? "تم حفظ التعديلات" : "Changes saved", description: ar ? "تعذّر بدء الدفع" : "Couldn't start payment", variant: "destructive" });
     }
     nav(`/item/${id}`);
   };
@@ -113,6 +120,28 @@ export default function EditListing() {
         submittingLabel={t("savingChanges")}
         onSubmit={submit}
         boostLocked={promoted}
+      />
+      <MoyasarPaymentDialog
+        open={!!payment}
+        onClose={() => setPayment(null)}
+        amount={payment?.amount}
+        description={`تعزيز إعلان - كاسر (${payment?.hours} ساعة)`}
+        metadata={{
+          type: "boost",
+          user_id: user?.id,
+          boost_request_id: payment?.requestId,
+          item_id: payment?.itemId,
+          hours: String(payment?.hours || ""),
+        }}
+        publishableKey={payment?.publishableKey}
+        callbackUrl={`${window.location.origin}/item/${payment?.itemId}?boost_payment=1`}
+        confirmFunction="confirmBoostPayment"
+        lang={lang}
+        title={ar ? "تعزيز الإعلان" : "Boost listing"}
+        onSuccess={() => {
+          setPayment(null);
+          nav(`/item/${id}`);
+        }}
       />
     </div>
   );

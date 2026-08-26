@@ -28,6 +28,7 @@ export default function AdminPayments() {
   const [q, setQ] = useState("");
   const [clearing, setClearing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [boostSyncing, setBoostSyncing] = useState(false);
 
   const copyId = (id) => {
     if (!id) return;
@@ -103,6 +104,27 @@ export default function AdminPayments() {
     }
   };
 
+  // Reconcile paid Moyasar boost invoices directly via the API — activates any
+  // pending boosts even when the webhook/redirect couldn't fire (e.g. preview
+  // environment). Idempotent, so it's safe to run repeatedly.
+  const syncBoosts = async () => {
+    setBoostSyncing(true);
+    try {
+      const res = await base44.functions.invoke("syncBoostPayments", {});
+      await build();
+      toast({
+        title: ar ? "تمت مزامنة التعزيزات" : "Boosts reconciled",
+        description: ar
+          ? `${res?.data?.activated || 0} تعزيز مُفعّل · ${res?.data?.already || 0} مُفعّل سابقاً (من ${res?.data?.boostFound || 0})`
+          : `${res?.data?.activated || 0} activated · ${res?.data?.already || 0} already live (of ${res?.data?.boostFound || 0} boosts)`,
+      });
+    } catch (e) {
+      toast({ title: ar ? "فشلت مزامنة التعزيزات" : "Boost sync failed", variant: "destructive" });
+    } finally {
+      setBoostSyncing(false);
+    }
+  };
+
   // Delete every record that feeds the "Total Payments Received" figure:
   // all Payment ledger rows, approved paid boosts, and approved verifications.
   // Pending boosts/verifications and free-boost records are preserved.
@@ -168,6 +190,9 @@ export default function AdminPayments() {
           <div className="flex items-center gap-2">
             <button onClick={sync} disabled={syncing} className="px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-sm font-bold flex items-center gap-1.5 disabled:opacity-60 transition">
               <RefreshCw size={15} className={syncing ? "animate-spin" : ""} /> {ar ? "مزامنة" : "Sync"}
+            </button>
+            <button onClick={syncBoosts} disabled={boostSyncing} title={ar ? "تفعيل التعزيزات المدفوعة عبر Moyasar" : "Activate paid boosts via Moyasar API"} className="px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-sm font-bold flex items-center gap-1.5 disabled:opacity-60 transition">
+              <RefreshCw size={15} className={boostSyncing ? "animate-spin" : ""} /> {ar ? "تعزيزات" : "Boosts"}
             </button>
             {confirmClear ? (
               <>

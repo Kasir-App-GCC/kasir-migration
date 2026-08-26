@@ -1,5 +1,6 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 import { secrets } from "base44:runtime";
+import { activateBoost } from "../../shared/activateBoost.ts";
 
 // Verifies a Moyasar payment for a boost and activates the promotion
 // immediately (no admin review). Two entry points:
@@ -101,77 +102,15 @@ export default async function (req: Request): Promise<Response> {
       }
     }
 
-    const requestId = metadata?.boost_request_id ? String(metadata.boost_request_id) : "";
-    const itemId = metadata?.item_id ? String(metadata.item_id) : "";
-    const hours = Math.max(0, Math.floor(Number(metadata?.hours) || 0));
-
-    let request = null;
-    if (requestId) {
-      try { request = await base44.asServiceRole.entities.BoostRequest.get(requestId); } catch { request = null; }
-    }
-
-    // Idempotency: if already approved, the boost is already live.
-    if (request && request.status === "approved") {
-      return Response.json({ ok: true, activated: true, already: true });
-    }
-
-    if (request) {
-      await base44.asServiceRole.entities.BoostRequest.update(request.id, {
-        status: "approved",
-        reviewed_by: "system",
-        receipt_url: "moyasar:" + (resolvedPaymentId || invoiceId),
-      });
-    } else if (itemId) {
-      const item = await base44.asServiceRole.entities.Item.get(itemId).catch(() => null);
-      request = await base44.asServiceRole.entities.BoostRequest.create({
-        item_id: itemId,
-        item_title: item?.title || "",
-        user_id: metadata?.user_id ? String(metadata.user_id) : "",
-        user_name: "",
-        hours,
-        cross_country: false,
-        amount: 0,
-        status: "approved",
-        reviewed_by: "system",
-        receipt_url: "moyasar:" + (resolvedPaymentId || invoiceId),
-      });
-    }
-
-    // Activate the boost on the item. Only extend the featured window if the
-    // new boost pushes it further out than an existing active boost — never
-    // shorten a paid promotion.
-    const boostHours = request?.hours || hours;
-    if (itemId && boostHours > 0) {
-      const item = await base44.asServiceRole.entities.Item.get(itemId).catch(() => null);
-      const until = new Date(Date.now() + boostHours * 3600 * 1000).toISOString();
-      const existingUntil = item?.featured_until ? new Date(item.featured_until).getTime() : 0;
-      const featuredUntil = new Date(until).getTime() > existingUntil ? until : item.featured_until;
-      await base44.asServiceRole.entities.Item.update(itemId, {
-        featured: true,
-        featured_until: featuredUntil,
-      });
-    }
-
-    const notifyUserId = metadata?.user_id ? String(metadata.user_id) : request?.user_id || "";
-    if (notifyUserId) {
-      try {
-        // Boosts are fully automated now (no admin review), so skip the
-        // confirmation notification for admin accounts — only the end user
-        // gets a "your boost is live" notice.
-        const notifyUser = await base44.asServiceRole.entities.User.get(notifyUserId).catch(() => null);
-        if (notifyUser?.role !== "admin") {
-          await base44.asServiceRole.entities.Notification.create({
-            user_id: notifyUserId,
-            type: "boost_approved",
-            item_id: itemId,
-            item_title: request?.item_title || "",
-            text: "تم تفعيل تعزيز إعلانك ⭐",
-          });
-        }
-      } catch (e) {}
-    }
-
-    return Response.json({ ok: true, activated: true });
+    const result = await activateBoost(base44, {
+      requestId: metadata?.boost_request_id ? String(metadata.boost_request_id) : "",
+      itemId: metadata?.item_id ? String(metadata.item_id) : "",
+      hours: Number(metadata?.hours) || 0,
+      userId: metadata?.user_id ? String(metadata.user_id) : "",
+      paymentId: resolvedPaymentId,
+      invoiceId,
+    });
+    return Response.json({ ok: true, activated: result.activated, already: result.already });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

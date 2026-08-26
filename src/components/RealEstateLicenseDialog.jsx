@@ -87,10 +87,12 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
         invoiceId,
         onSuccess: async (r) => {
           try {
-            await base44.functions.invoke("confirmBrokerPayment", { paymentId: r.payment_id || invoiceId });
+            await base44.functions.invoke("confirmBrokerPayment", { paymentId: r.payment_id || invoiceId, invoiceId });
             await refreshUser();
             toast({ title: ar ? "تم تفعيل شارة الوسيط العقاري 🎉" : "Broker badge activated 🎉" });
-          } catch {}
+          } catch (e) {
+            toast({ title: ar ? "تم الدفع لكن تعذّر تفعيل الشارة — تواصل مع الدعم" : "Paid but activation failed — contact support", variant: "destructive" });
+          }
         },
       });
     } catch (e) {

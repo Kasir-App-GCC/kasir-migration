@@ -46,6 +46,7 @@ export default async function(req: Request): Promise<Response> {
       if (!paymentId) return Response.json({ error: 'Missing payment ID' }, { status: 400 });
 
       let paid = false;
+      let invoiceIdFromPayment = '';
       const payRes = await fetch('https://api.moyasar.com/v1/payments/' + paymentId, {
         headers: { Authorization: authHeader },
       });
@@ -54,6 +55,7 @@ export default async function(req: Request): Promise<Response> {
         if (payData.status === 'paid') {
           paid = true;
           metadata = payData.metadata || null;
+          invoiceIdFromPayment = payData.invoice || '';
         }
       } else {
         const invRes = await fetch('https://api.moyasar.com/v1/invoices/' + paymentId, {
@@ -73,6 +75,25 @@ export default async function(req: Request): Promise<Response> {
       }
 
       if (!paid) return Response.json({ ok: false, error: 'Payment not completed' });
+
+      // Moyasar stores our metadata on the INVOICE, not the payment object — so
+      // a paid payment often comes back with empty metadata. Fall back to the
+      // invoice (the one linked to the payment, or the invoiceId the client
+      // passed) and read the metadata from there.
+      if (!metadata) {
+        const invId = invoiceIdFromPayment || (body.invoiceId || '').trim();
+        if (invId) {
+          try {
+            const invRes = await fetch('https://api.moyasar.com/v1/invoices/' + invId, {
+              headers: { Authorization: authHeader },
+            });
+            if (invRes.ok) {
+              const invData = await invRes.json();
+              metadata = invData.metadata || null;
+            }
+          } catch {}
+        }
+      }
 
       // Ownership: the invoice metadata carries the user_id set at checkout.
       const metaUserId = metadata?.user_id ? String(metadata.user_id) : '';

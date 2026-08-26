@@ -104,6 +104,31 @@ export default function AdminRealEstate() {
     setActing(null);
   };
 
+  const markPaid = async (u) => {
+    setActing(u.id);
+    try {
+      await base44.entities.User.update(u.id, { re_license_status: "approved", re_license_review_reason: "" });
+      try {
+        await base44.entities.Item.updateMany(
+          { seller_id: u.id, category: "realestate", review_status: "pending" },
+          { $set: { review_status: "approved", review_reason: "" } }
+        );
+      } catch {}
+      try {
+        await base44.entities.Notification.create({
+          user_id: u.id,
+          type: "re_license_activated",
+          text: ar ? "تم تفعيل شارة الوسيط العقاري! يمكنك الآن نشر إعلانات عقارية 🎉" : "Your real estate broker badge is activated! You can now post real estate listings 🎉",
+        });
+      } catch {}
+      setApproved((prev) => prev.map((x) => (x.id === u.id ? { ...x, re_license_status: "approved" } : x)));
+      toast({ title: ar ? "تم تفعيل الشارة" : "Badge activated" });
+    } catch {
+      toast({ title: ar ? "تعذّر التفعيل" : "Failed to activate", variant: "destructive" });
+    }
+    setActing(null);
+  };
+
   const revoke = async (u) => {
     setActing(u.id);
     try {
@@ -216,9 +241,16 @@ export default function AdminRealEstate() {
           </div>
         )
       ) : (
-        <button onClick={() => revoke(u)} disabled={acting === u.id} className="w-full py-2.5 rounded-xl bg-rose-600 text-white text-sm font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
-          <Ban size={15} /> {ar ? "إلغاء الترخيص" : "Revoke license"}
-        </button>
+        <div className="space-y-2">
+          {u.re_license_status === "approved_pending_payment" && (
+            <button onClick={() => markPaid(u)} disabled={acting === u.id} className="w-full py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
+              <BadgeCheck size={15} /> {ar ? "تأكيد الدفع وفعّل الشارة" : "Confirm paid & activate"}
+            </button>
+          )}
+          <button onClick={() => revoke(u)} disabled={acting === u.id} className="w-full py-2.5 rounded-xl bg-rose-600 text-white text-sm font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
+            <Ban size={15} /> {ar ? "إلغاء الترخيص" : "Revoke license"}
+          </button>
+        </div>
       )}
     </div>
   );

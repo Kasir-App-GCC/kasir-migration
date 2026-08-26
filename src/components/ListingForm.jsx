@@ -70,6 +70,8 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [freeBoostAvailable, setFreeBoostAvailable] = useState(null);
   const [reLicenseType, setReLicenseType] = useState(initial?.re_license_type || "");
   const [reLicenseNumber, setReLicenseNumber] = useState(initial?.re_license_number || "");
+  const [reLicenseHolder, setReLicenseHolder] = useState(initial?.re_license_holder || "");
+  const [reLicenseExpiry, setReLicenseExpiry] = useState(initial?.re_license_expiry ? String(initial.re_license_expiry).slice(0, 10) : "");
   const [reLicenseDoc, setReLicenseDoc] = useState(initial?.re_license_doc || "");
   const [reDocUploading, setReDocUploading] = useState(false);
 
@@ -261,6 +263,8 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         delivers_within_city: deliversWithinCity,
         re_license_type: saRealEstate ? reLicenseType || undefined : undefined,
         re_license_number: saRealEstate ? reLicenseNumber || undefined : undefined,
+        re_license_holder: saRealEstate ? reLicenseHolder || undefined : undefined,
+        re_license_expiry: saRealEstate ? reLicenseExpiry || undefined : undefined,
         re_license_doc: saRealEstate ? reLicenseDoc || undefined : undefined,
         featured: false,
         boost_hours: useFreeBoost ? 0 : boostHours,
@@ -281,7 +285,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   // the trusted badge (verification) first. This gate only applies to SA real
   // estate; all other categories and countries are unaffected.
   const reBlocked = saRealEstate && !verified;
-  const reValid = !saRealEstate || (!!reLicenseType && !!reLicenseNumber && !!reLicenseDoc);
+  const reValid = !saRealEstate || (!!reLicenseType && !!reLicenseNumber && !!reLicenseHolder && !!reLicenseExpiry && !!reLicenseDoc);
   const valid = title && price && category && city && images.length > 0 && reValid && !reBlocked;
   // Featured-listing promotion price: basePrice = 5 + 20·ln(1 + P/500), then
   // × (H/24)^0.70, floored at SAR 5. P is the item price, H the selected hours.
@@ -545,6 +549,25 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             value={reLicenseNumber}
             onChange={(e) => setReLicenseNumber(e.target.value.slice(0, 50))}
             placeholder={ar ? "أدخل رقم الترخيص" : "Enter license number"}
+            className="w-full px-3 py-2.5 rounded-xl bg-card border border-border/60 outline-none focus:ring-2 ring-primary/30 text-sm"
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-semibold">{ar ? "اسم صاحب الترخيص" : "License holder name"} <span className="text-rose-500">*</span></label>
+          <input
+            value={reLicenseHolder}
+            onChange={(e) => setReLicenseHolder(e.target.value.slice(0, 80))}
+            placeholder={ar ? "الاسم كما في الترخيص" : "Name as on license"}
+            className="w-full px-3 py-2.5 rounded-xl bg-card border border-border/60 outline-none focus:ring-2 ring-primary/30 text-sm"
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-semibold">{ar ? "تاريخ انتهاء الرخصة" : "License expiry date"} <span className="text-rose-500">*</span></label>
+          <input
+            type="date"
+            value={reLicenseExpiry}
+            onChange={(e) => setReLicenseExpiry(e.target.value)}
+            min={new Date().toISOString().slice(0, 10)}
             className="w-full px-3 py-2.5 rounded-xl bg-card border border-border/60 outline-none focus:ring-2 ring-primary/30 text-sm"
           />
         </div>

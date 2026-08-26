@@ -524,6 +524,14 @@ export default function ItemDetail() {
               <p className="text-[11px] text-muted-foreground">{lang === "ar" ? "رقم الترخيص" : "License number"}</p>
               <p className="text-sm font-semibold font-mono">{item.re_license_number || "-"}</p>
             </div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">{lang === "ar" ? "صاحب الترخيص" : "License holder"}</p>
+              <p className="text-sm font-semibold">{item.re_license_holder || "-"}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">{lang === "ar" ? "تاريخ انتهاء الرخصة" : "License expiry"}</p>
+              <p className="text-sm font-semibold">{item.re_license_expiry ? new Date(item.re_license_expiry).toLocaleDateString(lang === "ar" ? "ar-SA" : "en-US", { year: "numeric", month: "short", day: "numeric" }) : "-"}</p>
+            </div>
           </div>
         </div>
       )}

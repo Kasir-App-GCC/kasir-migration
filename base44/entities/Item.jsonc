@@ -165,6 +165,15 @@
       "type": "string",
       "description": "REGA license number for real estate listings"
     },
+    "re_license_holder": {
+      "type": "string",
+      "description": "Name of the license holder exactly as it appears on the REGA license (individual or establishment name)"
+    },
+    "re_license_expiry": {
+      "type": "string",
+      "format": "date",
+      "description": "Expiry date of the REGA advertisement license; listings with a past expiry are non-compliant"
+    },
     "re_license_doc": {
       "type": "string",
       "description": "URL of the uploaded license document (image or PDF) for real estate listings"

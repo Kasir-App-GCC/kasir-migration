@@ -138,6 +138,17 @@ export default function AdminRealEstate() {
                   <p className="text-muted-foreground">{ar ? "رقم الترخيص" : "License number"}</p>
                   <p className="font-semibold font-mono">{item.re_license_number || "-"}</p>
                 </div>
+                <div className="col-span-2">
+                  <p className="text-muted-foreground">{ar ? "صاحب الترخيص" : "License holder"}</p>
+                  <p className="font-semibold">{item.re_license_holder || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">{ar ? "تاريخ انتهاء الرخصة" : "License expiry"}</p>
+                  <p className={`font-semibold ${item.re_license_expiry && new Date(item.re_license_expiry) < new Date() ? "text-rose-600 dark:text-rose-400" : ""}`}>
+                    {item.re_license_expiry ? new Date(item.re_license_expiry).toLocaleDateString(ar ? "ar-SA" : "en-US", { year: "numeric", month: "short", day: "numeric" }) : "-"}
+                    {item.re_license_expiry && new Date(item.re_license_expiry) < new Date() && (ar ? " · منتهية" : " · expired")}
+                  </p>
+                </div>
               </div>
               {item.re_license_doc && (
                 <a href={item.re_license_doc} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-sm text-primary font-semibold">

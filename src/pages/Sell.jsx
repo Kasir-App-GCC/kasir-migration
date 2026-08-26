@@ -29,6 +29,10 @@ export default function Sell() {
       featured_cross_country: false,
       review_status: itemData.category === "realestate" && itemData.country === "SA" ? "pending" : "approved",
     });
+    // Notify all admins when a Saudi real estate listing is submitted for review.
+    if (item.review_status === "pending") {
+      try { await base44.functions.invoke("notifyRealEstateReview", { item_id: item.id }); } catch {}
+    }
     if (data.claim_free_boost) {
       try {
         await base44.functions.invoke("claimFreeBoost", { item_id: item.id });

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Building2, Check, X, ExternalLink } from "lucide-react";
+import { Building2, Check, X, ExternalLink, User as UserIcon } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
@@ -78,6 +78,13 @@ export default function AdminRealEstate() {
     return map[t] || t || "-";
   };
 
+  const openItem = (item) => window.open(`/item/${item.id}`, "_blank");
+  const openUser = (item) => {
+    const name = encodeURIComponent(item.seller_name || "");
+    const avatar = encodeURIComponent(item.seller_avatar || "");
+    window.open(`/user/${item.seller_id}?name=${name}&avatar=${avatar}`, "_blank");
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -94,13 +101,29 @@ export default function AdminRealEstate() {
           {items.map((item) => (
             <div key={item.id} className="rounded-2xl border border-border bg-card p-4 space-y-3">
               <div className="flex items-start gap-3">
-                <div className="w-16 h-16 rounded-xl overflow-hidden bg-muted shrink-0">
+                <button
+                  onClick={() => openItem(item)}
+                  title={ar ? "فتح الإعلان للمراجعة" : "Open listing to review"}
+                  className="w-16 h-16 rounded-xl overflow-hidden bg-muted shrink-0 relative group"
+                >
                   {item.images?.[0] ? <Image src={item.images[0]} fittingType="fill" className="w-full h-full" /> : <Building2 size={24} className="m-auto text-muted-foreground" />}
-                </div>
+                  <span className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                    <ExternalLink size={16} className="text-white" />
+                  </span>
+                </button>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm truncate">{item.title}</p>
+                  <button onClick={() => openItem(item)} className="font-bold text-sm truncate hover:text-primary hover:underline text-start block w-full" title={ar ? "فتح الإعلان" : "Open listing"}>
+                    {item.title}
+                  </button>
                   <p className="text-xs text-muted-foreground">{item.city} · <Price value={item.price} lang={lang} country={item.country || "SA"} /></p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{ar ? "البائع" : "Seller"}: {item.seller_name}</p>
+                  <button
+                    onClick={() => openUser(item)}
+                    className="text-xs text-muted-foreground mt-0.5 inline-flex items-center gap-1 hover:text-primary hover:underline"
+                    title={ar ? "عرض تفاصيل البائع" : "View seller details"}
+                  >
+                    <UserIcon size={11} className="shrink-0" />
+                    {ar ? "البائع" : "Seller"}: {item.seller_name}
+                  </button>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">

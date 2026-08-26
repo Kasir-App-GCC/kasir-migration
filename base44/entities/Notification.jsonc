@@ -29,7 +29,8 @@
         "dispute_resolved",
         "admin_message",
         "listing_approved",
-        "listing_rejected"
+        "listing_rejected",
+        "listing_pending_review"
       ],
       "default": "sold"
     },

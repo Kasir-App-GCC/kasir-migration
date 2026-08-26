@@ -60,11 +60,17 @@ export default function EditListing() {
       throw new Error("price_increase_blocked");
     }
     // Re-submit a rejected Saudi real estate listing for admin re-review.
+    let reResubmitted = false;
     if (item?.review_status === "rejected" && itemData.category === "realestate" && itemData.country === "SA") {
       itemData.review_status = "pending";
       itemData.review_reason = "";
+      reResubmitted = true;
     }
     await base44.entities.Item.update(id, itemData);
+    // Notify all admins that a rejected listing was re-submitted for review.
+    if (reResubmitted) {
+      try { await base44.functions.invoke("notifyRealEstateReview", { item_id: id }); } catch {}
+    }
     // Price-drop alert: notify users who saved this listing when the price drops.
     if (Number.isFinite(oldPrice) && Number(itemData.price) > 0 && Number(itemData.price) < oldPrice) {
       try { await base44.functions.invoke("notifyPriceDrop", { item_id: id, old_price: oldPrice, new_price: Number(itemData.price) }); } catch {}

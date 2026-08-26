@@ -289,8 +289,12 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   // no such ad-license mandate, so the license section and its validation only
   // apply when the listing's country is Saudi Arabia.
   const saRealEstate = category === "realestate" && country === "SA";
+  // Unverified users cannot post Saudi real estate listings — they must obtain
+  // the trusted badge (verification) first. This gate only applies to SA real
+  // estate; all other categories and countries are unaffected.
+  const reBlocked = saRealEstate && !verified;
   const reValid = !saRealEstate || (!!reLicenseType && !!reLicenseNumber && !!reLicenseDoc);
-  const valid = title && price && category && city && images.length > 0 && reValid;
+  const valid = title && price && category && city && images.length > 0 && reValid && !reBlocked;
   // Featured-listing promotion price: basePrice = 5 + 20·ln(1 + P/500), then
   // × (H/24)^0.70, floored at SAR 5. P is the item price, H the selected hours.
   const existingHours = existingBoostHours(initial?.featured_until);
@@ -500,7 +504,24 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         </div>
       }
 
-      {category === "realestate" && country === "SA" && (
+      {category === "realestate" && country === "SA" && !verified && (
+      <div className="p-3.5 rounded-2xl border-2 border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/30 space-y-3">
+        <div className="flex items-start gap-2">
+          <ShieldCheck size={18} className="text-rose-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-bold">{ar ? "التوثيق مطلوب" : "Verification required"}</p>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              {ar ? "يجب توثيق حسابك والحصول على شارة الثقة أولاً قبل نشر إعلان عقاري في السعودية." : "You must verify your account and get the trusted badge before posting a real estate listing in Saudi Arabia."}
+            </p>
+          </div>
+        </div>
+        <button type="button" onClick={() => setVerifyOpen(true)} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm">
+          {ar ? "توثيق الحساب" : "Verify account"}
+        </button>
+      </div>
+      )}
+
+      {category === "realestate" && country === "SA" && verified && (
       <div className="p-3.5 rounded-2xl border-2 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 space-y-3">
         <div className="flex items-start gap-2">
           <ShieldCheck size={18} className="text-amber-600 shrink-0 mt-0.5" />

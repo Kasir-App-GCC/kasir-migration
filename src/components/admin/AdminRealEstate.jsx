@@ -20,6 +20,19 @@ export default function AdminRealEstate() {
   const [checked, setChecked] = useState({});
   const toggle = (key) => setChecked((c) => ({ ...c, [key]: !c[key] }));
 
+  // Normalize a phone for display: strips a doubled leading country code that
+  // older license submissions stored (country_code was prepended to an already-
+  // international phone, e.g. +9669665XXXXXXXX → +9665XXXXXXXX).
+  const formatPhone = (p) => {
+    if (!p) return "-";
+    let s = String(p).replace(/\D/g, "");
+    if (!s) return "-";
+    for (const cc of ["966", "971", "968", "973", "965", "974"]) {
+      if (s.startsWith(cc + cc)) { s = s.slice(cc.length); break; }
+    }
+    return "+" + s;
+  };
+
   const load = async () => {
     setLoading(true);
     try {
@@ -153,7 +166,8 @@ export default function AdminRealEstate() {
             ...(u.re_license_type === "establishment_fal" ? [{ key: "establishment", label: ar ? "الرقم الموحد للمنشأة" : "Establishment number", value: u.re_establishment_number || "-" }] : []),
             { key: "number", label: ar ? "رقم الرخصة" : "License number", value: u.re_license_number || "-" },
             { key: "expiry", label: ar ? "تاريخ الانتهاء" : "Expiry date", value: u.re_license_expiry ? new Date(u.re_license_expiry).toLocaleDateString(ar ? "ar-SA" : "en-US", { year: "numeric", month: "short", day: "numeric" }) : "-" },
-            { key: "phone", label: ar ? "رقم الجوال" : "Phone number", value: u.re_license_phone || (u.phone ? "+" + u.phone : "-") },
+            { key: "phone", label: ar ? "رقم الجوال" : "Phone number", value: formatPhone(u.re_license_phone || u.phone || "") },
+            ...(u.re_license_type === "individual_fal" ? [{ key: "national_id", label: ar ? "رقم الهوية" : "National ID", value: u.re_national_id || "-" }] : []),
           ].map((item) => (
             <label key={item.key} className="flex items-start gap-2 cursor-pointer">
               <input type="checkbox" checked={!!checked[`${u.id}-${item.key}`]} onChange={() => toggle(`${u.id}-${item.key}`)} className="mt-0.5 w-4 h-4 accent-sky-600 shrink-0" />

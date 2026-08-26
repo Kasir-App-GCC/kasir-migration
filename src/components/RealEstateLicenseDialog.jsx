@@ -30,10 +30,25 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
   const [phoneMode, setPhoneMode] = useState(user?.phone_verified && user?.phone ? "verified" : "license");
   const [licensePhone, setLicensePhone] = useState(user?.re_license_phone || "");
   const [licensePhoneVerified, setLicensePhoneVerified] = useState(false);
+  const [nationalId, setNationalId] = useState(user?.re_national_id || "");
 
   // Reset edit mode whenever the dialog is opened so an approved license
   // shows its read-only view first, not a stale edit form from a prior open.
   useEffect(() => { if (open) setEditMode(false); }, [open]);
+
+  // Pre-fill the National ID from the user's approved verification request
+  // when no real-estate national ID is stored yet (first license submission).
+  useEffect(() => {
+    if (user?.re_national_id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const reqs = await base44.entities.VerificationRequest.filter({ user_id: user?.id, status: "approved" }, "-created_date", 1);
+        if (!cancelled && reqs && reqs[0]?.national_id) setNationalId(reqs[0].national_id);
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id, user?.re_national_id]);
 
   if (!open) return null;
 
@@ -41,7 +56,7 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
   const editing = trusted && (status === "" || status === "rejected" || status === "expired" || editMode);
   const verifiedPhoneE164 = user?.phone ? "+" + user.phone.replace(/\D/g, "") : "";
   const hasLicensePhone = phoneMode === "verified" ? !!(user?.phone_verified && user?.phone) : licensePhoneVerified;
-  const valid = licenseType && licenseNumber.trim() && licenseHolder.trim() && licenseExpiry && licenseDoc && hasLicensePhone && (licenseType !== "establishment_fal" || establishmentNumber.trim());
+  const valid = licenseType && licenseNumber.trim() && licenseHolder.trim() && licenseExpiry && licenseDoc && hasLicensePhone && (licenseType !== "establishment_fal" || establishmentNumber.trim()) && (licenseType !== "individual_fal" || nationalId.trim());
 
   const uploadDoc = async (file) => {
     setDocUploading(true);
@@ -66,6 +81,7 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
         license_doc: licenseDoc,
         establishment_number: establishmentNumber.trim(),
         license_phone: phoneMode === "verified" ? verifiedPhoneE164 : licensePhone,
+        national_id: licenseType === "individual_fal" ? nationalId.trim() : "",
       });
       await refreshUser();
       setEditMode(false);
@@ -200,6 +216,13 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
               <label className="text-xs font-semibold">{ar ? "اسم صاحب الترخيص" : "License holder name"} *</label>
               <input value={licenseHolder} onChange={(e) => setLicenseHolder(e.target.value.slice(0, 80))} className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm" />
             </div>
+            {licenseType === "individual_fal" && (
+              <div className="space-y-1">
+                <label className="text-xs font-semibold">{ar ? "رقم الهوية" : "National ID"} *</label>
+                <input value={nationalId} onChange={(e) => setNationalId(e.target.value.slice(0, 20))} className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm" />
+                <p className="text-[11px] text-muted-foreground">{ar ? "رقم الهوية المسجّل لديك — مطلوب للوساطة الفردية." : "Your national ID — required for individual brokers."}</p>
+              </div>
+            )}
             {licenseType === "establishment_fal" && (
               <div className="space-y-1">
                 <label className="text-xs font-semibold">{ar ? "الرقم الموحد للمنشأة" : "Unified establishment number"} *</label>

@@ -23,6 +23,7 @@ export default async function (req: Request): Promise<Response> {
     const licenseDoc = (body.license_doc || "").toString().trim();
     const establishmentNumber = (body.establishment_number || "").toString().trim();
     const licensePhone = (body.license_phone || "").toString().trim();
+    const nationalId = (body.national_id || "").toString().trim();
 
     const validTypes = ["individual_fal", "establishment_fal"];
     if (!validTypes.includes(licenseType)) {
@@ -38,6 +39,9 @@ export default async function (req: Request): Promise<Response> {
     }
     if (!licensePhone) {
       return Response.json({ error: "License phone number is required" }, { status: 400 });
+    }
+    if (licenseType === "individual_fal" && !nationalId) {
+      return Response.json({ error: "National ID is required for individual brokers" }, { status: 400 });
     }
     // Basic expiry sanity: must be a valid date and not in the past.
     const exp = new Date(licenseExpiry);
@@ -56,6 +60,7 @@ export default async function (req: Request): Promise<Response> {
       re_license_doc: licenseDoc,
       re_establishment_number: licenseType === "establishment_fal" ? establishmentNumber : "",
       re_license_phone: licensePhone,
+      re_national_id: licenseType === "individual_fal" ? nationalId : "",
       re_license_status: "pending",
       re_license_review_reason: "",
     });

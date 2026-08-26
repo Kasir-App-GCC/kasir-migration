@@ -5,9 +5,7 @@ import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { useToast } from "@/components/ui/use-toast";
 import ListingForm from "@/components/ListingForm";
-import BoostCardForm from "@/components/BoostCardForm";
 import BoostPopupPayment from "@/components/BoostPopupPayment";
-import { getPaymentsMode } from "@/lib/appSettings";
 
 export default function Sell() {
   const { user, lang } = useStore();
@@ -15,7 +13,6 @@ export default function Sell() {
   const nav = useNavigate();
   const { toast } = useToast();
   const ar = lang === "ar";
-  const [card, setCard] = useState(null);
   const [popupPay, setPopupPay] = useState(null);
 
   const submit = async (data) => {
@@ -42,12 +39,6 @@ export default function Sell() {
         toast({ title: ar ? "تم نشر إعلانك" : "Listing posted", description: ar ? "تعذّر تفعيل التعزيز المجاني" : "Couldn't activate the free boost", variant: "destructive" });
       }
     } else if (boosted) {
-      const mode = await getPaymentsMode();
-      if (mode === "inapp") {
-        toast({ title: ar ? "تم نشر إعلانك — أكمل الدفع للتعزيز" : "Listing posted — complete payment to boost" });
-        setCard({ itemId: item.id, hours: boost_hours, amount: boost_amount });
-        return;
-      }
       try {
         const res = await base44.functions.invoke("createBoostRequest", {
           item_id: item.id,
@@ -80,16 +71,6 @@ export default function Sell() {
         submittingLabel={t("posting")}
         onSubmit={submit}
       />
-      {card && (
-        <BoostCardForm
-          open
-          itemId={card.itemId}
-          hours={card.hours}
-          amount={card.amount}
-          onSuccess={() => { setCard(null); nav("/"); }}
-          onClose={() => { setCard(null); nav("/"); }}
-        />
-      )}
       {popupPay && (
         <BoostPopupPayment
           open

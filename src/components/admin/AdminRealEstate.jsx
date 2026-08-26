@@ -106,6 +106,15 @@ export default function AdminRealEstate() {
           text: ar ? "تم إلغاء ترخيصك العقاري من قبل الإدارة. يرجى تحديث بياناتك وإعادة الإرسال للمراجعة." : "Your real estate license was revoked by the admin. Please update your details and resubmit for review.",
         });
       } catch {}
+      // Archive all active Saudi real estate listings from this broker — an
+      // unlicensed broker cannot legally advertise, so their ads must come
+      // down immediately (same as the per-ad-license expiry rule).
+      try {
+        await base44.entities.Item.updateMany(
+          { seller_id: u.id, category: "realestate", country: "SA", status: "available", archived: { $ne: true } },
+          { $set: { archived: true } }
+        );
+      } catch {}
       setApproved((prev) => prev.filter((x) => x.id !== u.id));
       toast({ title: ar ? "تم إلغاء الترخيص" : "License revoked" });
     } catch {

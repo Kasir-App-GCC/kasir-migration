@@ -247,7 +247,9 @@ export default function Profile() {
               const promoted = !!(it.featured && it.featured_until && new Date(it.featured_until) > new Date());
               // Refresh only matters in the last 3 days before auto-archive (or once archived).
               const daysSinceUpdate = it.updated_date ? (Date.now() - new Date(it.updated_date).getTime()) / 86400000 : 0;
-              const canRefresh = it.archived || daysSinceUpdate >= 27;
+              const isSaRe = it.category === "realestate" && it.country === "SA";
+              const brokerLicensed = !isSaRe || user?.re_license_status === "approved";
+              const canRefresh = brokerLicensed && (it.archived || daysSinceUpdate >= 27);
               return (
                 <div key={it.id} className="relative">
                   <ItemCard

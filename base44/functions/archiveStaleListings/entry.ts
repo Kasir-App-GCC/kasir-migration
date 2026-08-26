@@ -36,10 +36,29 @@ export default async function (req) {
     // Auto-expire approved Fal broker licenses whose expiry date has passed.
     // The broker must resubmit their license to regain real estate posting
     // privileges (REGA requires an active Fal license to advertise).
-    await base44.asServiceRole.entities.User.updateMany(
+    const expiredBrokers = await base44.asServiceRole.entities.User.filter(
       { re_license_status: "approved", re_license_expiry: { $lt: today } },
-      { $set: { re_license_status: "expired", re_license_review_reason: "" } }
+      "-created_date",
+      500
     );
+    if (expiredBrokers && expiredBrokers.length) {
+      const expiredIds = expiredBrokers.map((u: any) => u.id);
+      await base44.asServiceRole.entities.User.bulkUpdate(
+        expiredIds.map((id: string) => ({ id, re_license_status: "expired", re_license_review_reason: "" }))
+      );
+      // Archive all active Saudi real estate listings from these brokers —
+      // an unlicensed broker cannot legally advertise.
+      await base44.asServiceRole.entities.Item.updateMany(
+        {
+          status: "available",
+          archived: { $ne: true },
+          category: "realestate",
+          country: "SA",
+          seller_id: { $in: expiredIds },
+        },
+        { $set: { archived: true } }
+      );
+    }
 
     return Response.json({ ok: true, cutoff });
   } catch (error) {

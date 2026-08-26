@@ -5,7 +5,6 @@ import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
-import MoyasarPaymentDialog from "@/components/MoyasarPaymentDialog";
 
 const STORY = `👋 من وين بدأت الحكاية؟
 
@@ -115,7 +114,7 @@ const STORY = `👋 من وين بدأت الحكاية؟
 const QUICK_AMOUNTS = [5, 10, 20, 50, 100];
 
 export default function About() {
-  const { lang, user } = useStore();
+  const { lang } = useStore();
   const ar = lang === "ar";
   const { toast } = useToast();
   const nav = useNavigate();
@@ -123,7 +122,6 @@ export default function About() {
   const [selected, setSelected] = useState(10);
   const [custom, setCustom] = useState("");
   const [loading, setLoading] = useState(false);
-  const [payment, setPayment] = useState(null);
 
   const donate = async () => {
     const amt = custom ? parseFloat(custom) : selected;
@@ -134,8 +132,9 @@ export default function About() {
     setLoading(true);
     try {
       const res = await base44.functions.invoke("createDonationLink", { amount: amt, origin: window.location.origin });
-      if (res?.data?.ok) {
-        setPayment({ amount: res.data.amount, publishableKey: res.data.publishableKey });
+      if (res?.data?.ok && res.data.url) {
+        window.open(res.data.url, "_blank");
+        toast({ title: ar ? "تم فتح صفحة الدفع" : "Opening payment page" });
       } else {
         throw new Error(res?.data?.error || "Failed");
       }
@@ -223,22 +222,6 @@ export default function About() {
         </button>
         <p className="text-[11px] text-center opacity-80">الدفع آمن عبر Moyasar · بطاقة أو Apple Pay</p>
       </div>
-      <MoyasarPaymentDialog
-        open={!!payment}
-        onClose={() => setPayment(null)}
-        amount={payment?.amount}
-        description="دعم لكاسر"
-        metadata={{ type: "donation", user_id: user?.id || "" }}
-        publishableKey={payment?.publishableKey}
-        callbackUrl={`${window.location.origin}/about`}
-        confirmFunction="confirmDonation"
-        lang={lang}
-        title={ar ? "ادعمنا" : "Support us"}
-        onSuccess={() => {
-          setPayment(null);
-          toast({ title: ar ? "شكراً لدعمك! ❤️" : "Thank you for your support! ❤️" });
-        }}
-      />
     </div>
   );
 }

@@ -22,10 +22,16 @@ export default async function (req: Request): Promise<Response> {
     const licenseExpiry = (body.license_expiry || "").toString();
     const licenseLink = (body.license_link || "").toString().trim();
     const licenseDoc = (body.license_doc || "").toString().trim();
+    const establishmentNumber = (body.establishment_number || "").toString().trim();
 
-    const validTypes = ["individual_fal", "establishment_fal", "ad_license"];
+    const validTypes = ["individual_fal", "establishment_fal"];
     if (!validTypes.includes(licenseType)) {
       return Response.json({ error: "Invalid license type" }, { status: 400 });
+    }
+    // Establishment brokers must provide their unified establishment number;
+    // individual brokers don't have one.
+    if (licenseType === "establishment_fal" && !establishmentNumber) {
+      return Response.json({ error: "Establishment number is required for establishment brokers" }, { status: 400 });
     }
     if (!licenseNumber || !licenseHolder || !licenseExpiry || !licenseLink || !licenseDoc) {
       return Response.json({ error: "All license fields are required" }, { status: 400 });
@@ -46,6 +52,7 @@ export default async function (req: Request): Promise<Response> {
       re_license_expiry: licenseExpiry,
       re_license_link: licenseLink,
       re_license_doc: licenseDoc,
+      re_establishment_number: licenseType === "establishment_fal" ? establishmentNumber : "",
       re_license_status: "pending",
       re_license_review_reason: "",
     });

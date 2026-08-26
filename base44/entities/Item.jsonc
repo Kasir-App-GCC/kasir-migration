@@ -136,7 +136,7 @@
     "archived": {
       "type": "boolean",
       "default": false,
-      "description": "Auto-set when the listing hasn't been refreshed in N days; excluded from public feeds until the seller refreshes it"
+      "description": "Auto-set when the listing hasn't been refreshed in N days, or when its real estate ad license expires; excluded from public feeds until the seller refreshes it"
     },
     "review_status": {
       "type": "string",
@@ -146,7 +146,7 @@
         "rejected"
       ],
       "default": "approved",
-      "description": "Admin moderation status. Real estate listings start as 'pending' (Saudi REGA license requirement) and are hidden from public feeds until approved. All other categories default to 'approved'."
+      "description": "Admin moderation status. Real estate listings start as 'approved' when the seller has an approved Fal license (license is verified once at the profile level). All other categories default to 'approved'."
     },
     "review_reason": {
       "type": "string",
@@ -156,31 +156,76 @@
       "type": "string",
       "enum": [
         "individual_fal",
-        "establishment_fal",
-        "ad_license"
+        "establishment_fal"
       ],
-      "description": "Type of REGA license attached to a real estate listing (FAL individual, FAL establishment, or advertisement license)"
+      "description": "Copied from the seller's profile \u2014 the broker's Fal license type. Displayed on the ad per REGA content rules."
     },
     "re_license_number": {
       "type": "string",
-      "description": "REGA license number for real estate listings"
+      "description": "Copied from the seller's profile \u2014 the broker's Fal license number. REGA requires the broker's Fal number to be visible on every real estate ad."
     },
     "re_license_holder": {
       "type": "string",
-      "description": "Name of the license holder exactly as it appears on the REGA license (individual or establishment name)"
+      "description": "Copied from the seller's profile \u2014 the broker name as it appears on the Fal license. Shown on the ad as the advertiser's name."
     },
     "re_license_expiry": {
       "type": "string",
       "format": "date",
-      "description": "Expiry date of the REGA advertisement license; listings with a past expiry are non-compliant"
+      "description": "Copied from the seller's profile \u2014 the Fal license expiry date."
     },
     "re_license_link": {
       "type": "string",
-      "description": "Direct link to the REGA license inquiry result (or the broker's REGA profile) so admins can verify the license in one click"
+      "description": "Copied from the seller's profile \u2014 REGA inquiry link for the Fal license."
     },
     "re_license_doc": {
       "type": "string",
-      "description": "URL of the uploaded license document (image or PDF) for real estate listings"
+      "description": "Copied from the seller's profile \u2014 uploaded Fal license document."
+    },
+    "re_establishment_number": {
+      "type": "string",
+      "description": "Copied from the seller's profile \u2014 unified establishment number (for establishment brokers). Empty for individual brokers."
+    },
+    "re_ad_license_number": {
+      "type": "string",
+      "description": "Per-listing REGA advertisement license number (\u0631\u0642\u0645 \u0627\u0644\u0625\u0639\u0644\u0627\u0646) \u2014 the publishing permit for this specific property, issued per-ad by REGA."
+    },
+    "re_ad_license_link": {
+      "type": "string",
+      "description": "REGA inquiry link for this specific ad license, so buyers and admins can verify in one click."
+    },
+    "re_ad_license_expiry": {
+      "type": "string",
+      "format": "date",
+      "description": "Expiry date of this listing's ad license. Listings with a past expiry are auto-archived by the daily workflow (REGA requires removal on expiry)."
+    },
+    "re_deed_area": {
+      "type": "string",
+      "description": "Property area as stated on the title deed (\u0627\u0644\u0645\u0633\u0627\u062d\u0629 \u062d\u0633\u0628 \u0627\u0644\u0635\u0643) \u2014 required by REGA content rules."
+    },
+    "re_plan_plot": {
+      "type": "string",
+      "description": "Land plan and plot number (\u0627\u0644\u0645\u062e\u0637\u0637 \u0648\u0627\u0644\u0642\u0637\u0639\u0629) \u2014 part of the detailed location required by REGA."
+    },
+    "re_brokerage_contract_number": {
+      "type": "string",
+      "description": "Brokerage contract reference number (\u0631\u0642\u0645 \u0639\u0642\u062f \u0627\u0644\u0648\u0633\u0627\u0637\u0629) \u2014 the REGA-registered contract between broker and owner; an ad license cannot be issued without one."
+    },
+    "re_title_deed_number": {
+      "type": "string",
+      "description": "Title deed number (\u0631\u0642\u0645 \u0635\u0643 \u0627\u0644\u0645\u0644\u0643\u064a\u0629) \u2014 the ownership document for the property."
+    },
+    "re_title_deed_doc": {
+      "type": "string",
+      "description": "URL of the uploaded title deed document (\u0635\u0643 \u0627\u0644\u0645\u0644\u0643\u064a\u0629) \u2014 image or PDF."
+    },
+    "re_has_mortgage": {
+      "type": "boolean",
+      "default": false,
+      "description": "Disclosure of any mortgage or restriction preventing property disposal (\u0627\u0644\u0625\u0641\u0635\u0627\u062d \u0639\u0646 \u0631\u0647\u0646 \u0623\u0648 \u0642\u064a\u062f) \u2014 required by REGA content rules."
+    },
+    "re_mortgage_details": {
+      "type": "string",
+      "description": "Details of the mortgage or restriction, if any (\u062a\u0641\u0627\u0635\u064a\u0644 \u0627\u0644\u0631\u0647\u0646 \u0623\u0648 \u0627\u0644\u0642\u064a\u062f)."
     }
   },
   "required": [

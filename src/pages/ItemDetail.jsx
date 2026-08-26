@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Flag, MessageCircle, Star, Share2, ChevronRight, X, Tag, Trash2, CheckCircle, Pencil, BadgeCheck, RotateCcw, Sparkles, Truck, Ban } from "lucide-react";
+import { ArrowLeft, MapPin, Flag, MessageCircle, Star, Share2, ChevronRight, X, Tag, Trash2, CheckCircle, Pencil, BadgeCheck, RotateCcw, Sparkles, Truck, Ban, ExternalLink, FileText } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -529,12 +529,12 @@ export default function ItemDetail() {
         );
       })()}
 
-      {/* Real estate license info — public, no document link */}
+      {/* Real estate license info — broker Fal license (copied from profile) */}
       {item.category === "realestate" && (item.re_license_type || item.re_license_number) && (
-        <div className="mt-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900 p-4">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="mt-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900 p-4 space-y-3">
+          <div className="flex items-center gap-2">
             <BadgeCheck size={16} className="text-indigo-500 shrink-0" />
-            <h3 className="font-bold text-sm text-indigo-700 dark:text-indigo-300">{lang === "ar" ? "ترخيص الهيئة العامة للعقار" : "REGA License"}</h3>
+            <h3 className="font-bold text-sm text-indigo-700 dark:text-indigo-300">{lang === "ar" ? "ترخيص الوساطة العقارية (فال)" : "Broker FAL License"}</h3>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
@@ -544,24 +544,92 @@ export default function ItemDetail() {
                   const map = {
                     individual_fal: lang === "ar" ? "رخصة فال (فرد)" : "FAL (Individual)",
                     establishment_fal: lang === "ar" ? "رخصة فال (منشأة)" : "FAL (Establishment)",
-                    ad_license: lang === "ar" ? "ترخيص إعلان عقاري" : "Ad License",
                   };
                   return map[item.re_license_type] || item.re_license_type || "-";
                 })()
               }</p>
             </div>
             <div>
-              <p className="text-[11px] text-muted-foreground">{lang === "ar" ? "رقم الترخيص" : "License number"}</p>
+              <p className="text-[11px] text-muted-foreground">{lang === "ar" ? "رقم رخصة فال" : "FAL license number"}</p>
               <p className="text-sm font-semibold font-mono">{item.re_license_number || "-"}</p>
             </div>
-            <div>
-              <p className="text-[11px] text-muted-foreground">{lang === "ar" ? "صاحب الترخيص" : "License holder"}</p>
+            <div className="col-span-2">
+              <p className="text-[11px] text-muted-foreground">{lang === "ar" ? "اسم الوسيط" : "Broker name"}</p>
               <p className="text-sm font-semibold">{item.re_license_holder || "-"}</p>
             </div>
+            {item.re_establishment_number && (
+              <div className="col-span-2">
+                <p className="text-[11px] text-muted-foreground">{lang === "ar" ? "الرقم الموحد للمنشأة" : "Establishment number"}</p>
+                <p className="text-sm font-semibold font-mono">{item.re_establishment_number}</p>
+              </div>
+            )}
             <div>
-              <p className="text-[11px] text-muted-foreground">{lang === "ar" ? "تاريخ انتهاء الرخصة" : "License expiry"}</p>
+              <p className="text-[11px] text-muted-foreground">{lang === "ar" ? "انتهاء رخصة فال" : "FAL expiry"}</p>
               <p className="text-sm font-semibold">{item.re_license_expiry ? new Date(item.re_license_expiry).toLocaleDateString(lang === "ar" ? "ar-SA" : "en-US", { year: "numeric", month: "short", day: "numeric" }) : "-"}</p>
             </div>
+            {item.re_license_link && (
+              <div className="flex items-end">
+                <a href={item.re_license_link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-semibold text-xs hover:underline">
+                  <ExternalLink size={12} /> {lang === "ar" ? "استعلام REGA" : "REGA inquiry"}
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Per-listing ad license + property documents */}
+      {item.category === "realestate" && item.re_ad_license_number && (
+        <div className="mt-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <BadgeCheck size={16} className="text-emerald-600 shrink-0" />
+            <h3 className="font-bold text-sm text-emerald-700 dark:text-emerald-300">{lang === "ar" ? "ترخيص إعلان هذا العقار" : "Ad License for this Property"}</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <p className="text-[11px] text-muted-foreground">{lang === "ar" ? "رقم الإعلان" : "Ad license number"}</p>
+              <p className="text-sm font-semibold font-mono">{item.re_ad_license_number}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">{lang === "ar" ? "انتهاء الترخيص" : "Ad license expiry"}</p>
+              <p className="text-sm font-semibold">{item.re_ad_license_expiry ? new Date(item.re_ad_license_expiry).toLocaleDateString(lang === "ar" ? "ar-SA" : "en-US", { year: "numeric", month: "short", day: "numeric" }) : "-"}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">{lang === "ar" ? "رقم عقد الوساطة" : "Brokerage contract"}</p>
+              <p className="text-sm font-semibold font-mono">{item.re_brokerage_contract_number || "-"}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">{lang === "ar" ? "رقم صك الملكية" : "Title deed number"}</p>
+              <p className="text-sm font-semibold font-mono">{item.re_title_deed_number || "-"}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">{lang === "ar" ? "المساحة حسب الصك" : "Area per deed"}</p>
+              <p className="text-sm font-semibold">{item.re_deed_area || "-"}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">{lang === "ar" ? "المخطط والقطعة" : "Plan & plot"}</p>
+              <p className="text-sm font-semibold">{item.re_plan_plot || "-"}</p>
+            </div>
+            {item.re_ad_license_link && (
+              <div className="col-span-2">
+                <a href={item.re_ad_license_link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold text-xs hover:underline">
+                  <ExternalLink size={12} /> {lang === "ar" ? "استعلام رخصة الإعلان" : "Verify ad license"}
+                </a>
+              </div>
+            )}
+            {item.re_title_deed_doc && (
+              <div className="col-span-2">
+                <a href={item.re_title_deed_doc} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold text-xs hover:underline">
+                  <FileText size={12} /> {lang === "ar" ? "عرض صك الملكية" : "View title deed"}
+                </a>
+              </div>
+            )}
+            {item.re_has_mortgage && (
+              <div className="col-span-2 p-2 rounded-xl bg-amber-100 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800">
+                <p className="text-[11px] font-bold text-amber-700 dark:text-amber-300">{lang === "ar" ? "⚠ يوجد رهن أو قيد على العقار" : "⚠ Mortgage or restriction on this property"}</p>
+                {item.re_mortgage_details && <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">{item.re_mortgage_details}</p>}
+              </div>
+            )}
           </div>
         </div>
       )}

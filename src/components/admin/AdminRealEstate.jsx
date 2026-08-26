@@ -31,7 +31,6 @@ export default function AdminRealEstate() {
     const map = {
       individual_fal: ar ? "رخصة فال (فرد)" : "FAL (Individual)",
       establishment_fal: ar ? "رخصة فال (منشأة)" : "FAL (Establishment)",
-      ad_license: ar ? "ترخيص إعلان عقاري" : "Ad License",
     };
     return map[t] || t || "-";
   };
@@ -110,6 +109,7 @@ export default function AdminRealEstate() {
                 <div><p className="text-muted-foreground">{ar ? "نوع الترخيص" : "License type"}</p><p className="font-semibold">{licenseTypeLabel(u.re_license_type)}</p></div>
                 <div><p className="text-muted-foreground">{ar ? "رقم الترخيص" : "License number"}</p><p className="font-semibold font-mono">{u.re_license_number || "-"}</p></div>
                 <div className="col-span-2"><p className="text-muted-foreground">{ar ? "صاحب الترخيص" : "License holder"}</p><p className="font-semibold">{u.re_license_holder || "-"}</p></div>
+                {u.re_establishment_number && <div className="col-span-2"><p className="text-muted-foreground">{ar ? "الرقم الموحد للمنشأة" : "Establishment number"}</p><p className="font-semibold font-mono">{u.re_establishment_number}</p></div>}
                 <div><p className="text-muted-foreground">{ar ? "تاريخ الانتهاء" : "Expiry"}</p><p className={`font-semibold ${u.re_license_expiry && new Date(u.re_license_expiry) < new Date() ? "text-rose-600 dark:text-rose-400" : ""}`}>{u.re_license_expiry ? new Date(u.re_license_expiry).toLocaleDateString(ar ? "ar-SA" : "en-US", { year: "numeric", month: "short", day: "numeric" }) : "-"}{u.re_license_expiry && new Date(u.re_license_expiry) < new Date() && (ar ? " · منتهية" : " · expired")}</p></div>
               </div>
               <div className="flex flex-wrap items-center gap-2">

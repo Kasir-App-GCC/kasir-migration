@@ -18,6 +18,21 @@ export default async function (req) {
       { status: "available", archived: { $ne: true }, updated_date: { $lt: cutoff } },
       { $set: { archived: true } }
     );
+
+    // REGA compliance: auto-archive Saudi real estate listings whose ad license
+    // has expired. REGA requires the ad be removed immediately on expiry.
+    const today = new Date().toISOString().slice(0, 10);
+    await base44.asServiceRole.entities.Item.updateMany(
+      {
+        status: "available",
+        archived: { $ne: true },
+        category: "realestate",
+        country: "SA",
+        re_ad_license_expiry: { $lt: today },
+      },
+      { $set: { archived: true } }
+    );
+
     return Response.json({ ok: true, cutoff });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

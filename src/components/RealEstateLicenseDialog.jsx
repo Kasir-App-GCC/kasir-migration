@@ -8,7 +8,6 @@ import { useToast } from "@/components/ui/use-toast";
 const LICENSE_TYPES = [
   { id: "individual_fal", ar: "رخصة فال (فرد)", en: "FAL (Individual)" },
   { id: "establishment_fal", ar: "رخصة فال (منشأة)", en: "FAL (Establishment)" },
-  { id: "ad_license", ar: "ترخيص إعلان عقاري", en: "Ad License" },
 ];
 
 export default function RealEstateLicenseDialog({ open, onClose }) {
@@ -24,6 +23,7 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
   const [licenseExpiry, setLicenseExpiry] = useState(user?.re_license_expiry ? String(user.re_license_expiry).slice(0, 10) : "");
   const [licenseLink, setLicenseLink] = useState(user?.re_license_link || "");
   const [licenseDoc, setLicenseDoc] = useState(user?.re_license_doc || "");
+  const [establishmentNumber, setEstablishmentNumber] = useState(user?.re_establishment_number || "");
   const [docUploading, setDocUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -36,7 +36,7 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
 
   const trusted = !!user?.is_trusted;
   const editing = trusted && (status === "" || status === "rejected" || editMode);
-  const valid = licenseType && licenseNumber.trim() && licenseHolder.trim() && licenseExpiry && licenseLink.trim() && licenseDoc;
+  const valid = licenseType && licenseNumber.trim() && licenseHolder.trim() && licenseExpiry && licenseLink.trim() && licenseDoc && (licenseType !== "establishment_fal" || establishmentNumber.trim());
 
   const uploadDoc = async (file) => {
     setDocUploading(true);
@@ -60,6 +60,7 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
         license_expiry: licenseExpiry,
         license_link: licenseLink.trim(),
         license_doc: licenseDoc,
+        establishment_number: establishmentNumber.trim(),
       });
       await refreshUser();
       setEditMode(false);
@@ -113,6 +114,7 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
               <div><p className="text-muted-foreground">{ar ? "نوع الترخيص" : "License type"}</p><p className="font-semibold">{typeLabel(user.re_license_type)}</p></div>
               <div><p className="text-muted-foreground">{ar ? "رقم الترخيص" : "License number"}</p><p className="font-semibold font-mono">{user.re_license_number}</p></div>
               <div className="col-span-2"><p className="text-muted-foreground">{ar ? "صاحب الترخيص" : "License holder"}</p><p className="font-semibold">{user.re_license_holder}</p></div>
+              {user.re_establishment_number && <div className="col-span-2"><p className="text-muted-foreground">{ar ? "الرقم الموحد للمنشأة" : "Establishment number"}</p><p className="font-semibold font-mono">{user.re_establishment_number}</p></div>}
               <div><p className="text-muted-foreground">{ar ? "تاريخ الانتهاء" : "Expiry"}</p><p className="font-semibold">{user.re_license_expiry ? new Date(user.re_license_expiry).toLocaleDateString(ar ? "ar-SA" : "en-US", { year: "numeric", month: "short", day: "numeric" }) : "-"}</p></div>
               <div className="flex items-end">
                 <a href={user.re_license_link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"><ExternalLink size={12} /> {ar ? "استعلام REGA" : "REGA inquiry"}</a>
@@ -153,6 +155,12 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
               <label className="text-xs font-semibold">{ar ? "اسم صاحب الترخيص" : "License holder name"} *</label>
               <input value={licenseHolder} onChange={(e) => setLicenseHolder(e.target.value.slice(0, 80))} className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm" />
             </div>
+            {licenseType === "establishment_fal" && (
+              <div className="space-y-1">
+                <label className="text-xs font-semibold">{ar ? "الرقم الموحد للمنشأة" : "Unified establishment number"} *</label>
+                <input value={establishmentNumber} onChange={(e) => setEstablishmentNumber(e.target.value.slice(0, 50))} className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm" />
+              </div>
+            )}
             <div className="space-y-1">
               <label className="text-xs font-semibold">{ar ? "تاريخ انتهاء الرخصة" : "License expiry date"} *</label>
               <input type="date" value={licenseExpiry} onChange={(e) => setLicenseExpiry(e.target.value)} min={new Date().toISOString().slice(0, 10)} className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm" />

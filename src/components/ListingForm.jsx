@@ -20,6 +20,7 @@ import { getSpecFields } from "@/lib/specs";
 import ImageEditor from "@/components/ImageEditor";
 import CameraCapture from "@/components/CameraCapture";
 import VerificationDialog from "@/components/VerificationDialog";
+import RealEstateAdLicenseFields from "@/components/RealEstateAdLicenseFields";
 import { useNavigate } from "react-router-dom";
 
 // Convert Arabic-Indic (٠-٩) and Eastern Arabic (۰-۹) digits to ASCII 0-9
@@ -71,6 +72,20 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [deliversWithinCity, setDeliversWithinCity] = useState(!!initial?.delivers_within_city);
   const [useFreeBoost, setUseFreeBoost] = useState(false);
   const [freeBoostAvailable, setFreeBoostAvailable] = useState(null);
+  const [reAdLicense, setReAdLicense] = useState(
+    initial && typeof initial === "object" ? {
+      re_ad_license_number: initial.re_ad_license_number || "",
+      re_ad_license_link: initial.re_ad_license_link || "",
+      re_ad_license_expiry: initial.re_ad_license_expiry || "",
+      re_deed_area: initial.re_deed_area || "",
+      re_plan_plot: initial.re_plan_plot || "",
+      re_brokerage_contract_number: initial.re_brokerage_contract_number || "",
+      re_title_deed_number: initial.re_title_deed_number || "",
+      re_title_deed_doc: initial.re_title_deed_doc || "",
+      re_has_mortgage: !!initial.re_has_mortgage,
+      re_mortgage_details: initial.re_mortgage_details || "",
+    } : {}
+  );
 
 
   // Reverse-geocode coordinates to an accurate place name for display.
@@ -272,6 +287,17 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         re_license_expiry: saRealEstate && reApproved ? user.re_license_expiry : undefined,
         re_license_link: saRealEstate && reApproved ? user.re_license_link : undefined,
         re_license_doc: saRealEstate && reApproved ? user.re_license_doc : undefined,
+        re_establishment_number: saRealEstate && reApproved ? user.re_establishment_number : undefined,
+        re_ad_license_number: saRealEstate && reApproved ? reAdLicense.re_ad_license_number?.trim() || undefined : undefined,
+        re_ad_license_link: saRealEstate && reApproved ? reAdLicense.re_ad_license_link?.trim() || undefined : undefined,
+        re_ad_license_expiry: saRealEstate && reApproved ? reAdLicense.re_ad_license_expiry || undefined : undefined,
+        re_deed_area: saRealEstate && reApproved ? reAdLicense.re_deed_area?.trim() || undefined : undefined,
+        re_plan_plot: saRealEstate && reApproved ? reAdLicense.re_plan_plot?.trim() || undefined : undefined,
+        re_brokerage_contract_number: saRealEstate && reApproved ? reAdLicense.re_brokerage_contract_number?.trim() || undefined : undefined,
+        re_title_deed_number: saRealEstate && reApproved ? reAdLicense.re_title_deed_number?.trim() || undefined : undefined,
+        re_title_deed_doc: saRealEstate && reApproved ? reAdLicense.re_title_deed_doc || undefined : undefined,
+        re_has_mortgage: saRealEstate && reApproved ? !!reAdLicense.re_has_mortgage : false,
+        re_mortgage_details: saRealEstate && reApproved && reAdLicense.re_has_mortgage ? reAdLicense.re_mortgage_details?.trim() || undefined : undefined,
         featured: false,
         boost_hours: useFreeBoost ? 0 : boostHours,
         boost_amount: boostAmount,
@@ -286,13 +312,24 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   // no such ad-license mandate, so the license section and its validation only
   // apply when the listing's country is Saudi Arabia.
   const saRealEstate = category === "realestate" && country === "SA";
-  // Saudi real estate requires a one-time REGA license approved in the user's
-  // profile settings. Approved users can post with no per-listing review; the
-  // license is copied from their profile into each listing.
+  // Saudi real estate requires a one-time REGA Fal license approved in the
+  // user's profile settings. Approved users can post with no per-listing
+  // review; the Fal license is copied from their profile into each listing.
   const reApproved = saRealEstate && user?.re_license_status === "approved";
   const reBlocked = saRealEstate && !reApproved;
+  // Per-listing ad license fields are required for Saudi real estate.
+  const adLicenseValid = !saRealEstate || !reApproved || (
+    !!reAdLicense.re_ad_license_number?.trim() &&
+    !!reAdLicense.re_ad_license_link?.trim() &&
+    !!reAdLicense.re_ad_license_expiry &&
+    !!reAdLicense.re_brokerage_contract_number?.trim() &&
+    !!reAdLicense.re_title_deed_number?.trim() &&
+    !!reAdLicense.re_deed_area?.trim() &&
+    !!reAdLicense.re_plan_plot?.trim() &&
+    !!reAdLicense.re_title_deed_doc
+  );
   const reValid = !saRealEstate || reApproved;
-  const valid = title && price && category && city && images.length > 0 && reValid && !reBlocked;
+  const valid = title && price && category && city && images.length > 0 && reValid && !reBlocked && adLicenseValid;
   // Featured-listing promotion price: basePrice = 5 + 20·ln(1 + P/500), then
   // × (H/24)^0.70, floored at SAR 5. P is the item price, H the selected hours.
   const existingHours = existingBoostHours(initial?.featured_until);
@@ -503,11 +540,11 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
           <div className="flex items-start gap-2">
             <ShieldCheck size={18} className={`shrink-0 mt-0.5 ${reApproved ? "text-emerald-600" : "text-rose-600"}`} />
             <div>
-              <p className="text-sm font-bold">{reApproved ? (ar ? "ترخيصك العقاري معتمد" : "Your real estate license is approved") : (ar ? "ترخيص عقاري مطلوب" : "Real estate license required")}</p>
+              <p className="text-sm font-bold">{reApproved ? (ar ? "ترخيص فال معتمد ✓" : "FAL license approved ✓") : (ar ? "ترخيص فال مطلوب" : "FAL license required")}</p>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
                 {reApproved
-                  ? (ar ? "سيتم إرفاق بيانات ترخيصك بهذا الإعلان تلقائياً." : "Your license details will be attached to this listing automatically.")
-                  : (ar ? "أضف ترخيص الوساطة العقارية من إعدادات ملفك الشخصي مرة واحدة لتتمكن من نشر إعلانات عقارية." : "Add your REGA broker license once in your profile settings to post real estate listings.")}
+                  ? (ar ? "بيانات ترخيص فال خاصتك ستُرفق بهذا الإعلان تلقائياً. أدخل below بيانات ترخيص الإعلان لهذا العقار." : "Your FAL license details will be attached automatically. Enter the ad license details for this property below.")
+                  : (ar ? "أضف ترخيص الوساطة العقارية (فال) من ملفك الشخصي مرة واحدة لتتمكن من نشر إعلانات عقارية." : "Add your FAL broker license once in your profile settings to post real estate listings.")}
               </p>
             </div>
           </div>
@@ -517,6 +554,11 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             </button>
           )}
         </div>
+      )}
+
+      {/* Per-listing REGA ad license — only for approved Saudi real estate brokers */}
+      {saRealEstate && reApproved && (
+        <RealEstateAdLicenseFields value={reAdLicense} onChange={setReAdLicense} />
       )}
 
       <div className="space-y-1">

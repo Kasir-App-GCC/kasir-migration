@@ -59,7 +59,7 @@
     },
     "phone": {
       "type": "string",
-      "description": "The user's phone number (digits only)"
+      "description": "The user's phone number (digits only) \u2014 also serves as the broker contact phone shown on REGA-compliant real estate ads"
     },
     "country_code": {
       "type": "string",
@@ -111,31 +111,34 @@
       "type": "string",
       "enum": [
         "individual_fal",
-        "establishment_fal",
-        "ad_license"
+        "establishment_fal"
       ],
-      "description": "Type of REGA license the user holds (FAL individual, FAL establishment, or advertisement license) \u2014 filled once in profile settings, reviewed by admin"
+      "description": "Type of REGA Fal broker license the user holds (individual or establishment). Filled once in profile settings, reviewed by admin. Ad licenses are per-listing (stored on Item), not per-broker."
     },
     "re_license_number": {
       "type": "string",
-      "description": "REGA license number \u2014 filled once in profile settings"
+      "description": "REGA Fal license number \u2014 filled once in profile settings"
     },
     "re_license_holder": {
       "type": "string",
-      "description": "Name of the license holder exactly as it appears on the REGA license"
+      "description": "Name of the license holder (broker name) exactly as it appears on the REGA Fal license"
     },
     "re_license_expiry": {
       "type": "string",
       "format": "date",
-      "description": "Expiry date of the REGA license"
+      "description": "Expiry date of the REGA Fal license"
     },
     "re_license_link": {
       "type": "string",
-      "description": "Direct link to the REGA license inquiry result so admins can verify in one click"
+      "description": "Direct link to the REGA Fal license inquiry result so admins can verify in one click"
     },
     "re_license_doc": {
       "type": "string",
-      "description": "URL of the uploaded license document (image or PDF)"
+      "description": "URL of the uploaded Fal license document (image or PDF)"
+    },
+    "re_establishment_number": {
+      "type": "string",
+      "description": "Unified establishment number (\u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0645\u0648\u062d\u062f \u0644\u0644\u0645\u0646\u0634\u0623\u0629) \u2014 required for establishment brokers only; individual brokers leave this empty"
     },
     "re_license_status": {
       "type": "string",
@@ -144,7 +147,7 @@
         "approved",
         "rejected"
       ],
-      "description": "Admin review status of the user's real estate license. Only users with 'approved' can post Saudi real estate listings. Replaces the old per-listing review with a single per-user review."
+      "description": "Admin review status of the user's real estate Fal license. Only users with 'approved' can post Saudi real estate listings. Replaces the old per-listing review with a single per-user review."
     },
     "re_license_review_reason": {
       "type": "string",

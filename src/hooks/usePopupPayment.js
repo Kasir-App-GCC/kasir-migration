@@ -78,7 +78,11 @@ export function usePopupPayment() {
       try {
         const res = await base44.functions.invoke("checkMoyasarInvoiceStatus", { invoice_id: invId });
         const r = res?.data || {};
-        if (r.status === "paid") {
+        // A paid payment may appear before the invoice `status` field flips to
+        // "paid" (Moyasar API lag) — treat either as success so the popup
+        // closes promptly when the transaction is actually finished.
+        const isPaid = r.status === "paid" || !!r.payment_id;
+        if (isPaid) {
           stopPolling();
           closedByUsRef.current = true;
           try { popupRef.current?.close(); } catch {}
@@ -98,7 +102,7 @@ export function usePopupPayment() {
         setState("closed");
         onFail?.({ status: "timeout" });
       }
-    }, 3000);
+    }, 1500);
   }, [stopPolling]);
 
   const cancel = useCallback(() => {

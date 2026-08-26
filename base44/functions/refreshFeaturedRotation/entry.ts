@@ -63,10 +63,6 @@ export default async function (req: Request): Promise<Response> {
       for (const it of list) {
         const c = it.country || "SA";
         add(c, it.id);
-        // Cross-country boosts appear in every other GCC country's pool too.
-        if (it.featured_cross_country) {
-          for (const other of GCC) if (other !== c) add(other, it.id);
-        }
       }
       cursor = list[list.length - 1].created_date;
       pages++;

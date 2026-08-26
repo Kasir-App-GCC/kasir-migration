@@ -49,7 +49,6 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [tags, setTags] = useState(Array.isArray(initial?.tags) ? initial.tags : []);
   const [specs, setSpecs] = useState(initial?.specs && typeof initial.specs === "object" ? initial.specs : {});
   const [boostHours, setBoostHours] = useState(0);
-  const [boostCross, setBoostCross] = useState(false);
   const ar = lang === "ar";
   const verified = !!user?.is_trusted;
   const maxPhotos = verified ? 20 : 10;
@@ -270,7 +269,6 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         re_license_doc: saRealEstate ? reLicenseDoc || undefined : undefined,
         featured: false,
         boost_hours: useFreeBoost ? 0 : boostHours,
-        boost_cross_country: boostCross,
         boost_amount: boostAmount,
         claim_free_boost: useFreeBoost
       });
@@ -294,13 +292,9 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const existingHours = existingBoostHours(initial?.featured_until);
   const maxBoost = Math.max(0, BOOST_MAX_HOURS - existingHours);
   const itemPrice = Number(price) || 0;
-  const baseAmount = boostHours > 0 ? computeBoostPrice(itemPrice, boostHours).amount : 0;
-  const boostAmount = boostHours > 0 ? computeBoostPrice(itemPrice, boostHours, boostCross).amount : 0;
-  const crossSurcharge = boostCross ? Math.round((boostAmount - baseAmount) * 100) / 100 : 0;
+  const boostAmount = boostHours > 0 ? computeBoostPrice(itemPrice, boostHours).amount : 0;
   const cur = getCountry(country || "SA");
   const boostDisplay = convertCurrency(boostAmount, "SA", country || "SA");
-  const baseDisplay = convertCurrency(baseAmount, "SA", country || "SA");
-  const surchargeDisplay = convertCurrency(crossSurcharge, "SA", country || "SA");
   const fmt = (n) => Number(n).toLocaleString(ar ? "ar-SA" : "en-US", { maximumFractionDigits: 2 });
   const subs = category ? getSubcategories(category) : [];
 
@@ -850,35 +844,14 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
           <div className="mt-2.5 space-y-1 text-xs">
               <div className="flex items-center justify-between pt-1 border-t border-border/60">
                 <span className="text-muted-foreground">{ar ? "الإجمالي بعد التعزيز" : "Total after boost"}</span>
-                <span className="font-semibold">{fmt(baseDisplay)} {ar ? cur.currencyAr : cur.currency}</span>
+                <span className="font-semibold">{fmt(boostDisplay)} {ar ? cur.currencyAr : cur.currency}</span>
               </div>
-              {boostCross &&
-            <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400">
-                  <span>{ar ? "إضافة كل دول الخليج (+75%)" : "Gulf countries add-on (+75%)"}</span>
-                  <span className="font-semibold">+{fmt(surchargeDisplay)} {ar ? cur.currencyAr : cur.currency}</span>
-                </div>
-            }
-              <p className="text-[11px] text-muted-foreground leading-relaxed">{boostCross ? ar ? <>سيظهر إعلانك في قسم المميز طوال هذه المدة في كل دول الخليج</> : <>Your listing will appear in the Featured section for this duration across all Gulf countries</> : ar ? <>سيظهر إعلانك في قسم المميز طوال هذه المدة لجميع المدن في دولتك {cur.flag}</> : <>Your listing will appear in the Featured section for this duration across all cities in your country {cur.flag}</>}</p>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">{ar ? <>سيظهر إعلانك في قسم المميز طوال هذه المدة لجميع المدن في دولتك {cur.flag}</> : <>Your listing will appear in the Featured section for this duration across all cities in your country {cur.flag}</>}</p>
             </div>
           }
         </div>
         {boostHours > 0 &&
         <>
-            <button
-            type="button"
-            onClick={() => setBoostCross(!boostCross)}
-            className="w-full flex items-center justify-between p-3 rounded-xl bg-muted">
-            
-              <span className="flex items-center gap-2 text-start">
-                <Globe size={16} className="text-primary" />
-                <span>
-                  <span className="text-sm font-semibold block">{ar ? "عرض في كل دول الخليج" : "Show across all Gulf countries"}</span>
-                </span>
-              </span>
-              <span className={`w-11 h-6 rounded-full p-0.5 transition ${boostCross ? "bg-amber-500" : "bg-muted-foreground/30"}`}>
-                <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${boostCross ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
-              </span>
-            </button>
             <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900">
               <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">{ar ? "الإجمالي" : "Total"}</span>
               <span className="text-lg font-extrabold text-amber-700 dark:text-amber-300">{fmt(boostDisplay)} {ar ? cur.currencyAr : cur.currency}</span>

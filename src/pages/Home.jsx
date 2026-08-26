@@ -234,11 +234,8 @@ export default function Home() {
   const featured = featuredItems.filter((it) => {
     if (it.status === "sold") return false;
     if (it.featured_until && new Date(it.featured_until).getTime() < now) return false;
-    // Per-country: show only items featured in the browsing country,
-    // unless the seller paid for the cross-country option.
-    if (it.country === country) return true;
-    if (it.featured_cross_country) return true;
-    return false;
+    if (it.country !== country) return false;
+    return matchLocation(it, locationFilter, country);
   });
   const showFeatured = categories.length === 0 && featured.length > 0;
 

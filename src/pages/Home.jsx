@@ -26,7 +26,7 @@ function Skeleton() {
 
 export default function Home() {
   const { categories, subcategories } = useOutletContext();
-  const { locationFilter, lang, prefs, setPrefs, country, user } = useStore();
+  const { locationFilter, lang, prefs, setPrefs, country } = useStore();
   const t = useT();
   const nav = useNavigate();
   const PAGE_SIZE = 60;
@@ -80,32 +80,22 @@ export default function Home() {
     }
   }, [fetchPage]);
 
-  // Featured listings are fetched independently of the feed page so the
-  // paid carousel works even with a small feed page size — a boosted but
-  // older listing (low created_date) would otherwise never reach the top
-  // of the feed. Sorted by featured_until so the longest-remaining boosts
-  // surface first; country/cross-country filtering is applied client-side.
-  // Featured listings are read from a precomputed fair-sample cache
-  // (FeaturedRotation) refreshed every ~15 min by a scheduled workflow that
-  // reservoir-samples across ALL active boosts — so the carousel scales to
-  // any number of concurrent boosts (10K+) without fetching them all on
-  // every page load. The viewer's own active boosts are always merged in so
-  // a paying seller sees their own card even if it wasn't sampled this window.
+  // Featured carousel: fetch all currently-active boosted listings for the
+  // viewer's country directly — one capped query, sorted by featured_until so
+  // the longest-remaining boosts surface first. This is identical across every
+  // device in the same country (no reservoir-sampling lag, no per-user own-boost
+  // merge that previously made a seller see their own just-paid boost while
+  // other viewers didn't until the next 15-min refresh). The cap (150) keeps
+  // the payload bounded even at scale; the DB sorts and limits server-side so
+  // we never fetch the full active set.
   const loadFeatured = useCallback(async () => {
     try {
       const nowIso = new Date().toISOString();
-      const rotation = await base44.entities.FeaturedRotation.filter({ country }, "-updated_date", 1);
-      const sampleIds = (rotation && rotation[0]?.sample_ids) || [];
-      let ownIds = [];
-      if (user?.id) {
-        const own = await base44.entities.Item.filter({ seller_id: user.id, featured: true, featured_until: { $gt: nowIso } }, "-featured_until", 20);
-        ownIds = (own || []).map((i) => i.id);
-      }
-      const allIds = [...new Set([...ownIds, ...sampleIds])].slice(0, 150);
-      let list = [];
-      if (allIds.length) {
-        list = await base44.entities.Item.filter({ id: { $in: allIds }, featured_until: { $gt: nowIso }, archived: { $ne: true }, review_status: { $nin: ["pending", "rejected"] } }, "-featured_until", 150);
-      }
+      const list = await base44.entities.Item.filter(
+        { country, featured: true, featured_until: { $gt: nowIso }, archived: { $ne: true }, review_status: { $nin: ["pending", "rejected"] }, status: { $ne: "sold" } },
+        "-featured_until",
+        150
+      );
       const ids = [...new Set((list || []).map((i) => i.seller_id).filter(Boolean))];
       const sMap = ids.length ? await fetchSellerInfos(ids) : {};
       setSellers((prev) => ({ ...prev, ...sMap }));
@@ -113,7 +103,7 @@ export default function Home() {
     } catch {
       setFeaturedItems([]);
     }
-  }, [country, user?.id]);
+  }, [country]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;

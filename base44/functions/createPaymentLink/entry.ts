@@ -14,6 +14,9 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ error: 'Amount must be a positive number' }, { status: 400 });
     }
     const description = String(body?.description || '').slice(0, 200) || 'Payment';
+    // Optional: attribute this link to a specific user so the synced payment
+    // record shows the payer instead of "Guest". The admin picks the user.
+    const userId = body?.user_id ? String(body.user_id) : '';
 
     const secretKey = secrets.get('MOYASAR_SECRET_KEY');
     if (!secretKey) return Response.json({ error: 'MOYASAR_SECRET_KEY not set' }, { status: 500 });
@@ -37,6 +40,7 @@ export default async function(req: Request): Promise<Response> {
         currency: 'SAR',
         description,
         callback_url: origin,
+        metadata: { type: 'payment_link', user_id: userId },
       }),
     });
 

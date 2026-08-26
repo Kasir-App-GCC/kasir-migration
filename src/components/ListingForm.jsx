@@ -72,6 +72,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [reLicenseNumber, setReLicenseNumber] = useState(initial?.re_license_number || "");
   const [reLicenseHolder, setReLicenseHolder] = useState(initial?.re_license_holder || "");
   const [reLicenseExpiry, setReLicenseExpiry] = useState(initial?.re_license_expiry ? String(initial.re_license_expiry).slice(0, 10) : "");
+  const [reLicenseLink, setReLicenseLink] = useState(initial?.re_license_link || "");
   const [reLicenseDoc, setReLicenseDoc] = useState(initial?.re_license_doc || "");
   const [reDocUploading, setReDocUploading] = useState(false);
 
@@ -265,6 +266,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         re_license_number: saRealEstate ? reLicenseNumber || undefined : undefined,
         re_license_holder: saRealEstate ? reLicenseHolder || undefined : undefined,
         re_license_expiry: saRealEstate ? reLicenseExpiry || undefined : undefined,
+        re_license_link: saRealEstate ? reLicenseLink || undefined : undefined,
         re_license_doc: saRealEstate ? reLicenseDoc || undefined : undefined,
         featured: false,
         boost_hours: useFreeBoost ? 0 : boostHours,
@@ -285,7 +287,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   // the trusted badge (verification) first. This gate only applies to SA real
   // estate; all other categories and countries are unaffected.
   const reBlocked = saRealEstate && !verified;
-  const reValid = !saRealEstate || (!!reLicenseType && !!reLicenseNumber && !!reLicenseHolder && !!reLicenseExpiry && !!reLicenseDoc);
+  const reValid = !saRealEstate || (!!reLicenseType && !!reLicenseNumber && !!reLicenseHolder && !!reLicenseExpiry && !!reLicenseLink && !!reLicenseDoc);
   const valid = title && price && category && city && images.length > 0 && reValid && !reBlocked;
   // Featured-listing promotion price: basePrice = 5 + 20·ln(1 + P/500), then
   // × (H/24)^0.70, floored at SAR 5. P is the item price, H the selected hours.
@@ -570,6 +572,18 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             min={new Date().toISOString().slice(0, 10)}
             className="w-full px-3 py-2.5 rounded-xl bg-card border border-border/60 outline-none focus:ring-2 ring-primary/30 text-sm"
           />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-semibold">{ar ? "رابط استعلام الترخيص من REGA" : "REGA license inquiry link"} <span className="text-rose-500">*</span></label>
+          <input
+            type="url"
+            value={reLicenseLink}
+            onChange={(e) => setReLicenseLink(e.target.value.slice(0, 500))}
+            placeholder={ar ? "https://eservicesredp.rega.gov.sa/..." : "https://eservicesredp.rega.gov.sa/..."}
+            className="w-full px-3 py-2.5 rounded-xl bg-card border border-border/60 outline-none focus:ring-2 ring-primary/30 text-sm"
+            dir="ltr"
+          />
+          <p className="text-[10px] text-muted-foreground leading-tight">{ar ? "أدخل رابط نتيجة استعلام الترخيص من موقع الهيئة العامة للعقار ليتسنى للإدارة التحقق بنقرة واحدة" : "Paste the REGA inquiry result link so admin can verify in one click"}</p>
         </div>
         <div className="space-y-1">
           <label className="text-xs font-semibold">{ar ? "مستند الترخيص" : "License document"} <span className="text-rose-500">*</span></label>

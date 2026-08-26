@@ -152,11 +152,11 @@ export default function AdminRealEstate() {
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <a
-                  href={`https://eservicesredp.rega.gov.sa/auth/queries/Elanat`}
+                  href={item.re_license_link || `https://eservicesredp.rega.gov.sa/auth/queries/Elanat`}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition"
-                  title={ar ? "التحقق من الترخيص عبر موقع الهيئة العامة للعقار" : "Verify license on REGA"}
+                  title={item.re_license_link ? (ar ? "فتح رابط استعلام الترخيص الذي قدمه البائع" : "Open the REGA inquiry link provided by the seller") : (ar ? "التحقق من الترخيص عبر موقع الهيئة العامة للعقار" : "Verify license on REGA")}
                 >
                   <ShieldCheck size={14} /> {ar ? "تحقق من REGA" : "Verify on REGA"}
                 </a>

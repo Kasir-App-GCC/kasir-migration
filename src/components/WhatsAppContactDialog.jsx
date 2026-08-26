@@ -72,7 +72,7 @@ export default function WhatsAppContactDialog({ open, onClose, chatroomId, user,
             ? "أدخل رقمك ليتم إرساله كبطاقة للطرف الآخر. عند الضغط عليها يفتح واتساب مباشرة للتواصل."
             : "Enter your number to send as a card. Tapping it opens WhatsApp directly to chat."}
         </p>
-        <div className="flex gap-2">
+        <div className="flex gap-2" dir="ltr">
           <div className="relative">
             <select
               value={phoneCode}

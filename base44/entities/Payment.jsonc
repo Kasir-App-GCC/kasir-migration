@@ -1,0 +1,82 @@
+{
+  "name": "Payment",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "The user who made the payment (resolved from Moyasar invoice metadata; empty for admin-created payment links with no metadata)"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Resolved display name of the payer at sync time"
+    },
+    "user_email": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Amount paid in SAR"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "verification",
+        "boost",
+        "donation",
+        "payment_link"
+      ],
+      "default": "donation",
+      "description": "What the payment was for. Verification payments are tracked in VerificationRequest (not duplicated here); boosts in BoostRequest. This entity holds donations and admin payment links pulled from Moyasar."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "paid",
+        "refunded"
+      ],
+      "default": "paid"
+    },
+    "moyasar_invoice_id": {
+      "type": "string",
+      "description": "Moyasar invoice id (for reconciliation with the Moyasar dashboard)"
+    },
+    "moyasar_payment_id": {
+      "type": "string",
+      "description": "Moyasar payment id \u2014 the dedup key used by syncMoyasarPayments to avoid duplicate records"
+    },
+    "reference_id": {
+      "type": "string",
+      "description": "Related entity id (e.g. verification_request_id) when present in metadata"
+    },
+    "description": {
+      "type": "string",
+      "description": "Moyasar invoice/payment description"
+    }
+  },
+  "required": [
+    "amount",
+    "type"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

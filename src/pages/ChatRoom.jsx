@@ -416,13 +416,22 @@ export default function ChatRoom() {
           </div>
         </button>
         {!isOfficial && otherId && (
-          <button
-            onClick={() => (blockedByMe ? unblock() : block(otherName))}
-            className="p-2 rounded-full hover:bg-muted shrink-0"
-            title={blockedByMe ? t("unblockUser") : t("blockUser")}
-          >
-            <Ban size={18} className={blockedByMe ? "text-rose-500" : "text-muted-foreground"} />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={() => setWaDialogOpen(true)}
+              className="p-2 rounded-full hover:bg-emerald-50 dark:hover:bg-emerald-950/30 shrink-0"
+              title={ar ? "مشاركة رقم واتساب" : "Share WhatsApp number"}
+            >
+              <WhatsAppIcon size={18} className="text-emerald-600" />
+            </button>
+            <button
+              onClick={() => (blockedByMe ? unblock() : block(otherName))}
+              className="p-2 rounded-full hover:bg-muted shrink-0"
+              title={blockedByMe ? t("unblockUser") : t("blockUser")}
+            >
+              <Ban size={18} className={blockedByMe ? "text-rose-500" : "text-muted-foreground"} />
+            </button>
+          </div>
         )}
         </div>
       </header>
@@ -563,15 +572,6 @@ export default function ChatRoom() {
           </div>
         ) : (
           <>
-            {!isOfficial && (
-              <button
-                onClick={() => setWaDialogOpen(true)}
-                className="w-11 h-11 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0"
-                title={ar ? "مشاركة رقم واتساب" : "Share WhatsApp number"}
-              >
-                <WhatsAppIcon size={20} />
-              </button>
-            )}
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}

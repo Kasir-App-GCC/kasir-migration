@@ -56,7 +56,9 @@ export default function AdminRealEstate() {
   const reject = async (item) => {
     if (!reason.trim()) return;
     try {
-      await base44.entities.Item.update(item.id, { review_status: "rejected", review_reason: reason.trim() });
+      // Notify the seller first (while the item still exists), then delete
+      // the listing entirely so it no longer appears in "My listings" — a
+      // rejected real estate ad has no valid license to keep on display.
       await base44.entities.Notification.create({
         user_id: item.seller_id,
         type: "listing_rejected",
@@ -64,10 +66,11 @@ export default function AdminRealEstate() {
         item_id: item.id,
         item_title: item.title,
       });
+      await base44.entities.Item.delete(item.id);
       setItems((prev) => prev.filter((x) => x.id !== item.id));
       setRejecting(null);
       setReason("");
-      toast({ title: ar ? "تم الرفض" : "Rejected" });
+      toast({ title: ar ? "تم الرفض وحذف الإعلان" : "Rejected & removed" });
     } catch {
       toast({ title: ar ? "تعذّر الرفض" : "Failed to reject", variant: "destructive" });
     }

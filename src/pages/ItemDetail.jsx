@@ -499,6 +499,35 @@ export default function ItemDetail() {
         );
       })()}
 
+      {/* Real estate license info — public, no document link */}
+      {item.category === "realestate" && (item.re_license_type || item.re_license_number) && (
+        <div className="mt-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <BadgeCheck size={16} className="text-indigo-500 shrink-0" />
+            <h3 className="font-bold text-sm text-indigo-700 dark:text-indigo-300">{lang === "ar" ? "ترخيص الهيئة العامة للعقار" : "REGA License"}</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <p className="text-[11px] text-muted-foreground">{lang === "ar" ? "نوع الترخيص" : "License type"}</p>
+              <p className="text-sm font-semibold">{
+                (() => {
+                  const map = {
+                    individual_fal: lang === "ar" ? "رخصة فال (فرد)" : "FAL (Individual)",
+                    establishment_fal: lang === "ar" ? "رخصة فال (منشأة)" : "FAL (Establishment)",
+                    ad_license: lang === "ar" ? "ترخيص إعلان عقاري" : "Ad License",
+                  };
+                  return map[item.re_license_type] || item.re_license_type || "-";
+                })()
+              }</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">{lang === "ar" ? "رقم الترخيص" : "License number"}</p>
+              <p className="text-sm font-semibold font-mono">{item.re_license_number || "-"}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Seller card */}
       {seller && (
         <div className="mt-5 rounded-2xl bg-card border border-border/60 p-4">

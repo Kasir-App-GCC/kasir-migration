@@ -87,7 +87,7 @@ export default function Home() {
   // surface first; country/cross-country filtering is applied client-side.
   const loadFeatured = useCallback(async () => {
     try {
-      const list = await base44.entities.Item.filter({ featured: true, archived: { $ne: true }, review_status: { $nin: ["pending", "rejected"] } }, "-featured_until", 100);
+      const list = await base44.entities.Item.filter({ featured: true, featured_until: { $gt: new Date().toISOString() }, archived: { $ne: true }, review_status: { $nin: ["pending", "rejected"] } }, "-featured_until", 500);
       const ids = [...new Set((list || []).map((i) => i.seller_id).filter(Boolean))];
       const sMap = ids.length ? await fetchSellerInfos(ids) : {};
       setSellers((prev) => ({ ...prev, ...sMap }));
@@ -221,7 +221,7 @@ export default function Home() {
     if (it.country === country) return true;
     if (it.featured_cross_country) return true;
     return false;
-  }).slice(0, 30);
+  });
   const showFeatured = categories.length === 0 && featured.length > 0;
 
   return (

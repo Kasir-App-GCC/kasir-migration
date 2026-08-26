@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Building2, Check, X, ExternalLink, User as UserIcon } from "lucide-react";
+import { Building2, Check, X, ExternalLink, User as UserIcon, ShieldCheck } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
@@ -150,11 +150,22 @@ export default function AdminRealEstate() {
                   </p>
                 </div>
               </div>
-              {item.re_license_doc && (
-                <a href={item.re_license_doc} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-sm text-primary font-semibold">
-                  <ExternalLink size={14} /> {ar ? "عرض مستند الترخيص" : "View license document"}
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href={`https://eservicesredp.rega.gov.sa/auth/queries/Elanat`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition"
+                  title={ar ? "التحقق من الترخيص عبر موقع الهيئة العامة للعقار" : "Verify license on REGA"}
+                >
+                  <ShieldCheck size={14} /> {ar ? "تحقق من REGA" : "Verify on REGA"}
                 </a>
-              )}
+                {item.re_license_doc && (
+                  <a href={item.re_license_doc} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted text-xs font-semibold">
+                    <ExternalLink size={14} /> {ar ? "مستند الترخيص" : "License document"}
+                  </a>
+                )}
+              </div>
               {rejecting === item.id ? (
                 <div className="space-y-2">
                   <textarea

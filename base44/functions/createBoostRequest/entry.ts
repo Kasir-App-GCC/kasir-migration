@@ -66,8 +66,14 @@ export default async function (req) {
         amount: amountHalalas,
         currency: "SAR",
         description: `تعزيز إعلان - كاسر (${hours} ساعة)`,
-        callback_url: `${origin}/item/${item.id}?boost_payment=1`,
-        success_url: `${origin}/item/${item.id}?boost_payment=1`,
+        // callback_url is a SERVER webhook: Moyasar POSTs the paid invoice here
+        // so the boost activates even if the user closes the tab before the
+        // browser redirect lands.
+        callback_url: `${origin}/functions/confirmBoostPayment`,
+        // success_url is the user-facing redirect. We embed our own boost
+        // request id (`br`) so the client can confirm even if Moyasar appends
+        // no id of its own to the redirect URL.
+        success_url: `${origin}/item/${item.id}?boost_payment=1&br=${created.id}`,
         back_url: `${origin}/item/${item.id}`,
         metadata: {
           type: "boost",

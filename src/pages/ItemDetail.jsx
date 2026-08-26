@@ -106,8 +106,14 @@ export default function ItemDetail() {
   // appends ?boost_payment=1&id=<payment|invoice id> to the callback_url.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (!params.get("boost_payment") || !params.get("id")) return;
-    base44.functions.invoke("confirmBoostPayment", { paymentId: params.get("id") })
+    if (!params.get("boost_payment")) return;
+    // Prefer Moyasar's appended id; fall back to our own embedded boost-request
+    // reference (`br`) so confirmation works regardless of what Moyasar appends.
+    const moyasarId = params.get("id");
+    const br = params.get("br");
+    const ref = moyasarId ? { paymentId: moyasarId } : br ? { boostRequestId: br } : null;
+    if (!ref) return;
+    base44.functions.invoke("confirmBoostPayment", ref)
       .then(async (res) => {
         if (res?.data?.ok) {
           toast({ title: lang === "ar" ? "تم تفعيل التعزيز ⭐" : "Boost activated ⭐" });
@@ -120,6 +126,7 @@ export default function ItemDetail() {
       .finally(() => {
         params.delete("boost_payment");
         params.delete("id");
+        params.delete("br");
         window.history.replaceState({}, "", window.location.pathname + (params.toString() ? "?" + params.toString() : ""));
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps

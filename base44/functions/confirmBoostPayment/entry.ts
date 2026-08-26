@@ -2,65 +2,103 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.40";
 import { secrets } from "base44:runtime";
 
 // Verifies a Moyasar payment for a boost and activates the promotion
-// immediately (no admin review). Called from the item page after Moyasar
-// redirects back with ?boost_payment=1&id=<payment|invoice id>.
+// immediately (no admin review). Two entry points:
+//   1. Client invoke after the Moyasar redirect: { paymentId } | { invoiceId } |
+//      { boostRequestId } (boostRequestId is our own reference embedded in the
+//      success_url, so confirmation works even if Moyasar appends nothing).
+//   2. Moyasar invoice webhook (POST body = the invoice object): the callback_url
+//      points here, so the boost activates server-side even if the user closes
+//      the tab before the redirect lands. The webhook is verified by re-fetching
+//      the invoice from Moyasar with the secret key — a forged body without a
+//      real paid invoice activates nothing.
 export default async function (req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-
-    const body = await req.json();
-    const paymentId = (body.paymentId || "").trim();
-    if (!paymentId) return Response.json({ error: "Missing payment ID" }, { status: 400 });
-
+    const body = await req.json().catch(() => ({}));
     const secretKey = secrets.get("MOYASAR_SECRET_KEY");
     if (!secretKey) return Response.json({ error: "MOYASAR_SECRET_KEY not set" }, { status: 500 });
-
     const authHeader = "Basic " + btoa(secretKey + ":");
 
-    // The redirect from Moyasar invoice checkout may append either a payment ID
-    // or an invoice ID. Try the payments API first; fall back to the invoices
-    // API and look for a paid payment in its payments array.
-    let paid = false;
-    let resolvedPaymentId = paymentId;
-    let metadata: any = null;
+    // Detect a Moyasar webhook: the body is the full invoice object with a
+    // status and a payments array.
+    const isWebhook = !!body && !!body.id && typeof body.status === "string" && Array.isArray(body.payments);
 
-    const payRes = await fetch("https://api.moyasar.com/v1/payments/" + paymentId, {
-      headers: { Authorization: authHeader },
-    });
-    if (payRes.ok) {
-      const payData = await payRes.json();
-      if (payData.status === "paid") {
-        paid = true;
-        metadata = payData.metadata || null;
-      }
-    } else {
-      const invRes = await fetch("https://api.moyasar.com/v1/invoices/" + paymentId, {
+    let metadata: any = null;
+    let resolvedPaymentId = "";
+    let invoiceId = "";
+
+    if (isWebhook) {
+      invoiceId = String(body.id);
+      const invRes = await fetch("https://api.moyasar.com/v1/invoices/" + invoiceId, {
         headers: { Authorization: authHeader },
       });
-      if (invRes.ok) {
-        const invData = await invRes.json();
-        const paidPayment = (invData.payments || []).find((p) => p.status === "paid");
-        if (paidPayment) {
+      if (!invRes.ok) return Response.json({ error: "Invoice lookup failed" }, { status: 400 });
+      const invData = await invRes.json();
+      const paidPayment = (invData.payments || []).find((p) => p.status === "paid");
+      if (!paidPayment) return Response.json({ ok: false, error: "Payment not completed" });
+      metadata = invData.metadata || paidPayment.metadata || null;
+      resolvedPaymentId = paidPayment.id;
+    } else {
+      const user = await base44.auth.me();
+      if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+      const paymentId = (body.paymentId || "").trim();
+      const invoiceIdParam = (body.invoiceId || "").trim();
+      const boostRequestId = (body.boostRequestId || "").trim();
+
+      let lookupId = paymentId || invoiceIdParam;
+
+      // No Moyasar id? Resolve the invoice id from the BoostRequest's receipt_url
+      // using our own embedded reference (the `br` query param).
+      if (!lookupId && boostRequestId) {
+        try {
+          const br = await base44.asServiceRole.entities.BoostRequest.get(boostRequestId);
+          if (br?.receipt_url && String(br.receipt_url).startsWith("moyasar:")) {
+            lookupId = String(br.receipt_url).slice("moyasar:".length);
+          }
+        } catch {}
+      }
+
+      if (!lookupId) return Response.json({ error: "Missing payment reference" }, { status: 400 });
+
+      let paid = false;
+      const payRes = await fetch("https://api.moyasar.com/v1/payments/" + lookupId, {
+        headers: { Authorization: authHeader },
+      });
+      if (payRes.ok) {
+        const payData = await payRes.json();
+        if (payData.status === "paid") {
           paid = true;
-          resolvedPaymentId = paidPayment.id;
-          metadata = invData.metadata || paidPayment.metadata || null;
+          metadata = payData.metadata || null;
+          resolvedPaymentId = payData.id;
+          if (payData.invoice_id) invoiceId = String(payData.invoice_id);
         }
       } else {
-        const invData = await invRes.json().catch(() => ({}));
-        return Response.json({ error: invData?.message || "Payment lookup failed" }, { status: 400 });
+        const invRes = await fetch("https://api.moyasar.com/v1/invoices/" + lookupId, {
+          headers: { Authorization: authHeader },
+        });
+        if (invRes.ok) {
+          const invData = await invRes.json();
+          invoiceId = String(invData.id);
+          const paidPayment = (invData.payments || []).find((p) => p.status === "paid");
+          if (paidPayment) {
+            paid = true;
+            resolvedPaymentId = paidPayment.id;
+            metadata = invData.metadata || paidPayment.metadata || null;
+          }
+        } else {
+          const invData = await invRes.json().catch(() => ({}));
+          return Response.json({ error: invData?.message || "Payment lookup failed" }, { status: 400 });
+        }
       }
-    }
 
-    if (!paid) {
-      return Response.json({ ok: false, error: "Payment not completed" });
-    }
+      if (!paid) return Response.json({ ok: false, error: "Payment not completed" });
 
-    // Ownership: the invoice metadata carries the user_id set at checkout.
-    const metaUserId = metadata?.user_id ? String(metadata.user_id) : "";
-    if (metaUserId && metaUserId !== String(user.id)) {
-      return Response.json({ error: "Payment does not belong to this account" }, { status: 403 });
+      // Ownership: the invoice metadata carries the user_id set at checkout.
+      const metaUserId = metadata?.user_id ? String(metadata.user_id) : "";
+      if (metaUserId && metaUserId !== String(user.id)) {
+        return Response.json({ error: "Payment does not belong to this account" }, { status: 403 });
+      }
     }
 
     const requestId = metadata?.boost_request_id ? String(metadata.boost_request_id) : "";
@@ -78,29 +116,24 @@ export default async function (req: Request): Promise<Response> {
     }
 
     if (request) {
-      if (String(request.user_id) !== String(user.id)) {
-        return Response.json({ error: "Boost request ownership mismatch" }, { status: 403 });
-      }
       await base44.asServiceRole.entities.BoostRequest.update(request.id, {
         status: "approved",
         reviewed_by: "system",
-        receipt_url: "moyasar:" + resolvedPaymentId,
+        receipt_url: "moyasar:" + (resolvedPaymentId || invoiceId),
       });
     } else if (itemId) {
-      // Fallback (legacy/edge case): create an approved record from metadata.
-      const userName = [user.first_name, user.last_name].filter(Boolean).join(" ") || user.username || user.full_name || user.email || "";
       const item = await base44.asServiceRole.entities.Item.get(itemId).catch(() => null);
       request = await base44.asServiceRole.entities.BoostRequest.create({
         item_id: itemId,
         item_title: item?.title || "",
-        user_id: user.id,
-        user_name: userName,
+        user_id: metadata?.user_id ? String(metadata.user_id) : "",
+        user_name: "",
         hours,
         cross_country: false,
         amount: 0,
         status: "approved",
         reviewed_by: "system",
-        receipt_url: "moyasar:" + resolvedPaymentId,
+        receipt_url: "moyasar:" + (resolvedPaymentId || invoiceId),
       });
     }
 
@@ -119,15 +152,18 @@ export default async function (req: Request): Promise<Response> {
       });
     }
 
-    try {
-      await base44.entities.Notification.create({
-        user_id: user.id,
-        type: "boost_approved",
-        item_id: itemId,
-        item_title: request?.item_title || "",
-        text: "تم تفعيل تعزيز إعلانك ⭐",
-      });
-    } catch (e) {}
+    const notifyUserId = metadata?.user_id ? String(metadata.user_id) : request?.user_id || "";
+    if (notifyUserId) {
+      try {
+        await base44.asServiceRole.entities.Notification.create({
+          user_id: notifyUserId,
+          type: "boost_approved",
+          item_id: itemId,
+          item_title: request?.item_title || "",
+          text: "تم تفعيل تعزيز إعلانك ⭐",
+        });
+      } catch (e) {}
+    }
 
     return Response.json({ ok: true, activated: true });
   } catch (error) {

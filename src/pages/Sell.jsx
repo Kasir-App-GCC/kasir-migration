@@ -6,6 +6,7 @@ import { useT } from "@/lib/i18n";
 import { useToast } from "@/components/ui/use-toast";
 import ListingForm from "@/components/ListingForm";
 import BoostPopupPayment from "@/components/BoostPopupPayment";
+import { base44Analytics } from "@/lib/analytics";
 
 // Shared seller fields attached to every item (draft or published).
 const sellerFields = (user) => ({
@@ -73,6 +74,7 @@ export default function Sell() {
         status: "available",
       });
     }
+    base44Analytics.listingPosted(item.id, data.category);
     if (claim_free_boost) {
       try {
         await base44.functions.invoke("claimFreeBoost", { item_id: item.id });
@@ -96,6 +98,7 @@ export default function Sell() {
             amount: boost_amount,
             itemId: item.id,
           });
+          base44Analytics.boostPurchased(item.id, boost_hours);
           return;
         }
       } catch {}

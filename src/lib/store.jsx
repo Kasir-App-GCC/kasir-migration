@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
+import { base44Analytics } from "@/lib/analytics";
 
 const StoreContext = createContext(null);
 
@@ -143,7 +144,7 @@ export function StoreProvider({ children }) {
     // Keep a server-side Favorite record so price-drop alerts can reach savers.
     if (user?.id) {
       if (isFav) base44.entities.Favorite.deleteMany({ user_id: user.id, item_id: id }).catch(() => {});
-      else base44.entities.Favorite.create({ user_id: user.id, item_id: id }).catch(() => {});
+      else { base44.entities.Favorite.create({ user_id: user.id, item_id: id }).catch(() => {}); base44Analytics.favoriteAdded(id); }
     }
   };
   const setPrefs = (patch) => setPrefsState((p) => ({ ...p, ...patch }));

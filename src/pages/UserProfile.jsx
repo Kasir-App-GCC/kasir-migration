@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Star, BadgeCheck, UserPlus, UserCheck, Ban, Package, CheckCircle, Clock, MessageSquare, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Star, BadgeCheck, UserPlus, UserCheck, Ban, Package, CheckCircle, Clock, MessageSquare, ShieldCheck, Flag } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import ItemCard from "@/components/ItemCard";
 import ReviewCard from "@/components/ReviewCard";
 import { useBlockStatus } from "@/lib/useBlockStatus";
+import ReportUserDialog from "@/components/ReportUserDialog";
+import { base44Analytics } from "@/lib/analytics";
 
 function timeAgoShort(iso, ar) {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -45,6 +47,7 @@ export default function UserProfile() {
   const [listingTab, setListingTab] = useState("active");
   const [stats, setStats] = useState(null);
   const { blockedByMe, block, unblock } = useBlockStatus(id, user?.id);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const isOwn = !!user && user.id === id;
   const name = params.get("name") || "—";
@@ -58,6 +61,7 @@ export default function UserProfile() {
         try {
           const p = await base44.functions.invoke("getPublicProfile", { user_id: id });
           setProfile(p?.data || null);
+          base44Analytics.profileView(id);
         } catch {}
         try {
           const s = await base44.functions.invoke("getUserStats", { user_id: id });
@@ -224,9 +228,17 @@ export default function UserProfile() {
             >
               <Ban size={16} /> {blockedByMe ? t("unblockUser") : t("blockUser")}
             </button>
+            <button
+              onClick={() => setReportOpen(true)}
+              className="px-3 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 transition bg-white/15 text-white ring-1 ring-white/30"
+            >
+              <Flag size={16} /> {ar ? "بلّغ" : "Report"}
+            </button>
           </div>
         )}
       </div>
+
+      <ReportUserDialog open={reportOpen} onClose={() => setReportOpen(false)} userId={id} userName={displayName} />
 
       <div className="flex gap-1 p-1 bg-muted rounded-2xl mt-4">
         <button onClick={() => setListingTab("active")} className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition ${listingTab === "active" ? "bg-card shadow-sm" : "text-muted-foreground"}`}>

@@ -7,7 +7,7 @@ import SearchLocationControl from "@/components/SearchLocationControl";
 import UserSearchDropdown from "@/components/UserSearchDropdown";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
-import { CATEGORIES, CONDITIONS } from "@/lib/constants";
+import { CATEGORIES, CONDITIONS, getSubcategories } from "@/lib/constants";
 import { matchLocation, cityCoords, distanceKm } from "@/lib/location";
 import { nearbyCities } from "@/lib/countries";
 import { fetchSellerInfos } from "@/lib/useTrusted";
@@ -15,6 +15,7 @@ import { readFeedCache, writeFeedCache } from "@/lib/feedCache";
 import PullToRefresh from "@/components/PullToRefresh";
 import SavedSearchChips from "@/components/SavedSearchChips";
 import { useToast } from "@/components/ui/use-toast";
+import { base44Analytics } from "@/lib/analytics";
 
 const PAGE_SIZE = 60;
 
@@ -122,13 +123,14 @@ export default function Search() {
       setSellers(sMap);
       setItems(list);
       setHasMore(list.length === PAGE_SIZE);
+      if (!silent && debouncedQ) base44Analytics.searchPerformed(debouncedQ, list.length);
     } catch {
       if (!silent) { setItems([]); setHasMore(false); }
     } finally {
       refreshingRef.current = false;
       if (!silent) setLoading(false);
     }
-  }, [buildQuery, sortKey, hasActiveFilter]);
+  }, [buildQuery, sortKey, hasActiveFilter, debouncedQ]);
 
   // Stable cache key for this exact filter/sort combination.
   const cacheKey = useMemo(
@@ -193,14 +195,17 @@ export default function Search() {
   }, [items, sellers, cacheKey, hasActiveFilter]);
 
   // Fetch featured (promoted) listings to inject as sponsored slots in results.
+  // Only when the user has an active filter — otherwise the search page just
+  // duplicates the home feed and the featured fetch is wasted bandwidth.
   const loadFeatured = useCallback(async () => {
+    if (!hasActiveFilter) { setFeaturedItems([]); return; }
     try {
       const list = await base44.entities.Item.filter({ featured: true, status: "available", archived: { $ne: true }, review_status: { $nin: ["pending", "rejected"] } }, "-featured_until", 20);
       setFeaturedItems(list || []);
     } catch {
       setFeaturedItems([]);
     }
-  }, []);
+  }, [hasActiveFilter]);
 
   useEffect(() => { loadFeatured(); }, [loadFeatured]);
 
@@ -466,6 +471,9 @@ export default function Search() {
                         onClick={() => {
                           const next = active ? categories.filter((x) => x !== c.id) : [...categories, c.id];
                           setCategories(next);
+                          // Prune subcategories that no longer belong to any selected category.
+                          const validSubs = new Set(next.flatMap((cid) => getSubcategories(cid)).map((s) => s.en));
+                          setSubcategories((prev) => prev.filter((s) => validSubs.has(s)));
                         }}
                         className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold border transition ${active ? "bg-primary text-primary-foreground border-transparent" : "bg-card border-border/70 hover:bg-muted"}`}
                       >
@@ -476,6 +484,36 @@ export default function Search() {
                   })}
                 </div>
               </div>
+              {/* Subcategories — shown when at least one category is selected, mirroring the Home category bar. */}
+              {categories.length > 0 && (() => {
+                const subs = Array.from(new Map(categories.flatMap((id) => getSubcategories(id)).map((s) => [s.en, s])).values());
+                if (!subs.length) return null;
+                return (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground block mb-1.5">{t("subcategory")}</label>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => setSubcategories([])}
+                        className={`px-3 py-2 rounded-xl text-sm font-semibold border transition ${subcategories.length === 0 ? "bg-primary/10 text-primary border-primary/30" : "bg-card text-muted-foreground border-border/60 hover:bg-muted"}`}
+                      >
+                        {t("all")}
+                      </button>
+                      {subs.map((s) => {
+                        const active = subcategories.includes(s.en);
+                        return (
+                          <button
+                            key={s.en}
+                            onClick={() => setSubcategories(active ? subcategories.filter((x) => x !== s.en) : [...subcategories, s.en])}
+                            className={`px-3 py-2 rounded-xl text-sm font-semibold border transition ${active ? "bg-primary text-primary-foreground border-transparent" : "bg-card text-foreground border-border/60 hover:bg-muted"}`}
+                          >
+                            {lang === "ar" ? s.ar : s.en}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
               <div>
                 <label className="text-sm font-medium text-muted-foreground block mb-1.5">{t("locationFilter")}</label>
                 <SearchLocationControl />

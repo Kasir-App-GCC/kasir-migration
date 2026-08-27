@@ -33,6 +33,7 @@ import Admin from "@/pages/Admin";
 import BuyRequests from "@/pages/BuyRequests";
 import Terms from "@/pages/Terms";
 import About from "@/pages/About";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 function routeDepth(pathname) {
   if (pathname === "/") return 0;
@@ -148,7 +149,9 @@ function App() {
         <StoreProvider>
           <Router>
             <ScrollToTop />
+            <ErrorBoundary>
             <AuthenticatedApp />
+            </ErrorBoundary>
           </Router>
         </StoreProvider>
         <Toaster />

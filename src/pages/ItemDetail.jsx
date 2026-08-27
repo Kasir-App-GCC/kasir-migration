@@ -20,6 +20,8 @@ import { Image } from "@/components/ui/image";
 import { sendPush } from "@/lib/notify";
 import { useBlockStatus } from "@/lib/useBlockStatus";
 import { useToast } from "@/components/ui/use-toast";
+import { addRecentlyViewed } from "@/lib/recentlyViewed";
+import { base44Analytics } from "@/lib/analytics";
 
 export default function ItemDetail() {
   const { id } = useParams();
@@ -94,6 +96,8 @@ export default function ItemDetail() {
         // too — the Item update RLS blocks guest writes, so this goes through a
         // service-role backend function. The owner's own views are skipped.
         if (it.seller_id !== user?.id) base44.functions.invoke("incrementItemViews", { item_id: id, seller_id: it.seller_id, viewer_id: user?.id || null }).catch(() => {});
+        addRecentlyViewed(it);
+        base44Analytics.itemView(it.id, it.category);
       } catch {
         setItem(null);
       } finally {
@@ -167,6 +171,7 @@ export default function ItemDetail() {
     if (item.status === "sold" || blockedByMe || blockedMe) { setOfferOpen(false); return; }
     const room = await getOrCreateRoom();
     nav(`/chat/${room.id}`);
+    base44Analytics.chatStarted(item.id);
   };
 
   const isOwner = user && item && item.seller_id === user.id;
@@ -215,6 +220,7 @@ export default function ItemDetail() {
         actor_name: user.name,
       }).catch(() => {});
       nav(`/chat/${room.id}`);
+      base44Analytics.offerSent(item.id, offerPrice);
     } catch {
       setSending(false);
     }

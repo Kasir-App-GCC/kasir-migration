@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { Sparkles, ShoppingBag, Map as MapIcon, Eye, EyeOff, Megaphone } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -11,6 +11,8 @@ import { matchLocation } from "@/lib/location";
 import { fetchSellerInfos } from "@/lib/useTrusted";
 import { readFeedCache, writeFeedCache, FEED_STALE_MS } from "@/lib/feedCache";
 import PullToRefresh from "@/components/PullToRefresh";
+import RecentlyViewed from "@/components/RecentlyViewed";
+import FeaturedCarouselSkeleton from "@/components/FeaturedCarouselSkeleton";
 
 function Skeleton() {
   return (
@@ -33,6 +35,7 @@ export default function Home() {
   const cacheKey = `home:${country}`;
   const [items, setItems] = useState([]);
   const [featuredItems, setFeaturedItems] = useState([]);
+  const [featuredLoaded, setFeaturedLoaded] = useState(false);
   const [sponsoredItems, setSponsoredItems] = useState([]);
   const [sellers, setSellers] = useState({});
   const [loading, setLoading] = useState(true);
@@ -113,6 +116,8 @@ export default function Home() {
       setFeaturedItems(list || []);
     } catch {
       setFeaturedItems([]);
+    } finally {
+      setFeaturedLoaded(true);
     }
   }, [country, user?.id]);
 
@@ -260,12 +265,12 @@ export default function Home() {
     return () => io.disconnect();
   }, [loadMore]);
 
-  const filtered = items.filter((it) => {
+  const filtered = useMemo(() => items.filter((it) => {
     if (categories.length && !categories.includes(it.category)) return false;
     if (subcategories.length && !(Array.isArray(it.subcategory) ? it.subcategory.some((s) => subcategories.includes(s)) : subcategories.includes(it.subcategory))) return false;
     if (!prefs.showSold && it.status === "sold") return false;
     return matchLocation(it, locationFilter, country);
-  });
+  }), [items, categories, subcategories, prefs.showSold, locationFilter, country]);
   // Admin-sponsored items are pinned to the very top of the grid, ahead of the
   // normal created_date ordering, and de-duplicated against the regular feed.
   const sponsored = sponsoredItems.filter((it) => {
@@ -277,16 +282,16 @@ export default function Home() {
     return matchLocation(it, locationFilter, country);
   });
   const sponsoredIds = new Set(sponsored.map((it) => it.id));
-  const ordered = [...sponsored, ...filtered.filter((it) => !sponsoredIds.has(it.id))];
+  const ordered = useMemo(() => [...sponsored, ...filtered.filter((it) => !sponsoredIds.has(it.id))], [sponsored, filtered, sponsoredIds]);
   const now = Date.now();
-  const featured = featuredItems.filter((it) => {
+  const featured = useMemo(() => featuredItems.filter((it) => {
     if (it.status === "sold") return false;
     if (it.featured_until && new Date(it.featured_until).getTime() < now) return false;
     if (it.country !== country) return false;
     if (categories.length && !categories.includes(it.category)) return false;
     if (subcategories.length && !(Array.isArray(it.subcategory) ? it.subcategory.some((s) => subcategories.includes(s)) : subcategories.includes(it.subcategory))) return false;
     return matchLocation(it, locationFilter, country);
-  });
+  }), [featuredItems, now, country, categories, subcategories, locationFilter]);
   const showFeatured = featured.length > 0;
 
   return (
@@ -329,7 +334,12 @@ export default function Home() {
         </div>
       </button>
 
-      {showFeatured && <FeaturedCarousel items={featured} onOpen={(iid) => nav(`/item/${iid}`)} sellers={sellers} />}
+      <RecentlyViewed sellers={sellers} />
+      {showFeatured ? (
+        <FeaturedCarousel items={featured} onOpen={(iid) => nav(`/item/${iid}`)} sellers={sellers} />
+      ) : !featuredLoaded && (
+        <FeaturedCarouselSkeleton />
+      )}
 
       <div className="flex items-baseline justify-between">
         <h2 className="font-bold text-lg">

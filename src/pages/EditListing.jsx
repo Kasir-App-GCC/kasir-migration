@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, AlertTriangle, RefreshCw, ArrowRight } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -68,6 +68,18 @@ export default function EditListing() {
       itemData.review_status = "approved";
       itemData.review_reason = "";
     }
+    // Auto-unarchive on save when the blocking reason is resolved (stale, or
+    // ad-license expiry updated to a future date). Broker-license blocks can't
+    // be cleared here — the seller must renew their license first.
+    if (item?.archived) {
+      const newIsSaRe = itemData.category === "realestate" && itemData.country === "SA";
+      const newBrokerLicensed = !newIsSaRe || user?.re_license_status === "approved";
+      const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+      const newAdExpired = newIsSaRe && itemData.re_ad_license_expiry && new Date(itemData.re_ad_license_expiry) < t0;
+      if (!newIsSaRe || (newBrokerLicensed && !newAdExpired)) {
+        itemData.archived = false;
+      }
+    }
     await base44.entities.Item.update(id, itemData);
     // Price-drop alert: notify users who saved this listing when the price drops.
     if (Number.isFinite(oldPrice) && Number(itemData.price) > 0 && Number(itemData.price) < oldPrice) {
@@ -109,12 +121,77 @@ export default function EditListing() {
 
   const promoted = !!(item?.featured && item?.featured_until && new Date(item.featured_until) > new Date());
 
+  // The `archived` flag is a boolean — the reason isn't stored on the item, so
+  // derive it from the listing + the seller's current license status to show
+  // the seller why it's down and how to bring it back.
+  const archived = !!item?.archived;
+  const isSaRe = item?.category === "realestate" && item?.country === "SA";
+  const brokerLicensed = !isSaRe || user?.re_license_status === "approved";
+  const today0 = new Date(); today0.setHours(0, 0, 0, 0);
+  const adLicenseExpired = isSaRe && item?.re_ad_license_expiry && new Date(item.re_ad_license_expiry) < today0;
+  let archiveReason = null;
+  if (archived) {
+    if (isSaRe && !brokerLicensed) {
+      archiveReason = {
+        key: "broker_license",
+        title: ar ? "إعلانك العقاري مؤرشف — ترخيص الوساطة غير نشط" : "Listing archived — broker license inactive",
+        desc: ar ? "انتهت أو أُلغيت صلاحية ترخيصك العقاري. جدّده من ملفك الشخصي ليُعاد نشر إعلاناتك تلقائياً." : "Your real estate broker license expired or was revoked. Renew it from your profile to republish your listings.",
+        action: { label: ar ? "تجديد الترخيص" : "Renew license", to: "/profile" },
+      };
+    } else if (isSaRe && adLicenseExpired) {
+      archiveReason = {
+        key: "ad_license",
+        title: ar ? "إعلانك العقاري مؤرشف — انتهت صلاحية ترخيص الإعلان" : "Listing archived — ad license expired",
+        desc: ar
+          ? `انتهت صلاحية ترخيص الإعلان لهذا العقار بتاريخ ${new Date(item.re_ad_license_expiry).toLocaleDateString("ar-SA")}. حدّث تاريخ انتهاء ترخيص الإعلان في النموذج ثم احفظ — سيُعاد نشر الإعلان تلقائياً.`
+          : `This listing's ad license expired on ${new Date(item.re_ad_license_expiry).toLocaleDateString("en-US")}. Update the ad license expiry in the form below and save — the listing will be republished automatically.`,
+      };
+    } else {
+      archiveReason = {
+        key: "stale",
+        title: ar ? "إعلانك مؤرشف — قديم" : "Listing archived — inactive",
+        desc: ar ? "لم يتم تحديث الإعلان منذ أكثر من 30 يوماً. اضغط \"إعادة النشر\" لإعادته للعرض." : "This listing hasn't been refreshed in over 30 days. Tap \"Restore\" to republish it.",
+      };
+    }
+  }
+
+  const restoreListing = async () => {
+    try {
+      await base44.entities.Item.update(id, { archived: false });
+      toast({ title: ar ? "تمت إعادة نشر الإعلان" : "Listing restored" });
+      nav(`/item/${id}`);
+    } catch {
+      toast({ title: ar ? "تعذّر التحديث" : "Couldn't restore", variant: "destructive" });
+    }
+  };
+
   return (
     <div className="pt-[calc(env(safe-area-inset-top)+0.75rem)] max-w-2xl mx-auto">
       <button onClick={() => nav(-1)} className="flex items-center gap-1 text-sm text-muted-foreground mb-3">
         <ArrowLeft size={16} className="rtl:rotate-180" /> {t("back")}
       </button>
       <h1 className="text-2xl font-extrabold mb-5">{t("editListing")}</h1>
+      {archiveReason && (
+        <div className="mb-4 p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 space-y-2">
+          <div className="flex items-start gap-2">
+            <AlertTriangle size={18} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-bold text-amber-800 dark:text-amber-200">{archiveReason.title}</p>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-1 leading-relaxed">{archiveReason.desc}</p>
+            </div>
+          </div>
+          {archiveReason.key === "stale" && (
+            <button onClick={restoreListing} className="w-full py-2.5 rounded-xl bg-amber-600 text-white text-sm font-bold flex items-center justify-center gap-1.5">
+              <RefreshCw size={15} /> {ar ? "إعادة النشر" : "Restore listing"}
+            </button>
+          )}
+          {archiveReason.action && (
+            <button onClick={() => nav(archiveReason.action.to)} className="w-full py-2.5 rounded-xl bg-amber-600 text-white text-sm font-bold flex items-center justify-center gap-1.5">
+              {archiveReason.action.label} <ArrowRight size={15} className="rtl:rotate-180" />
+            </button>
+          )}
+        </div>
+      )}
       <ListingForm
         initial={item}
         submitLabel={t("saveChanges")}

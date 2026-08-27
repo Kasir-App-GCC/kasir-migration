@@ -11,7 +11,6 @@ import { matchLocation } from "@/lib/location";
 import { fetchSellerInfos } from "@/lib/useTrusted";
 import { readFeedCache, writeFeedCache, FEED_STALE_MS } from "@/lib/feedCache";
 import PullToRefresh from "@/components/PullToRefresh";
-import RecentlyViewed from "@/components/RecentlyViewed";
 import FeaturedCarouselSkeleton from "@/components/FeaturedCarouselSkeleton";
 
 function Skeleton() {
@@ -334,7 +333,6 @@ export default function Home() {
         </div>
       </button>
 
-      <RecentlyViewed sellers={sellers} />
       {showFeatured ? (
         <FeaturedCarousel items={featured} onOpen={(iid) => nav(`/item/${iid}`)} sellers={sellers} />
       ) : !featuredLoaded && (

@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck, RefreshCw, Info, Loader2, Building2, FileText, Rocket, Ban, CheckSquare, Square } from "lucide-react";
+import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck, RefreshCw, Info, Loader2, Building2, FileText, Rocket, Ban, CheckSquare, Square, Eye } from "lucide-react";
 import VerificationDialog from "@/components/VerificationDialog";
 import RealEstateLicenseDialog from "@/components/RealEstateLicenseDialog";
 import SponsorItemDialog from "@/components/SponsorItemDialog";
 import SponsorPaymentDialog from "@/components/SponsorPaymentDialog";
 import BlockedUsersDialog from "@/components/BlockedUsersDialog";
+import RecentlyViewedDialog from "@/components/RecentlyViewedDialog";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -50,6 +51,7 @@ export default function Profile() {
   const [deleting, setDeleting] = useState(false);
   const [waSaving, setWaSaving] = useState(false);
   const [blockedOpen, setBlockedOpen] = useState(false);
+  const [recentOpen, setRecentOpen] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState(new Set());
 
@@ -577,6 +579,10 @@ export default function Profile() {
           <span className="flex items-center gap-2 text-sm font-semibold"><Shield size={18} /> {ar ? "الشروط والأحكام" : "Terms & Conditions"}</span>
           <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
         </button>
+        <button onClick={() => setRecentOpen(true)} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
+          <span className="flex items-center gap-2 text-sm font-semibold"><Eye size={18} /> {ar ? "شاهدت مؤخراً" : "Recently viewed"}</span>
+          <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
+        </button>
         <button onClick={() => setBlockedOpen(true)} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
           <span className="flex items-center gap-2 text-sm font-semibold"><Ban size={18} /> {ar ? "المستخدمون المحظورون" : "Blocked users"}</span>
           <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
@@ -609,6 +615,7 @@ export default function Profile() {
       <SponsorItemDialog open={sponsorOpen} onClose={() => setSponsorOpen(false)} />
       <SponsorPaymentDialog open={!!sponsorPayId} requestId={sponsorPayId} onClose={() => setSponsorPayId("")} />
       <BlockedUsersDialog open={blockedOpen} onClose={() => setBlockedOpen(false)} />
+      <RecentlyViewedDialog open={recentOpen} onClose={() => setRecentOpen(false)} />
       <VerificationDialog open={verificationOpen} onClose={() => setVerificationOpen(false)} />
     </div>
     </PullToRefresh>

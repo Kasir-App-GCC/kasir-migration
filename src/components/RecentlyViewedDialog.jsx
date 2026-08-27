@@ -36,7 +36,7 @@ export default function RecentlyViewedDialog({ open, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50" onClick={onClose}>
       <div
-        className="bg-card w-full sm:max-w-2xl max-h-[85vh] rounded-t-3xl sm:rounded-3xl flex flex-col"
+        className="bg-card w-full sm:max-w-lg max-h-[70vh] rounded-t-3xl sm:rounded-3xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-4 border-b border-border/60">

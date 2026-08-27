@@ -12,7 +12,6 @@ export default function CompletenessDock({ images, title, description, price, ca
 
   const checks = [
     { icon: Camera, label: ar ? "صورة واحدة على الأقل" : "1+ photo", done: (images?.length || 0) >= 1 },
-    { icon: FileText, label: ar ? "وصف مفصّل" : "Detailed description", done: (description?.trim().length || 0) >= 30 },
     { icon: Tag, label: ar ? "السعر والتصنيف" : "Price & category", done: !!price && !!category },
     { icon: MapPin, label: ar ? "الموقع" : "Location set", done: !!city },
   ];

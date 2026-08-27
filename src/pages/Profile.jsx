@@ -257,19 +257,19 @@ export default function Profile() {
       {/* Tabs */}
       <div className="flex gap-1 p-1 bg-muted rounded-2xl">
         {[
-          { id: "listings", label: t("myListings") },
-          { id: "drafts", label: t("drafts") },
-          { id: "sold", label: t("soldItems") },
-          { id: "bought", label: t("boughtItems") },
-          { id: "saved", label: t("savedItems") },
-          { id: "reviews", label: t("reviews") },
+          { id: "listings", label: t("myListings"), count: publishedListings.length },
+          { id: "drafts", label: t("drafts"), count: draftItems.length },
+          { id: "sold", label: t("soldItems"), count: soldItems.length },
+          { id: "bought", label: t("boughtItems"), count: boughtItems.length },
+          { id: "saved", label: t("savedItems"), count: saved.length },
+          { id: "reviews", label: t("reviews"), count: ratings.length },
         ].map((tb) => (
           <button
             key={tb.id}
             onClick={() => setTab(tb.id)}
             className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition ${tab === tb.id ? "bg-card shadow-sm" : "text-muted-foreground"}`}
           >
-            {tb.label}
+            {tb.label} <span className="opacity-60">({tb.count})</span>
           </button>
         ))}
       </div>

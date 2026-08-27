@@ -83,7 +83,7 @@ export default function useNotifications() {
             return { id: n.id, type: "sponsor_activated", text: n.text, name: n.item_title, itemId: n.item_id, date: n.created_date, unread: !n.read };
           }
           if (n.type === "admin_message") {
-            return { id: n.id, type: "admin_message", text: n.text, name: n.actor_name, itemId: n.item_id, roomId: n.chatroom_id, disputeId: n.dispute_id, date: n.created_date, unread: !n.read };
+            return { id: n.id, type: "admin_message", text: n.text, name: n.actor_name, itemId: n.item_id, roomId: n.chatroom_id, disputeId: n.dispute_id, referenceId: n.reference_id, date: n.created_date, unread: !n.read };
           }
           return { id: n.id, type: n.type, text: n.text, name: n.actor_name, roomId: n.chatroom_id, amount: n.offer_amount, referenceId: n.reference_id, itemId: n.item_id, disputeId: n.dispute_id, date: n.created_date, unread: !n.read };
         });

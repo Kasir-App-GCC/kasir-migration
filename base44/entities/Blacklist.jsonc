@@ -2,6 +2,10 @@
   "name": "Blacklist",
   "type": "object",
   "properties": {
+    "description": {
+      "type": "string",
+      "maxLength": 1000
+    },
     "email": {
       "type": "string",
       "description": "Blocked email address (lowercase)"

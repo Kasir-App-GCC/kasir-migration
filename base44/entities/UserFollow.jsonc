@@ -2,6 +2,10 @@
   "name": "UserFollow",
   "type": "object",
   "properties": {
+    "description": {
+      "type": "string",
+      "maxLength": 1000
+    },
     "follower_id": {
       "type": "string",
       "description": "The user who follows"

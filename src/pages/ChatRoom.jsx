@@ -388,6 +388,7 @@ export default function ChatRoom() {
   }, [acceptedOffer?.id]);
 
   const hasMeetup = !!acceptedMeetup && acceptedMeetup.status !== "cancelled";
+  const meetupCompleted = !!acceptedMeetup && acceptedMeetup.status === "completed";
   const bothVerified = !!user?.is_trusted && !!otherTrusted;
 
   return (
@@ -463,7 +464,7 @@ export default function ChatRoom() {
                     ratedOffers={ratedOffers} onRate={setRatingOffer} onConfirm={confirmReceipt} onDispute={setDisputeOffer}
                     onAccept={acceptOffer} onReject={rejectOffer} onCounter={counterOffer} onModify={modifyOffer} onNotMatch={notMatchOffer}
                     onRequestMod={o.status === "accepted" && !offers.some((p) => p.status === "pending" && p.previous_offer_id === o.id) ? requestModification : undefined}
-                    hasMeetup={hasMeetup && o.id === acceptedOffer?.id} />
+                    hasMeetup={hasMeetup && o.id === acceptedOffer?.id} meetupCompleted={meetupCompleted && o.id === acceptedOffer?.id} />
                 </div>
               );
             }
@@ -494,9 +495,11 @@ export default function ChatRoom() {
             if (m.sender_id === "system") {
               const offer = offers.find((o) => o.id === m.offer_id);
               const isBuyer = room?.buyer_id === user.id;
-              const needsConfirm = offer && offer.status === "accepted" && !offer.received_confirmed && isBuyer;
+              const meetupDone = hasMeetup && acceptedMeetup?.status === "completed";
+              const receiptReady = meetupDone || (!hasMeetup && Date.now() - new Date(offer?.updated_date || offer?.created_date || Date.now()).getTime() > 3600000);
+              const needsConfirm = offer && offer.status === "accepted" && !offer.received_confirmed && isBuyer && receiptReady;
               const waiting = offer && offer.status === "accepted" && !offer.received_confirmed && !isBuyer;
-              const canRate = offer && (offer.status === "accepted" || offer.status === "completed") && !ratedOffers.has(offer.id);
+              const canRate = offer && offer.status === "completed" && !ratedOffers.has(offer.id);
               const displayText = waiting ? t("agreedWaitingReceipt") : m.text;
               return (
                 <div key={`s-${i}`} className="flex justify-center">
@@ -515,7 +518,7 @@ export default function ChatRoom() {
                         <Star size={14} /> {t("rateNow")}
                       </button>
                     )}
-                    {(offer.status === "accepted" || offer.status === "completed") && (
+                    {offer && (offer.status === "accepted" || offer.status === "completed") && (
                       <button onClick={() => setDisputeOffer(offer)} className="mt-2 px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 mx-auto">
                         <ShieldAlert size={14} /> {ar ? "فتح نزاع" : "Open dispute"}
                       </button>

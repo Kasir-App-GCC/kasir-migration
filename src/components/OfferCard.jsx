@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Check, X, Tag, Pencil, ArrowLeftRight, Clock, Star, ShieldAlert } from "lucide-react";
 import Price from "@/components/Price";
 
-export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, itemTitle, country, onAccept, onReject, onCounter, onModify, onNotMatch, ratedOffers, onRate, onConfirm, onDispute, hasMeetup, onRequestMod }) {
+export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, itemTitle, country, onAccept, onReject, onCounter, onModify, onNotMatch, ratedOffers, onRate, onConfirm, onDispute, hasMeetup, meetupCompleted, onRequestMod }) {
   const nav = useNavigate();
   const mine = offer.direction === "buyer_offer" ? offer.buyer_id === user.id : offer.seller_id === user.id;
   const isRecipient = offer.direction === "buyer_offer" ? offer.seller_id === user.id : offer.buyer_id === user.id;
@@ -18,6 +18,13 @@ export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, 
   const whoLabel = offer.direction === "seller_counter"
     ? (mine ? t("yourCounter") : t("counterFromSeller"))
     : (mine ? t("yourOffer2") : t("offerFromBuyer"));
+
+  // Buyer can only confirm receipt once the handover actually happened:
+  // after a completed meetup, or (when there's no meetup) after a 1-hour
+  // cool-down so the button doesn't appear the instant an offer is accepted.
+  const canConfirmReceipt = hasMeetup
+    ? !!meetupCompleted
+    : Date.now() - new Date(offer.updated_date || offer.created_date).getTime() > 3600000;
 
   const run = async (fn) => {
     setBusy(true);
@@ -145,10 +152,12 @@ export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, 
         </div>
       )}
 
-      {(offer.status === "accepted" || offer.status === "completed") && !hasMeetup && (
+      {(offer.status === "accepted" || offer.status === "completed") && (
         <div className="mt-2 space-y-1.5">
-          {offer.status === "accepted" && <p className="text-[11px] text-center text-muted-foreground">{t("agreedArrange")}</p>}
-          {offer.status === "accepted" && onRequestMod && !modOpen && (
+          {offer.status === "accepted" && !canConfirmReceipt && !offer.received_confirmed && (
+            <p className="text-[11px] text-center text-muted-foreground">{t("agreedArrange")}</p>
+          )}
+          {offer.status === "accepted" && onRequestMod && !modOpen && !hasMeetup && (
             <button onClick={() => { setModVal(String(offer.amount)); setModOpen(true); }} className="w-full py-2 rounded-xl bg-muted text-xs font-bold flex items-center justify-center gap-1.5">
               <Pencil size={13} /> {lang === "ar" ? "طلب تعديل العرض" : "Request modification"}
             </button>
@@ -167,12 +176,12 @@ export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, 
               <button onClick={() => setModOpen(false)} className="px-2 rounded-xl bg-muted text-xs">{t("cancel")}</button>
             </div>
           )}
-          {offer.status === "accepted" && offer.buyer_id === user.id && !offer.received_confirmed && onConfirm && (
+          {offer.status === "accepted" && offer.buyer_id === user.id && !offer.received_confirmed && onConfirm && canConfirmReceipt && (
             <button onClick={() => onConfirm(offer)} className="w-full py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5">
               <Check size={13} /> {t("confirmReceipt")}
             </button>
           )}
-          {onRate && !ratedOffers?.has(offer.id) && (() => {
+          {offer.status === "completed" && onRate && !ratedOffers?.has(offer.id) && (() => {
             const isBuyer = offer.buyer_id === user.id;
             const rateLabel = isBuyer ? (lang === "ar" ? "قيّم البائع" : "Rate the seller") : (lang === "ar" ? "قيّم المشتري" : "Rate the buyer");
             return (

@@ -1,7 +1,7 @@
 import {
   LayoutGrid, Smartphone, Monitor, Gamepad2, Tv, Camera, Car, Bike, Truck,
   Wrench, Mountain, Building2, Armchair, ChefHat, Shirt, Watch, Sparkles, Baby,
-  Dumbbell, Music, Book, Cat, Hammer, Store, Briefcase, Package,
+  Dumbbell, Music, Book, Cat, Hammer, Store, Briefcase, Package, Home,
 } from "lucide-react";
 import { SAUDI_CITIES, getCityName, nearestCity } from "./countries";
 export { SAUDI_CITIES, getCityName, nearestCity };
@@ -31,6 +31,7 @@ export const CATEGORIES = [
   { id: "animals", en: "Animals & Livestock", ar: "الحيوانات والفروسية والمواشي", icon: Cat, color: "bg-lime-100 text-lime-700 dark:bg-lime-950 dark:text-lime-300" },
   { id: "tools", en: "Tools & Equipment", ar: "الأدوات والمعدات", icon: Hammer, color: "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300" },
   { id: "business_equipment", en: "Business & Restaurant Equipment", ar: "معدات الأعمال والمطاعم والمشاريع", icon: Store, color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200" },
+  { id: "productive_families", en: "Productive Families", ar: "الأسر المنتجة", icon: Home, color: "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300" },
   { id: "services", en: "Services", ar: "الخدمات", icon: Briefcase, color: "bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300" },
   { id: "other", en: "Other", ar: "أخرى", icon: Package, color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200" },
 ];
@@ -324,6 +325,19 @@ export const SUBCATEGORIES = {
     { en: "Shop Equipment", ar: "معدات المحلات" },
     { en: "Office Equipment", ar: "معدات المكاتب" },
     { en: "Complete Businesses", ar: "مشاريع كاملة" },
+  ],
+  productive_families: [
+    { en: "Homemade Food", ar: "الأطعمة المنزلية" },
+    { en: "Sweets & Pastries", ar: "الحلويات والمعجنات" },
+    { en: "Baked Goods", ar: "المخبوزات" },
+    { en: "Pickles & Preserves", ar: "المخللات والمربيات" },
+    { en: "Spices & Seasonings", ar: "البهارات والنكهات" },
+    { en: "Dairy & Cheese", ar: "الألبان والأجبان" },
+    { en: "Honey & Natural Oils", ar: "العسل والزيوت الطبيعية" },
+    { en: "Handicrafts", ar: "المشغولات اليدوية" },
+    { en: "Sewing & Embroidery", ar: "الخياطة والتطريز" },
+    { en: "Natural Cosmetics", ar: "العناية الطبيعية" },
+    { en: "Handmade Gifts", ar: "الهدايا اليدوية" },
   ],
   services: [
     { en: "Car Services", ar: "خدمات السيارات" },

@@ -153,6 +153,14 @@ export const BUY_REQUEST_CATEGORY_TAGS = {
     { en: "With warranty", ar: "مع ضمان" },
     { en: "Well maintained", ar: "معتنى به" },
   ],
+  productive_families: [
+    { en: "Fresh", ar: "طازج" },
+    { en: "Same-day", ar: "بنفس اليوم" },
+    { en: "Natural", ar: "طبيعي" },
+    { en: "Organic", ar: "عضوي" },
+    { en: "Custom order", ar: "حسب الطلب" },
+    { en: "Delivery", ar: "توصيل" },
+  ],
   services: [
     { en: "Licensed", ar: "مرخّص" },
     { en: "Same-day", ar: "بنفس اليوم" },

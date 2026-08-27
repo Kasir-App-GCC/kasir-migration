@@ -112,7 +112,10 @@ export default function MapView() {
 
   return (
     <div className="pt-2">
-      <button onClick={() => nav(-1)} className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
+      <button
+        onClick={() => { if (window.history.length > 1) nav(-1); else nav("/"); }}
+        className="flex items-center gap-1 text-sm text-muted-foreground mb-2"
+      >
         <ArrowLeft size={16} className="rtl:rotate-180" /> {t("back")}
       </button>
       <div className="flex items-baseline justify-between mb-2">

@@ -6,7 +6,7 @@ import { Check, Camera, FileText, MapPin, Tag } from "lucide-react";
 export default function ListingCompleteness({ images, title, description, price, category, city }) {
   const ar = document.documentElement?.dir === "rtl";
   const checks = [
-    { icon: Camera, label: ar ? "3 صور أو أكثر" : "3+ photos", done: (images?.length || 0) >= 3 },
+    { icon: Camera, label: ar ? "صورة واحدة على الأقل" : "1+ photo", done: (images?.length || 0) >= 1 },
     { icon: FileText, label: ar ? "وصف مفصّل" : "Detailed description", done: (description?.trim().length || 0) >= 30 },
     { icon: Tag, label: ar ? "السعر والتصنيف" : "Price & category", done: !!price && !!category },
     { icon: MapPin, label: ar ? "الموقع" : "Location set", done: !!city },

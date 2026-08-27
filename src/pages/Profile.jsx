@@ -126,9 +126,10 @@ export default function Profile() {
     // Popup success_url landing: the Moyasar popup navigated here after payment.
     // The opener's polling closes the popup immediately, but if it doesn't, just
     // refresh the user — the webhook already granted the badge server-side.
-    if (params.get("verify_paid") === "1") {
+    if (params.get("verify_paid") === "1" || params.get("broker_paid") === "1") {
       refreshUser();
       params.delete("verify_paid");
+      params.delete("broker_paid");
       changed = true;
     }
 

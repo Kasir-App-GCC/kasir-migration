@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState, useMemo, useRef } from "react";
-import { Search, Trash2, Pencil, Star, Tag, Clock, X, RefreshCw } from "lucide-react";
+import { Search, Trash2, Pencil, Star, Tag, Clock, X, RefreshCw, Rocket } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -9,6 +9,7 @@ import Price from "@/components/Price";
 import AdminEditListing from "@/components/admin/AdminEditListing";
 
 const isLiveFeatured = (it) => !!it?.featured && (!it.featured_until || new Date(it.featured_until).getTime() > Date.now());
+const isSponsored = (it) => !!it?.admin_sponsored && (!it.admin_sponsored_until || new Date(it.admin_sponsored_until).getTime() > Date.now());
 
 export default function AdminListings() {
   const { lang, country } = useStore();
@@ -28,6 +29,9 @@ export default function AdminListings() {
   const [featureItem, setFeatureItem] = useState(null);
   const [featureHours, setFeatureHours] = useState(24);
   const [featureSaving, setFeatureSaving] = useState(false);
+  const [sponsorItem, setSponsorItem] = useState(null);
+  const [sponsorDays, setSponsorDays] = useState(1);
+  const [sponsorSaving, setSponsorSaving] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const skipRef = useRef(0);
   const searchSkipRef = useRef(0);
@@ -197,6 +201,43 @@ export default function AdminListings() {
     }
   };
 
+  const openSponsor = (it) => {
+    setSponsorItem(it);
+    const remaining = it.admin_sponsored_until ? Math.ceil((new Date(it.admin_sponsored_until) - Date.now()) / 86400000) : 0;
+    setSponsorDays(isSponsored(it) && remaining > 0 ? remaining : 1);
+  };
+
+  const applySponsor = async () => {
+    if (!sponsorItem || !sponsorDays || sponsorDays < 1) return;
+    setSponsorSaving(true);
+    try {
+      const until = new Date(Date.now() + sponsorDays * 86400000).toISOString();
+      await base44.entities.Item.update(sponsorItem.id, { admin_sponsored: true, admin_sponsored_until: until });
+      setItems((prev) => prev.map((x) => (x.id === sponsorItem.id ? { ...x, admin_sponsored: true, admin_sponsored_until: until } : x)));
+      toast({ title: ar ? "تمت الرعاية" : "Sponsored", description: ar ? `لمدة ${sponsorDays} يوم` : `For ${sponsorDays} day(s)` });
+      setSponsorItem(null);
+    } catch {
+      toast({ title: ar ? "فشل" : "Failed", variant: "destructive" });
+    } finally {
+      setSponsorSaving(false);
+    }
+  };
+
+  const desponsor = async () => {
+    if (!sponsorItem) return;
+    setSponsorSaving(true);
+    try {
+      await base44.entities.Item.update(sponsorItem.id, { admin_sponsored: false, admin_sponsored_until: null });
+      setItems((prev) => prev.map((x) => (x.id === sponsorItem.id ? { ...x, admin_sponsored: false, admin_sponsored_until: null } : x)));
+      toast({ title: ar ? "تم إلغاء الرعاية" : "Desponsored" });
+      setSponsorItem(null);
+    } catch {
+      toast({ title: ar ? "فشل" : "Failed", variant: "destructive" });
+    } finally {
+      setSponsorSaving(false);
+    }
+  };
+
   const markSold = async (it) => {
     const newStatus = it.status === "sold" ? "available" : "sold";
     try {
@@ -249,6 +290,7 @@ export default function AdminListings() {
               <div className="flex items-center gap-1.5">
                 <button onClick={() => nav(`/item/${it.id}`)} className="font-semibold text-sm truncate text-start hover:underline">{it.title}</button>
                 {isLiveFeatured(it) && <Star size={12} className="text-amber-500 fill-amber-500 shrink-0" />}
+                {isSponsored(it) && <Rocket size={12} className="text-violet-500 shrink-0" />}
               </div>
               <p className="text-xs text-muted-foreground truncate">
                 <Price value={it.price} lang={lang} country={it.country} /> · {it.seller_name || "—"} · {getCategory(it.category)?.[ar ? "ar" : "en"] || it.category}
@@ -260,6 +302,7 @@ export default function AdminListings() {
             <div className="flex items-center gap-1.5 shrink-0">
               <button onClick={() => setEditItem(it)} title={ar ? "تعديل" : "Edit"} className="w-8 h-8 rounded-lg bg-muted hover:bg-muted/70 flex items-center justify-center"><Pencil size={16} /></button>
               <button onClick={() => openFeature(it)} title={ar ? "تمييز" : "Feature"} className={`w-8 h-8 rounded-lg flex items-center justify-center transition ${isLiveFeatured(it) ? "bg-amber-100 text-amber-600 dark:bg-amber-950/40" : "bg-muted hover:bg-muted/70"}`}><Star size={16} className={isLiveFeatured(it) ? "fill-amber-500" : ""} /></button>
+              <button onClick={() => openSponsor(it)} title={ar ? "رعاية" : "Sponsor"} className={`w-8 h-8 rounded-lg flex items-center justify-center transition ${isSponsored(it) ? "bg-violet-100 text-violet-600 dark:bg-violet-950/40" : "bg-muted hover:bg-muted/70"}`}><Rocket size={16} className={isSponsored(it) ? "fill-violet-500" : ""} /></button>
               <button onClick={() => markSold(it)} title={ar ? "تبديل الحالة" : "Toggle sold"} className="w-8 h-8 rounded-lg bg-muted hover:bg-muted/70 flex items-center justify-center"><Tag size={16} /></button>
               <button onClick={() => deleteItem(it)} title={ar ? "حذف" : "Delete"} className="w-8 h-8 rounded-lg bg-muted hover:bg-rose-100 hover:text-rose-600 dark:hover:bg-rose-950/40 flex items-center justify-center transition"><Trash2 size={16} /></button>
             </div>
@@ -339,6 +382,57 @@ export default function AdminListings() {
               )}
               <button onClick={applyFeature} disabled={featureSaving || featureHours < 1} className="flex-1 py-3 rounded-2xl bg-amber-500 text-white font-bold disabled:opacity-50">
                 {featureSaving ? "…" : (ar ? "تمييز" : "Feature")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {sponsorItem && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !sponsorSaving && setSponsorItem(null)} />
+          <div className="relative w-full sm:max-w-sm bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 animate-in fade-in slide-in-from-bottom-[100%] duration-300">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="font-bold text-lg flex items-center gap-1.5"><Rocket size={18} className="text-violet-500" /> {ar ? "رعاية الإعلان" : "Sponsor listing"}</h3>
+              <button onClick={() => !sponsorSaving && setSponsorItem(null)} className="p-1.5 rounded-full hover:bg-muted"><X size={20} /></button>
+            </div>
+            <p className="text-sm text-muted-foreground truncate mb-4">{sponsorItem.title}</p>
+
+            {isSponsored(sponsorItem) && sponsorItem.admin_sponsored_until && (
+              <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-900">
+                <Clock size={16} className="text-violet-600 shrink-0" />
+                <span className="text-xs text-violet-700 dark:text-violet-300">
+                  {new Date(sponsorItem.admin_sponsored_until) > new Date()
+                    ? (ar ? `مُمول حالياً حتى ${new Date(sponsorItem.admin_sponsored_until).toLocaleString(ar ? "ar-SA" : "en-US")}` : `Currently sponsored until ${new Date(sponsorItem.admin_sponsored_until).toLocaleString()}`)
+                    : (ar ? "انتهت مدة الرعاية السابقة" : "Previous sponsorship expired")}
+                </span>
+              </div>
+            )}
+
+            <label className="text-sm font-semibold mb-2 block">{ar ? "المدة بالأيام" : "Duration (days)"}</label>
+            <div className="flex gap-2 mb-3">
+              {[1, 3, 7, 14].map((d) => (
+                <button key={d} type="button" onClick={() => setSponsorDays(d)} className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition ${sponsorDays === d ? "bg-violet-500 text-white" : "bg-muted"}`}>{d} {ar ? "ي" : "d"}</button>
+              ))}
+            </div>
+            <input
+              type="number"
+              min={1}
+              max={365}
+              value={sponsorDays}
+              onChange={(e) => setSponsorDays(Math.max(1, Math.min(365, Number(e.target.value) || 1)))}
+              className="w-full px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm mb-2"
+            />
+            <p className="text-[11px] text-muted-foreground mb-4">{ar ? "الإعلان المُمول يظهر أعلى بطاقات الصفحة الرئيسية بغض النظر عن تاريخ النشر، ويعود لترتيبه العادي عند انتهاء المدة." : "Sponsored listings pin to the top of the Home feed regardless of post date, and return to normal order when the period ends."}</p>
+
+            <div className="flex gap-2">
+              {isSponsored(sponsorItem) && (
+                <button onClick={desponsor} disabled={sponsorSaving} className="flex-1 py-3 rounded-2xl bg-rose-600 text-white font-bold disabled:opacity-50">
+                  {ar ? "إلغاء الرعاية" : "Desponsor"}
+                </button>
+              )}
+              <button onClick={applySponsor} disabled={sponsorSaving || sponsorDays < 1} className="flex-1 py-3 rounded-2xl bg-violet-500 text-white font-bold disabled:opacity-50">
+                {sponsorSaving ? "…" : (ar ? "رعاية" : "Sponsor")}
               </button>
             </div>
           </div>

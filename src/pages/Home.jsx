@@ -33,6 +33,7 @@ export default function Home() {
   const cacheKey = `home:${country}`;
   const [items, setItems] = useState([]);
   const [featuredItems, setFeaturedItems] = useState([]);
+  const [sponsoredItems, setSponsoredItems] = useState([]);
   const [sellers, setSellers] = useState({});
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -115,6 +116,30 @@ export default function Home() {
     }
   }, [country, user?.id]);
 
+  // Admin-sponsored listings are fetched independently and pinned to the
+  // top of the grid regardless of their created_date. Only active sponsorships
+  // (admin_sponsored_until in the future) are returned, so expired ones drop
+  // back to normal ordering automatically.
+  const loadSponsored = useCallback(async () => {
+    try {
+      const nowIso = new Date().toISOString();
+      const list = await base44.entities.Item.filter({
+        admin_sponsored: true,
+        admin_sponsored_until: { $gt: nowIso },
+        country,
+        archived: { $ne: true },
+        review_status: { $nin: ["pending", "rejected"] },
+        status: { $ne: "draft" },
+      }, "-admin_sponsored_until", 50);
+      const ids = [...new Set((list || []).map((i) => i.seller_id).filter(Boolean))];
+      const sMap = ids.length ? await fetchSellerInfos(ids) : {};
+      setSellers((prev) => ({ ...prev, ...sMap }));
+      setSponsoredItems(list || []);
+    } catch {
+      setSponsoredItems([]);
+    }
+  }, [country]);
+
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
     const oldest = itemsRef.current[itemsRef.current.length - 1]?.created_date;
@@ -158,22 +183,25 @@ export default function Home() {
       setHasMore((cached.items || []).length >= PAGE_SIZE);
       setLoading(false);
       refresh(true);   // background SWR refresh
-      loadFeatured();
+      loadFeatured(); loadSponsored();
     } else {
       setLoading(true);
       refresh(false);
-      loadFeatured();
+      loadFeatured(); loadSponsored();
     }
     // Keep the feed live: apply any item change in-place as it happens.
     const unsub = base44.entities.Item.subscribe((event) => {
       if (!event) return;
       const it = event.data;
+      const isSpon = (x) => !!x?.admin_sponsored && (!x.admin_sponsored_until || new Date(x.admin_sponsored_until).getTime() > Date.now());
       if (event.type === "delete") {
         setItems((prev) => prev.filter((x) => x.id !== it?.id));
         setFeaturedItems((prev) => prev.filter((x) => x.id !== it?.id));
+        setSponsoredItems((prev) => prev.filter((x) => x.id !== it?.id));
       } else if (event.type === "create" && it) {
         setItems((prev) => [it, ...prev.filter((x) => x.id !== it.id)]);
         if (it.featured) setFeaturedItems((prev) => [it, ...prev.filter((x) => x.id !== it.id)]);
+        if (isSpon(it)) setSponsoredItems((prev) => [it, ...prev.filter((x) => x.id !== it.id)]);
       } else if (it) {
         // Updates refresh an existing item in place — never prepend, so
         // editing an old listing can't bump it to the top (no free boost).
@@ -191,6 +219,15 @@ export default function Home() {
           }
           return idx === -1 ? prev : prev.filter((x) => x.id !== it.id);
         });
+        // Keep the sponsored rail in sync: upsert while active, drop when not.
+        setSponsoredItems((prev) => {
+          const idx = prev.findIndex((x) => x.id === it.id);
+          if (isSpon(it)) {
+            if (idx === -1) return [it, ...prev];
+            const copy = [...prev]; copy[idx] = it; return copy;
+          }
+          return idx === -1 ? prev : prev.filter((x) => x.id !== it.id);
+        });
       }
     });
     // Only self-heal on focus when the cache is stale AND the user is near the
@@ -199,7 +236,7 @@ export default function Home() {
       const cached = readFeedCache(cacheKey);
       if ((!cached || Date.now() - cached.ts > FEED_STALE_MS) && window.scrollY < 300) {
         refresh(true);
-        loadFeatured();
+        loadFeatured(); loadSponsored();
       }
     };
     const onVis = () => { if (!document.hidden) onFocus(); };
@@ -210,7 +247,7 @@ export default function Home() {
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [cacheKey, refresh, loadFeatured]);
+  }, [cacheKey, refresh, loadFeatured, loadSponsored]);
 
   // Infinite scroll: fetch the next page when the sentinel nears the viewport.
   useEffect(() => {
@@ -229,7 +266,18 @@ export default function Home() {
     if (!prefs.showSold && it.status === "sold") return false;
     return matchLocation(it, locationFilter, country);
   });
-  const ordered = filtered;
+  // Admin-sponsored items are pinned to the very top of the grid, ahead of the
+  // normal created_date ordering, and de-duplicated against the regular feed.
+  const sponsored = sponsoredItems.filter((it) => {
+    if (!prefs.showSold && it.status === "sold") return false;
+    if (it.admin_sponsored_until && new Date(it.admin_sponsored_until).getTime() < Date.now()) return false;
+    if (it.country !== country) return false;
+    if (categories.length && !categories.includes(it.category)) return false;
+    if (subcategories.length && !(Array.isArray(it.subcategory) ? it.subcategory.some((s) => subcategories.includes(s)) : subcategories.includes(it.subcategory))) return false;
+    return matchLocation(it, locationFilter, country);
+  });
+  const sponsoredIds = new Set(sponsored.map((it) => it.id));
+  const ordered = [...sponsored, ...filtered.filter((it) => !sponsoredIds.has(it.id))];
   const now = Date.now();
   const featured = featuredItems.filter((it) => {
     if (it.status === "sold") return false;
@@ -290,7 +338,7 @@ export default function Home() {
             : t("newArrivals")}
         </h2>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground">{filtered.length} {t("items")}</span>
+          <span className="text-xs text-muted-foreground">{ordered.length} {t("items")}</span>
           <div className="inline-flex items-center bg-muted rounded-xl p-0.5 text-sm font-semibold">
             <button
               onClick={() => setPrefs({ showSold: false })}

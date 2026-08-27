@@ -29,16 +29,23 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
   const [docUploading, setDocUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [phoneMode, setPhoneMode] = useState(user?.phone_verified && user?.phone ? "verified" : "license");
-  const [licensePhone, setLicensePhone] = useState(user?.re_license_phone || "");
-  const [licensePhoneVerified, setLicensePhoneVerified] = useState(false);
+  const accountPhoneE164 = user?.phone ? "+" + user.phone.replace(/\D/g, "") : "";
+  const storedLicensePhone = user?.re_license_phone || "";
+  const storedIsAccount = !!(storedLicensePhone && accountPhoneE164 && storedLicensePhone === accountPhoneE164);
+  const [phoneMode, setPhoneMode] = useState(
+    storedLicensePhone ? (storedIsAccount ? "verified" : "license") : (user?.phone_verified && user?.phone ? "verified" : "license")
+  );
+  const [licensePhone, setLicensePhone] = useState(storedLicensePhone);
+  const [licensePhoneVerified, setLicensePhoneVerified] = useState(!!storedLicensePhone);
   const [nationalId, setNationalId] = useState(user?.re_national_id || "");
   const popup = usePopupPayment();
   const [payUrl, setPayUrl] = useState("");
   const [paying, setPaying] = useState(false);
 
   // One-time lifetime activation fee, by license type (matches createBrokerPayment).
-  const brokerFee = user?.re_license_type === "establishment_fal" ? 149 : 99;
+  const brokerFee = user?.re_license_type === "establishment_fal" ? 99 : 39;
+  // Fee for the currently-selected type in the edit form (drives the dynamic banner).
+  const selectedFee = licenseType === "establishment_fal" ? 99 : licenseType === "individual_fal" ? 39 : null;
 
   // Reset edit mode whenever the dialog is opened so an approved license
   // shows its read-only view first, not a stale edit form from a prior open.
@@ -108,7 +115,7 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
     if (!valid || submitting) return;
     setSubmitting(true);
     try {
-      await base44.functions.invoke("submitRealEstateLicense", {
+      const res = await base44.functions.invoke("submitRealEstateLicense", {
         license_type: licenseType,
         license_number: licenseNumber.trim(),
         license_holder: licenseHolder.trim(),
@@ -118,12 +125,13 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
         license_phone: phoneMode === "verified" ? verifiedPhoneE164 : licensePhone,
         national_id: licenseType === "individual_fal" ? nationalId.trim() : "",
       });
+      if (res?.data?.error) throw new Error(res.data.error);
       await refreshUser();
       setEditMode(false);
       toast({ title: ar ? "تم إرسال ترخيصك للمراجعة" : "License submitted for review" });
       onClose();
     } catch (e) {
-      toast({ title: ar ? "فشل الإرسال" : "Failed to submit", variant: "destructive" });
+      toast({ title: e?.message || (ar ? "فشل الإرسال" : "Failed to submit"), variant: "destructive" });
     }
     setSubmitting(false);
   };
@@ -245,7 +253,14 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
                 </div>
               </button>
               {phoneMode === "license" && (
-                <LicensePhoneVerifier onVerified={(e164) => { setLicensePhone(e164); setLicensePhoneVerified(true); }} />
+                licensePhoneVerified ? (
+                  <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 p-2.5 flex items-center justify-between gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                    <span className="flex items-center gap-1.5 min-w-0"><BadgeCheck size={14} className="shrink-0" /> {ar ? "تم التحقق" : "Verified"} <span dir="ltr" className="font-mono truncate">{licensePhone}</span></span>
+                    <button type="button" onClick={() => { setLicensePhoneVerified(false); setLicensePhone(""); }} className="text-emerald-700 dark:text-emerald-300 underline shrink-0">{ar ? "تغيير" : "Change"}</button>
+                  </div>
+                ) : (
+                  <LicensePhoneVerifier onVerified={(e164) => { setLicensePhone(e164); setLicensePhoneVerified(true); }} />
+                )
               )}
             </div>
             <div className="space-y-1">
@@ -298,9 +313,17 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
                 </label>
               )}
             </div>
-            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 space-y-1">
-              <p className="text-xs font-bold text-amber-700 dark:text-amber-300">{ar ? "رسوم التفعيل (مدى الحياة): 99 ريال للفرد · 149 ريال للمنشأة" : "Activation fee (lifetime): 99 SAR individual · 149 SAR establishment"}</p>
-              <p className="text-[11px] text-amber-600 dark:text-amber-400 leading-relaxed">{ar ? "بعد مراجعة طلبك واعتماده من الإدارة، يلزم دفع الرسوم مرة واحدة لتفعيل شارة الوسيط العقاري (99 ريال للفرد، 149 ريال للمنشأة). كاسر لا يأخذ عمولة من أي معاملة عقارية." : "Once your application is reviewed and approved, a one-time fee activates your broker badge for life (99 SAR individual, 149 SAR establishment). Kasir takes no commission from any real estate transaction."}</p>
+            {selectedFee ? (
+              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 space-y-1">
+                <p className="text-xs font-bold text-amber-700 dark:text-amber-300">{ar ? `رسوم التفعيل (لمرة واحدة، مدى الحياة): ${selectedFee} ريال` : `Activation fee (one-time, lifetime): ${selectedFee} SAR`}</p>
+                <p className="text-[11px] text-amber-600 dark:text-amber-400 leading-relaxed">{ar ? `بعد مراجعة طلبك واعتماده من الإدارة، يلزم دفع ${selectedFee} ريال مرة واحدة لتفعيل شارة الوسيط العقاري.` : `Once your application is reviewed and approved, a one-time ${selectedFee} SAR fee activates your broker badge for life.`}</p>
+              </div>
+            ) : (
+              <div className="p-3 rounded-xl bg-muted text-xs text-muted-foreground text-center">{ar ? "اختر نوع الترخيص لمعرفة الرسوم" : "Select a license type to see the fee"}</div>
+            )}
+            <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 flex items-start gap-2">
+              <ShieldCheck size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-emerald-700 dark:text-emerald-300 leading-relaxed">{ar ? "كاسر لا يأخذ أي عمولة أو رسوم وساطة من معاملاتك العقارية — هذه رسوم تفعيل لمرة واحدة فقط لتغطية تشغيل المنصة، وليس لها أي علاقة بصفقاتك." : "Kasir takes no commission or finder's fee from any of your real estate deals — this is a one-time activation fee only, to cover platform costs, and is unrelated to your transactions."}</p>
             </div>
             <button onClick={submit} disabled={!valid || submitting} className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center gap-1.5 disabled:opacity-50">
               {submitting && <Loader2 size={15} className="animate-spin" />}

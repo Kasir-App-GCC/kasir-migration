@@ -70,7 +70,7 @@ export default function AdminRealEstate() {
         await base44.entities.Notification.create({
           user_id: u.id,
           type: "re_license_approved_pending_payment",
-          text: ar ? `تم اعتماد ترخيصك العقاري! ادفع ${u.re_license_type === "establishment_fal" ? 149 : 99} ريال (مرة واحدة، مدى الحياة) لتفعيل الشارة والبدء بنشر الإعلانات.` : `Your real estate license was approved! Pay ${u.re_license_type === "establishment_fal" ? 149 : 99} SAR (one-time, lifetime) to activate your badge and start posting listings.`,
+          text: ar ? `تم اعتماد ترخيصك العقاري! ادفع ${u.re_license_type === "establishment_fal" ? 99 : 39} ريال (مرة واحدة، مدى الحياة) لتفعيل الشارة والبدء بنشر الإعلانات.` : `Your real estate license was approved! Pay ${u.re_license_type === "establishment_fal" ? 99 : 39} SAR (one-time, lifetime) to activate your badge and start posting listings.`,
         });
       } catch {}
       setPending((prev) => prev.filter((x) => x.id !== u.id));

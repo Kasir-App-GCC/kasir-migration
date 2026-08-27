@@ -12,8 +12,8 @@ import { secrets } from 'base44:runtime';
 //   establishment broker (منشأة): 149 SAR
 //   individual broker (فرد):        99 SAR
 const BROKER_FEE_BY_TYPE: Record<string, number> = {
-  establishment_fal: 149,
-  individual_fal: 99,
+  establishment_fal: 99,
+  individual_fal: 39,
 };
 
 export default async function(req: Request): Promise<Response> {
@@ -35,7 +35,7 @@ export default async function(req: Request): Promise<Response> {
     if (!secretKey) return Response.json({ error: 'MOYASAR_SECRET_KEY not set' }, { status: 500 });
 
     const body = await req.json().catch(() => ({}));
-    const fee = BROKER_FEE_BY_TYPE[user.re_license_type] ?? 99;
+    const fee = BROKER_FEE_BY_TYPE[user.re_license_type] ?? 39;
     const amountHalalas = fee * 100;
     const authHeader = 'Basic ' + btoa(secretKey + ':');
 

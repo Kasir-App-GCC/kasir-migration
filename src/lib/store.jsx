@@ -195,3 +195,12 @@ export function StoreProvider({ children }) {
 }
 
 export const useStore = () => useContext(StoreContext);
+
+// Vite HMR re-executes this module on edit, creating a NEW StoreContext
+// instance. Already-mounted components still hold the OLD context reference,
+// so useContext returns null for them (the "Cannot destructure 'user'/'lang'
+// of useStore() as null" errors). Force a full reload on store changes so the
+// provider and consumers stay in sync. Dev-only; no-op in production.
+if (import.meta.hot) {
+  import.meta.hot.accept(() => window.location.reload());
+}

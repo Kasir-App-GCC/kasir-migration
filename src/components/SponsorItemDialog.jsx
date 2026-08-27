@@ -22,6 +22,7 @@ export default function SponsorItemDialog({ open, onClose }) {
   const [weeks, setWeeks] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [blockedIds, setBlockedIds] = useState(() => new Set());
 
   useEffect(() => {
     if (!open || !user) return;
@@ -29,8 +30,14 @@ export default function SponsorItemDialog({ open, onClose }) {
     setSelectedId("");
     setWeeks(1);
     setDone(false);
-    base44.entities.Item.filter({ seller_id: user.id }, "-created_date", 200)
-      .then((list) => setListings(list || []))
+    Promise.all([
+      base44.entities.Item.filter({ seller_id: user.id }, "-created_date", 200),
+      base44.entities.SponsorRequest.filter({ user_id: user.id, status: { $in: ["pending", "approved"] } }, "-created_date", 100).catch(() => []),
+    ])
+      .then(([list, reqs]) => {
+        setListings(list || []);
+        setBlockedIds(new Set((reqs || []).map((r) => r.item_id)));
+      })
       .catch(() => setListings([]))
       .finally(() => setLoading(false));
   }, [open, user]);
@@ -48,6 +55,14 @@ export default function SponsorItemDialog({ open, onClose }) {
       });
       const data = res?.data || {};
       if (data.error) throw new Error(data.error);
+      if (data.already_pending) {
+        toast({ title: ar ? "يوجد طلب قيد المراجعة لهذا الإعلان" : "This item already has a pending request", variant: "destructive" });
+        return;
+      }
+      if (data.already_sponsored) {
+        toast({ title: ar ? "هذا الإعلان مموّل حالياً" : "This item is already sponsored", variant: "destructive" });
+        return;
+      }
       setDone(true);
       toast({ title: ar ? "تم إرسال طلب الرعاية ✅" : "Sponsorship request sent ✅", description: ar ? "سيتم إشعارك بعد موافقة الإدارة" : "You'll be notified once the admin approves" });
     } catch (e) {
@@ -108,22 +123,31 @@ export default function SponsorItemDialog({ open, onClose }) {
                   {listings.map((it) => {
                     const isDraft = it.status === "draft";
                     const isSelected = it.id === selectedId;
+                    const isCurrentlySponsored = it.admin_sponsored && it.admin_sponsored_until && new Date(it.admin_sponsored_until) > new Date();
+                    const isPending = blockedIds.has(it.id);
+                    const isBlocked = isPending || isCurrentlySponsored;
                     return (
                       <button
                         key={it.id}
+                        disabled={isBlocked}
                         onClick={() => setSelectedId(it.id)}
-                        className={`w-full flex items-center gap-2.5 p-2 rounded-xl border text-start transition ${isSelected ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30" : "border-border/60 hover:bg-muted/50"}`}
+                        className={`w-full flex items-center gap-2.5 p-2 rounded-xl border text-start transition ${isBlocked ? "opacity-50 cursor-not-allowed border-border/60" : isSelected ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30" : "border-border/60 hover:bg-muted/50"}`}
                       >
                         <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0">
                           {it.images?.[0] ? <img src={it.images[0]} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Rocket size={16} className="text-muted-foreground" /></div>}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold truncate">{it.title}</p>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <Price value={it.price} lang={lang} country={it.country} />
                             {isDraft && (
                               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
                                 <FileText size={9} /> {ar ? "مسودة" : "Draft"}
+                              </span>
+                            )}
+                            {isBlocked && (
+                              <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold ${isCurrentlySponsored ? "bg-violet-100 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300" : "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"}`}>
+                                {isCurrentlySponsored ? (ar ? "مُمول حالياً" : "Sponsored") : (ar ? "قيد المراجعة" : "Under review")}
                               </span>
                             )}
                           </div>

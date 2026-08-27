@@ -37,6 +37,13 @@ export default async function (req) {
       return Response.json({ ok: true, already_pending: true, request_id: existing[0].id, status: existing[0].status });
     }
 
+    // Block if the item is already actively sponsored (admin_sponsored + not expired).
+    const now = new Date();
+    const isCurrentlySponsored = item.admin_sponsored && item.admin_sponsored_until && new Date(item.admin_sponsored_until) > now;
+    if (isCurrentlySponsored) {
+      return Response.json({ ok: true, already_sponsored: true });
+    }
+
     const request = await base44.entities.SponsorRequest.create({
       item_id: item.id,
       item_title: item.title || "",

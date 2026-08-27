@@ -21,7 +21,7 @@ import ImageEditor from "@/components/ImageEditor";
 import CameraCapture from "@/components/CameraCapture";
 import VerificationDialog from "@/components/VerificationDialog";
 import RealEstateAdLicenseFields from "@/components/RealEstateAdLicenseFields";
-import ListingCompleteness from "@/components/ListingCompleteness";
+import CompletenessDock from "@/components/CompletenessDock";
 import { useNavigate } from "react-router-dom";
 
 // Convert Arabic-Indic (٠-٩) and Eastern Arabic (۰-۹) digits to ASCII 0-9
@@ -888,7 +888,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         </button>
       </div>
 
-      <ListingCompleteness images={images} title={title} description={description} price={price} category={category} city={city} />
+      <CompletenessDock images={images} title={title} description={description} price={price} category={category} city={city} />
 
       {mapOpen &&
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">

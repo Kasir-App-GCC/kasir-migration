@@ -59,7 +59,7 @@ export default function MapView() {
     (async () => {
       setLoading(true);
       try {
-        const query = { country, archived: { $ne: true }, review_status: { $nin: ["pending", "rejected"] } };
+        const query = { country, archived: { $ne: true }, review_status: { $nin: ["pending", "rejected"] }, status: { $ne: "draft" } };
         if (categories.length === 1) query.category = categories[0];
         else if (categories.length > 1) query.category = { $in: categories };
         if (subcategories.length) query.subcategory = { $in: subcategories };

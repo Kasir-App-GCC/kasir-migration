@@ -45,7 +45,7 @@ export default function Home() {
   // created_date. More reliable than offset — no duplicate/shift when new
   // listings arrive mid-browse (what OfferUp uses).
   const fetchPage = useCallback(async (cursor) => {
-    const query = { country, archived: { $ne: true }, review_status: { $nin: ["pending", "rejected"] } };
+    const query = { country, archived: { $ne: true }, review_status: { $nin: ["pending", "rejected"] }, status: { $ne: "draft" } };
     if (cursor) query.created_date = { $lt: cursor };
     return base44.entities.Item.filter(query, "-created_date", PAGE_SIZE);
   }, [country]);

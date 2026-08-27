@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { ImagePlus, X, Sparkles, LocateFixed, MapPin, GripVertical, Globe, Lock, Check, Camera, Wand2, Truck, Gift, ShieldCheck } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { ImagePlus, X, Sparkles, LocateFixed, MapPin, GripVertical, Globe, Lock, Check, Camera, Wand2, Truck, Gift, ShieldCheck, FileText } from "lucide-react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -32,7 +32,7 @@ function normalizeDigits(s) {
   });
 }
 
-export default function ListingForm({ initial, submitLabel, submittingLabel, onSubmit, boostReceiptRequired = true, boostLocked = false }) {
+export default function ListingForm({ initial, submitLabel, submittingLabel, onSubmit, onSaveDraft, onAutoSaveDraft, boostReceiptRequired = true, boostLocked = false }) {
   const { user, lang, country } = useStore();
   const t = useT();
   const { toast } = useToast();
@@ -63,6 +63,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [mapHint, setMapHint] = useState("");
   const [uploading, setUploading] = useState(false);
   const [posting, setPosting] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
   const [editQueue, setEditQueue] = useState([]);
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -87,6 +88,14 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
     } : {}
   );
 
+
+  // Draft auto-save bookkeeping. `postedRef` skips the exit-time draft save
+  // when the user tapped Post; `savedRef` skips it after an explicit Save-draft;
+  // `dataRef` always holds the latest assembled form data for the unmount save.
+  const postedRef = useRef(false);
+  const savedRef = useRef(false);
+  const dataRef = useRef(null);
+  const isDraft = initial?.status === "draft";
 
   // Reverse-geocode coordinates to an accurate place name for display.
   const reverseGeocode = async (la, ln) => {
@@ -261,50 +270,26 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
 
   const submit = async () => {
     if (!title || !price || !category || !city || images.length === 0) return;
+    postedRef.current = true;
     setPosting(true);
     try {
-      await onSubmit({
-        title,
-        price: Number(price),
-        images: images.length ? images : ["https://picsum.photos/seed/" + encodeURIComponent(title) + "/600/600"],
-        category,
-        subcategory: subcats.length ? subcats : undefined,
-        condition,
-        tags: tags.length ? tags : undefined,
-        specs: Object.keys(specs).length ? specs : undefined,
-        city,
-        location_name: locationName || undefined,
-        country: country || "SA",
-        lat,
-        lng,
-        description,
-        willing_to_ship: willingToShip,
-        shipping_fee: willingToShip && shippingFee ? Number(shippingFee) : null,
-        delivers_within_city: deliversWithinCity,
-        re_license_type: saRealEstate && reApproved ? user.re_license_type : undefined,
-        re_license_number: saRealEstate && reApproved ? user.re_license_number : undefined,
-        re_license_holder: saRealEstate && reApproved ? user.re_license_holder : undefined,
-        re_license_expiry: saRealEstate && reApproved ? user.re_license_expiry : undefined,
-        re_license_doc: saRealEstate && reApproved ? user.re_license_doc : undefined,
-        re_establishment_number: saRealEstate && reApproved ? user.re_establishment_number : undefined,
-        re_ad_license_number: saRealEstate && reApproved ? reAdLicense.re_ad_license_number?.trim() || undefined : undefined,
-        re_ad_license_link: saRealEstate && reApproved ? reAdLicense.re_ad_license_link?.trim() || undefined : undefined,
-        re_ad_license_expiry: saRealEstate && reApproved ? reAdLicense.re_ad_license_expiry || undefined : undefined,
-        re_deed_area: saRealEstate && reApproved ? reAdLicense.re_deed_area?.trim() || undefined : undefined,
-        re_plan_plot: saRealEstate && reApproved ? reAdLicense.re_plan_plot?.trim() || undefined : undefined,
-        re_brokerage_contract_number: saRealEstate && reApproved ? reAdLicense.re_brokerage_contract_number?.trim() || undefined : undefined,
-        re_title_deed_number: saRealEstate && reApproved ? reAdLicense.re_title_deed_number?.trim() || undefined : undefined,
-        re_title_deed_doc: saRealEstate && reApproved ? reAdLicense.re_title_deed_doc || undefined : undefined,
-        re_has_mortgage: saRealEstate && reApproved ? !!reAdLicense.re_has_mortgage : false,
-        re_mortgage_details: saRealEstate && reApproved && reAdLicense.re_has_mortgage ? reAdLicense.re_mortgage_details?.trim() || undefined : undefined,
-        featured: false,
-        boost_hours: useFreeBoost ? 0 : boostHours,
-        boost_amount: boostAmount,
-        claim_free_boost: useFreeBoost
-      });
+      await onSubmit(buildData());
     } catch (e) {
+      postedRef.current = false;
       setPosting(false);
     }
+  };
+
+  const saveDraft = async () => {
+    if (!draftReady || savingDraft) return;
+    savedRef.current = true;
+    setSavingDraft(true);
+    try {
+      await onSaveDraft(buildData());
+    } catch (e) {
+      savedRef.current = false;
+    }
+    setSavingDraft(false);
   };
 
   // The REGA license requirement is Saudi-specific; other GCC countries have
@@ -329,6 +314,71 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   );
   const reValid = !saRealEstate || reApproved;
   const valid = title && price && category && city && images.length > 0 && reValid && !reBlocked && adLicenseValid;
+  // A draft only needs the core fields (no real-estate ad-license gate) so a
+  // seller can save an in-progress listing and finish the REGA details later.
+  const draftReady = !!(title && price && category && city && images.length > 0);
+
+  // Assemble the full form payload — shared by Post, Save-draft, and the
+  // exit-time auto-save so the three never drift apart.
+  const buildData = () => ({
+    title,
+    price: Number(price),
+    images: images.length ? images : ["https://picsum.photos/seed/" + encodeURIComponent(title) + "/600/600"],
+    category,
+    subcategory: subcats.length ? subcats : undefined,
+    condition,
+    tags: tags.length ? tags : undefined,
+    specs: Object.keys(specs).length ? specs : undefined,
+    city,
+    location_name: locationName || undefined,
+    country: country || "SA",
+    lat,
+    lng,
+    description,
+    willing_to_ship: willingToShip,
+    shipping_fee: willingToShip && shippingFee ? Number(shippingFee) : null,
+    delivers_within_city: deliversWithinCity,
+    re_license_type: saRealEstate && reApproved ? user.re_license_type : undefined,
+    re_license_number: saRealEstate && reApproved ? user.re_license_number : undefined,
+    re_license_holder: saRealEstate && reApproved ? user.re_license_holder : undefined,
+    re_license_expiry: saRealEstate && reApproved ? user.re_license_expiry : undefined,
+    re_license_doc: saRealEstate && reApproved ? user.re_license_doc : undefined,
+    re_establishment_number: saRealEstate && reApproved ? user.re_establishment_number : undefined,
+    re_ad_license_number: saRealEstate && reApproved ? reAdLicense.re_ad_license_number?.trim() || undefined : undefined,
+    re_ad_license_link: saRealEstate && reApproved ? reAdLicense.re_ad_license_link?.trim() || undefined : undefined,
+    re_ad_license_expiry: saRealEstate && reApproved ? reAdLicense.re_ad_license_expiry || undefined : undefined,
+    re_deed_area: saRealEstate && reApproved ? reAdLicense.re_deed_area?.trim() || undefined : undefined,
+    re_plan_plot: saRealEstate && reApproved ? reAdLicense.re_plan_plot?.trim() || undefined : undefined,
+    re_brokerage_contract_number: saRealEstate && reApproved ? reAdLicense.re_brokerage_contract_number?.trim() || undefined : undefined,
+    re_title_deed_number: saRealEstate && reApproved ? reAdLicense.re_title_deed_number?.trim() || undefined : undefined,
+    re_title_deed_doc: saRealEstate && reApproved ? reAdLicense.re_title_deed_doc || undefined : undefined,
+    re_has_mortgage: saRealEstate && reApproved ? !!reAdLicense.re_has_mortgage : false,
+    re_mortgage_details: saRealEstate && reApproved && reAdLicense.re_has_mortgage ? reAdLicense.re_mortgage_details?.trim() || undefined : undefined,
+    featured: false,
+    boost_hours: useFreeBoost ? 0 : boostHours,
+    boost_amount: boostAmount,
+    claim_free_boost: useFreeBoost,
+  });
+
+  // Keep the latest payload in a ref so the unmount cleanup can fire the
+  // exit-time draft save with current data (closures in empty-dep effects
+  // otherwise capture the first render's stale state). The assignment runs
+  // after every render once all derived values (e.g. boostAmount) exist.
+
+  // Exit-time auto-save: if the seller leaves the new-listing form with the
+  // core fields filled (and didn't Post or explicitly Save-draft), persist a
+  // private draft so their work isn't lost. Only fires for new listings —
+  // editing an existing item keeps its own save flow.
+  useEffect(() => {
+    return () => {
+      if (postedRef.current || savedRef.current) return;
+      if (initial) return;
+      const d = dataRef.current;
+      if (!d || !(d.title && d.price && d.category && d.city && (d.images?.length > 0))) return;
+      onAutoSaveDraft?.(d);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Featured-listing promotion price: basePrice = 5 + 20·ln(1 + P/500), then
   // × (H/24)^0.70, floored at SAR 5. P is the item price, H the selected hours.
   const existingHours = existingBoostHours(initial?.featured_until);
@@ -339,6 +389,8 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const boostDisplay = convertCurrency(boostAmount, "SA", country || "SA");
   const fmt = (n) => Number(n).toLocaleString(ar ? "ar-SA" : "en-US", { maximumFractionDigits: 2 });
   const subs = category ? getSubcategories(category) : [];
+
+  dataRef.current = buildData();
 
   return (
     <div className="space-y-5">
@@ -809,13 +861,31 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         }
       </div>
 
-      <button
-        onClick={submit}
-        disabled={!valid || posting}
-        className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-lg disabled:opacity-50 hover:bg-primary/90">
-        
-        {posting ? submittingLabel : submitLabel}
-      </button>
+      {isDraft && (
+        <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 flex items-start gap-2">
+          <FileText size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed">{t("draftHint")}</p>
+        </div>
+      )}
+
+      <div className="flex gap-2.5">
+        {onSaveDraft && (
+          <button
+            onClick={saveDraft}
+            disabled={!draftReady || savingDraft || posting}
+            className="flex-1 py-4 rounded-2xl bg-card border-2 border-border text-foreground font-bold text-sm disabled:opacity-50 hover:bg-muted transition flex items-center justify-center gap-1.5"
+          >
+            {savingDraft ? t("savingDraft") : (<><FileText size={16} /> {t("saveDraft")}</>)}
+          </button>
+        )}
+        <button
+          onClick={submit}
+          disabled={!valid || posting}
+          className={`${onSaveDraft ? "flex-[1.4]" : "flex-1"} py-4 rounded-2xl bg-emerald-600 text-white font-bold text-lg disabled:opacity-50 hover:bg-emerald-700 active:scale-[0.99] transition shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-1.5`}
+        >
+          {posting ? submittingLabel : (isDraft ? t("publish") : submitLabel)}
+        </button>
+      </div>
 
       {mapOpen &&
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">

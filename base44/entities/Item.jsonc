@@ -83,6 +83,7 @@
     "status": {
       "type": "string",
       "enum": [
+        "draft",
         "available",
         "sold"
       ],

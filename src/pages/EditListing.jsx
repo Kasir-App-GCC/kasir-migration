@@ -80,6 +80,10 @@ export default function EditListing() {
         itemData.archived = false;
       }
     }
+    // Publishing a draft: flip it live. (Save-as-draft keeps status="draft".)
+    if (item?.status === "draft") {
+      itemData.status = "available";
+    }
     await base44.entities.Item.update(id, itemData);
     // Price-drop alert: notify users who saved this listing when the price drops.
     if (Number.isFinite(oldPrice) && Number(itemData.price) > 0 && Number(itemData.price) < oldPrice) {
@@ -155,6 +159,20 @@ export default function EditListing() {
     }
   }
 
+  // Save-as-draft (only used when editing an existing draft): persist the
+  // current form data but keep the listing private (status="draft").
+  const saveDraft = async (data) => {
+    const { boost_hours, boost_cross_country, boost_amount, featured, featured_until, featured_cross_country, claim_free_boost, ...itemData } = data;
+    try {
+      await base44.entities.Item.update(id, { ...itemData, status: "draft" });
+      toast({ title: t("draftSaved") });
+      nav("/profile?tab=drafts");
+    } catch (e) {
+      toast({ title: ar ? "تعذّر حفظ المسودة" : "Couldn't save draft", variant: "destructive" });
+      throw e;
+    }
+  };
+
   const restoreListing = async () => {
     try {
       await base44.entities.Item.update(id, { archived: false });
@@ -194,9 +212,10 @@ export default function EditListing() {
       )}
       <ListingForm
         initial={item}
-        submitLabel={t("saveChanges")}
-        submittingLabel={t("savingChanges")}
+        submitLabel={item?.status === "draft" ? t("publish") : t("saveChanges")}
+        submittingLabel={item?.status === "draft" ? t("posting") : t("savingChanges")}
         onSubmit={submit}
+        onSaveDraft={item?.status === "draft" ? saveDraft : undefined}
         boostLocked={promoted}
       />
       {popupPay && (

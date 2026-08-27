@@ -70,6 +70,7 @@ export default function Search() {
       if (maxPrice) query.price.$lte = Number(maxPrice);
     }
     if (!prefs.showSold) query.status = "available";
+    else query.status = { $ne: "draft" };
     if (verifiedOnly) query.seller_trusted = true;
     if (locationFilter.mode === "city" && locationFilter.city) {
       const nearby = nearbyCities(locationFilter.city, country, 25);

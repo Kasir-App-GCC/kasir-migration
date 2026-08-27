@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck, RefreshCw, Info, Loader2, Building2 } from "lucide-react";
+import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck, RefreshCw, Info, Loader2, Building2, FileText } from "lucide-react";
 import VerificationDialog from "@/components/VerificationDialog";
 import RealEstateLicenseDialog from "@/components/RealEstateLicenseDialog";
 import { base44 } from "@/api/base44Client";
@@ -27,7 +27,10 @@ export default function Profile() {
   const ar = lang === "ar";
   const nav = useNavigate();
   const adminPending = useAdminPending();
-  const [tab, setTab] = useState("listings");
+  const [tab, setTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("tab") === "drafts" ? "drafts" : "listings";
+  });
   const [myListings, setMyListings] = useState([]);
   const [boughtItems, setBoughtItems] = useState([]);
   const [savedItems, setSavedItems] = useState([]);
@@ -134,6 +137,10 @@ export default function Profile() {
   }, [refreshUser, loadAll]);
 
   const soldItems = myListings.filter((it) => it.status === "sold");
+  // Drafts are private (status="draft"); keep them out of the public "My
+  // listings" tab, the header count, and seller stats — they get their own tab.
+  const publishedListings = myListings.filter((it) => it.status !== "draft");
+  const draftItems = myListings.filter((it) => it.status === "draft");
   const saved = savedItems;
 
   const deleteListing = async (id) => {
@@ -201,7 +208,7 @@ export default function Profile() {
         </div>
         <div className="grid grid-cols-3 gap-2 mt-4 text-center">
           <div className="rounded-2xl bg-white/15 py-2.5">
-            <p className="font-extrabold text-lg">{myListings.length}</p>
+            <p className="font-extrabold text-lg">{publishedListings.length}</p>
             <p className="text-[11px] opacity-80">{t("myListings")}</p>
           </div>
           <div className="rounded-2xl bg-white/15 py-2.5">
@@ -229,12 +236,13 @@ export default function Profile() {
         )}
       </div>
 
-      <SellerDashboard myListings={myListings} ratings={ratings} />
+      <SellerDashboard myListings={publishedListings} ratings={ratings} />
 
       {/* Tabs */}
       <div className="flex gap-1 p-1 bg-muted rounded-2xl">
         {[
           { id: "listings", label: t("myListings") },
+          { id: "drafts", label: t("drafts") },
           { id: "sold", label: t("soldItems") },
           { id: "bought", label: t("boughtItems") },
           { id: "saved", label: t("savedItems") },
@@ -252,9 +260,9 @@ export default function Profile() {
 
       {/* Content */}
       {tab === "listings" && (
-        myListings.length ? (
+        publishedListings.length ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {myListings.map((it) => {
+            {publishedListings.map((it) => {
               const promoted = !!(it.featured && it.featured_until && new Date(it.featured_until) > new Date());
               // Refresh only matters in the last 3 days before auto-archive (or once archived).
               const daysSinceUpdate = it.updated_date ? (Date.now() - new Date(it.updated_date).getTime()) / 86400000 : 0;
@@ -296,6 +304,34 @@ export default function Profile() {
         ) : (
           <div className="text-center py-16 text-muted-foreground">
             <p className="font-semibold">{t("emptyFeed")}</p>
+            <button onClick={() => nav("/sell")} className="mt-3 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm">{t("postFirst")}</button>
+          </div>
+        )
+      )}
+
+      {tab === "drafts" && (
+        draftItems.length ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {draftItems.map((it) => (
+              <div key={it.id} className="relative">
+                <ItemCard item={it} onClick={() => nav(`/edit/${it.id}`)} />
+                <span className="absolute top-1.5 left-1/2 -translate-x-1/2 z-20 px-2.5 py-0.5 rounded-full bg-sky-500 text-white text-[10px] font-bold shadow flex items-center gap-1"><FileText size={10} /> {t("draftBadge")}</span>
+                <div className="absolute top-2 end-2 z-20">
+                  <button
+                    onClick={() => deleteListing(it.id)}
+                    className="w-8 h-8 rounded-full bg-rose-600 text-white shadow flex items-center justify-center hover:scale-110 transition"
+                    title={t("deleteListing")}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-16 text-muted-foreground">
+            <FileText size={32} className="mx-auto mb-2 opacity-40" />
+            <p className="font-semibold">{ar ? "لا توجد مسودات" : "No drafts"}</p>
             <button onClick={() => nav("/sell")} className="mt-3 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm">{t("postFirst")}</button>
           </div>
         )

@@ -284,6 +284,15 @@ const en = {
   typicallyReplies: "Typically replies",
   completedMeetups: "Completed meetups",
   noShows: "No-shows",
+  saveDraft: "Save draft",
+  savingDraft: "Saving…",
+  drafts: "Drafts",
+  draftBadge: "Draft",
+  draftSaved: "Saved to your drafts",
+  draftAutoSaved: "We saved your in-progress listing as a draft",
+  publish: "Publish",
+  draftHint: "This is a draft — buyers can't see it until you publish it.",
+  continueEditing: "Continue editing",
   };
 
 const ar = {
@@ -570,6 +579,15 @@ const ar = {
   typicallyReplies: "يرد عادة خلال",
   completedMeetups: "لقاءات مكتملة",
   noShows: "تغيّب",
+  saveDraft: "حفظ كمسودة",
+  savingDraft: "جارٍ الحفظ…",
+  drafts: "المسودات",
+  draftBadge: "مسودة",
+  draftSaved: "تم الحفظ في مسوداتك",
+  draftAutoSaved: "حفظنا إعلانك قيد الإعداد كمسودة",
+  publish: "نشر",
+  draftHint: "هذه مسودة — ما يقدر يشوفها المشتري حتى تنشرها.",
+  continueEditing: "متابعة التحرير",
   };
 
 export function useT() {

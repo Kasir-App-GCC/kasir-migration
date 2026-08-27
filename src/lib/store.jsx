@@ -47,6 +47,12 @@ export function StoreProvider({ children }) {
     const base = Object.fromEntries(TAB_ROOTS.map((r) => [r, { route: r, scrollY: 0 }]));
     return parsed ? { ...base, ...parsed } : base;
   });
+  // Browse filters (category bar). Kept in the global store rather than
+  // AppLayout state because AppLayout remounts on each route change (it lives
+  // inside the animated motion.div keyed by pathname), which would reset a
+  // local useState and lose the selection when navigating Home → Map.
+  const [categories, setCategories] = useState([]);
+  const [subcategories, setSubcategories] = useState([]);
 
   // The signed-in user comes from the platform's built-in auth (Google / etc.)
   const user = auth.user
@@ -176,6 +182,10 @@ export function StoreProvider({ children }) {
         setCountry,
         tabStack,
         setTabEntry,
+        categories,
+        setCategories,
+        subcategories,
+        setSubcategories,
         logout,
       }}
     >

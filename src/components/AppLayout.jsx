@@ -16,10 +16,8 @@ export default function AppLayout() {
   const [locOpen, setLocOpen] = useState(false);
   const [locDefaultTab, setLocDefaultTab] = useState(null);
   const [locAutoDetect, setLocAutoDetect] = useState(false);
-  const [categories, setCategories] = useState([]);
-  const [subcategories, setSubcategories] = useState([]);
   const location = useLocation();
-  const { locationFilter } = useStore();
+  const { locationFilter, categories, setCategories, subcategories, setSubcategories } = useStore();
   const isSubPage = SUB_PAGE.test(location.pathname);
   const noBottomNav = NO_BOTTOMNAV.test(location.pathname);
   const showCats = !isSubPage && (location.pathname === "/" || location.pathname === "/search");

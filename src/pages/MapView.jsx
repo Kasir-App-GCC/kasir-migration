@@ -59,7 +59,11 @@ export default function MapView() {
     (async () => {
       setLoading(true);
       try {
-        const all = await base44.entities.Item.filter({ archived: { $ne: true } }, "-created_date", 200);
+        const query = { country, archived: { $ne: true }, review_status: { $nin: ["pending", "rejected"] } };
+        if (categories.length === 1) query.category = categories[0];
+        else if (categories.length > 1) query.category = { $in: categories };
+        if (subcategories.length) query.subcategory = { $in: subcategories };
+        const all = await base44.entities.Item.filter(query, "-created_date", 200);
         setItems(all || []);
       } catch {
         setItems([]);
@@ -67,7 +71,7 @@ export default function MapView() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [country, categories, subcategories]);
 
   const cityCoords = useMemo(() => {
     const m = new Map();

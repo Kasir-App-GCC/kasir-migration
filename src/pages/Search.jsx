@@ -14,6 +14,7 @@ import { fetchSellerInfos } from "@/lib/useTrusted";
 import { readFeedCache, writeFeedCache } from "@/lib/feedCache";
 import PullToRefresh from "@/components/PullToRefresh";
 import SavedSearchChips from "@/components/SavedSearchChips";
+import RecentSearches, { addRecentSearch } from "@/components/RecentSearches";
 import { useToast } from "@/components/ui/use-toast";
 import { base44Analytics } from "@/lib/analytics";
 
@@ -35,6 +36,7 @@ export default function Search() {
   const [sort, setSort] = useState("newest");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [condition, setCondition] = useState([]);
@@ -123,7 +125,7 @@ export default function Search() {
       setSellers(sMap);
       setItems(list);
       setHasMore(list.length === PAGE_SIZE);
-      if (!silent && debouncedQ) base44Analytics.searchPerformed(debouncedQ, list.length);
+      if (!silent && debouncedQ && list.length) { addRecentSearch(debouncedQ); base44Analytics.searchPerformed(debouncedQ, list.length); }
     } catch {
       if (!silent) { setItems([]); setHasMore(false); }
     } finally {
@@ -363,8 +365,15 @@ export default function Search() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
             placeholder={t("searchPlaceholder")}
             className="w-full ps-10 pe-3 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30"
+          />
+          <RecentSearches
+            visible={searchFocused && !q}
+            onPick={(term) => { setQ(term); setDebouncedQ(term); }}
+            onClose={() => setSearchFocused(false)}
           />
           <UserSearchDropdown
             query={q}

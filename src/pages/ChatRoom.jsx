@@ -14,6 +14,7 @@ import DisputeDialog from "@/components/DisputeDialog";
 import MeetupFlow from "@/components/MeetupFlow";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import WhatsAppContactDialog from "@/components/WhatsAppContactDialog";
+import ChatDateSeparator, { shouldShowSeparator } from "@/components/ChatDateSeparator";
 import { useBlockStatus } from "@/lib/useBlockStatus";
 
 export default function ChatRoom() {
@@ -455,17 +456,21 @@ export default function ChatRoom() {
           <p className="text-center text-muted-foreground text-sm py-10">{t("noChatsDesc")}</p>
         ) : (
           timeline.map((item, i) => {
+            const showDate = shouldShowSeparator(timeline, i);
             if (item.type === "offer") {
               const o = item;
               const mine = o.direction === "buyer_offer" ? o.buyer_id === user.id : o.seller_id === user.id;
               return (
-                <div key={`o-${o.id}`} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                  <OfferCard offer={o} user={user} lang={lang} t={t} itemPrice={room?.item_price} itemImage={room?.item_image} itemTitle={room?.item_title} country={itemCountry}
-                    ratedOffers={ratedOffers} onRate={setRatingOffer} onConfirm={confirmReceipt} onDispute={setDisputeOffer}
-                    onAccept={acceptOffer} onReject={rejectOffer} onCounter={counterOffer} onModify={modifyOffer} onNotMatch={notMatchOffer}
-                    onRequestMod={o.status === "accepted" && !offers.some((p) => p.status === "pending" && p.previous_offer_id === o.id) ? requestModification : undefined}
-                    hasMeetup={hasMeetup && o.id === acceptedOffer?.id} meetupCompleted={meetupCompleted && o.id === acceptedOffer?.id} />
-                </div>
+                <React.Fragment key={`o-${o.id}`}>
+                  {showDate && <ChatDateSeparator date={o.created_date} lang={lang} t={t} />}
+                  <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                    <OfferCard offer={o} user={user} lang={lang} t={t} itemPrice={room?.item_price} itemImage={room?.item_image} itemTitle={room?.item_title} country={itemCountry}
+                      ratedOffers={ratedOffers} onRate={setRatingOffer} onConfirm={confirmReceipt} onDispute={setDisputeOffer}
+                      onAccept={acceptOffer} onReject={rejectOffer} onCounter={counterOffer} onModify={modifyOffer} onNotMatch={notMatchOffer}
+                      onRequestMod={o.status === "accepted" && !offers.some((p) => p.status === "pending" && p.previous_offer_id === o.id) ? requestModification : undefined}
+                      hasMeetup={hasMeetup && o.id === acceptedOffer?.id} meetupCompleted={meetupCompleted && o.id === acceptedOffer?.id} />
+                  </div>
+                </React.Fragment>
               );
             }
             if (item.type === "whatsapp") {
@@ -473,22 +478,25 @@ export default function ChatRoom() {
               const mine = w.sender_id === user.id;
               const digits = w.phone.replace(/[^\d]/g, "");
               return (
-                <div key={`w-${w.id}`} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                  <a
-                    href={`https://wa.me/${digits}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={`max-w-[75%] flex items-center gap-3 px-4 py-3 rounded-2xl ${mine ? "bg-emerald-600 text-white rounded-br-md" : "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-bl-md"}`}
-                  >
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${mine ? "bg-white/20" : "bg-emerald-500 text-white"}`}>
-                      <WhatsAppIcon size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className={`text-xs font-bold ${mine ? "text-white/90" : "text-emerald-700 dark:text-emerald-300"}`}>{ar ? "بطاقة واتساب" : "WhatsApp contact"}</p>
-                      <p className={`text-sm font-mono ${mine ? "text-white" : "text-foreground"}`} dir="ltr">{w.phone}</p>
-                    </div>
-                  </a>
-                </div>
+                <React.Fragment key={`w-${w.id}`}>
+                  {showDate && <ChatDateSeparator date={w.created_date} lang={lang} t={t} />}
+                  <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                    <a
+                      href={`https://wa.me/${digits}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={`max-w-[75%] flex items-center gap-3 px-4 py-3 rounded-2xl ${mine ? "bg-emerald-600 text-white rounded-br-md" : "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-bl-md"}`}
+                    >
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${mine ? "bg-white/20" : "bg-emerald-500 text-white"}`}>
+                        <WhatsAppIcon size={18} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className={`text-xs font-bold ${mine ? "text-white/90" : "text-emerald-700 dark:text-emerald-300"}`}>{ar ? "بطاقة واتساب" : "WhatsApp contact"}</p>
+                        <p className={`text-sm font-mono ${mine ? "text-white" : "text-foreground"}`} dir="ltr">{w.phone}</p>
+                      </div>
+                    </a>
+                  </div>
+                </React.Fragment>
               );
             }
             const m = item;
@@ -502,63 +510,69 @@ export default function ChatRoom() {
               const canRate = offer && offer.status === "completed" && !ratedOffers.has(offer.id);
               const displayText = waiting ? t("agreedWaitingReceipt") : m.text;
               return (
-                <div key={`s-${i}`} className="flex justify-center">
-                  <div className="max-w-[85%] rounded-2xl bg-primary/5 border border-primary/20 px-4 py-3 text-center">
-                    <div className="flex items-center justify-center gap-1.5 text-primary font-bold text-xs mb-1">
-                      <ShieldCheck size={14} /> {t("adminName")}
+                <React.Fragment key={`s-${i}`}>
+                  {showDate && <ChatDateSeparator date={m.created_date} lang={lang} t={t} />}
+                  <div className="flex justify-center">
+                    <div className="max-w-[85%] rounded-2xl bg-primary/5 border border-primary/20 px-4 py-3 text-center">
+                      <div className="flex items-center justify-center gap-1.5 text-primary font-bold text-xs mb-1">
+                        <ShieldCheck size={14} /> {t("adminName")}
+                      </div>
+                      <p className="text-sm">{displayText}</p>
+                      {needsConfirm && (
+                        <button onClick={() => confirmReceipt(offer)} className="mt-2.5 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 mx-auto">
+                          <Check size={14} /> {t("confirmReceipt")}
+                        </button>
+                      )}
+                      {canRate && (
+                        <button onClick={() => setRatingOffer(offer)} className="mt-2.5 px-4 py-2 rounded-xl bg-amber-400 text-slate-900 text-xs font-bold flex items-center justify-center gap-1.5 mx-auto">
+                          <Star size={14} /> {t("rateNow")}
+                        </button>
+                      )}
+                      {offer && (offer.status === "accepted" || offer.status === "completed") && (
+                        <button onClick={() => setDisputeOffer(offer)} className="mt-2 px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 mx-auto">
+                          <ShieldAlert size={14} /> {ar ? "فتح نزاع" : "Open dispute"}
+                        </button>
+                      )}
                     </div>
-                    <p className="text-sm">{displayText}</p>
-                    {needsConfirm && (
-                      <button onClick={() => confirmReceipt(offer)} className="mt-2.5 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 mx-auto">
-                        <Check size={14} /> {t("confirmReceipt")}
-                      </button>
-                    )}
-                    {canRate && (
-                      <button onClick={() => setRatingOffer(offer)} className="mt-2.5 px-4 py-2 rounded-xl bg-amber-400 text-slate-900 text-xs font-bold flex items-center justify-center gap-1.5 mx-auto">
-                        <Star size={14} /> {t("rateNow")}
-                      </button>
-                    )}
-                    {offer && (offer.status === "accepted" || offer.status === "completed") && (
-                      <button onClick={() => setDisputeOffer(offer)} className="mt-2 px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 mx-auto">
-                        <ShieldAlert size={14} /> {ar ? "فتح نزاع" : "Open dispute"}
-                      </button>
-                    )}
                   </div>
-                </div>
+                </React.Fragment>
               );
             }
             const mine = m.sender_id === user.id;
             const showName = !mine && (i === 0 || timeline[i - 1].sender_id !== m.sender_id);
             const showAvatar = showName && avatar;
             return (
-              <div key={`m-${i}`} className={`flex items-end gap-2 ${mine ? "justify-end" : "justify-start"}`}>
-                {!mine && (
-                  <div className="w-6 h-6 rounded-full overflow-hidden bg-primary/10 shrink-0">
-                    {showAvatar ? <img src={avatar} className="w-full h-full object-cover" /> : <div className="w-full h-full" />}
-                  </div>
-                )}
-                <div className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm ${mine ? "bg-primary text-primary-foreground rounded-br-md" : "bg-muted rounded-bl-md"}`}>
-                  {!mine && showName && otherName && (
-                    <p className="flex items-center gap-1 text-[11px] font-semibold mb-0.5 text-foreground/80">
-                      {otherName}
-                      {otherTrusted && <TrustedBadge size={12} />}
-                    </p>
+              <React.Fragment key={`m-${i}`}>
+                {showDate && <ChatDateSeparator date={m.created_date} lang={lang} t={t} />}
+                <div className={`flex items-end gap-2 ${mine ? "justify-end" : "justify-start"}`}>
+                  {!mine && (
+                    <div className="w-6 h-6 rounded-full overflow-hidden bg-primary/10 shrink-0">
+                      {showAvatar ? <img src={avatar} className="w-full h-full object-cover" /> : <div className="w-full h-full" />}
+                    </div>
                   )}
-                  <p className="whitespace-pre-line break-words">{m.text}</p>
-                  <div className={`flex items-center gap-1 justify-end mt-1 ${mine ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
-                    <span className="text-[10px] leading-none">
-                      {new Date(m.created_date).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                    {mine && (() => {
-                      const msgDate = new Date(m.created_date);
-                      const otherSeen = otherLastSeen ? new Date(otherLastSeen) : null;
-                      if (otherSeen && otherSeen > msgDate) return <CheckCheck size={13} className="text-sky-300" />;
-                      if (otherSeen) return <CheckCheck size={13} className="opacity-60" />;
-                      return <Check size={13} className="opacity-60" />;
-                    })()}
+                  <div className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm ${mine ? "bg-primary text-primary-foreground rounded-br-md" : "bg-muted rounded-bl-md"}`}>
+                    {!mine && showName && otherName && (
+                      <p className="flex items-center gap-1 text-[11px] font-semibold mb-0.5 text-foreground/80">
+                        {otherName}
+                        {otherTrusted && <TrustedBadge size={12} />}
+                      </p>
+                    )}
+                    <p className="whitespace-pre-line break-words">{m.text}</p>
+                    <div className={`flex items-center gap-1 justify-end mt-1 ${mine ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                      <span className="text-[10px] leading-none">
+                        {new Date(m.created_date).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                      {mine && (() => {
+                        const msgDate = new Date(m.created_date);
+                        const otherSeen = otherLastSeen ? new Date(otherLastSeen) : null;
+                        if (otherSeen && otherSeen > msgDate) return <CheckCheck size={13} className="text-sky-300" />;
+                        if (otherSeen) return <CheckCheck size={13} className="opacity-60" />;
+                        return <Check size={13} className="opacity-60" />;
+                      })()}
+                    </div>
                   </div>
                 </div>
-              </div>
+              </React.Fragment>
             );
           })
         )}

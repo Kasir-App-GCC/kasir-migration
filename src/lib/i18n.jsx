@@ -293,6 +293,15 @@ const en = {
   publish: "Publish",
   draftHint: "This is a draft — buyers can't see it until you publish it.",
   continueEditing: "Continue editing",
+  recentSearches: "Recent searches",
+  clearRecent: "Clear",
+  today: "Today",
+  yesterday: "Yesterday",
+  selectMode: "Select",
+  selectAll: "Select all",
+  deleteSelected: "Delete selected",
+  selectedCount: "selected",
+  exitSelect: "Done",
   };
 
 const ar = {
@@ -588,6 +597,15 @@ const ar = {
   publish: "نشر",
   draftHint: "هذه مسودة — لا يمكن للمشتري رؤيتها حتى تنشرها.",
   continueEditing: "متابعة التحرير",
+  recentSearches: "عمليات البحث الأخيرة",
+  clearRecent: "مسح",
+  today: "اليوم",
+  yesterday: "أمس",
+  selectMode: "تحديد",
+  selectAll: "تحديد الكل",
+  deleteSelected: "حذف المحدد",
+  selectedCount: "محدد",
+  exitSelect: "تم",
   };
 
 export function useT() {

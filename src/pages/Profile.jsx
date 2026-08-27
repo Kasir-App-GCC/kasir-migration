@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck, RefreshCw, Info, Loader2, Building2, FileText, Rocket, Ban } from "lucide-react";
+import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck, RefreshCw, Info, Loader2, Building2, FileText, Rocket, Ban, CheckSquare, Square } from "lucide-react";
 import VerificationDialog from "@/components/VerificationDialog";
 import RealEstateLicenseDialog from "@/components/RealEstateLicenseDialog";
 import SponsorItemDialog from "@/components/SponsorItemDialog";
@@ -15,6 +15,7 @@ import EditProfileDialog from "@/components/EditProfileDialog";
 import SellerReply from "@/components/SellerReply";
 import ContactSupportDialog from "@/components/ContactSupportDialog";
 import SellerDashboard from "@/components/SellerDashboard";
+import BulkSelectBar from "@/components/BulkSelectBar";
 import useAdminPending from "@/hooks/useAdminPending";
 import PullToRefresh from "@/components/PullToRefresh";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
@@ -49,6 +50,8 @@ export default function Profile() {
   const [deleting, setDeleting] = useState(false);
   const [waSaving, setWaSaving] = useState(false);
   const [blockedOpen, setBlockedOpen] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState(new Set());
 
   const toggleWa = async () => {
     if (waSaving || !user) return;
@@ -169,6 +172,29 @@ export default function Profile() {
     } catch {}
   };
 
+  const toggleSelect = (id) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const deleteSelected = async () => {
+    if (selected.size === 0) return;
+    if (!window.confirm(ar ? `حذف ${selected.size} إعلان؟` : `Delete ${selected.size} listings?`)) return;
+    const ids = [...selected];
+    try {
+      await Promise.all(ids.map((id) => base44.entities.Item.delete(id).catch(() => {})));
+      setMyListings((prev) => prev.filter((x) => !selected.has(x.id)));
+      setSelected(new Set());
+      setSelectMode(false);
+      toast({ title: ar ? `تم حذف ${ids.length} إعلان` : `Deleted ${ids.length} listings` });
+    } catch {
+      toast({ title: ar ? "تعذّر الحذف" : "Couldn't delete", variant: "destructive" });
+    }
+  };
+
   // Refreshing bumps updated_date and un-archives, keeping the listing in the
   // public feed (resets the auto-archive timer).
   const refreshListing = async (id) => {
@@ -268,7 +294,7 @@ export default function Profile() {
         ].map((tb) => (
           <button
             key={tb.id}
-            onClick={() => setTab(tb.id)}
+            onClick={() => { setTab(tb.id); setSelectMode(false); setSelected(new Set()); }}
             className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition ${tab === tb.id ? "bg-card shadow-sm" : "text-muted-foreground"}`}
           >
             {tb.label} <span className="opacity-60">({tb.count})</span>
@@ -279,45 +305,77 @@ export default function Profile() {
       {/* Content */}
       {tab === "listings" && (
         publishedListings.length ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {publishedListings.map((it) => {
-              const promoted = !!(it.featured && it.featured_until && new Date(it.featured_until) > new Date());
-              // Refresh only matters in the last 3 days before auto-archive (or once archived).
-              const daysSinceUpdate = it.updated_date ? (Date.now() - new Date(it.updated_date).getTime()) / 86400000 : 0;
-              const isSaRe = it.category === "realestate" && it.country === "SA";
-              const brokerLicensed = !isSaRe || user?.re_license_status === "approved";
-              const canRefresh = brokerLicensed && (it.archived || daysSinceUpdate >= 27);
-              return (
-                <div key={it.id} className="relative">
-                  <ItemCard
-                    item={it}
-                    onClick={() => nav(`/item/${it.id}`)}
-                    promoted={promoted}
-                    refreshButton={canRefresh ? (
+          <div className="space-y-3">
+            <div className="flex justify-end">
+              {selectMode ? (
+                <button onClick={() => { setSelectMode(false); setSelected(new Set()); }} className="text-sm font-semibold text-muted-foreground">
+                  {t("exitSelect")}
+                </button>
+              ) : (
+                <button onClick={() => setSelectMode(true)} className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
+                  <CheckSquare size={15} /> {t("selectMode")}
+                </button>
+              )}
+            </div>
+            {selectMode && (
+              <BulkSelectBar
+                selectedCount={selected.size}
+                total={publishedListings.length}
+                onSelectAll={() => setSelected((prev) => prev.size === publishedListings.length ? new Set() : new Set(publishedListings.map((it) => it.id)))}
+                onDelete={deleteSelected}
+                onExit={() => { setSelectMode(false); setSelected(new Set()); }}
+              />
+            )}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {publishedListings.map((it) => {
+                const promoted = !!(it.featured && it.featured_until && new Date(it.featured_until) > new Date());
+                const daysSinceUpdate = it.updated_date ? (Date.now() - new Date(it.updated_date).getTime()) / 86400000 : 0;
+                const isSaRe = it.category === "realestate" && it.country === "SA";
+                const brokerLicensed = !isSaRe || user?.re_license_status === "approved";
+                const canRefresh = brokerLicensed && (it.archived || daysSinceUpdate >= 27);
+                const isSelected = selected.has(it.id);
+                return (
+                  <div key={it.id} className={`relative rounded-2xl transition ${selectMode && isSelected ? "ring-2 ring-primary" : ""}`}>
+                    {selectMode && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); refreshListing(it.id); }}
-                        className="w-8 h-8 rounded-full bg-sky-600 text-white shadow flex items-center justify-center hover:scale-110 transition"
-                        title={ar ? "تحديث الإعلان" : "Refresh listing"}
+                        onClick={(e) => { e.stopPropagation(); toggleSelect(it.id); }}
+                        className={`absolute top-2 start-2 z-30 w-7 h-7 rounded-lg flex items-center justify-center transition ${isSelected ? "bg-primary text-primary-foreground" : "bg-white/90 dark:bg-slate-900/80 text-muted-foreground border border-border"}`}
                       >
-                        <RefreshCw size={14} />
+                        {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
                       </button>
-                    ) : null}
-                  />
-                  {it.archived && (
-                    <span className="absolute top-1.5 left-1/2 -translate-x-1/2 z-20 px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-bold shadow">{ar ? "مؤرشف" : "Archived"}</span>
-                  )}
-                  <div className="absolute top-2 end-2 z-20">
-                    <button
-                      onClick={() => deleteListing(it.id)}
-                      className="w-8 h-8 rounded-full bg-rose-600 text-white shadow flex items-center justify-center hover:scale-110 transition"
-                      title={t("deleteListing")}
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                    )}
+                    <ItemCard
+                      item={it}
+                      onClick={() => selectMode ? toggleSelect(it.id) : nav(`/item/${it.id}`)}
+                      promoted={promoted}
+                      refreshButton={canRefresh && !selectMode ? (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); refreshListing(it.id); }}
+                          className="w-8 h-8 rounded-full bg-sky-600 text-white shadow flex items-center justify-center hover:scale-110 transition"
+                          title={ar ? "تحديث الإعلان" : "Refresh listing"}
+                        >
+                          <RefreshCw size={14} />
+                        </button>
+                      ) : null}
+                    />
+                    {it.archived && (
+                      <span className="absolute top-1.5 left-1/2 -translate-x-1/2 z-20 px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-bold shadow">{ar ? "مؤرشف" : "Archived"}</span>
+                    )}
+                    {!selectMode && (
+                      <div className="absolute top-2 end-2 z-20">
+                        <button
+                          onClick={() => deleteListing(it.id)}
+                          className="w-8 h-8 rounded-full bg-rose-600 text-white shadow flex items-center justify-center hover:scale-110 transition"
+                          title={t("deleteListing")}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    )}
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         ) : (
           <div className="text-center py-16 text-muted-foreground">

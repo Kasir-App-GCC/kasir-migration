@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Building2, Check, X, ExternalLink, ShieldCheck, Clock, BadgeCheck, Ban } from "lucide-react";
+import CopyButton from "@/components/CopyButton";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
@@ -70,7 +71,7 @@ export default function AdminRealEstate() {
         await base44.entities.Notification.create({
           user_id: u.id,
           type: "re_license_approved_pending_payment",
-          text: ar ? `تم اعتماد ترخيصك العقاري! ادفع ${u.re_license_type === "establishment_fal" ? 99 : 39} ريال (مرة واحدة، مدى الحياة) لتفعيل الشارة والبدء بنشر الإعلانات.` : `Your real estate license was approved! Pay ${u.re_license_type === "establishment_fal" ? 99 : 39} SAR (one-time, lifetime) to activate your badge and start posting listings.`,
+          text: ar ? `تم اعتماد ترخيصك العقاري! ادفع ${u.re_license_type === "establishment_fal" ? 99 : 39} ريال لتفعيل الشارة والبدء بنشر إعلاناتك.` : `Your real estate license was approved! Pay ${u.re_license_type === "establishment_fal" ? 99 : 39} SAR to activate your badge and start posting your listings.`,
         });
       } catch {}
       setPending((prev) => prev.filter((x) => x.id !== u.id));
@@ -196,16 +197,17 @@ export default function AdminRealEstate() {
             { key: "type", label: ar ? "نوع الوسيط" : "Broker type", value: licenseTypeLabel(u.re_license_type) },
             { key: "holder", label: ar ? "اسم الوسيط" : "Broker name", value: u.re_license_holder || "-" },
             ...(u.re_license_type === "establishment_fal" ? [{ key: "establishment", label: ar ? "الرقم الموحد للمنشأة" : "Establishment number", value: u.re_establishment_number || "-" }] : []),
-            { key: "number", label: ar ? "رقم الرخصة" : "License number", value: u.re_license_number || "-" },
+            { key: "number", label: ar ? "رقم الرخصة" : "License number", value: u.re_license_number || "-", copyable: true },
             { key: "expiry", label: ar ? "تاريخ الانتهاء" : "Expiry date", value: u.re_license_expiry ? new Date(u.re_license_expiry).toLocaleDateString(ar ? "ar-SA" : "en-US", { year: "numeric", month: "short", day: "numeric" }) : "-" },
             { key: "phone", label: ar ? "رقم الجوال" : "Phone number", value: formatPhone(u.re_license_phone || u.phone || "") },
             ...(u.re_license_type === "individual_fal" ? [{ key: "national_id", label: ar ? "رقم الهوية" : "National ID", value: u.re_national_id || "-" }] : []),
           ].map((item) => (
             <label key={item.key} className="flex items-start gap-2 cursor-pointer">
               <input type="checkbox" checked={!!checked[`${u.id}-${item.key}`]} onChange={() => toggle(`${u.id}-${item.key}`)} className="mt-0.5 w-4 h-4 accent-sky-600 shrink-0" />
-              <span className="text-[11px] text-sky-700 dark:text-sky-300 leading-tight">
+              <span className="text-[11px] text-sky-700 dark:text-sky-300 leading-tight flex items-center gap-1">
                 <span className="font-semibold">{item.label}: </span>
                 <span className="font-mono">{item.value}</span>
+                {item.copyable && item.value && item.value !== "-" && <CopyButton value={item.value} className="text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-900/40" />}
               </span>
             </label>
           ))}

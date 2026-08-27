@@ -183,7 +183,7 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
           <div className="space-y-3">
             <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900">
               <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5"><BadgeCheck size={16} /> {ar ? "تم اعتماد طلبك!" : "Your application is approved!"}</p>
-              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">{ar ? `ادفع ${brokerFee} ريال (مرة واحدة، مدى الحياة) لتفعيل شارة الوسيط العقاري والبدء بنشر الإعلانات العقارية.` : `Pay ${brokerFee} SAR (one-time, lifetime) to activate your broker badge and start posting real estate listings.`}</p>
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">{ar ? `ادفع ${brokerFee} ريال لتفعيل شارة الوسيط العقاري والبدء بنشر إعلاناتك العقارية.` : `Pay ${brokerFee} SAR to activate your broker badge and start posting your real estate listings.`}</p>
             </div>
             <div className="p-2.5 rounded-xl bg-muted text-[11px] text-muted-foreground leading-relaxed">{ar ? "كاسر لا يأخذ عمولة من أي معاملة عقارية — فقط هذه الرسوم الرمزية لمرة واحدة." : "Kasir takes no commission from any real estate transaction — only this small one-time fee."}</div>
             <button onClick={startPayment} disabled={paying} className="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm flex items-center justify-center gap-1.5 disabled:opacity-50">
@@ -315,8 +315,8 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
             </div>
             {selectedFee ? (
               <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 space-y-1">
-                <p className="text-xs font-bold text-amber-700 dark:text-amber-300">{ar ? `رسوم التفعيل (لمرة واحدة، مدى الحياة): ${selectedFee} ريال` : `Activation fee (one-time, lifetime): ${selectedFee} SAR`}</p>
-                <p className="text-[11px] text-amber-600 dark:text-amber-400 leading-relaxed">{ar ? `بعد مراجعة طلبك واعتماده من الإدارة، يلزم دفع ${selectedFee} ريال مرة واحدة لتفعيل شارة الوسيط العقاري.` : `Once your application is reviewed and approved, a one-time ${selectedFee} SAR fee activates your broker badge for life.`}</p>
+                <p className="text-xs font-bold text-amber-700 dark:text-amber-300">{ar ? `رسوم التفعيل: ${selectedFee} ريال` : `Activation fee: ${selectedFee} SAR`}</p>
+                <p className="text-[11px] text-amber-600 dark:text-amber-400 leading-relaxed">{ar ? `بعد مراجعة طلبك واعتماده من الإدارة، يلزم دفع ${selectedFee} ريال لتفعيل شارة الوسيط العقاري.` : `Once your application is reviewed and approved, a ${selectedFee} SAR fee activates your broker badge.`}</p>
               </div>
             ) : (
               <div className="p-3 rounded-xl bg-muted text-xs text-muted-foreground text-center">{ar ? "اختر نوع الترخيص لمعرفة الرسوم" : "Select a license type to see the fee"}</div>

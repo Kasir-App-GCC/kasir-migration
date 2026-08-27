@@ -4,13 +4,12 @@ import { useT } from "@/lib/i18n";
 import ItemCard from "@/components/ItemCard";
 
 // Fair, paid-feature carousel: every currently-active boosted listing gets
-// airtime. Items are split into batches; each batch auto-scrolls (continuous
-// glide) and we auto-advance to the next batch every ADVANCE_MS so a seller
-// who paid is guaranteed to appear when their batch rotates in — not stuck
-// behind an arbitrary 30-card cap. A session-stable random start offset
-// rotates which batch is first, so the same seller isn't always last across
-// loads. Total exposure is naturally proportional to boost duration: a 7-day
-// boost stays in the pool 7× longer than a 1-day boost.
+// airtime. Items are split into batches; each batch auto-scrolls as a seamless
+// infinite loop (items are duplicated and the row wraps when one full set
+// width is traversed — no ping-pong). We auto-advance to the next batch every
+// ADVANCE_MS so a seller who paid is guaranteed to appear when their batch
+// rotates in. A session-stable random start offset rotates which batch is
+// first, so the same seller isn't always last across loads.
 const BATCH = 12;
 const ADVANCE_MS = 12000;
 
@@ -22,7 +21,6 @@ export default function FeaturedCarousel({ items, onOpen, sellers }) {
   const [batchIdx, setBatchIdx] = useState(0);
   const [startOffset, setStartOffset] = useState(0);
   const translate = useRef(0);
-  const dir = useRef(-1);
   const drag = useRef({ active: false, startX: 0, startTranslate: 0, moved: false });
   const resumeTimer = useRef(null);
 
@@ -31,7 +29,6 @@ export default function FeaturedCarousel({ items, onOpen, sellers }) {
     setStartOffset(items.length > BATCH ? Math.floor(Math.random() * items.length) : 0);
     setBatchIdx(0);
     translate.current = 0;
-    dir.current = -1;
   }, [items]);
 
   const rotated = useMemo(() => {
@@ -48,28 +45,31 @@ export default function FeaturedCarousel({ items, onOpen, sellers }) {
   const numBatches = batches.length;
   const current = batches[batchIdx] || batches[0] || [];
 
-  const bounds = () => {
-    const container = containerRef.current, row = rowRef.current;
-    if (!container || !row) return { lo: 0, hi: 0 };
-    const isRtl = window.getComputedStyle(container).direction === "rtl";
-    const overflow = row.scrollWidth - container.clientWidth;
-    if (overflow <= 0) return { lo: 0, hi: 0 };
-    return isRtl ? { lo: 0, hi: overflow } : { lo: -overflow, hi: 0 };
-  };
+  // Duplicate the batch so the row can scroll one full set width and wrap
+  // back to the start invisibly — the second copy is identical to the first.
+  const loopItems = useMemo(() => (current.length ? [...current, ...current] : []), [current]);
 
-  // Continuous glide within the current batch.
+  // Continuous one-direction loop — no ping-pong, no direction reversal.
   useEffect(() => {
     if (!current.length || paused) return;
     const container = containerRef.current, row = rowRef.current;
     if (!container || !row) return;
     let raf;
-    const step = 1.1;
+    const step = 1.1; // px per frame (~66 px/s at 60fps)
     const tick = () => {
-      const { lo, hi } = bounds();
-      if (hi !== lo) {
-        let next = translate.current + step * dir.current;
-        if (next <= lo) { next = lo; dir.current = 1; }
-        else if (next >= hi) { next = hi; dir.current = -1; }
+      const isRtl = window.getComputedStyle(container).direction === "rtl";
+      const hw = row.scrollWidth / 2;
+      // Only animate when the batch overflows the viewport.
+      if (hw > 0 && hw > container.clientWidth) {
+        let next = translate.current + step * (isRtl ? 1 : -1);
+        // Wrap modulo one set width — seamless because of the duplicate copy.
+        if (isRtl) {
+          if (next >= hw) next -= hw;
+          else if (next < 0) next += hw;
+        } else {
+          if (next <= -hw) next += hw;
+          else if (next > 0) next -= hw;
+        }
         translate.current = next;
         row.style.transform = `translate3d(${next}px,0,0)`;
       }
@@ -82,7 +82,6 @@ export default function FeaturedCarousel({ items, onOpen, sellers }) {
   // Reset scroll position when the batch changes.
   useEffect(() => {
     translate.current = 0;
-    dir.current = -1;
     if (rowRef.current) rowRef.current.style.transform = "translate3d(0,0,0)";
   }, [batchIdx]);
 
@@ -102,13 +101,16 @@ export default function FeaturedCarousel({ items, onOpen, sellers }) {
     setPaused(true);
   };
   const onPointerMove = (e) => {
-    const row = rowRef.current;
-    if (!row || !drag.current.active) return;
+    const row = rowRef.current, container = containerRef.current;
+    if (!row || !container || !drag.current.active) return;
     const dx = e.clientX - drag.current.startX;
     if (Math.abs(dx) > 4) drag.current.moved = true;
-    const { lo, hi } = bounds();
+    const isRtl = window.getComputedStyle(container).direction === "rtl";
+    const hw = row.scrollWidth / 2;
     let next = drag.current.startTranslate + dx;
-    next = Math.max(lo, Math.min(hi, next));
+    // Clamp within one loop width so the drag stays within the visible set.
+    if (isRtl) next = Math.max(0, Math.min(hw, next));
+    else next = Math.max(-hw, Math.min(0, next));
     translate.current = next;
     row.style.transform = `translate3d(${next}px,0,0)`;
   };
@@ -148,8 +150,8 @@ export default function FeaturedCarousel({ items, onOpen, sellers }) {
         className="relative overflow-hidden cursor-grab active:cursor-grabbing touch-pan-y"
       >
         <div ref={rowRef} className="flex gap-3 w-max pb-1" style={{ willChange: "transform" }}>
-          {current.map((it) => (
-            <div key={it.id} className="shrink-0 w-40 pointer-events-auto">
+          {loopItems.map((it, i) => (
+            <div key={`${it.id}-${i}`} className="shrink-0 w-40 pointer-events-auto">
               <ItemCard item={it} onClick={() => onOpen(it.id)} sellerInfo={sellers?.[it.seller_id]} />
             </div>
           ))}

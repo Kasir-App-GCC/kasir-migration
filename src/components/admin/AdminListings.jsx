@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState, useMemo, useRef } from "react";
-import { Search, Trash2, Pencil, Star, Tag, Clock, X, RefreshCw, Rocket } from "lucide-react";
+import { Search, Trash2, Pencil, Star, Tag, Clock, X, RefreshCw, Rocket, Globe } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
 import { getCategory } from "@/lib/constants";
+import { COUNTRIES } from "@/lib/countries";
 import Price from "@/components/Price";
 import AdminEditListing from "@/components/admin/AdminEditListing";
 
@@ -33,11 +34,13 @@ export default function AdminListings() {
   const [sponsorDays, setSponsorDays] = useState(1);
   const [sponsorSaving, setSponsorSaving] = useState(false);
   const [editItem, setEditItem] = useState(null);
+  const [countryFilter, setCountryFilter] = useState(null);
   const skipRef = useRef(0);
   const searchSkipRef = useRef(0);
 
   const loadInitial = async () => {
-    const list = await base44.entities.Item.filter({}, "-created_date", PAGE_SIZE, 0);
+    if (!countryFilter) return;
+    const list = await base44.entities.Item.filter({ country: countryFilter }, "-created_date", PAGE_SIZE, 0);
     setItems(list || []);
     skipRef.current = PAGE_SIZE;
     setHasMore((list || []).length === PAGE_SIZE);
@@ -67,7 +70,7 @@ export default function AdminListings() {
     if (!hasMore) return;
     setLoadingMore(true);
     try {
-      const list = await base44.entities.Item.filter({}, "-created_date", PAGE_SIZE, skipRef.current);
+      const list = await base44.entities.Item.filter({ country: countryFilter }, "-created_date", PAGE_SIZE, skipRef.current);
       const arr = list || [];
       setItems((prev) => [...prev, ...arr.filter((x) => !prev.some((p) => p.id === x.id))]);
       skipRef.current += PAGE_SIZE;
@@ -81,6 +84,7 @@ export default function AdminListings() {
   // view. The status/featured filter is applied server-side too. Debounced.
   const buildSearchQuery = useCallback(() => {
     const query = {};
+    if (countryFilter) query.country = countryFilter;
     const s = q.trim();
     if (s) {
       query.$or = [
@@ -98,12 +102,12 @@ export default function AdminListings() {
       query.created_date = { $lt: new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString() };
     }
     return query;
-  }, [q, filter]);
+  }, [q, filter, countryFilter]);
 
   useEffect(() => {
     // Server-side query path is used for text search AND the "stale" filter
     // (which needs a server date query, not client filtering of loaded pages).
-    if (!q.trim() && filter !== "stale" && filter !== "featured") { setSearchItems(null); setSearching(false); return; }
+    if (!countryFilter || (!q.trim() && filter !== "stale" && filter !== "featured")) { setSearchItems(null); setSearching(false); return; }
     setSearching(true);
     searchSkipRef.current = 0;
     let alive = true;
@@ -117,13 +121,18 @@ export default function AdminListings() {
       finally { if (alive) setSearching(false); }
     }, 300);
     return () => { alive = false; clearTimeout(t); };
-  }, [buildSearchQuery]);
+  }, [buildSearchQuery, countryFilter]);
 
   useEffect(() => {
+    if (!countryFilter) { setItems([]); setHasMore(false); return; }
+    setLoading(true);
     loadInitial().finally(() => setLoading(false));
     // Live updates: new/changed/deleted listings appear without a manual refresh.
+    // Only patch items that belong to the selected country so switching countries
+    // doesn't leak other countries' records into the view.
     const patch = (prev, it, type) => {
       if (!prev) return prev;
+      if (it?.country && it.country !== countryFilter) return prev;
       if (type === "delete") return prev.filter((x) => x.id !== it?.id);
       const idx = prev.findIndex((x) => x.id === it.id);
       if (idx === -1) return type === "create" ? [it, ...prev] : prev;
@@ -136,9 +145,11 @@ export default function AdminListings() {
       setSearchItems((prev) => (prev === null ? prev : patch(prev, it, event.type)));
     });
     return () => unsub?.();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countryFilter]);
 
   const filtered = useMemo(() => {
+    if (!countryFilter) return [];
     // Server-query mode (text search, stale, or featured filter): results
     // already came from the server filtered by the query — only refine
     // "featured" for liveness (expired boosts still carry featured:true).
@@ -152,7 +163,7 @@ export default function AdminListings() {
     else if (filter === "available") r = r.filter((i) => i.status === "available");
     else if (filter === "featured") r = r.filter((i) => isLiveFeatured(i));
     return r;
-  }, [items, searchItems, q, filter]);
+  }, [items, searchItems, q, filter, countryFilter]);
 
   const deleteItem = async (it) => {
     if (!window.confirm(ar ? `حذف "${it.title}"؟` : `Delete "${it.title}"?`)) return;
@@ -255,13 +266,27 @@ export default function AdminListings() {
   return (
     <div className="space-y-3">
       <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex items-center gap-2 shrink-0">
+          <Globe size={16} className="text-muted-foreground" />
+          <select
+            value={countryFilter || ""}
+            onChange={(e) => { setCountryFilter(e.target.value || null); setQ(""); setFilter("all"); }}
+            className="px-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm font-semibold min-w-[150px]"
+          >
+            <option value="">{ar ? "اختر دولة" : "Select country"}</option>
+            {COUNTRIES.map((c) => (
+              <option key={c.code} value={c.code}>{c.flag} {ar ? c.ar : c.en}</option>
+            ))}
+          </select>
+        </div>
         <div className="relative flex-1">
           <Search size={16} className="absolute top-1/2 -translate-y-1/2 start-3 text-muted-foreground" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={ar ? "بحث بالعنوان أو البائع…" : "Search title or seller…"}
-            className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm"
+            disabled={!countryFilter}
+            className="w-full ps-9 pe-4 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm disabled:opacity-50"
           />
         </div>
         <div className="flex gap-1 p-1 bg-muted rounded-xl text-sm">
@@ -272,12 +297,20 @@ export default function AdminListings() {
             { id: "featured", label: ar ? "مميز" : "Featured" },
             { id: "stale", label: ar ? "راكد +٣شهر" : "Stale >3mo" },
           ].map((f) => (
-            <button key={f.id} onClick={() => setFilter(f.id)} className={`px-3 py-1.5 rounded-lg font-semibold transition ${filter === f.id ? "bg-card shadow-sm" : "text-muted-foreground"}`}>{f.label}</button>
+            <button key={f.id} onClick={() => setFilter(f.id)} disabled={!countryFilter} className={`px-3 py-1.5 rounded-lg font-semibold transition disabled:opacity-50 ${filter === f.id ? "bg-card shadow-sm" : "text-muted-foreground"}`}>{f.label}</button>
           ))}
         </div>
-        <button onClick={reload} title={ar ? "تحديث" : "Refresh"} className="px-3 py-2 rounded-xl bg-muted hover:bg-muted/70 flex items-center justify-center text-sm font-semibold shrink-0"><RefreshCw size={16} /></button>
+        <button onClick={reload} disabled={!countryFilter} title={ar ? "تحديث" : "Refresh"} className="px-3 py-2 rounded-xl bg-muted hover:bg-muted/70 flex items-center justify-center text-sm font-semibold shrink-0 disabled:opacity-50"><RefreshCw size={16} /></button>
       </div>
 
+      {!countryFilter && (
+        <div className="text-center py-16 text-muted-foreground text-sm">
+          <Globe size={32} className="mx-auto mb-3 opacity-40" />
+          <p className="font-semibold">{ar ? "اختر دولة لعرض الإعلانات" : "Select a country to view listings"}</p>
+        </div>
+      )}
+
+      {countryFilter && (
       <div className="space-y-2">
         {filtered.length === 0 ? (
           <div className="text-center py-10 text-muted-foreground text-sm">{searching ? (ar ? "جارٍ البحث…" : "Searching…") : (ar ? "لا توجد إعلانات" : "No listings found")}</div>
@@ -309,8 +342,9 @@ export default function AdminListings() {
           </div>
         ))}
       </div>
+      )}
 
-      {(q.trim() || filter === "stale" || filter === "featured")
+      {countryFilter && (q.trim() || filter === "stale" || filter === "featured")
         ? searchHasMore && (searchItems?.length || 0) > 0 ? (
             <div className="flex justify-center py-4">
               <button onClick={loadMore} disabled={loadingMore} className="px-6 py-2.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-50">

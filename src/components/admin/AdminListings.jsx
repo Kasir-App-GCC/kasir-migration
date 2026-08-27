@@ -124,7 +124,7 @@ export default function AdminListings() {
   }, [buildSearchQuery, countryFilter]);
 
   useEffect(() => {
-    if (!countryFilter) { setItems([]); setHasMore(false); return; }
+    if (!countryFilter) { setItems([]); setHasMore(false); setLoading(false); return; }
     setLoading(true);
     loadInitial().finally(() => setLoading(false));
     // Live updates: new/changed/deleted listings appear without a manual refresh.

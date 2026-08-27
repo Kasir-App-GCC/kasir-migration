@@ -2,10 +2,6 @@
   "name": "FeaturedRotation",
   "type": "object",
   "properties": {
-    "description": {
-      "type": "string",
-      "maxLength": 1000
-    },
     "country": {
       "type": "string",
       "description": "Country code this rotation cache covers (SA, AE, OM, BH, KW, QA)"

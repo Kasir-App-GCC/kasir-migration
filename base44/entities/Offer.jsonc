@@ -2,10 +2,6 @@
   "name": "Offer",
   "type": "object",
   "properties": {
-    "description": {
-      "type": "string",
-      "maxLength": 1000
-    },
     "chatroom_id": {
       "type": "string"
     },

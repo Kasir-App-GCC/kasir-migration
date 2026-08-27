@@ -2,10 +2,6 @@
   "name": "UserBlock",
   "type": "object",
   "properties": {
-    "description": {
-      "type": "string",
-      "maxLength": 1000
-    },
     "blocker_id": {
       "type": "string",
       "description": "The user who initiated the block"

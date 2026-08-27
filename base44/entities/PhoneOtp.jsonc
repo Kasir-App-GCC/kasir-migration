@@ -2,10 +2,6 @@
   "name": "PhoneOtp",
   "type": "object",
   "properties": {
-    "description": {
-      "type": "string",
-      "maxLength": 1000
-    },
     "phone": {
       "type": "string",
       "description": "Phone number in E.164 format"

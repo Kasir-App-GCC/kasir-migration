@@ -2,10 +2,6 @@
   "name": "ChatRoom",
   "type": "object",
   "properties": {
-    "description": {
-      "type": "string",
-      "maxLength": 1000
-    },
     "item_id": {
       "type": "string"
     },

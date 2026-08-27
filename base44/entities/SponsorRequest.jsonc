@@ -1,0 +1,99 @@
+{
+  "name": "SponsorRequest",
+  "type": "object",
+  "properties": {
+    "item_id": {
+      "type": "string",
+      "description": "The listing to sponsor"
+    },
+    "item_title": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "The seller requesting the sponsorship"
+    },
+    "user_name": {
+      "type": "string"
+    },
+    "weeks": {
+      "type": "number",
+      "description": "Sponsorship duration in weeks (1\u201312)"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Total sponsorship amount in SAR"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected",
+        "paid"
+      ],
+      "default": "pending",
+      "description": "pending = awaiting admin review; approved = admin approved, awaiting user payment; rejected = admin declined; paid = payment confirmed and sponsorship activated"
+    },
+    "invoice_id": {
+      "type": "string",
+      "description": "Moyasar invoice id created at approval time (the user pays this invoice after approval)"
+    },
+    "invoice_url": {
+      "type": "string",
+      "description": "Moyasar hosted-checkout URL for the approval invoice"
+    },
+    "reviewed_by": {
+      "type": "string",
+      "description": "The admin user id who reviewed the request"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reject_reason": {
+      "type": "string",
+      "description": "Admin's reason when rejecting the request"
+    }
+  },
+  "required": [
+    "item_id",
+    "user_id",
+    "weeks",
+    "amount"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "created_by_id": "{{user.id}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

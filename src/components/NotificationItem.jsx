@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, Star, Tag, CheckCircle, Check, X, ArrowLeftRight, Pencil, BadgeCheck, TrendingUp, TrendingDown, Flag, LifeBuoy, Clock, Radar, UserPlus, Scale, Megaphone, Building2 } from "lucide-react";
+import { MessageCircle, Star, Tag, CheckCircle, Check, X, ArrowLeftRight, Pencil, BadgeCheck, TrendingUp, TrendingDown, Flag, LifeBuoy, Clock, Radar, UserPlus, Scale, Megaphone, Building2, Rocket } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -21,6 +21,9 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
     }
     if (n.type === "listing_pending_review") { onMarkRead?.(n); nav(`/admin?tab=realestate`); onClick?.(); return; }
     if (n.type === "re_license_approved_pending_payment" || n.type === "re_license_activated") { onMarkRead?.(n); nav(`/profile?open_license=1`); onClick?.(); return; }
+    if (n.type === "sponsor_approved_pending_payment") { onMarkRead?.(n); nav(`/profile?pay_sponsor=${n.referenceId || ""}`); onClick?.(); return; }
+    if (n.type === "sponsor_rejected") { onMarkRead?.(n); if (n.itemId) nav(`/item/${n.itemId}`); onClick?.(); return; }
+    if (n.type === "sponsor_activated") { onMarkRead?.(n); if (n.itemId) nav(`/item/${n.itemId}`); onClick?.(); return; }
     if (n.type === "new_follower") { onMarkRead?.(n); if (n.actorId) nav(`/user/${n.actorId}`); onClick?.(); return; }
     if (n.type === "price_drop") { onMarkRead?.(n); if (n.itemId) nav(`/item/${n.itemId}`); onClick?.(); return; }
     if (n.type === "dispute_resolved" || n.type === "dispute_opened") { onMarkRead?.(n); setShowDispute(true); return; }
@@ -134,6 +137,18 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
       ) : n.type === "re_license_approved_pending_payment" || n.type === "re_license_activated" ? (
         <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-300">
           <Building2 size={18} />
+        </div>
+      ) : n.type === "sponsor_approved_pending_payment" ? (
+        <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-300">
+          <Rocket size={18} />
+        </div>
+      ) : n.type === "sponsor_rejected" ? (
+        <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-300">
+          <X size={18} />
+        </div>
+      ) : n.type === "sponsor_activated" ? (
+        <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-300">
+          <Rocket size={18} />
         </div>
       ) : n.type === "listing_pending_review" ? (
         n.image ? (

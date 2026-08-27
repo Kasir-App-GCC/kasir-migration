@@ -3,12 +3,14 @@
 // extends the window further out — never shortens a paid sponsorship.
 // Sets admin_sponsored + admin_sponsored_until so the item pins to the top
 // of the Home feed with the "Sponsored" badge (same fields the admin panel
-// uses), so no new feed logic is needed.
+// uses), so no new feed logic is needed. Also marks the SponsorRequest (if
+// provided) as "paid" so the admin board reflects completion.
 export async function activateSponsor(base44, opts: {
   itemId?: string;
   weeks?: number;
   userId?: string;
   paymentId?: string;
+  requestId?: string;
 }): Promise<{ activated: boolean; already: boolean }> {
   const itemId = (opts.itemId || "").trim();
   const weeks = Math.max(0, Math.floor(Number(opts.weeks) || 0));
@@ -26,6 +28,17 @@ export async function activateSponsor(base44, opts: {
     admin_sponsored_until: sponsoredUntil,
   });
 
+  // Mark the originating request as paid (idempotent — only updates if still approved).
+  const requestId = (opts.requestId || "").trim();
+  if (requestId) {
+    try {
+      const req = await base44.asServiceRole.entities.SponsorRequest.get(requestId).catch(() => null);
+      if (req && req.status === "approved") {
+        await base44.asServiceRole.entities.SponsorRequest.update(requestId, { status: "paid" });
+      }
+    } catch (e) {}
+  }
+
   const notifyUserId = opts.userId || "";
   if (notifyUserId) {
     try {
@@ -33,7 +46,7 @@ export async function activateSponsor(base44, opts: {
       if (notifyUser?.role !== "admin") {
         await base44.asServiceRole.entities.Notification.create({
           user_id: notifyUserId,
-          type: "boost_approved",
+          type: "sponsor_activated",
           item_id: itemId,
           item_title: item.title || "",
           text: "تم تفعيل رعاية إعلانك 🚀",

@@ -4,6 +4,7 @@ import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, T
 import VerificationDialog from "@/components/VerificationDialog";
 import RealEstateLicenseDialog from "@/components/RealEstateLicenseDialog";
 import SponsorItemDialog from "@/components/SponsorItemDialog";
+import SponsorPaymentDialog from "@/components/SponsorPaymentDialog";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -41,6 +42,8 @@ export default function Profile() {
   const [supportOpen, setSupportOpen] = useState(false);
   const [verificationOpen, setVerificationOpen] = useState(false);
   const [reLicenseOpen, setReLicenseOpen] = useState(false);
+  const [sponsorOpen, setSponsorOpen] = useState(false);
+  const [sponsorPayId, setSponsorPayId] = useState("");
   const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [waSaving, setWaSaving] = useState(false);
@@ -125,6 +128,18 @@ export default function Profile() {
     if (params.get("open_license") === "1") {
       setReLicenseOpen(true);
       params.delete("open_license");
+      window.history.replaceState({}, "", window.location.pathname + (params.toString() ? "?" + params.toString() : ""));
+    }
+  }, []);
+
+  // Open the Sponsor payment dialog when navigated here with ?pay_sponsor=<id>
+  // (from the "sponsor approved — pay now" notification / Moyasar success_url).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sid = params.get("pay_sponsor");
+    if (sid) {
+      setSponsorPayId(sid);
+      params.delete("pay_sponsor");
       window.history.replaceState({}, "", window.location.pathname + (params.toString() ? "?" + params.toString() : ""));
     }
   }, []);
@@ -494,6 +509,10 @@ export default function Profile() {
           <span className="flex items-center gap-2 text-sm font-semibold"><Building2 size={18} /> {ar ? "ترخيص الوساطة العقارية" : "Real Estate License"}{user.re_license_status === "approved" && <BadgeCheck size={14} className="text-emerald-500" />}</span>
           <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
         </button>
+        <button onClick={() => setSponsorOpen(true)} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
+          <span className="flex items-center gap-2 text-sm font-semibold"><Rocket size={18} className="text-violet-500" /> {ar ? "رعاية إعلان" : "Sponsor an item"}</span>
+          <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
+        </button>
         <button onClick={() => nav("/terms")} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
           <span className="flex items-center gap-2 text-sm font-semibold"><Shield size={18} /> {ar ? "الشروط والأحكام" : "Terms & Conditions"}</span>
           <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
@@ -523,6 +542,8 @@ export default function Profile() {
         </div>
       )}
       <RealEstateLicenseDialog open={reLicenseOpen} onClose={() => setReLicenseOpen(false)} />
+      <SponsorItemDialog open={sponsorOpen} onClose={() => setSponsorOpen(false)} />
+      <SponsorPaymentDialog open={!!sponsorPayId} requestId={sponsorPayId} onClose={() => setSponsorPayId("")} />
       <VerificationDialog open={verificationOpen} onClose={() => setVerificationOpen(false)} />
     </div>
     </PullToRefresh>

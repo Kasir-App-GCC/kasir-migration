@@ -32,7 +32,10 @@
         "listing_rejected",
         "listing_pending_review",
         "re_license_approved_pending_payment",
-        "re_license_activated"
+        "re_license_activated",
+        "sponsor_approved_pending_payment",
+        "sponsor_rejected",
+        "sponsor_activated"
       ],
       "default": "sold"
     },
@@ -64,6 +67,10 @@
     "actor_id": {
       "type": "string",
       "description": "The user id of the actor who triggered this notification (e.g. the follower)"
+    },
+    "reference_id": {
+      "type": "string",
+      "description": "Generic reference id (e.g. the SponsorRequest id for sponsor_approved_pending_payment)"
     },
     "read": {
       "type": "boolean",

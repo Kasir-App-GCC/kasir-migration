@@ -72,6 +72,7 @@ export default async function (req: Request): Promise<Response> {
       weeks: Number(metadata?.weeks) || 0,
       userId: metadata?.user_id ? String(metadata.user_id) : "",
       paymentId: resolvedPaymentId,
+      requestId: metadata?.request_id ? String(metadata.request_id) : "",
     });
     return Response.json({ ok: true, activated: result.activated, already: result.already });
   } catch (error) {

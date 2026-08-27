@@ -73,6 +73,15 @@ export default function useNotifications() {
           if (n.type === "dispute_opened") {
             return { id: n.id, type: "dispute_opened", text: n.text, name: n.item_title, itemId: n.item_id, roomId: n.chatroom_id, disputeId: n.dispute_id, date: n.created_date, unread: !n.read };
           }
+          if (n.type === "sponsor_approved_pending_payment") {
+            return { id: n.id, type: "sponsor_approved_pending_payment", text: n.text, name: n.item_title, image: n.item_image, itemId: n.item_id, referenceId: n.reference_id, date: n.created_date, unread: !n.read };
+          }
+          if (n.type === "sponsor_rejected") {
+            return { id: n.id, type: "sponsor_rejected", text: n.text, name: n.item_title, image: n.item_image, itemId: n.item_id, referenceId: n.reference_id, date: n.created_date, unread: !n.read };
+          }
+          if (n.type === "sponsor_activated") {
+            return { id: n.id, type: "sponsor_activated", text: n.text, name: n.item_title, itemId: n.item_id, date: n.created_date, unread: !n.read };
+          }
           if (n.type === "admin_message") {
             return { id: n.id, type: "admin_message", text: n.text, name: n.actor_name, itemId: n.item_id, roomId: n.chatroom_id, disputeId: n.dispute_id, date: n.created_date, unread: !n.read };
           }

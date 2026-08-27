@@ -45,9 +45,29 @@ export default function FeaturedCarousel({ items, onOpen, sellers }) {
   const numBatches = batches.length;
   const current = batches[batchIdx] || batches[0] || [];
 
-  // Duplicate the batch so the row can scroll one full set width and wrap
-  // back to the start invisibly — the second copy is identical to the first.
-  const loopItems = useMemo(() => (current.length ? [...current, ...current] : []), [current]);
+  // Track whether the current batch overflows the viewport — only then do we
+  // need the duplicate copy for the seamless loop. When the batch is small
+  // (few featured items), duplicating would show the same card twice with no
+  // animation running, so we render a single copy instead.
+  const [overflows, setOverflows] = useState(false);
+  useEffect(() => {
+    const container = containerRef.current, row = rowRef.current;
+    if (!container || !row || !current.length) { setOverflows(false); return; }
+    const check = () => {
+      const oneSet = overflows ? row.scrollWidth / 2 : row.scrollWidth;
+      setOverflows(oneSet > container.clientWidth);
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(container);
+    ro.observe(row);
+    return () => ro.disconnect();
+  }, [current.length, overflows]);
+
+  const loopItems = useMemo(() => {
+    if (!current.length) return [];
+    return overflows ? [...current, ...current] : current;
+  }, [current, overflows]);
 
   // Continuous one-direction loop — no ping-pong, no direction reversal.
   useEffect(() => {
@@ -77,7 +97,7 @@ export default function FeaturedCarousel({ items, onOpen, sellers }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [batchIdx, paused, current.length]);
+  }, [batchIdx, paused, current.length, overflows]);
 
   // Reset scroll position when the batch changes.
   useEffect(() => {

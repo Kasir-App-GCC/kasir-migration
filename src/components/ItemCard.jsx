@@ -207,4 +207,9 @@ function ItemCard({ item, onClick, promoted = false, refreshButton = null, selle
   );
 }
 
-export default memo(ItemCard);
+export default memo(ItemCard, (prev, next) =>
+  prev.item === next.item &&
+  prev.sellerInfo === next.sellerInfo &&
+  prev.promoted === next.promoted &&
+  prev.refreshButton === next.refreshButton
+);

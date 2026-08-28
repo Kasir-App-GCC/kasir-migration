@@ -4,6 +4,7 @@ import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { toDate } from "@/lib/format";
 import { fetchMyChatData } from "@/lib/chatData";
+import { getChatSnapshot } from "@/lib/unreadStore";
 import { emitNotifsRead } from "@/lib/notifSignal";
 
 // Shared notification fetching + realtime updates, used by both the
@@ -23,8 +24,8 @@ export default function useNotifications() {
         // (rooms → msgs/offers → ratings → notifications) made the bell
         // feel slow. None of the fetches depend on each other; roomMap is
         // only used for client-side filtering after everything resolves.
-        const [chatData, rs, ns] = await Promise.all([
-          fetchMyChatData(user, { messageLimit: 100, offerLimit: 100 }),
+        const chatData = getChatSnapshot() || await fetchMyChatData(user, { messageLimit: 100, offerLimit: 100 });
+        const [rs, ns] = await Promise.all([
           base44.entities.Rating.filter({ rated_user_id: user.id }, "-created_date", 10).catch(() => []),
           base44.entities.Notification.filter({ user_id: user.id }, "-created_date", 30).catch(() => []),
         ]);

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import { motion } from "framer-motion";
 import TopBar from "./TopBar";
 import BottomNav from "./BottomNav";
 import CategoryBar from "./CategoryBar";
@@ -36,11 +35,9 @@ export default function AppLayout() {
       {!isSubPage && <TopBar onOpenLocation={() => { setLocDefaultTab(null); setLocOpen(true); }} />}
       {showCats && <CategoryBar categories={categories} onCategoriesChange={setCategories} subcategories={subcategories} onSubcategoriesChange={setSubcategories} />}
       <main className={`max-w-5xl mx-auto px-4 pt-1 ${mainPad}`}>
-        <motion.div key={location.pathname} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }}>
-          <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-7 h-7 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" /></div>}>
-            <Outlet context={{ categories, setCategories, subcategories, setSubcategories, openLocation: () => { setLocDefaultTab("radius"); setLocAutoDetect(true); setLocOpen(true); } }} />
-          </Suspense>
-        </motion.div>
+        <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-7 h-7 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" /></div>}>
+          <Outlet context={{ categories, setCategories, subcategories, setSubcategories, openLocation: () => { setLocDefaultTab("radius"); setLocAutoDetect(true); setLocOpen(true); } }} />
+        </Suspense>
       </main>
       {!noBottomNav && <BottomNav />}
       <LocationFilter open={locOpen} onClose={closeLoc} defaultTab={locDefaultTab} autoDetect={locAutoDetect} />

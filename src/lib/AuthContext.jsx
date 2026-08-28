@@ -24,16 +24,17 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (!isAuthenticated) return;
     const interval = setInterval(() => {
+      if (document.hidden) return;
       checkBlacklistStatus();
       touchLastActive();
-    }, 30000); // every 30s
-    const onFocus = () => { checkBlacklistStatus(); touchLastActive(); };
-    window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onFocus);
+    }, 120000); // every 2 min
+    const onVis = () => { if (!document.hidden) { checkBlacklistStatus(); touchLastActive(); } };
+    window.addEventListener("focus", onVis);
+    document.addEventListener("visibilitychange", onVis);
     return () => {
       clearInterval(interval);
-      window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onFocus);
+      window.removeEventListener("focus", onVis);
+      document.removeEventListener("visibilitychange", onVis);
     };
   }, [isAuthenticated]);
 

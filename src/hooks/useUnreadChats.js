@@ -1,113 +1,13 @@
-import { useEffect, useRef, useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
-import { playBeep } from "@/lib/beep";
-import { fetchMyChatData } from "@/lib/chatData";
+import { subscribeUnreadChats } from "@/lib/unreadStore";
 
-// Is this offer directed at the given user (i.e. incoming, not self-created)?
-function offerIsIncoming(o, userId) {
-  if (!o || !userId) return false;
-  if (o.direction === "buyer_offer") return o.seller_id === userId;
-  if (o.direction === "seller_counter") return o.buyer_id === userId;
-  return false;
-}
-
-// Counts ONLY unread chat messages + incoming offers across the user's rooms.
-// System notifications are intentionally excluded — those belong to the bell.
+// Thin reader over the shared unread-chat singleton (src/lib/unreadStore).
+// Both the bottom-nav badge and the bell reuse this single source, so the
+// heavy chat fetch + realtime subscriptions run once per user, not twice.
 export default function useUnreadChats() {
   const { user } = useStore();
   const [count, setCount] = useState(0);
-  const roomIds = useRef(new Set());
-
-  useEffect(() => {
-    if (!user) {
-      setCount(0);
-      roomIds.current = new Set();
-      return;
-    }
-    let cancelled = false;
-    let timer = null;
-    let inFlight = false;
-
-    const compute = async () => {
-      if (inFlight) return;
-      inFlight = true;
-      try {
-        const { rooms: mine, messages: msgs, offers } = await fetchMyChatData(user);
-        roomIds.current = new Set(mine.map((r) => r.id));
-        let total = 0;
-        mine.forEach((r) => {
-          const myLastSeen = r.seller_id === user.id ? r.seller_last_seen : r.buyer_last_seen;
-          const since = myLastSeen ? new Date(myLastSeen).getTime() : 0;
-          total += (msgs || []).filter(
-            (m) => m.chatroom_id === r.id && m.sender_id !== user.id && new Date(m.created_date).getTime() > since
-          ).length;
-          total += (offers || []).filter(
-            (o) => o.chatroom_id === r.id && offerIsIncoming(o, user.id) && new Date(o.created_date).getTime() > since
-          ).length;
-        });
-        if (!cancelled) setCount(total);
-      } catch {} finally {
-        inFlight = false;
-      }
-    };
-    compute();
-
-    const schedule = () => {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => { if (!cancelled) compute(); }, 400);
-    };
-
-    const maybeBeep = (chatroomId) => {
-      if (window.location.pathname.startsWith("/chat/" + chatroomId)) return;
-      playBeep();
-    };
-
-    const unsubM = base44.entities.Message.subscribe((event) => {
-      const m = event && event.data;
-      if (!m || m.sender_id === user.id) return;
-      if (event.type === "create" && roomIds.current.has(m.chatroom_id)) {
-        maybeBeep(m.chatroom_id);
-        // Bump the badge instantly when a message lands in one of my rooms
-        // and I'm not currently viewing that exact conversation.
-        if (!window.location.pathname.startsWith("/chat/" + m.chatroom_id)) {
-          setCount((c) => c + 1);
-        }
-        return; // Optimistic bump is sufficient — skip the expensive recompute.
-      }
-      // Message may be in a new room we haven't loaded yet — recompute to pick it up.
-      schedule();
-    });
-
-    const unsubO = base44.entities.Offer.subscribe((event) => {
-      const o = event && event.data;
-      if (!o) return;
-      if (event.type === "create" && offerIsIncoming(o, user.id) && roomIds.current.has(o.chatroom_id)) {
-        maybeBeep(o.chatroom_id);
-        if (!window.location.pathname.startsWith("/chat/" + o.chatroom_id)) {
-          setCount((c) => c + 1);
-        }
-        return; // Optimistic bump is sufficient.
-      }
-      // Might be in a new room — recompute.
-      schedule();
-    });
-
-    // Only recompute on new chats — room updates (last_message bumps, last-seen
-    // pings) don't change the unread count and would trigger an expensive full refetch.
-    const unsubR = base44.entities.ChatRoom.subscribe((event) => {
-      if (!event || !event.data) return;
-      if (event.type === "create") schedule();
-    });
-
-    return () => {
-      cancelled = true;
-      if (timer) clearTimeout(timer);
-      if (unsubM) unsubM();
-      if (unsubO) unsubO();
-      if (unsubR) unsubR();
-    };
-  }, [user]);
-
+  useEffect(() => subscribeUnreadChats(user, setCount), [user]);
   return count;
 }

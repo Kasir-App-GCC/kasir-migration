@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
 import { base44Analytics } from "@/lib/analytics";
@@ -136,8 +136,13 @@ export function StoreProvider({ children }) {
 
   const setTheme = useCallback((t) => setThemeState(t), []);
   const setLang = useCallback((l) => setLangState(l), []);
+  // Read favorites from a ref so toggleFavorite's identity is stable (depends
+  // only on user.id) — a heart tap no longer recreates the store value and
+  // re-render every component reading the store.
+  const favoritesRef = useRef(favorites);
+  useEffect(() => { favoritesRef.current = favorites; }, [favorites]);
   const toggleFavorite = useCallback((id) => {
-    const isFav = favorites.includes(id);
+    const isFav = favoritesRef.current.includes(id);
     setFavorites((f) => (isFav ? f.filter((x) => x !== id) : [...f, id]));
     // Best-effort per-listing save count for the seller analytics dashboard.
     base44.entities.Item.updateMany({ id }, { $inc: { favorites_count: isFav ? -1 : 1 } }).catch(() => {});
@@ -146,7 +151,7 @@ export function StoreProvider({ children }) {
       if (isFav) base44.entities.Favorite.deleteMany({ user_id: user.id, item_id: id }).catch(() => {});
       else { base44.entities.Favorite.create({ user_id: user.id, item_id: id }).catch(() => {}); base44Analytics.favoriteAdded(id); }
     }
-  }, [favorites, user?.id]);
+  }, [user?.id]);
   const setPrefs = useCallback((patch) => setPrefsState((p) => ({ ...p, ...patch })), []);
   const clearFavorites = useCallback(() => setFavorites([]), []);
   const setLastChatsSeen = useCallback((val) => setLastChatsSeenState(val), []);

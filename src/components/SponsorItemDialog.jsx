@@ -82,7 +82,7 @@ export default function SponsorItemDialog({ open, onClose }) {
             {ar ? "رعاية إعلان" : "Sponsor an item"}
           </DialogTitle>
           <DialogDescription>
-            {ar ? "ثبّت إعلانك في أعلى الصفحة الرئيسية ليتميز عن غيرك." : "Pin your listing to the top of the home feed."}
+            {ar ? "ثبّت إعلانك في مقدمة الصفحة الرئيسية ليبرز بين الإعلانات." : "Pin your listing to the top of the home feed."}
           </DialogDescription>
         </DialogHeader>
 

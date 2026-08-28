@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, ShieldCheck, Check, CheckCheck, Star, BadgeCheck, Ban, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Send, ShieldCheck, Check, CheckCheck, Star, BadgeCheck, Ban, ShieldAlert, MessageCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -37,6 +37,8 @@ export default function ChatRoom() {
   const [acceptedMeetup, setAcceptedMeetup] = useState(null);
   const [waContacts, setWaContacts] = useState([]);
   const [waDialogOpen, setWaDialogOpen] = useState(false);
+  const [chatGone, setChatGone] = useState(false);
+  const rateParam = new URLSearchParams(window.location.search).get("rate");
   const endRef = useRef(null);
   const [vvHeight, setVvHeight] = useState(() => window.visualViewport?.height || window.innerHeight);
   const [vvTop, setVvTop] = useState(() => window.visualViewport?.offsetTop || 0);
@@ -98,6 +100,18 @@ export default function ChatRoom() {
         }
         await loadAll();
       } catch {
+        // Chat room is gone (hard-deleted or inaccessible). If we arrived from
+        // a rate notification carrying an offer_id, load that offer so the
+        // standalone RatingDialog can still render over the fallback screen.
+        setChatGone(true);
+        if (rateParam && user?.id) {
+          try {
+            const offer = await base44.entities.Offer.get(rateParam);
+            if (offer && (String(offer.buyer_id) === String(user.id) || String(offer.seller_id) === String(user.id))) {
+              setRatingOffer(offer);
+            }
+          } catch {}
+        }
       } finally {
         setLoading(false);
       }
@@ -246,10 +260,12 @@ export default function ChatRoom() {
       base44.entities.Notification.create({
         user_id: offer.buyer_id, type: "rate", item_id: offer.item_id, item_title: offer.item_title,
         text: lang === "ar" ? "قيّم البائع" : "Rate the seller", actor_name: offer.seller_name, chatroom_id: id,
+        reference_id: offer.id,
       }).catch(() => {});
       base44.entities.Notification.create({
         user_id: offer.seller_id, type: "rate", item_id: offer.item_id, item_title: offer.item_title,
         text: lang === "ar" ? "قيّم المشتري" : "Rate the buyer", actor_name: offer.buyer_name, chatroom_id: id,
+        reference_id: offer.id,
       }).catch(() => {});
     }
     try { await base44.functions.invoke("manageOffer", { action: "accept", offer_id: offer.id }); } catch {}
@@ -391,6 +407,39 @@ export default function ChatRoom() {
   const hasMeetup = !!acceptedMeetup && acceptedMeetup.status !== "cancelled";
   const meetupCompleted = !!acceptedMeetup && acceptedMeetup.status === "completed";
   const bothVerified = !!user?.is_trusted && !!otherTrusted;
+
+  // Fallback: the chat room is gone. Show a minimal screen with the standalone
+  // RatingDialog overlaying it (when we have an offer to rate).
+  if (chatGone) {
+    return (
+      <div className="fixed inset-0 z-40 bg-background flex flex-col items-center justify-center px-6 text-center">
+        <button onClick={() => nav("/notifications")} className="absolute top-4 start-4 p-2 rounded-full hover:bg-muted">
+          <ArrowLeft size={20} className="rtl:rotate-180" />
+        </button>
+        <MessageCircle size={40} className="text-muted-foreground opacity-40 mb-3" />
+        <p className="font-semibold text-lg mb-1">{ar ? "المحادثة غير متاحة" : "Chat unavailable"}</p>
+        <p className="text-sm text-muted-foreground mb-5 max-w-xs">
+          {ratingOffer
+            ? (ar ? "تم حذف المحادثة، لكن يمكنك إكمال تقييمك." : "This chat was deleted, but you can still complete your rating.")
+            : (ar ? "لم نتمكن من فتح هذه المحادثة. قد تكون محذوفة." : "We couldn't open this chat. It may have been deleted.")}
+        </p>
+        {!ratingOffer && (
+          <button onClick={() => nav("/notifications")} className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm">
+            {ar ? "العودة للإشعارات" : "Back to notifications"}
+          </button>
+        )}
+        {ratingOffer && (
+          <RatingDialog
+            offer={ratingOffer}
+            user={user}
+            lang={lang}
+            onClose={() => { setRatingOffer(null); nav("/notifications"); }}
+            onDone={() => { setRatingOffer(null); nav("/notifications"); }}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-x-0 z-40 bg-background flex flex-col" style={{ height: `${vvHeight}px`, top: `${vvTop}px` }}>

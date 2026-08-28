@@ -240,17 +240,35 @@ export default function ItemDetail() {
     // item; action buttons route to login.
     const url = `${window.location.origin}/item/${item.id}`;
     sharingRef.current = true;
+    const copyToClipboard = async () => {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        // Legacy fallback for browsers without the async Clipboard API.
+        const ta = document.createElement("textarea");
+        ta.value = url;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      toast({ title: lang === "ar" ? "تم نسخ الرابط" : "Link copied" });
+    };
     try {
       if (navigator.share) {
         await navigator.share({ title: item.title, text: item.title, url });
-      } else if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url);
-        toast({ title: lang === "ar" ? "تم نسخ الرابط" : "Link copied" });
       } else {
-        toast({ title: lang === "ar" ? "المتصفح لا يدعم المشاركة" : "Sharing not supported", variant: "destructive" });
+        await copyToClipboard();
       }
     } catch (err) {
-      if (err?.name !== "AbortError") toast({ title: lang === "ar" ? "تعذّر المشاركة" : "Couldn't share", variant: "destructive" });
+      if (err?.name === "AbortError") return; // user dismissed the share sheet
+      // navigator.share existed but failed (e.g. iframe restriction) — try the
+      // clipboard fallback before giving up.
+      try { await copyToClipboard(); } catch {
+        toast({ title: lang === "ar" ? "المتصفح لا يدعم المشاركة" : "Sharing not supported", variant: "destructive" });
+      }
     } finally {
       sharingRef.current = false;
     }

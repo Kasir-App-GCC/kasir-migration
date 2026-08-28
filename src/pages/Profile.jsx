@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck, RefreshCw, Info, Loader2, Building2, FileText, Rocket, Ban, CheckSquare, Square, Eye, Bell } from "lucide-react";
+import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck, RefreshCw, Info, Loader2, Building2, FileText, Rocket, Ban, CheckSquare, Square, Eye, Bell, Wrench } from "lucide-react";
 import VerificationDialog from "@/components/VerificationDialog";
 import RealEstateLicenseDialog from "@/components/RealEstateLicenseDialog";
 import SponsorItemDialog from "@/components/SponsorItemDialog";
@@ -643,7 +643,7 @@ export default function Profile() {
         {/* Seller Tools */}
         <AccordionItem value="seller" className="border-border/60">
           <AccordionTrigger className="text-sm font-semibold text-start">
-            <span className="flex items-center gap-2"><Rocket size={16} className="text-violet-500" /> {ar ? "أدوات البائع" : "Seller Tools"}</span>
+            <span className="flex items-center gap-2"><Wrench size={16} className="text-amber-500" /> {ar ? "أدوات البائع" : "Seller Tools"}</span>
           </AccordionTrigger>
           <AccordionContent className="space-y-1">
             <button onClick={() => setReLicenseOpen(true)} className="w-full flex items-center justify-between py-3 hover:bg-muted/50 -mx-1 px-1 rounded-lg">

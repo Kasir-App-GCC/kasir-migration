@@ -96,14 +96,25 @@ export default async function (req) {
     // comes from a browser on an HTTPS page via the Origin/Referer headers.
     // This prevents server-to-server abuse (rate-limit exhaustion, proxying)
     // while allowing the app's own pages — including custom domains — to call.
-    const origin = (req.headers.get("origin") || "").toLowerCase();
-    const referer = (req.headers.get("referer") || "").toLowerCase();
-    const isBrowser =
-      origin.startsWith("https://") ||
-      referer.startsWith("https://") ||
-      origin.startsWith("http://localhost") ||
-      referer.startsWith("http://localhost");
-    if (!isBrowser) {
+    // Security: this is a public function (used on public pages for location
+    // detection), so we can't require login. Instead, we verify the request
+    // comes from the app's own pages via a strict Origin/Referer whitelist.
+    // This prevents server-to-server abuse (rate-limit exhaustion, proxying)
+    // while allowing the app's own pages — including custom domains — to call.
+    const ALLOWED_HOSTS = ["kasir-ksa.base44.app"];
+    const candidate = req.headers.get("origin") || req.headers.get("referer") || "";
+    let isAllowed = false;
+    if (candidate) {
+      try {
+        const u = new URL(candidate);
+        const host = u.hostname.toLowerCase();
+        const isLocal = host === "localhost" || host === "127.0.0.1";
+        isAllowed =
+          (u.protocol === "https:" && ALLOWED_HOSTS.includes(host)) ||
+          (isLocal && u.protocol === "http:");
+      } catch {}
+    }
+    if (!isAllowed) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }
 

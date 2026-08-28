@@ -703,23 +703,18 @@ export default function Profile() {
           </AccordionContent>
         </AccordionItem>
 
-        {/* Danger Zone */}
-        <AccordionItem value="danger" className="border-b-0 border-border/60">
-          <AccordionTrigger className="text-sm font-semibold text-start">
-            <span className="flex items-center gap-2 text-rose-600"><Trash2 size={16} /> {ar ? "منطقة الخطر" : "Danger Zone"}</span>
-          </AccordionTrigger>
-          <AccordionContent className="space-y-1">
-            <button onClick={() => logout()} className="w-full flex items-center justify-between py-3 hover:bg-muted/50 -mx-1 px-1 rounded-lg">
-              <span className="flex items-center gap-2 text-rose-600 font-semibold text-sm"><LogOut size={18} /> {t("logout")}</span>
-              <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
-            </button>
-            <button onClick={deleteAccount} disabled={deleting} className="w-full flex items-center justify-between py-3 hover:bg-muted/50 -mx-1 px-1 rounded-lg disabled:opacity-50">
-              <span className="flex items-center gap-2 text-rose-600 font-semibold text-sm"><Trash2 size={18} /> {deleting ? t("deletingAccount") : t("deleteAccount")}</span>
-              <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
-            </button>
-          </AccordionContent>
-        </AccordionItem>
       </Accordion>
+
+      {/* Sign out & delete account — kept at the bottom, outside any section */}
+      <div className="grid grid-cols-2 gap-3">
+        <button onClick={() => logout()} className="flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-card border border-border/60 font-semibold text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition">
+          <LogOut size={18} /> {t("logout")}
+        </button>
+        <button onClick={deleteAccount} disabled={deleting} className="flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-rose-600 text-white font-semibold text-sm hover:bg-rose-700 transition disabled:opacity-50">
+          {deleting ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
+          {deleting ? t("deletingAccount") : t("deleteAccount")}
+        </button>
+      </div>
 
       <EditProfileDialog open={editOpen} onClose={() => setEditOpen(false)} />
       <ContactSupportDialog open={supportOpen} onClose={() => setSupportOpen(false)} />

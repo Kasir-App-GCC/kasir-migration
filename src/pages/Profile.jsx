@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck, RefreshCw, Info, Loader2, Building2, FileText, Rocket, Ban, CheckSquare, Square, Eye, Bell, Wrench, Clock, Bookmark, Zap } from "lucide-react";
+import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck, RefreshCw, Info, Loader2, Building2, FileText, Rocket, Ban, CheckSquare, Square, Eye, Bell, Wrench, Clock, Bookmark, Zap, Globe } from "lucide-react";
 import VerificationDialog from "@/components/VerificationDialog";
 import RealEstateLicenseDialog from "@/components/RealEstateLicenseDialog";
 import SponsorItemDialog from "@/components/SponsorItemDialog";
@@ -8,6 +8,7 @@ import SponsorPaymentDialog from "@/components/SponsorPaymentDialog";
 import PendingOffersDialog from "@/components/PendingOffersDialog";
 import SavedSearchesDialog from "@/components/SavedSearchesDialog";
 import BoostItemDialog from "@/components/BoostItemDialog";
+import WebsiteLinkDialog from "@/components/WebsiteLinkDialog";
 import BlockedUsersDialog from "@/components/BlockedUsersDialog";
 import RecentlyViewedDialog from "@/components/RecentlyViewedDialog";
 import { base44 } from "@/api/base44Client";
@@ -54,6 +55,7 @@ export default function Profile() {
   const [pendingOffersOpen, setPendingOffersOpen] = useState(false);
   const [savedSearchesOpen, setSavedSearchesOpen] = useState(false);
   const [boostOpen, setBoostOpen] = useState(false);
+  const [websiteOpen, setWebsiteOpen] = useState(false);
   const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [waSaving, setWaSaving] = useState(false);
@@ -672,6 +674,10 @@ export default function Profile() {
               <span className="flex items-center gap-2 text-sm font-semibold"><Bookmark size={18} className="text-primary" /> {ar ? "عمليات البحث المحفوظة" : "Saved searches"}</span>
               <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
             </button>
+            <button onClick={() => setWebsiteOpen(true)} className="w-full flex items-center justify-between py-3 hover:bg-muted/50 -mx-1 px-1 rounded-lg">
+              <span className="flex items-center gap-2 text-sm font-semibold"><Globe size={18} className="text-sky-500" /> {ar ? "أضف رابط موقعك" : "Add your website"}</span>
+              <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
+            </button>
           </AccordionContent>
         </AccordionItem>
 
@@ -730,6 +736,7 @@ export default function Profile() {
       <PendingOffersDialog open={pendingOffersOpen} onClose={() => setPendingOffersOpen(false)} />
       <SavedSearchesDialog open={savedSearchesOpen} onClose={() => setSavedSearchesOpen(false)} />
       <BoostItemDialog open={boostOpen} onClose={() => setBoostOpen(false)} />
+      <WebsiteLinkDialog open={websiteOpen} onClose={() => setWebsiteOpen(false)} />
       <BlockedUsersDialog open={blockedOpen} onClose={() => setBlockedOpen(false)} />
       <RecentlyViewedDialog open={recentOpen} onClose={() => setRecentOpen(false)} />
       <VerificationDialog open={verificationOpen} onClose={() => setVerificationOpen(false)} />

@@ -149,6 +149,10 @@
       "default": false,
       "description": "Seller offers delivery within the buyer's city"
     },
+    "website_url": {
+      "type": "string",
+      "description": "Optional link to the seller's own website/store for this item, shown as a banner on the listing page"
+    },
     "archived": {
       "type": "boolean",
       "default": false,

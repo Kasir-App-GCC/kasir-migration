@@ -72,6 +72,8 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
   const [willingToShip, setWillingToShip] = useState(!!initial?.willing_to_ship);
   const [shippingFee, setShippingFee] = useState(initial?.shipping_fee != null ? String(initial.shipping_fee) : "");
   const [deliversWithinCity, setDeliversWithinCity] = useState(!!initial?.delivers_within_city);
+  const [hasWebsite, setHasWebsite] = useState(!!initial?.website_url);
+  const [websiteUrl, setWebsiteUrl] = useState(initial?.website_url || "");
   const [useFreeBoost, setUseFreeBoost] = useState(false);
   const [freeBoostAvailable, setFreeBoostAvailable] = useState(null);
   const [reAdLicense, setReAdLicense] = useState(
@@ -339,6 +341,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
     willing_to_ship: willingToShip,
     shipping_fee: willingToShip && shippingFee ? Number(shippingFee) : null,
     delivers_within_city: deliversWithinCity,
+    website_url: hasWebsite && websiteUrl.trim() ? websiteUrl.trim() : undefined,
     re_license_type: saRealEstate && reApproved ? user.re_license_type : undefined,
     re_license_number: saRealEstate && reApproved ? user.re_license_number : undefined,
     re_license_holder: saRealEstate && reApproved ? user.re_license_holder : undefined,
@@ -738,6 +741,34 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
             <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${deliversWithinCity ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
           </button>
         </label>
+      </div>
+
+      <div className="p-3.5 rounded-2xl border border-border bg-card space-y-3">
+        <div className="flex items-center gap-2.5">
+          <Globe size={18} className="text-sky-500" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold">{ar ? "رابط موقعك" : "Your website link"}</p>
+            <p className="text-xs text-muted-foreground">{ar ? "تبيع هذا المنتج على موقعك؟ أضف رابطاً يظهر للمشترين." : "Selling this on your own site? Add a link buyers can visit."}</p>
+          </div>
+        </div>
+        <label className="flex items-center justify-between p-3 rounded-xl bg-muted">
+          <span className="text-sm font-semibold flex items-center gap-2"><Globe size={15} /> {ar ? "لدي رابط موقع لهذا المنتج" : "I have a website link for this item"}</span>
+          <button type="button" onClick={() => setHasWebsite(!hasWebsite)} className={`w-11 h-6 rounded-full p-0.5 transition ${hasWebsite ? "bg-sky-500" : "bg-muted-foreground/30"}`}>
+            <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${hasWebsite ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
+          </button>
+        </label>
+        {hasWebsite &&
+          <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-muted">
+            <input
+              value={websiteUrl}
+              onChange={(e) => setWebsiteUrl(e.target.value.slice(0, 300))}
+              placeholder={ar ? "مثال: my-store.com/product" : "e.g. my-store.com/product"}
+              dir="ltr"
+              inputMode="url"
+              className="bg-transparent outline-none flex-1 text-start"
+            />
+          </div>
+        }
       </div>
 
       <div className="p-3.5 rounded-2xl border border-border bg-card space-y-3">

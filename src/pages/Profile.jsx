@@ -15,6 +15,7 @@ import RatingStars from "@/components/RatingStars";
 import EditProfileDialog from "@/components/EditProfileDialog";
 import SellerReply from "@/components/SellerReply";
 import ContactSupportDialog from "@/components/ContactSupportDialog";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import SellerDashboard from "@/components/SellerDashboard";
 import BulkSelectBar from "@/components/BulkSelectBar";
 import useAdminPending from "@/hooks/useAdminPending";
@@ -524,108 +525,149 @@ export default function Profile() {
         </button>
       )}
 
-      {/* Settings */}
-      <div className="rounded-2xl bg-card border border-border/60 divide-y divide-border/60">
-        <div className="p-4">
-          <p className="text-sm font-semibold mb-3 flex items-center gap-2"><Sun size={16} /> {t("settings")}: {t("systemTheme")}</p>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { id: "light", icon: Sun, label: t("lightMode") },
-              { id: "dark", icon: Moon, label: t("darkMode") },
-              { id: "system", icon: Monitor, label: t("systemTheme") },
-            ].map((o) => (
+      {/* Settings — collapsible sections */}
+      <Accordion type="multiple" defaultValue={["appearance"]} className="rounded-2xl bg-card border border-border/60 px-4">
+        {/* Appearance & Language */}
+        <AccordionItem value="appearance" className="border-border/60">
+          <AccordionTrigger className="text-sm font-semibold text-start">
+            <span className="flex items-center gap-2"><Sun size={16} /> {ar ? "المظهر واللغة" : "Appearance & Language"}</span>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4">
+            <div>
+              <p className="text-xs font-semibold mb-2 text-muted-foreground">{t("systemTheme")}</p>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: "light", icon: Sun, label: t("lightMode") },
+                  { id: "dark", icon: Moon, label: t("darkMode") },
+                  { id: "system", icon: Monitor, label: t("systemTheme") },
+                ].map((o) => (
+                  <button
+                    key={o.id}
+                    onClick={() => setTheme(o.id)}
+                    className={`py-2.5 rounded-xl text-xs font-semibold flex flex-col items-center gap-1 ${theme === o.id ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                  >
+                    <o.icon size={16} /> {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-semibold mb-2 text-muted-foreground">{t("language")}</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => setLang("en")} className={`py-2.5 rounded-xl text-sm font-semibold ${lang === "en" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>{t("english")}</button>
+                <button onClick={() => setLang("ar")} className={`py-2.5 rounded-xl text-sm font-semibold ${lang === "ar" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>{t("arabic")}</button>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Account & Preferences */}
+        <AccordionItem value="account" className="border-border/60">
+          <AccordionTrigger className="text-sm font-semibold text-start">
+            <span className="flex items-center gap-2"><Settings size={16} /> {ar ? "الحساب والتفضيلات" : "Account & Preferences"}</span>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-3">
+            <label className="flex items-center justify-between py-1">
+              <span className="text-sm">{t("showSold")}</span>
               <button
-                key={o.id}
-                onClick={() => setTheme(o.id)}
-                className={`py-2.5 rounded-xl text-xs font-semibold flex flex-col items-center gap-1 ${theme === o.id ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                onClick={() => setPrefs({ showSold: !prefs.showSold })}
+                className={`w-11 h-6 rounded-full p-0.5 transition ${prefs.showSold ? "bg-primary" : "bg-muted-foreground/30"}`}
               >
-                <o.icon size={16} /> {o.label}
+                <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${prefs.showSold ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
               </button>
-            ))}
-          </div>
-        </div>
-        <div className="p-4">
-          <p className="text-sm font-semibold mb-3">{t("language")}</p>
-          <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => setLang("en")} className={`py-2.5 rounded-xl text-sm font-semibold ${lang === "en" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>{t("english")}</button>
-            <button onClick={() => setLang("ar")} className={`py-2.5 rounded-xl text-sm font-semibold ${lang === "ar" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>{t("arabic")}</button>
-          </div>
-        </div>
-        <div className="p-4">
-          <p className="text-sm font-semibold mb-3 flex items-center gap-2"><Settings size={16} /> {t("preferences")}</p>
-          <label className="flex items-center justify-between py-2">
-            <span className="text-sm">{t("showSold")}</span>
-            <button
-              onClick={() => setPrefs({ showSold: !prefs.showSold })}
-              className={`w-11 h-6 rounded-full p-0.5 transition ${prefs.showSold ? "bg-primary" : "bg-muted-foreground/30"}`}
-            >
-              <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${prefs.showSold ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
-            </button>
-          </label>
-          <div className="py-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm flex items-center gap-2"><WhatsAppIcon size={16} className="text-emerald-600" /> {lang === "ar" ? "واتساب" : "WhatsApp"}</span>
+            </label>
+            <div className="py-1">
+              <div className="flex items-center justify-between">
+                <span className="text-sm flex items-center gap-2"><WhatsAppIcon size={16} className="text-emerald-600" /> {ar ? "واتساب" : "WhatsApp"}</span>
+                {user.whatsapp_verified ? (
+                  <button
+                    onClick={toggleWa}
+                    disabled={waSaving}
+                    className={`w-11 h-6 rounded-full p-0.5 transition ${user.whatsapp_enabled ? "bg-emerald-500" : "bg-muted-foreground/30"}`}
+                  >
+                    <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${user.whatsapp_enabled ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
+                  </button>
+                ) : (
+                  <button onClick={() => setEditOpen(true)} className="px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-bold">
+                    {ar ? "تحقق" : "Verify"}
+                  </button>
+                )}
+              </div>
               {user.whatsapp_verified ? (
-                <button
-                  onClick={toggleWa}
-                  disabled={waSaving}
-                  className={`w-11 h-6 rounded-full p-0.5 transition ${user.whatsapp_enabled ? "bg-emerald-500" : "bg-muted-foreground/30"}`}
-                >
-                  <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${user.whatsapp_enabled ? "translate-x-5 rtl:-translate-x-5" : ""}`} />
-                </button>
+                <div className="mt-1.5">
+                  <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1"><BadgeCheck size={12} /> {ar ? "موثّق" : "Verified"} · <span className="font-mono" dir="ltr">+{user.whatsapp_number}</span></p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{user.whatsapp_enabled ? (ar ? "زر واتساب يظهر للمشترين على سلعتك" : "WhatsApp button visible to buyers on your listings") : (ar ? "زر واتساب مخفي عن المشترين" : "WhatsApp button hidden from buyers")}</p>
+                </div>
               ) : (
-                <button onClick={() => setEditOpen(true)} className="px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-bold">
-                  {lang === "ar" ? "تحقق" : "Verify"}
-                </button>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{ar ? "تحقق من رقمك لعرض زر واتساب لسلعتك" : "Verify your number to show a WhatsApp button on your listings"}</p>
               )}
             </div>
-            {user.whatsapp_verified ? (
-              <div className="mt-1.5">
-                <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1"><BadgeCheck size={12} /> {lang === "ar" ? "موثّق" : "Verified"} · <span className="font-mono" dir="ltr">+{user.whatsapp_number}</span></p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">{user.whatsapp_enabled ? (lang === "ar" ? "زر واتساب يظهر للمشترين على سلعتك" : "WhatsApp button visible to buyers on your listings") : (lang === "ar" ? "زر واتساب مخفي عن المشترين" : "WhatsApp button hidden from buyers")}</p>
-              </div>
-            ) : (
-              <p className="text-[11px] text-muted-foreground mt-0.5">{lang === "ar" ? "تحقق من رقمك لعرض زر واتساب لسلعتك" : "Verify your number to show a WhatsApp button on your listings"}</p>
-            )}
-          </div>
-        </div>
-        <button onClick={() => nav("/about")} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
-          <span className="flex items-center gap-2 text-sm font-semibold"><Info size={18} /> {ar ? "من نحن" : "About Us"}</span>
-          <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
-        </button>
-        <button onClick={() => setReLicenseOpen(true)} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
-          <span className="flex items-center gap-2 text-sm font-semibold"><Building2 size={18} /> {ar ? "ترخيص الوساطة العقارية" : "Real Estate License"}{user.re_license_status === "approved" && <BadgeCheck size={14} className="text-emerald-500" />}</span>
-          <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
-        </button>
-        <button onClick={() => setSponsorOpen(true)} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
-          <span className="flex items-center gap-2 text-sm font-semibold"><Rocket size={18} className="text-violet-500" /> {ar ? "رعاية إعلان" : "Sponsor an item"}</span>
-          <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
-        </button>
-        <button onClick={() => nav("/terms")} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
-          <span className="flex items-center gap-2 text-sm font-semibold"><Shield size={18} /> {ar ? "الشروط والأحكام" : "Terms & Conditions"}</span>
-          <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
-        </button>
-        <button onClick={() => setRecentOpen(true)} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
-          <span className="flex items-center gap-2 text-sm font-semibold"><Eye size={18} /> {ar ? "شاهدت مؤخراً" : "Recently viewed"}</span>
-          <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
-        </button>
-        <button onClick={() => setBlockedOpen(true)} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
-          <span className="flex items-center gap-2 text-sm font-semibold"><Ban size={18} /> {ar ? "المستخدمون المحظورون" : "Blocked users"}</span>
-          <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
-        </button>
-        <button onClick={() => setSupportOpen(true)} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
-          <span className="flex items-center gap-2 text-sm font-semibold"><LifeBuoy size={18} /> {t("contactSupport")}</span>
-          <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
-        </button>
-        <button onClick={() => logout()} className="w-full p-4 flex items-center justify-between hover:bg-muted/50">
-          <span className="flex items-center gap-2 text-rose-600 font-semibold text-sm"><LogOut size={18} /> {t("logout")}</span>
-          <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
-        </button>
-        <button onClick={deleteAccount} disabled={deleting} className="w-full p-4 flex items-center justify-between hover:bg-muted/50 disabled:opacity-50">
-          <span className="flex items-center gap-2 text-rose-600 font-semibold text-sm"><Trash2 size={18} /> {deleting ? t("deletingAccount") : t("deleteAccount")}</span>
-          <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
-        </button>
-      </div>
+            <button onClick={() => setRecentOpen(true)} className="w-full flex items-center justify-between py-2.5 hover:bg-muted/50 -mx-1 px-1 rounded-lg">
+              <span className="flex items-center gap-2 text-sm font-semibold"><Eye size={18} /> {ar ? "شاهدت مؤخراً" : "Recently viewed"}</span>
+              <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
+            </button>
+            <button onClick={() => setBlockedOpen(true)} className="w-full flex items-center justify-between py-2.5 hover:bg-muted/50 -mx-1 px-1 rounded-lg">
+              <span className="flex items-center gap-2 text-sm font-semibold"><Ban size={18} /> {ar ? "المستخدمون المحظورون" : "Blocked users"}</span>
+              <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
+            </button>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Seller Tools */}
+        <AccordionItem value="seller" className="border-border/60">
+          <AccordionTrigger className="text-sm font-semibold text-start">
+            <span className="flex items-center gap-2"><Rocket size={16} className="text-violet-500" /> {ar ? "أدوات البائع" : "Seller Tools"}</span>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-1">
+            <button onClick={() => setReLicenseOpen(true)} className="w-full flex items-center justify-between py-3 hover:bg-muted/50 -mx-1 px-1 rounded-lg">
+              <span className="flex items-center gap-2 text-sm font-semibold"><Building2 size={18} /> {ar ? "ترخيص الوساطة العقارية" : "Real Estate License"}{user.re_license_status === "approved" && <BadgeCheck size={14} className="text-emerald-500" />}</span>
+              <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
+            </button>
+            <button onClick={() => setSponsorOpen(true)} className="w-full flex items-center justify-between py-3 hover:bg-muted/50 -mx-1 px-1 rounded-lg">
+              <span className="flex items-center gap-2 text-sm font-semibold"><Rocket size={18} className="text-violet-500" /> {ar ? "رعاية إعلان" : "Sponsor an item"}</span>
+              <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
+            </button>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Support & Info */}
+        <AccordionItem value="support" className="border-border/60">
+          <AccordionTrigger className="text-sm font-semibold text-start">
+            <span className="flex items-center gap-2"><LifeBuoy size={16} /> {ar ? "الدعم والمعلومات" : "Support & Info"}</span>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-1">
+            <button onClick={() => nav("/about")} className="w-full flex items-center justify-between py-3 hover:bg-muted/50 -mx-1 px-1 rounded-lg">
+              <span className="flex items-center gap-2 text-sm font-semibold"><Info size={18} /> {ar ? "من نحن" : "About Us"}</span>
+              <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
+            </button>
+            <button onClick={() => nav("/terms")} className="w-full flex items-center justify-between py-3 hover:bg-muted/50 -mx-1 px-1 rounded-lg">
+              <span className="flex items-center gap-2 text-sm font-semibold"><Shield size={18} /> {ar ? "الشروط والأحكام" : "Terms & Conditions"}</span>
+              <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
+            </button>
+            <button onClick={() => setSupportOpen(true)} className="w-full flex items-center justify-between py-3 hover:bg-muted/50 -mx-1 px-1 rounded-lg">
+              <span className="flex items-center gap-2 text-sm font-semibold"><LifeBuoy size={18} /> {t("contactSupport")}</span>
+              <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
+            </button>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Danger Zone */}
+        <AccordionItem value="danger" className="border-b-0 border-border/60">
+          <AccordionTrigger className="text-sm font-semibold text-start">
+            <span className="flex items-center gap-2 text-rose-600"><Trash2 size={16} /> {ar ? "منطقة الخطر" : "Danger Zone"}</span>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-1">
+            <button onClick={() => logout()} className="w-full flex items-center justify-between py-3 hover:bg-muted/50 -mx-1 px-1 rounded-lg">
+              <span className="flex items-center gap-2 text-rose-600 font-semibold text-sm"><LogOut size={18} /> {t("logout")}</span>
+              <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
+            </button>
+            <button onClick={deleteAccount} disabled={deleting} className="w-full flex items-center justify-between py-3 hover:bg-muted/50 -mx-1 px-1 rounded-lg disabled:opacity-50">
+              <span className="flex items-center gap-2 text-rose-600 font-semibold text-sm"><Trash2 size={18} /> {deleting ? t("deletingAccount") : t("deleteAccount")}</span>
+              <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
+            </button>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       <EditProfileDialog open={editOpen} onClose={() => setEditOpen(false)} />
       <ContactSupportDialog open={supportOpen} onClose={() => setSupportOpen(false)} />

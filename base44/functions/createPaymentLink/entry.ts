@@ -39,7 +39,11 @@ export default async function(req: Request): Promise<Response> {
         amount: amountHalalas,
         currency: 'SAR',
         description,
-        callback_url: origin,
+        callback_url: `${origin}/functions/syncMoyasarPayments`,
+        // Redirect the admin back to the admin panel after the payer completes
+        // the link (mobile popup-blocked → full redirect flow).
+        success_url: `${origin}/admin?payment_link=success`,
+        back_url: `${origin}/admin`,
         metadata: { type: 'payment_link', user_id: userId },
       }),
     });

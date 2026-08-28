@@ -52,6 +52,10 @@ export default async function(req: Request): Promise<Response> {
         currency: 'SAR',
         description: 'رسوم تفعيل شارة الوسيط العقاري - كاسر',
         callback_url: `${origin}/functions/confirmBrokerPayment`,
+        // success_url redirects the user back after paying (mobile popup-blocked
+        // → full redirect flow). Moyasar appends `?id=<payment_id>` which Profile
+        // reads and passes to confirmBrokerPayment as the paymentId.
+        success_url: `${origin}/profile?broker_payment=1`,
         back_url: `${origin}/profile`,
         metadata: {
           type: 'broker_fee',

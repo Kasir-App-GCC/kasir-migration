@@ -112,8 +112,19 @@ export default function Profile() {
 
     const sid = params.get("pay_sponsor");
     if (sid) {
+      // Auto-confirm in case this is a redirect back from Moyasar (mobile
+      // popup-blocked → full redirect flow). If the payment isn't complete yet
+      // (user clicked the "pay now" notification before paying), this silently
+      // no-ops and the dialog opens so the user can pay.
+      base44.functions.invoke("confirmSponsorPayment", { requestId: sid })
+        .then(async (res) => {
+          if (res?.data?.ok) toast({ title: ar ? "تم تفعيل الرعاية 🚀" : "Sponsorship activated 🚀" });
+        })
+        .catch(() => {});
       setSponsorPayId(sid);
       params.delete("pay_sponsor");
+      params.delete("id");
+      params.delete("paid");
       changed = true;
     }
 
@@ -123,21 +134,53 @@ export default function Profile() {
       changed = true;
     }
 
-    if (params.get("verify_payment") && params.get("id")) {
-      const paymentId = params.get("id");
-      setVerifyingPayment(true);
-      base44.functions.invoke("confirmVerificationPayment", { paymentId })
-        .then(async (res) => {
-          if (res?.data?.ok) {
-            toast({ title: ar ? "تم توثيق حسابك! 🎉" : "Account verified! 🎉" });
-            await refreshUser();
-          } else {
-            toast({ title: ar ? "لم يكتمل الدفع بعد" : "Payment not completed yet", variant: "destructive" });
-          }
-        })
-        .catch(() => toast({ title: ar ? "فشل التحقق من الدفع" : "Payment verification failed", variant: "destructive" }))
-        .finally(() => setVerifyingPayment(false));
+    if (params.get("verify_payment")) {
+      // Redirect back from Moyasar after a verification payment. Prefer
+      // Moyasar's appended `id` (the payment id); fall back to our own embedded
+      // `vr` (the verification request id) so confirmation works regardless of
+      // what Moyasar appends to the redirect URL.
+      const moyasarId = params.get("id");
+      const vr = params.get("vr");
+      const ref = moyasarId ? { paymentId: moyasarId } : vr ? { verificationRequestId: vr } : null;
+      if (ref) {
+        setVerifyingPayment(true);
+        base44.functions.invoke("confirmVerificationPayment", ref)
+          .then(async (res) => {
+            if (res?.data?.ok) {
+              toast({ title: ar ? "تم توثيق حسابك! 🎉" : "Account verified! 🎉" });
+              await refreshUser();
+            } else {
+              toast({ title: ar ? "لم يكتمل الدفع بعد" : "Payment not completed yet", variant: "destructive" });
+            }
+          })
+          .catch(() => toast({ title: ar ? "فشل التحقق من الدفع" : "Payment verification failed", variant: "destructive" }))
+          .finally(() => setVerifyingPayment(false));
+      }
       params.delete("verify_payment");
+      params.delete("id");
+      params.delete("vr");
+      changed = true;
+    }
+
+    if (params.get("broker_payment")) {
+      // Redirect back from Moyasar after the broker activation fee. Moyasar
+      // appends `?id=<payment_id>` which we pass to confirmBrokerPayment.
+      const moyasarId = params.get("id");
+      if (moyasarId) {
+        setVerifyingPayment(true);
+        base44.functions.invoke("confirmBrokerPayment", { paymentId: moyasarId })
+          .then(async (res) => {
+            if (res?.data?.ok) {
+              toast({ title: ar ? "تم تفعيل شارة الوسيط العقاري 🎉" : "Broker badge activated 🎉" });
+              await refreshUser();
+            } else {
+              toast({ title: ar ? "لم يكتمل الدفع بعد" : "Payment not completed yet", variant: "destructive" });
+            }
+          })
+          .catch(() => toast({ title: ar ? "فشل التحقق من الدفع" : "Payment verification failed", variant: "destructive" }))
+          .finally(() => setVerifyingPayment(false));
+      }
+      params.delete("broker_payment");
       params.delete("id");
       changed = true;
     }

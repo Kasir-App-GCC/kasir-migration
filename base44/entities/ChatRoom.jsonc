@@ -86,17 +86,35 @@
   ],
   "rls": {
     "create": {
-      "$or": [
+      "$and": [
         {
-          "data.seller_id": "{{user.id}}"
+          "$or": [
+            {
+              "data.seller_id": "{{user.id}}"
+            },
+            {
+              "data.buyer_id": "{{user.id}}"
+            },
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            }
+          ]
         },
         {
-          "data.buyer_id": "{{user.id}}"
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
+          "$or": [
+            {
+              "data.is_official": {
+                "$ne": true
+              }
+            },
+            {
+              "user_condition": {
+                "role": "admin"
+              }
+            }
+          ]
         }
       ]
     },

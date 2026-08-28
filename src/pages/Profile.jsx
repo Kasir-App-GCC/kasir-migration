@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck, RefreshCw, Info, Loader2, Building2, FileText, Rocket, Ban, CheckSquare, Square, Eye, Bell, Wrench, Clock, Bookmark, Zap, Globe } from "lucide-react";
 import VerificationDialog from "@/components/VerificationDialog";
 import RealEstateLicenseDialog from "@/components/RealEstateLicenseDialog";
@@ -36,6 +36,7 @@ export default function Profile() {
   const { toast } = useToast();
   const ar = lang === "ar";
   const nav = useNavigate();
+  const location = useLocation();
   const adminPending = useAdminPending();
   const [tab, setTab] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -163,14 +164,14 @@ export default function Profile() {
   // Open the Sponsor payment dialog when navigated here with ?pay_sponsor=<id>
   // (from the "sponsor approved — pay now" notification / Moyasar success_url).
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(location.search);
     const sid = params.get("pay_sponsor");
     if (sid) {
       setSponsorPayId(sid);
       params.delete("pay_sponsor");
       window.history.replaceState({}, "", window.location.pathname + (params.toString() ? "?" + params.toString() : ""));
     }
-  }, []);
+  }, [location.search]);
 
   // Handle the redirect back from Moyasar after the broker badge payment
   // (mobile: popup blocked → Moyasar redirects to success_url). The invoice id

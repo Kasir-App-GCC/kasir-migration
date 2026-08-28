@@ -29,6 +29,7 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
     if (n.type === "dispute_resolved" || n.type === "dispute_opened") { onMarkRead?.(n); setShowDispute(true); return; }
     if (n.type === "admin_message" && n.referenceId && !n.disputeId && user?.role === "admin") { onMarkRead?.(n); nav(`/admin?tab=sponsor`); onClick?.(); return; }
     if (n.type === "admin_message" && n.disputeId && user?.role === "admin") { onMarkRead?.(n); nav(`/admin?tab=disputes`); onClick?.(); return; }
+    if (n.type === "admin_message" && n.referenceId && /^https?:\/\//.test(n.referenceId)) { onMarkRead?.(n); window.open(n.referenceId, "_blank", "noopener,noreferrer"); onClick?.(); return; }
     if (n.type === "support_resolved") { onMarkRead?.(n); onClick?.(); return; }
     if (n.type === "rate") {
       onMarkRead?.(n);

@@ -35,7 +35,7 @@ export default async function (req) {
       .map((u) => ({
         id: u.id,
         username: u.username || "",
-        full_name: u.full_name || [u.first_name, u.last_name].filter(Boolean).join(" "),
+        full_name: [u.first_name, u.last_name].filter(Boolean).join(" ") || u.full_name || "",
         avatar: u.avatar || "",
       }));
 

@@ -52,6 +52,18 @@ export default async function(req: Request): Promise<Response> {
       });
     }
 
+    // Notify the user they have a payment to make (if attributed to a user).
+    if (userId) {
+      try {
+        await base44.asServiceRole.entities.Notification.create({
+          user_id: userId,
+          type: "admin_message",
+          text: `لديك طلب دفع بقيمة ${amountSar} ريال${description ? ` — ${description}` : ""}. اضغط للدفع.\nYou have a payment request for ${amountSar} SAR${description ? ` — ${description}` : ""}. Click to pay.`,
+          reference_id: data.url,
+        });
+      } catch (e) {}
+    }
+
     return Response.json({
       ok: true,
       invoiceId: data.id,

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
 import TopBar from "./TopBar";
 import BottomNav from "./BottomNav";
 import CategoryBar from "./CategoryBar";
@@ -49,7 +50,9 @@ export default function AppLayout() {
       {!isSubPage && <TopBar onOpenLocation={() => { setLocDefaultTab(null); setLocOpen(true); }} />}
       {showCats && <CategoryBar categories={categories} onCategoriesChange={setCategories} subcategories={subcategories} onSubcategoriesChange={setSubcategories} />}
       <main className={`max-w-5xl mx-auto px-4 pt-1 ${mainPad}`}>
-        <Outlet context={{ categories, setCategories, subcategories, setSubcategories }} />
+        <motion.div key={location.pathname} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }}>
+          <Outlet context={{ categories, setCategories, subcategories, setSubcategories }} />
+        </motion.div>
       </main>
       {!noBottomNav && <BottomNav />}
       <LocationFilter open={locOpen} onClose={closeLoc} defaultTab={locDefaultTab} autoDetect={locAutoDetect} />

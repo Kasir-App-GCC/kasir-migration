@@ -1,4 +1,5 @@
 import React from "react";
+import { motion } from "framer-motion";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { CATEGORIES, getSubcategories } from "@/lib/constants";
@@ -41,14 +42,23 @@ export default function CategoryBar({ categories, onCategoriesChange, subcategor
               <button
                 key={c.id}
                 onClick={() => toggleCategory(c.id)}
-                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition border ${
+                className={`relative flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition border ${
                   active
-                    ? "bg-primary text-primary-foreground border-transparent shadow-sm"
+                    ? "text-primary-foreground border-transparent"
                     : "bg-card text-foreground border-border/70 hover:bg-muted"
                 } ${c.featured && !active ? "ring-1 ring-emerald-400/50" : ""}`}
               >
-                <c.icon size={16} />
-                {lang === "ar" ? c.ar : c.en}
+                {active && (
+                  <motion.span
+                    layoutId="activeCatPill"
+                    className="absolute inset-0 rounded-full bg-primary shadow-sm"
+                    transition={{ type: "spring", stiffness: 500, damping: 35, duration: 0.2 }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center gap-1.5">
+                  <c.icon size={16} />
+                  {lang === "ar" ? c.ar : c.en}
+                </span>
               </button>
             );
           })}

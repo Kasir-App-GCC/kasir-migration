@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import TopBar from "./TopBar";
@@ -25,20 +25,6 @@ export default function AppLayout() {
   // Item pages keep the bottom nav, so content needs room for both the action bar and the nav.
   const mainPad = isSubPage ? (location.pathname.startsWith("/item/") ? "pb-36" : "pb-4") : "pb-24";
 
-  // On first visit to Home with no location set (still "All cities"), auto-open
-  // the location filter on the "Near Me" tab so the user picks a radius and
-  // sees nearby listings. Only once per session — they can switch to "All
-  // cities" or any other filter afterwards without being prompted again.
-  useEffect(() => {
-    if (location.pathname !== "/") return;
-    if (locationFilter.mode !== "city" || locationFilter.city) return;
-    if (localStorage.getItem("kasir_loc_prompted")) return;
-    localStorage.setItem("kasir_loc_prompted", "1");
-    setLocDefaultTab("radius");
-    setLocAutoDetect(true);
-    setLocOpen(true);
-  }, [location.pathname]);
-
   const closeLoc = () => {
     setLocOpen(false);
     setLocDefaultTab(null);
@@ -51,7 +37,9 @@ export default function AppLayout() {
       {showCats && <CategoryBar categories={categories} onCategoriesChange={setCategories} subcategories={subcategories} onSubcategoriesChange={setSubcategories} />}
       <main className={`max-w-5xl mx-auto px-4 pt-1 ${mainPad}`}>
         <motion.div key={location.pathname} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }}>
-          <Outlet context={{ categories, setCategories, subcategories, setSubcategories }} />
+          <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-7 h-7 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" /></div>}>
+            <Outlet context={{ categories, setCategories, subcategories, setSubcategories, openLocation: () => { setLocDefaultTab("radius"); setLocAutoDetect(true); setLocOpen(true); } }} />
+          </Suspense>
         </motion.div>
       </main>
       {!noBottomNav && <BottomNav />}

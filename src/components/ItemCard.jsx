@@ -1,5 +1,5 @@
 import React, { useState, useRef, memo } from "react";
-import { Heart, MapPin, Clock, ChevronLeft, ChevronRight, Star, BadgeCheck, Sparkles, Earth, Truck, Rocket } from "lucide-react";
+import { Heart, MapPin, Clock, ChevronLeft, ChevronRight, Star, BadgeCheck, Sparkles, Earth, Truck, Rocket, ArrowDown } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { timeAgo } from "@/lib/format";
@@ -8,6 +8,7 @@ import { getCategory, getCityName, getCondition } from "@/lib/constants";
 import { useSellerInfo } from "@/lib/useTrusted";
 import { Image } from "@/components/ui/image";
 import TrustedBadge from "@/components/TrustedBadge";
+import { haptic } from "@/lib/haptics";
 
 function ItemCard({ item, onClick, promoted = false, refreshButton = null, sellerInfo: sellerInfoProp }) {
   const { lang, favorites, toggleFavorite } = useStore();
@@ -28,6 +29,12 @@ function ItemCard({ item, onClick, promoted = false, refreshButton = null, selle
   const sellerInfo = sellerInfoProp || hookInfo;
   const crossCountryActive = item.featured_cross_country && item.featured_until && new Date(item.featured_until) > new Date();
   const sponsored = item.admin_sponsored && item.admin_sponsored_until && new Date(item.admin_sponsored_until) > new Date();
+  const priceDropped = (() => {
+    const hist = Array.isArray(item.price_history) ? item.price_history : null;
+    if (!hist || !hist.length) return false;
+    const last = hist[hist.length - 1];
+    return typeof last?.price === "number" && last.price > item.price;
+  })();
 
   const step = (d, e) => {
     e.stopPropagation();
@@ -77,6 +84,7 @@ function ItemCard({ item, onClick, promoted = false, refreshButton = null, selle
           onClick={(e) => {
             e.stopPropagation();
             toggleFavorite(item.id);
+            haptic(10);
           }}
           aria-label={t("favorite")}
           className="absolute top-2.5 end-2.5 w-9 h-9 rounded-full bg-white/85 dark:bg-slate-900/55 backdrop-blur flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition z-20"
@@ -144,6 +152,11 @@ function ItemCard({ item, onClick, promoted = false, refreshButton = null, selle
           <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${cond.color}`}>
             {lang === "ar" ? cond.ar : cond.en}
           </span>
+          {priceDropped && (
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500 text-white shrink-0">
+              <ArrowDown size={10} /> {t("priceDropped")}
+            </span>
+          )}
           {item.willing_to_ship && (
             <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" title={t("willingToShip")}>
               <Truck size={9} />

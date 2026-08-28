@@ -5,6 +5,7 @@ import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
 import RatingStars from "@/components/RatingStars";
 import ReviewTagChips from "@/components/ReviewTagChips";
+import { haptic } from "@/lib/haptics";
 
 const SELLER_TAG_OPTIONS = [
   { en: "Fast replies", ar: "ردود سريعة" },
@@ -81,6 +82,7 @@ export default function RatingDialog({ offer, user, lang, onClose, onDone }) {
       const fullReview = [tagText, review].filter(Boolean).join(" · ");
       await base44.functions.invoke("submitRating", { offer_id: offer.id, score, review: fullReview });
       toast({ title: ar ? "تم إرسال التقييم" : "Rating submitted" });
+      haptic(15);
       onDone?.();
     } catch (e) {
       const msg = String(e?.response?.data?.error || e?.message || "");

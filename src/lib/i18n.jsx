@@ -302,6 +302,13 @@ const en = {
   deleteSelected: "Delete selected",
   selectedCount: "selected",
   exitSelect: "Done",
+  lastSeen: "Last seen",
+  online: "Online",
+  priceDropped: "Price dropped",
+  searchNearYou: "Search near you?",
+  searchNearYouDesc: "Find listings close to your location",
+  assistantChip: "AI Assistant",
+  buyRequestsChip: "Buy Requests",
   };
 
 const ar = {
@@ -606,6 +613,13 @@ const ar = {
   deleteSelected: "حذف المحدد",
   selectedCount: "محدد",
   exitSelect: "تم",
+  lastSeen: "آخر ظهور",
+  online: "متصل",
+  priceDropped: "انخفض السعر",
+  searchNearYou: "ابحث قربك؟",
+  searchNearYouDesc: "اعثر على إعلانات قريبة من موقعك",
+  assistantChip: "مساعد ذكي",
+  buyRequestsChip: "طلبات الشراء",
   };
 
 export function useT() {

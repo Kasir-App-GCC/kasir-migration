@@ -9,6 +9,7 @@ import TimelineStep from "@/components/TimelineStep";
 import RatingDialog from "@/components/RatingDialog";
 import DisputeDialog from "@/components/DisputeDialog";
 import { useToast } from "@/components/ui/use-toast";
+import { haptic } from "@/lib/haptics";
 
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
 const CHECK_IN_EARLY_MS = 5 * 60 * 1000;
@@ -69,6 +70,7 @@ export default function MeetupFlow({ offer, user, lang, otherName, meetup, onMee
       const data = res?.data || res;
       if (data?.error) throw new Error(data.error);
       if (data?.meetup) onMeetupChange?.(data.meetup);
+      haptic(10);
       return data;
     } catch (e) {
       toast({ title: ar ? "تعذّر الإجراء" : "Action failed", description: e?.message, variant: "destructive" });

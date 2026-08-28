@@ -10,9 +10,12 @@ import { useT } from "@/lib/i18n";
 import { CATEGORIES, CONDITIONS, getSubcategories } from "@/lib/constants";
 import { matchLocation, cityCoords, distanceKm } from "@/lib/location";
 import { nearbyCities } from "@/lib/countries";
-import { fetchSellerInfos } from "@/lib/useTrusted";
+import { getSellerInfos } from "@/lib/sellerCache";
 import { readFeedCache, writeFeedCache } from "@/lib/feedCache";
 import PullToRefresh from "@/components/PullToRefresh";
+import EmptyState from "@/components/EmptyState";
+import { escapeRegex } from "@/lib/regexEscape";
+import { debounce } from "lodash";
 import SavedSearchChips from "@/components/SavedSearchChips";
 import RecentSearches, { addRecentSearch } from "@/components/RecentSearches";
 import { useToast } from "@/components/ui/use-toast";
@@ -94,9 +97,10 @@ export default function Search() {
       query.city = nearby.length > 1 ? { $in: nearby } : nearby[0];
     }
     if (debouncedQ) {
+      const pattern = escapeRegex(debouncedQ);
       query.$or = [
-        { title: { $regex: debouncedQ, $options: "i" } },
-        { description: { $regex: debouncedQ, $options: "i" } },
+        { title: { $regex: pattern, $options: "i" } },
+        { description: { $regex: pattern, $options: "i" } },
       ];
     }
     return query;
@@ -135,7 +139,7 @@ export default function Search() {
       const first = await base44.entities.Item.filter(buildQuery(), sortKey, PAGE_SIZE, 0);
       const list = first || [];
       const ids = [...new Set(list.map((i) => i.seller_id).filter(Boolean))];
-      const sMap = ids.length ? await fetchSellerInfos(ids) : {};
+      const sMap = ids.length ? await getSellerInfos(ids) : {};
       setSellers(sMap);
       setItems(list);
       setHasMore(list.length === PAGE_SIZE);
@@ -175,7 +179,7 @@ export default function Search() {
       }
       const next = list || [];
       const ids = [...new Set(next.map((i) => i.seller_id).filter(Boolean))];
-      const sMap = ids.length ? await fetchSellerInfos(ids) : {};
+      const sMap = ids.length ? await getSellerInfos(ids) : {};
       setSellers((prev) => ({ ...prev, ...sMap }));
       setItems((prev) => {
         const seen = new Set(prev.map((x) => x.id));
@@ -204,9 +208,10 @@ export default function Search() {
   }, [cacheKey, refresh, hasActiveFilter]);
 
   // Persist the result snapshot so returning to the same search renders instantly.
+  const debouncedWrite = useRef(debounce((key, snap) => writeFeedCache(key, snap), 500)).current;
   useEffect(() => {
     if (hasActiveFilter && (items.length || Object.keys(sellers).length)) {
-      writeFeedCache(cacheKey, { items, sellers });
+      debouncedWrite(cacheKey, { items, sellers });
     }
   }, [items, sellers, cacheKey, hasActiveFilter]);
 
@@ -216,12 +221,12 @@ export default function Search() {
   const loadFeatured = useCallback(async () => {
     if (!hasActiveFilter) { setFeaturedItems([]); return; }
     try {
-      const list = await base44.entities.Item.filter({ featured: true, status: "available", archived: { $ne: true }, review_status: { $nin: ["pending", "rejected"] } }, "-featured_until", 20);
+      const list = await base44.entities.Item.filter({ featured: true, status: "available", country, archived: { $ne: true }, review_status: { $nin: ["pending", "rejected"] } }, "-featured_until", 20);
       setFeaturedItems(list || []);
     } catch {
       setFeaturedItems([]);
     }
-  }, [hasActiveFilter]);
+  }, [hasActiveFilter, country]);
 
   useEffect(() => { loadFeatured(); }, [loadFeatured]);
 
@@ -336,42 +341,14 @@ export default function Search() {
   return (
     <PullToRefresh onRefresh={() => refresh(false)}>
     <div className="pt-2 space-y-3">
-      {/* AI Shopping Assistant button */}
-      <button
-        onClick={() => nav("/assistant")}
-        className="w-full flex items-center gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg hover:shadow-xl hover:scale-[1.01] transition"
-      >
-        <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-          <ShoppingBag size={20} />
-        </div>
-        <div className="flex-1 text-start">
-          <p className="font-bold text-sm leading-tight">
-            {lang === "ar" ? "مساعد التسوق الذكي" : "AI Shopping Assistant"}
-          </p>
-          <p className="text-xs text-white/80 leading-tight mt-0.5">
-            {lang === "ar" ? "اوصف اللي تبيه وأساعدك تلاقيه" : "Describe what you need and I'll find it"}
-          </p>
-        </div>
-        <Sparkles size={18} className="shrink-0" />
-      </button>
-
-      {/* Buy Requests button */}
-      <button
-        onClick={() => nav("/buy-requests")}
-        className="w-full flex items-center gap-3 p-3.5 rounded-2xl bg-card border border-border/60 hover:shadow-lg hover:border-border transition"
-      >
-        <div className="w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-950/40 flex items-center justify-center shrink-0">
-          <Megaphone size={20} className="text-violet-600 dark:text-violet-400" />
-        </div>
-        <div className="flex-1 text-start">
-          <p className="font-bold text-sm leading-tight">
-            {lang === "ar" ? "طلبات الشراء" : "Buy Requests"}
-          </p>
-          <p className="text-xs text-muted-foreground leading-tight mt-0.5">
-            {lang === "ar" ? "أوصف اللي تدوره وانتظر العروض" : "Post what you need and wait for offers"}
-          </p>
-        </div>
-      </button>
+      <div className="flex gap-2">
+        <button onClick={() => nav("/assistant")} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-xs font-bold hover:bg-amber-200 dark:hover:bg-amber-900/50 transition">
+          <Sparkles size={13} /> {t("assistantChip")}
+        </button>
+        <button onClick={() => nav("/buy-requests")} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-100 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 text-xs font-bold hover:bg-violet-200 dark:hover:bg-violet-900/50 transition">
+          <Megaphone size={13} /> {t("buyRequestsChip")}
+        </button>
+      </div>
 
       <div className="flex gap-2">
         <div className="relative flex-1">
@@ -448,10 +425,7 @@ export default function Search() {
           <p className="text-sm mt-1">{lang === "ar" ? "اكتب كلمة بحث، اختر قسم، أو حدد موقع لعرض النتائج" : "Type a search, pick a category, or set a location to see results"}</p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-20 text-muted-foreground">
-          <p className="font-semibold text-lg">{t("noResults")}</p>
-          <p className="text-sm mt-1">{t("noResultsDesc")}</p>
-        </div>
+        <EmptyState title={t("noResults")} description={t("noResultsDesc")} lang={lang} />
       ) : (
         <div className="space-y-3">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">

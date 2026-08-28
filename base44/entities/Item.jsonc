@@ -135,6 +135,22 @@
       "default": 0,
       "description": "Best-effort count of users who saved this listing (incremented on favorite)"
     },
+    "price_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "price": {
+            "type": "number"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "description": "Appended on each price change (by saveListing): the previous price + timestamp. ItemCard compares the last entry to the current price to show a price-drop badge."
+    },
     "willing_to_ship": {
       "type": "boolean",
       "default": false,
@@ -232,7 +248,7 @@
     },
     "re_title_deed_doc": {
       "type": "string",
-      "description": "URL of the uploaded title deed document (\u0635\u0643 \u0627\u0644\u0645\u0644\u0643\u064a\u0629) \u2014 image or PDF."
+      "description": "URL of the uploaded title deed document (\u0635\u0643 \u0627\u0644\u0645\u0644\u0643\u062a\u0629) \u2014 image or PDF."
     },
     "re_has_mortgage": {
       "type": "boolean",

@@ -46,6 +46,13 @@ export default async function (req) {
         if (now - t > 24 * 60 * 60 * 1000) recentItemViews.delete(k);
       }
     }
+    // Per-invocation prune: keep recentItemViews bounded without waiting for
+    // the periodic sweep, so a long-lived instance never leaks memory.
+    if (recentItemViews.size > 200) {
+      for (const [k, t] of recentItemViews) {
+        if (now - t > 24 * 60 * 60 * 1000) recentItemViews.delete(k);
+      }
+    }
     const hits = (ipHits.get(ip) || []).filter((t) => now - t < WINDOW_MS);
     if (hits.length >= MAX_PER_WINDOW) {
       return Response.json({ ok: true, counted: false, reason: "rate_limited" });

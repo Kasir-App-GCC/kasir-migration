@@ -8,10 +8,13 @@ import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { getCategory, getCityName } from "@/lib/constants";
 import { matchLocation } from "@/lib/location";
-import { fetchSellerInfos } from "@/lib/useTrusted";
+import { getSellerInfos } from "@/lib/sellerCache";
 import { readFeedCache, writeFeedCache, FEED_STALE_MS } from "@/lib/feedCache";
 import PullToRefresh from "@/components/PullToRefresh";
 import FeaturedCarouselSkeleton from "@/components/FeaturedCarouselSkeleton";
+import EmptyState from "@/components/EmptyState";
+import LocationBanner from "@/components/LocationBanner";
+import { debounce } from "lodash";
 
 function Skeleton() {
   return (
@@ -26,7 +29,7 @@ function Skeleton() {
 }
 
 export default function Home() {
-  const { categories, subcategories } = useOutletContext();
+  const { categories, subcategories, openLocation } = useOutletContext();
   const { locationFilter, lang, prefs, setPrefs, country, user } = useStore();
   const t = useT();
   const nav = useNavigate();
@@ -62,7 +65,7 @@ export default function Home() {
     try {
       const list = await fetchPage(null);
       const ids = [...new Set(list.map((i) => i.seller_id).filter(Boolean))];
-      const sMap = ids.length ? await fetchSellerInfos(ids) : {};
+      const sMap = ids.length ? await getSellerInfos(ids) : {};
       setSellers((prev) => ({ ...prev, ...sMap }));
       if (silent && itemsRef.current.length) {
         const newest = itemsRef.current[0]?.created_date;
@@ -110,7 +113,7 @@ export default function Home() {
         list = await base44.entities.Item.filter({ id: { $in: allIds }, featured_until: { $gt: nowIso }, archived: { $ne: true }, review_status: { $nin: ["pending", "rejected"] } }, "-featured_until", 150);
       }
       const ids = [...new Set((list || []).map((i) => i.seller_id).filter(Boolean))];
-      const sMap = ids.length ? await fetchSellerInfos(ids) : {};
+      const sMap = ids.length ? await getSellerInfos(ids) : {};
       setSellers((prev) => ({ ...prev, ...sMap }));
       setFeaturedItems(list || []);
     } catch {
@@ -136,7 +139,7 @@ export default function Home() {
         status: { $ne: "draft" },
       }, "-admin_sponsored_until", 50);
       const ids = [...new Set((list || []).map((i) => i.seller_id).filter(Boolean))];
-      const sMap = ids.length ? await fetchSellerInfos(ids) : {};
+      const sMap = ids.length ? await getSellerInfos(ids) : {};
       setSellers((prev) => ({ ...prev, ...sMap }));
       setSponsoredItems(list || []);
     } catch {
@@ -153,7 +156,7 @@ export default function Home() {
       const next = await fetchPage(oldest);
       const list = next || [];
       const ids = [...new Set(list.map((i) => i.seller_id).filter(Boolean))];
-      const sMap = ids.length ? await fetchSellerInfos(ids) : {};
+      const sMap = ids.length ? await getSellerInfos(ids) : {};
       setSellers((prev) => ({ ...prev, ...sMap }));
       setItems((prev) => {
         const seen = new Set(prev.map((x) => x.id));
@@ -168,13 +171,20 @@ export default function Home() {
   }, [loadingMore, hasMore, fetchPage]);
 
   // Keep a ref of loaded items for the cursor + SWR prepend (avoids stale state).
-  useEffect(() => { itemsRef.current = items; }, [items]);
+  const itemsIndexRef = useRef(new Map());
+  useEffect(() => {
+    itemsRef.current = items;
+    const m = new Map();
+    items.forEach((it, i) => m.set(it.id, i));
+    itemsIndexRef.current = m;
+  }, [items]);
 
   // Persist the feed snapshot so returning from an item detail page renders
   // instantly from cache (stale-while-revalidate).
+  const debouncedWrite = useRef(debounce((key, snap) => writeFeedCache(key, snap), 500)).current;
   useEffect(() => {
     if (items.length || featuredItems.length) {
-      writeFeedCache(cacheKey, { items, featured: featuredItems, sellers });
+      debouncedWrite(cacheKey, { items, featured: featuredItems, sellers });
     }
   }, [items, featuredItems, sellers, cacheKey]);
 
@@ -210,7 +220,10 @@ export default function Home() {
         // Updates refresh an existing item in place — never prepend, so
         // editing an old listing can't bump it to the top (no free boost).
         setItems((prev) => {
-          const idx = prev.findIndex((x) => x.id === it.id);
+          let idx = itemsIndexRef.current.get(it.id);
+          if (idx == null || idx >= prev.length || prev[idx]?.id !== it.id) {
+            idx = prev.findIndex((x) => x.id === it.id);
+          }
           if (idx === -1) return prev;
           const copy = [...prev]; copy[idx] = it; return copy;
         });
@@ -298,6 +311,8 @@ export default function Home() {
   return (
     <PullToRefresh onRefresh={async () => { await refresh(false); await loadFeatured(); }}>
     <div className="space-y-5 pt-2">
+      <LocationBanner onOpenLocation={openLocation} />
+
       {/* AI Shopping Assistant button */}
       <button
         onClick={() => nav("/assistant")}
@@ -377,10 +392,7 @@ export default function Home() {
           {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} />)}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <p className="font-semibold">{t("emptyFeed")}</p>
-          <p className="text-sm mt-1">{t("emptyFeedDesc")}</p>
-        </div>
+        <EmptyState title={t("emptyFeed")} description={t("emptyFeedDesc")} actionLabel={t("postFirst")} onAction={() => nav("/sell")} lang={lang} />
       ) : (
         <div className="space-y-3">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">

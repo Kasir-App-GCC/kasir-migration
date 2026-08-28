@@ -36,6 +36,16 @@
     "reactions": {
       "type": "object",
       "description": "Map of emoji -> array of user IDs who reacted with that emoji. e.g. { \"\ud83d\udc4d\": [\"user1\", \"user2\"] }. Kept lightweight \u2014 only stores user IDs, not names."
+    },
+    "delivered_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the message was delivered to the recipient's client (set server-side by markMessagesRead). Drives the 2-gray-check 'delivered' state."
+    },
+    "read_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the recipient actually saw the message (set server-side by markMessagesRead when the bubble scrolls into view). Drives the 2-blue-check 'read' state."
     }
   },
   "required": [

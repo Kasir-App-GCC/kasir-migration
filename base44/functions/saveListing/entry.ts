@@ -79,6 +79,15 @@ export default async function (req: Request): Promise<Response> {
       for (const [k, v] of Object.entries(clean)) {
         if (!SENSITIVE_FIELDS.includes(k)) update[k] = v;
       }
+      // Track price history: when the price changes, record the previous price
+      // so ItemCard can show a price-drop badge. Only appended on an actual
+      // change — no entry when the price stays the same.
+      if (clean.price != null && existing.price != null && Number(clean.price) !== Number(existing.price)) {
+        update.price_history = [
+          ...(Array.isArray(existing.price_history) ? existing.price_history : []),
+          { price: Number(existing.price), date: new Date().toISOString() },
+        ];
+      }
       const updated = await base44.asServiceRole.entities.Item.update(itemId, update);
       return Response.json({ ok: true, item: updated });
     }

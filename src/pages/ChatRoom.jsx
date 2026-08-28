@@ -8,7 +8,9 @@ import { formatPrice } from "@/lib/format";
 import Price from "@/components/Price";
 import OfferCard from "@/components/OfferCard";
 import TrustedBadge from "@/components/TrustedBadge";
-import PullToRefreshScroll from "@/components/PullToRefreshScroll";
+import PullToRefresh from "@/components/PullToRefresh";
+import { haptic } from "@/lib/haptics";
+import { timeAgo } from "@/lib/format";
 import RatingDialog from "@/components/RatingDialog";
 import DisputeDialog from "@/components/DisputeDialog";
 import DealCard from "@/components/DealCard";
@@ -47,6 +49,9 @@ export default function ChatRoom() {
   const [, setTick] = useState(0);
   const typingTimeoutRef = useRef(null);
   const isTypingRef = useRef(false);
+  const scrollRef = useRef(null);
+  const msgElsRef = useRef(new Map());
+  const messagesIndexRef = useRef(new Map());
 
   // Resize the entire chat container to the visualViewport so the keyboard
   // never covers the input bar — the container shrinks to the visible area
@@ -139,6 +144,41 @@ export default function ChatRoom() {
   }, [id]);
 
   useEffect(() => {
+    const m = new Map();
+    messages.forEach((msg, i) => m.set(msg.id, i));
+    messagesIndexRef.current = m;
+  }, [messages]);
+
+  // Read receipts: mark messages from the other party as delivered on fetch,
+  // and as read when they scroll into view (WhatsApp-style 3-state checks).
+  useEffect(() => {
+    if (!room || !user || !id) return;
+    const otherMsgs = messages.filter((m) => m.sender_id !== "system" && String(m.sender_id) !== String(user.id));
+    if (!otherMsgs.length) return;
+    const toDeliver = otherMsgs.filter((m) => !m.delivered_at).map((m) => m.id);
+    if (toDeliver.length) {
+      base44.functions.invoke("markMessagesRead", { chatroom_id: id, message_ids: toDeliver, field: "delivered_at" }).catch(() => {});
+    }
+    const obs = new IntersectionObserver((entries) => {
+      const toRead = [];
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          const mid = e.target.dataset.msgId;
+          if (mid) { toRead.push(mid); obs.unobserve(e.target); }
+        }
+      }
+      if (toRead.length) {
+        base44.functions.invoke("markMessagesRead", { chatroom_id: id, message_ids: toRead, field: "read_at" }).catch(() => {});
+      }
+    }, { root: scrollRef.current, threshold: 0.5 });
+    msgElsRef.current.forEach((el, mid) => {
+      const msg = messages.find((m) => m.id === mid);
+      if (msg && !msg.read_at) obs.observe(el);
+    });
+    return () => obs.disconnect();
+  }, [messages, room, user, id]);
+
+  useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, offers, vvHeight]);
 
@@ -151,7 +191,10 @@ export default function ChatRoom() {
     const upsertMsg = (m) => {
       if (!m || m.chatroom_id !== id) return;
       setMessages((prev) => {
-        const i = prev.findIndex((x) => x.id === m.id);
+        let i = messagesIndexRef.current.get(m.id);
+        if (i == null || i >= prev.length || prev[i]?.id !== m.id) {
+          i = prev.findIndex((x) => x.id === m.id);
+        }
         if (i === -1) return [...prev, m];
         const copy = [...prev]; copy[i] = m; return copy;
       });
@@ -231,9 +274,15 @@ export default function ChatRoom() {
   // Tick every second so the other party's typing indicator (which expires
   // after 5s) stops showing without waiting for a new event.
   useEffect(() => {
-    const interval = setInterval(() => setTick((t) => t + 1), 1000);
+    let interval = null;
+    const start = () => { if (!interval) interval = setInterval(() => setTick((t) => t + 1), 1000); };
+    const stop = () => { if (interval) { clearInterval(interval); interval = null; } };
+    const onVis = () => { if (document.hidden) stop(); else start(); };
+    if (!document.hidden) start();
+    document.addEventListener("visibilitychange", onVis);
     return () => {
-      clearInterval(interval);
+      stop();
+      document.removeEventListener("visibilitychange", onVis);
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     };
   }, []);
@@ -265,13 +314,15 @@ export default function ChatRoom() {
 
   const otherTypingAt = room ? (isSeller ? room.buyer_typing_at : room.seller_typing_at) : null;
   const isOtherTyping = !!otherTypingAt && (Date.now() - new Date(otherTypingAt).getTime() < 5000);
+  const otherOnline = isOtherTyping || (!!otherLastSeen && Date.now() - new Date(otherLastSeen).getTime() < 60000);
 
   // Polling safety net: re-fetch offers + messages every 7s so status changes
   // land even if a realtime subscription event is missed (service-role writes
   // can occasionally not trigger the client subscription). Only updates state
   // when something actually changed — no-op polls don't cause re-renders.
   useEffect(() => {
-    const interval = setInterval(async () => {
+    let interval = null;
+    const poll = async () => {
       try {
         const [ofs, ms] = await Promise.all([
           base44.entities.Offer.filter({ chatroom_id: id }, "created_date", 100),
@@ -299,8 +350,13 @@ export default function ChatRoom() {
           return Array.from(map.values()).sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
         });
       } catch {}
-    }, 7000);
-    return () => clearInterval(interval);
+    };
+    const start = () => { if (!interval) interval = setInterval(poll, 7000); };
+    const stop = () => { if (interval) { clearInterval(interval); interval = null; } };
+    const onVis = () => { if (document.hidden) stop(); else start(); };
+    if (!document.hidden) start();
+    document.addEventListener("visibilitychange", onVis);
+    return () => { stop(); document.removeEventListener("visibilitychange", onVis); };
   }, [id]);
 
   const goToProfile = () => {
@@ -353,6 +409,7 @@ export default function ChatRoom() {
     try { await base44.functions.invoke("manageOffer", { action: "accept", offer_id: offer.id }); } catch {}
     try { confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 }, colors: ["#10b981", "#fbbf24", "#3b82f6"] }); } catch {}
     try { await base44.entities.ChatRoom.update(id, { last_message: agreeTxt, hidden_for_buyer: false, hidden_for_seller: false }); } catch {}
+    haptic(10);
   };
 
   const rejectOffer = async (offer) => {
@@ -367,6 +424,7 @@ export default function ChatRoom() {
     try { await base44.functions.invoke("manageOffer", { action: "reject", offer_id: offer.id }); } catch {}
     const txt = lang === "ar" ? "تم رفض العرض" : "Offer rejected";
     await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false });
+    haptic(10);
   };
 
   const notMatchOffer = async (offer) => {
@@ -403,6 +461,7 @@ export default function ChatRoom() {
       ? (lang === "ar" ? `عارض البائع بسعر ${formatPrice(amount, lang, itemCountry, country)}` : `Seller counters at ${formatPrice(amount, lang, itemCountry, country)}`)
       : (lang === "ar" ? `عرض جديد بسعر ${formatPrice(amount, lang, itemCountry, country)}` : `New offer at ${formatPrice(amount, lang, itemCountry, country)}`));
     await base44.entities.ChatRoom.update(id, { last_message: preview, hidden_for_buyer: false, hidden_for_seller: false });
+    haptic(10);
   };
 
   const modifyOffer = async (offer, amount) => {
@@ -419,11 +478,13 @@ export default function ChatRoom() {
     try { await base44.functions.invoke("manageOffer", { action: "modify", offer_id: offer.id, amount }); } catch {}
     const txt = lang === "ar" ? `تم تعديل العرض إلى ${formatPrice(amount, lang, itemCountry, country)}` : `Offer updated to ${formatPrice(amount, lang, itemCountry, country)}`;
     await base44.entities.ChatRoom.update(id, { last_message: txt, hidden_for_buyer: false, hidden_for_seller: false });
+    haptic(10);
   };
 
   const confirmReceipt = async (offer) => {
     try { await base44.functions.invoke("manageOffer", { action: "confirm_receipt", offer_id: offer.id }); } catch {}
     setOffers((prev) => prev.map((o) => (o.id === offer.id ? { ...o, status: "completed", received_confirmed: true } : o)));
+    haptic(10);
   };
 
   // Request a modification to an accepted offer WITHOUT ending it: create a
@@ -548,6 +609,12 @@ export default function ChatRoom() {
               <p className="text-xs text-primary font-semibold truncate flex items-center gap-1">
                 <TypingIndicator lang={lang} />
               </p>
+            ) : otherOnline ? (
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold truncate flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" /> {ar ? "متصل" : "online"}
+              </p>
+            ) : otherLastSeen ? (
+              <p className="text-xs text-muted-foreground truncate">{ar ? "آخر ظهور" : "Last seen"} {timeAgo(otherLastSeen, lang)}</p>
             ) : room?.item_title ? (
               <p className="text-xs text-muted-foreground truncate">{room.item_title} · <Price value={room.item_price} lang={lang} country={itemCountry} /></p>
             ) : null}
@@ -574,7 +641,7 @@ export default function ChatRoom() {
         </div>
       </header>
 
-      <PullToRefreshScroll onRefresh={loadAll} className="px-4 py-4 space-y-2">
+      <PullToRefresh scrollRef={scrollRef} onRefresh={loadAll} className="px-4 py-4 space-y-2">
         {acceptedOffer && (
           <DealCard
             offer={acceptedOffer}
@@ -671,7 +738,10 @@ export default function ChatRoom() {
                       {showAvatar ? <img src={avatar} className="w-full h-full object-cover" /> : <div className="w-full h-full" />}
                     </div>
                   )}
-                  <div className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm animate-in fade-in slide-in-from-bottom-2 duration-200 ${mine ? "bg-gradient-to-br from-primary to-primary/85 text-primary-foreground rounded-br-md" : "bg-muted rounded-bl-md"}`}>
+                  <div ref={!mine ? (el) => {
+                    if (el) { el.dataset.msgId = m.id; msgElsRef.current.set(m.id, el); }
+                    else msgElsRef.current.delete(m.id);
+                  } : undefined} className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm animate-in fade-in slide-in-from-bottom-2 duration-200 ${mine ? "bg-gradient-to-br from-primary to-primary/85 text-primary-foreground rounded-br-md" : "bg-muted rounded-bl-md"}`}>
                     {!mine && showName && otherName && (
                       <p className="flex items-center gap-1 text-[11px] font-semibold mb-0.5 text-foreground/80">
                         {otherName}
@@ -684,10 +754,8 @@ export default function ChatRoom() {
                         {new Date(m.created_date).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
                       </span>
                       {mine && (() => {
-                        const msgDate = new Date(m.created_date);
-                        const otherSeen = otherLastSeen ? new Date(otherLastSeen) : null;
-                        if (otherSeen && otherSeen > msgDate) return <CheckCheck size={13} className="text-sky-300" />;
-                        if (otherSeen) return <CheckCheck size={13} className="opacity-60" />;
+                        if (m.read_at) return <CheckCheck size={13} className="text-sky-300" />;
+                        if (m.delivered_at) return <CheckCheck size={13} className="opacity-60" />;
                         return <Check size={13} className="opacity-60" />;
                       })()}
                     </div>
@@ -706,7 +774,7 @@ export default function ChatRoom() {
           </div>
         )}
         <div ref={endRef} />
-      </PullToRefreshScroll>
+      </PullToRefresh>
 
       <div className="p-3 border-t border-border/60 flex items-center gap-2 shrink-0 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
         {isBlocked ? (

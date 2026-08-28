@@ -17,19 +17,6 @@ import { appParams } from "@/lib/app-params";
 // to the backgrounded opener, so the first Apple/Google tap silently fails and
 // the user has to tap again. Break out of the iframe with a full-page redirect
 // so OAuth runs in the top window, which always works in one tap.
-// app_base_url is a client-controlled query param, so validate it against the
-// trusted platform domain (*.base44.app) before performing a top-level
-// redirect. An attacker otherwise could set app_base_url to an external host
-// and phish users via the OAuth buttons. Fall back to the current origin.
-const trustedBaseUrl = (url) => {
-  try {
-    const u = new URL(url);
-    return u.protocol === "https:" && u.hostname.endsWith(".base44.app");
-  } catch {
-    return false;
-  }
-};
-
 const oauthRedirect = (provider, fromUrl) => {
   const inIframe = typeof window !== "undefined" && window.top && window !== window.top;
   const isMobile = typeof window !== "undefined" &&
@@ -38,8 +25,7 @@ const oauthRedirect = (provider, fromUrl) => {
   if (inIframe && isMobile) {
     const redirectUrl = new URL(fromUrl, window.location.origin).toString();
     const providerPath = provider === "google" ? "" : `/${provider}`;
-    const baseUrl = trustedBaseUrl(appParams.appBaseUrl) ? appParams.appBaseUrl : window.location.origin;
-    const loginUrl = `${baseUrl}/api/apps/auth${providerPath}/login?app_id=${appParams.appId}&from_url=${encodeURIComponent(redirectUrl)}`;
+    const loginUrl = `${appParams.appBaseUrl}/api/apps/auth${providerPath}/login?app_id=${appParams.appId}&from_url=${encodeURIComponent(redirectUrl)}`;
     window.top.location.href = loginUrl;
     return;
   }

@@ -1,16 +1,20 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { secrets } from 'base44:runtime';
+import { isInternalInvocation } from '../../shared/internalAuth.ts';
 
 // Scheduled backup that approves pending verification requests whose Moyasar
 // invoice has been paid. The client-side confirmVerificationPayment call
 // handles the happy path immediately; this catches any that slipped through
 // (popup closed early, network glitch, metadata lag) within ~1 minute.
 //
-// No auth — runs as the service role from a scheduled workflow. The only input
-// is the Moyasar secret key (server-side), and the only effect is approving
-// genuinely paid verifications, so there's no abuse surface.
+// Only the platform's internal workflow runner can invoke this — external
+// callers are rejected. The only input is the Moyasar secret key (server-side),
+// and the only effect is approving genuinely paid verifications.
 export default async function(req: Request): Promise<Response> {
   try {
+    if (!(await isInternalInvocation(req))) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const base44 = createClientFromRequest(req);
     const secretKey = secrets.get('MOYASAR_SECRET_KEY');
     if (!secretKey) return Response.json({ error: 'MOYASAR_SECRET_KEY not set' }, { status: 500 });

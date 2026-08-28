@@ -166,10 +166,12 @@ export default function SponsorItemDialog({ open, onClose }) {
                 <p className="text-sm font-semibold">{ar ? "مدة الرعاية" : "Sponsorship duration"}</p>
                 <span className="text-sm font-bold text-violet-600 dark:text-violet-400">{weeks} {ar ? arWeeks(weeks) : weeks === 1 ? "week" : "weeks"}</span>
               </div>
-              <Slider value={[weeks]} min={SPONSOR_MIN_WEEKS} max={SPONSOR_MAX_WEEKS} step={1} onValueChange={(v) => setWeeks(v[0])} />
-              <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-                <span>1 {ar ? "أسبوع" : "wk"}</span>
-                <span>12 {ar ? "أسابيع" : "wks"}</span>
+              <div dir="ltr">
+                <Slider value={[weeks]} min={SPONSOR_MIN_WEEKS} max={SPONSOR_MAX_WEEKS} step={1} onValueChange={(v) => setWeeks(v[0])} />
+                <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                  <span>1 {ar ? "أسبوع" : "wk"}</span>
+                  <span>12 {ar ? "أسابيع" : "wks"}</span>
+                </div>
               </div>
             </div>
 

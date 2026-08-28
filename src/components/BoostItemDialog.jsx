@@ -77,7 +77,7 @@ export default function BoostItemDialog({ open, onClose }) {
               {ar ? "تعزيز إعلان" : "Boost an item"}
             </DialogTitle>
             <DialogDescription>
-              {ar ? "عرّض إعلانك في مقدمة النتائج لساعات قصيرة لجذب مشترين أسرع." : "Pin your listing to the top for a few hours to attract buyers faster."}
+              {ar ? "عزّز إعلانك في مقدمة النتائج لساعات قصيرة لجذب مشترين أسرع." : "Pin your listing to the top for a few hours to attract buyers faster."}
             </DialogDescription>
           </DialogHeader>
 
@@ -133,10 +133,12 @@ export default function BoostItemDialog({ open, onClose }) {
               <p className="text-sm font-semibold">{ar ? "مدة التعزيز" : "Boost duration"}</p>
               <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{hours} {ar ? arHours(hours) : hours === 1 ? "hour" : "hours"}</span>
             </div>
-            <Slider value={[hours]} min={BOOST_MIN_HOURS} max={BOOST_MAX_HOURS} step={2} onValueChange={(v) => setHours(v[0])} />
-            <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-              <span>{BOOST_MIN_HOURS} {ar ? "ساعة" : "h"}</span>
-              <span>{BOOST_MAX_HOURS} {ar ? "ساعة" : "h"}</span>
+            <div dir="ltr">
+              <Slider value={[hours]} min={BOOST_MIN_HOURS} max={BOOST_MAX_HOURS} step={2} onValueChange={(v) => setHours(v[0])} />
+              <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                <span>{BOOST_MIN_HOURS} {ar ? "ساعة" : "h"}</span>
+                <span>{BOOST_MAX_HOURS} {ar ? "ساعة" : "h"}</span>
+              </div>
             </div>
           </div>
 
@@ -151,7 +153,7 @@ export default function BoostItemDialog({ open, onClose }) {
               className="px-5 py-3 rounded-xl bg-amber-500 text-white font-bold text-sm disabled:opacity-50 flex items-center gap-2"
             >
               {submitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-              {submitting ? (ar ? "جارٍ الإنشاء…" : "Starting…") : (ar ? "ادفع وعرّض" : "Pay & boost")}
+              {submitting ? (ar ? "جارٍ الإنشاء…" : "Starting…") : (ar ? "ادفع وعزّز" : "Pay & boost")}
             </button>
           </div>
         </DialogContent>

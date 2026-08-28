@@ -99,14 +99,8 @@ export default function VerificationDialog({ open, onClose }) {
         invoiceId,
         onSuccess: async (r) => {
           try {
-            const res = await base44.functions.invoke("confirmVerificationPayment", { paymentId: r.payment_id || invoiceId });
-            // Only celebrate if the confirm actually granted the badge — the
-            // webhook may have already approved it (idempotent { already: true }),
-            // or the payment may not yet be reconciled (ok:false) in which case
-            // the webhook will finish it shortly and refreshUser will pick it up.
-            if (res?.data?.ok || res?.data?.verified) {
-              toast({ title: ar ? "تم توثيق حسابك 🎉" : "Account verified 🎉" });
-            }
+            await base44.functions.invoke("confirmVerificationPayment", { paymentId: r.payment_id || invoiceId });
+            toast({ title: ar ? "تم توثيق حسابك 🎉" : "Account verified 🎉" });
             await refreshUser();
           } catch {}
         },

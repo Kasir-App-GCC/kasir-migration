@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck, RefreshCw, Info, Loader2, Building2, FileText, Rocket, Ban, CheckSquare, Square, Eye } from "lucide-react";
+import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck, RefreshCw, Info, Loader2, Building2, FileText, Rocket, Ban, CheckSquare, Square, Eye, Bell } from "lucide-react";
 import VerificationDialog from "@/components/VerificationDialog";
 import RealEstateLicenseDialog from "@/components/RealEstateLicenseDialog";
 import SponsorItemDialog from "@/components/SponsorItemDialog";
@@ -51,6 +51,7 @@ export default function Profile() {
   const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [waSaving, setWaSaving] = useState(false);
+  const [pushSaving, setPushSaving] = useState(false);
   const [blockedOpen, setBlockedOpen] = useState(false);
   const [recentOpen, setRecentOpen] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
@@ -64,6 +65,17 @@ export default function Profile() {
       await checkUserAuth();
     } catch {}
     setWaSaving(false);
+  };
+
+  const togglePush = async () => {
+    if (pushSaving || !user) return;
+    setPushSaving(true);
+    try {
+      const newVal = user?.push_enabled === false ? true : false;
+      await base44.auth.updateMe({ push_enabled: newVal });
+      await checkUserAuth();
+    } catch {}
+    setPushSaving(false);
   };
 
   const loadAll = useCallback(async () => {
@@ -601,6 +613,21 @@ export default function Profile() {
               ) : (
                 <p className="text-[11px] text-muted-foreground mt-0.5">{ar ? "تحقق من رقمك لعرض زر واتساب لسلعتك" : "Verify your number to show a WhatsApp button on your listings"}</p>
               )}
+            </div>
+            <div className="py-1">
+              <div className="flex items-center justify-between">
+                <div className="flex-1 min-w-0 me-3">
+                  <span className="text-sm flex items-center gap-2"><Bell size={16} /> {ar ? "إشعارات الجوال" : "Push notifications"}</span>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{ar ? "تحكّم في إشعارات الهاتف فقط — يبقى الجرس داخل التطبيق يعمل دائماً." : "Controls phone pushes only — the in-app bell always stays on."}</p>
+                </div>
+                <button
+                  onClick={togglePush}
+                  disabled={pushSaving}
+                  className={`w-11 h-6 rounded-full p-0.5 transition shrink-0 ${user?.push_enabled === false ? "bg-muted-foreground/30" : "bg-primary"}`}
+                >
+                  <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${user?.push_enabled === false ? "" : "translate-x-5 rtl:-translate-x-5"}`} />
+                </button>
+              </div>
             </div>
             <button onClick={() => setRecentOpen(true)} className="w-full flex items-center justify-between py-2.5 hover:bg-muted/50 -mx-1 px-1 rounded-lg">
               <span className="flex items-center gap-2 text-sm font-semibold"><Eye size={18} /> {ar ? "شاهدت مؤخراً" : "Recently viewed"}</span>

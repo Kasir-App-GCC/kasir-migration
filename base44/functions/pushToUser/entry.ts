@@ -24,6 +24,18 @@ export default async function (req) {
       return Response.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    // Respect the user's push-mute preference — skip the push entirely when
+    // they've turned push_enabled off. The in-app bell still receives the
+    // Notification record regardless.
+    try {
+      const recipient = await base44.asServiceRole.entities.User.get(userId);
+      if (recipient && recipient.push_enabled === false) {
+        return Response.json({ ok: true, skipped: true, reason: "muted" });
+      }
+    } catch {
+      // If the user lookup fails, proceed with the push (don't block on it).
+    }
+
     let actionUrl = null;
     if (itemId) actionUrl = `/item/${itemId}`;
     else if (chatroomId) actionUrl = `/chat/${chatroomId}`;

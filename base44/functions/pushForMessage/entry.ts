@@ -42,6 +42,18 @@ export default async function (req) {
       return Response.json({ ok: true, skipped: true });
     }
 
+    // Respect the recipient's push-mute preference — skip the push entirely
+    // when they've turned push_enabled off. The in-app chat unread badge is
+    // unaffected.
+    try {
+      const recipient = await base44.asServiceRole.entities.User.get(recipientId);
+      if (recipient && recipient.push_enabled === false) {
+        return Response.json({ ok: true, skipped: true, reason: "muted" });
+      }
+    } catch {
+      // If the user lookup fails, proceed with the push (don't block on it).
+    }
+
     const title = senderName || "Kasir";
     const payload = {
       user_id: recipientId,

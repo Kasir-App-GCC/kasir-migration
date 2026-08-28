@@ -157,6 +157,11 @@
     "re_license_review_reason": {
       "type": "string",
       "description": "Admin's rejection or revocation reason when re_license_status is 'rejected'"
+    },
+    "push_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the user receives native phone push notifications. When false, both the Notification Push and Message Push workflows skip sending a push to this user. The in-app notification bell is unaffected."
     }
   },
   "required": [

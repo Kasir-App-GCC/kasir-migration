@@ -128,12 +128,12 @@ export default function About() {
   const [payAmount, setPayAmount] = useState(0);
   const popup = usePopupPayment();
 
-  // Show a thank-you toast when returning from a successful donation redirect.
+  // Show a thank-you toast when returning from a successful support payment redirect.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("donation") === "success") {
+    if (params.get("support") === "success") {
       toast({ title: ar ? "شكراً لدعمك 🌿" : "Thank you for your support 🌿" });
-      params.delete("donation");
+      params.delete("support");
       window.history.replaceState({}, "", window.location.pathname + (params.toString() ? "?" + params.toString() : ""));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

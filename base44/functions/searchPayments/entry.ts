@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 
 // Admin-only server-side search across ALL payment sources:
-//   - Payment entity (donations, admin payment links, broker activation fees)
+//   - Payment entity (app support payments, admin payment links, broker activation fees)
 //   - BoostRequest (approved, non-free)
 //   - VerificationRequest (approved, × fixed fee)
 //   - SponsorRequest (paid)
@@ -10,7 +10,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 // the client only receives the matching page (e.g. 50 rows) + capped counts.
 //
 // Also normalizes the display:
-//  - donation descriptions are forced to a friendly label so stale
+//  - support payment descriptions are forced to a friendly label so stale
 //    "Donation" text from old synced invoices never surfaces;
 //  - payer names are resolved server-side via the User table (service role
 //    sees all users), so rows no longer fall back to "Unknown" when a name
@@ -46,7 +46,7 @@ export default async function(req: Request): Promise<Response> {
     const wantVer = type === 'all' || type === 'verification';
     const wantSponsor = type === 'all' || type === 'sponsor';
 
-    // Payment entity holds only donations, payment links, and broker fees —
+    // Payment entity holds only app support payments, payment links, and broker fees —
     // boosts/verifications/sponsorships are tracked in their own entities.
     const paymentQuery = {
       ...(type === 'donation' ? { type: 'donation' }
@@ -84,9 +84,9 @@ export default async function(req: Request): Promise<Response> {
     const all: any[] = [];
     for (const p of (payments || [])) {
       const rawDesc = String(p.description || '');
-      // Old donation invoices were synced as type "payment_link" with a
+      // Old support invoices were synced as type "payment_link" with a
       // description of "Donation" (before metadata.type was set). Strip the
-      // word and reclassify them as donations so the chip + label are right.
+      // word and reclassify them as support so the chip + label are right.
       const isDonationDesc = /donation/i.test(rawDesc) || /تبرع/i.test(rawDesc);
       const rowType = (p.type === 'donation' || (p.type === 'payment_link' && isDonationDesc))
         ? 'donation'

@@ -27,7 +27,7 @@
         "broker_fee"
       ],
       "default": "donation",
-      "description": "What the payment was for. Verification payments are tracked in VerificationRequest (not duplicated here); boosts in BoostRequest; sponsorships in SponsorRequest. This entity holds donations, admin payment links, and broker activation fees pulled from Moyasar."
+      "description": "What the payment was for. Verification payments are tracked in VerificationRequest (not duplicated here); boosts in BoostRequest; sponsorships in SponsorRequest. This entity holds app support payments, admin payment links, and broker activation fees pulled from Moyasar. The 'donation' enum value is the internal key for app support payments \u2014 never displayed as 'donation' to users."
     },
     "status": {
       "type": "string",

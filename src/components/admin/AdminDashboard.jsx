@@ -35,7 +35,7 @@ export default function AdminDashboard({ onNavigate }) {
         base44.entities.BoostRequest.filter({ status: "pending" }, "-created_date", 200).catch(() => []),
         base44.entities.VerificationRequest.filter({ status: "pending" }, "-created_date", 200).catch(() => []),
         // searchPayments aggregates ALL paid services server-side: boosts,
-        // verifications, sponsorships, donations, payment links, broker fees.
+        // verifications, sponsorships, app support, payment links, broker fees.
         base44.functions.invoke("searchPayments", { type: "all", page: 1, limit: 10 }).catch(() => null),
       ]);
       const realItems = (items || []).filter((i) => !(i.seller_id || "").startsWith("seed-"));
@@ -106,7 +106,7 @@ export default function AdminDashboard({ onNavigate }) {
     { key: "boost", icon: TrendingUp, label: ar ? "التعزيز" : "Boosts", color: "text-amber-600 bg-amber-50 dark:bg-amber-950/20" },
     { key: "verification", icon: ShieldCheck, label: ar ? "التوثيق" : "Verification", color: "text-cyan-600 bg-cyan-50 dark:bg-cyan-950/20" },
     { key: "sponsor", icon: Rocket, label: ar ? "الرعاية" : "Sponsorship", color: "text-violet-600 bg-violet-50 dark:bg-violet-950/20" },
-    { key: "donation", icon: Heart, label: ar ? "التبرعات" : "Donations", color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20" },
+    { key: "donation", icon: Heart, label: ar ? "الدعم" : "App Support", color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20" },
     { key: "payment_link", icon: Link2, label: ar ? "روابط الدفع" : "Payment Links", color: "text-indigo-600 bg-indigo-50 dark:bg-indigo-950/20" },
     { key: "broker_fee", icon: Building2, label: ar ? "وسيط عقاري" : "Broker Fees", color: "text-blue-600 bg-blue-50 dark:bg-blue-950/20" },
   ];

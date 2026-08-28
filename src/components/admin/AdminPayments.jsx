@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { Wallet, TrendingUp, ShieldCheck, Heart, Link2, ExternalLink, Search, Copy, Loader2, RotateCcw } from "lucide-react";
+import { Wallet, TrendingUp, ShieldCheck, Heart, Link2, ExternalLink, Search, Copy, Loader2, Rocket, Building2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
@@ -9,12 +9,15 @@ import { timeAgo } from "@/lib/format";
 const TYPE_META = {
   boost: { ar: "تعزيز", en: "Boost", icon: TrendingUp, color: "text-amber-600 bg-amber-50 dark:bg-amber-950/30" },
   verification: { ar: "توثيق", en: "Verification", icon: ShieldCheck, color: "text-cyan-600 bg-cyan-50 dark:bg-cyan-950/30" },
+  sponsor: { ar: "رعاية", en: "Sponsorship", icon: Rocket, color: "text-violet-600 bg-violet-50 dark:bg-violet-950/30" },
   donation: { ar: "دعم", en: "Support", icon: Heart, color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30" },
-  payment_link: { ar: "رابط دفع", en: "Payment Link", icon: Link2, color: "text-violet-600 bg-violet-50 dark:bg-violet-950/30" },
+  payment_link: { ar: "رابط دفع", en: "Payment Link", icon: Link2, color: "text-indigo-600 bg-indigo-50 dark:bg-indigo-950/30" },
+  broker_fee: { ar: "وسيط عقاري", en: "Broker Fee", icon: Building2, color: "text-blue-600 bg-blue-50 dark:bg-blue-950/30" },
 };
 
-const EMPTY_COUNTS = { all: 0, boost: 0, verification: 0, donation: 0, payment_link: 0 };
-const EMPTY_TOTALS = { total: 0, byType: { boost: 0, verification: 0, donation: 0, payment_link: 0 } };
+const TYPE_KEYS = ["boost", "verification", "sponsor", "donation", "payment_link", "broker_fee"];
+const EMPTY_COUNTS = { all: 0, ...Object.fromEntries(TYPE_KEYS.map((k) => [k, 0])) };
+const EMPTY_TOTALS = { total: 0, byType: Object.fromEntries(TYPE_KEYS.map((k) => [k, 0])) };
 const fmt = (n, ar) => Number(n || 0).toLocaleString(ar ? "ar-SA" : "en-US", { maximumFractionDigits: 2 });
 
 export default function AdminPayments() {
@@ -37,13 +40,6 @@ export default function AdminPayments() {
   const copyId = (id) => {
     if (!id) return;
     try { navigator.clipboard?.writeText(id); toast({ title: ar ? "تم نسخ المعرّف" : "ID copied" }); } catch {}
-  };
-
-  const zeroCounter = () => {
-    setTotals(EMPTY_TOTALS);
-    setCounts(EMPTY_COUNTS);
-    setCountsTruncated(false);
-    toast({ title: ar ? "تم تصفير العدّاد" : "Counter reset to zero" });
   };
 
   const fetchPage = useCallback(async (p, reset) => {
@@ -80,7 +76,7 @@ export default function AdminPayments() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, filter]);
 
-  const filterChips = ["all", "boost", "verification", "donation", "payment_link"];
+  const filterChips = ["all", ...TYPE_KEYS];
   const fmtCount = (n) => countsTruncated && n > 0 ? `${n}+` : `${n}`;
 
   if (loading) return <div className="py-10 text-center text-muted-foreground"><div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin mx-auto" /></div>;
@@ -94,16 +90,9 @@ export default function AdminPayments() {
             <p className="text-xs opacity-90 font-semibold">{ar ? "إجمالي المدفوعات (أحدث السجلات)" : "Total Payments (recent records)"}</p>
             <p className="text-2xl font-extrabold">{fmt(totals.total, ar)} {ar ? "ر.س" : "SAR"}</p>
           </div>
-          <button
-            onClick={zeroCounter}
-            title={ar ? "تصفير العدّاد" : "Reset counter to zero"}
-            className="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-xs font-bold flex items-center gap-1.5 transition"
-          >
-            <RotateCcw size={14} /> {ar ? "تصفير" : "Reset"}
-          </button>
         </div>
-        <div className="grid grid-cols-4 gap-2 mt-4">
-          {["boost", "verification", "donation", "payment_link"].map((t) => {
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-4">
+          {TYPE_KEYS.map((t) => {
             const m = TYPE_META[t];
             const Icon = m.icon;
             return (

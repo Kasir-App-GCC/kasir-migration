@@ -15,7 +15,7 @@ export default function AdminQuickActions({ onNavigate, stats }) {
     { tab: "reports", icon: Flag, label: ar ? "البلاغات" : "Reports", badge: stats?.reports || 0 },
     { tab: "tickets", icon: LifeBuoy, label: ar ? "التذاكر" : "Tickets", badge: stats?.tickets || 0 },
     { tab: "verifications", icon: BadgeCheck, label: ar ? "التوثيق" : "Verifications", badge: stats?.pendingVerifications || 0 },
-    { tab: "sponsor", icon: Rocket, label: ar ? "الرعاية" : "Sponsorship", badge: stats?.pendingBoosts || 0 },
+    { tab: "sponsor", icon: Rocket, label: ar ? "الرعاية" : "Sponsorship", badge: stats?.pendingSponsors || 0 },
     { tab: "broadcast", icon: Bell, label: ar ? "إشعار" : "Broadcast", badge: 0 },
     { tab: "payments_received", icon: Wallet, label: ar ? "المدفوعات" : "Payments", badge: 0 },
   ];

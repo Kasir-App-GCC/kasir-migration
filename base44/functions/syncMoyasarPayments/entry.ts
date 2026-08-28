@@ -66,8 +66,11 @@ export default async function(req: Request): Promise<Response> {
         // payment's own metadata for directly-created payments (e.g. test charges).
         const meta = (p.invoice_id && invoiceMeta[String(p.invoice_id)]) || p.metadata || {};
         const type = String(meta.type || '');
-        // Verification is tracked in VerificationRequest — don't duplicate.
-        if (type === 'verification') continue;
+        // Verification, boosts, and sponsorships are tracked in their own
+        // entities (VerificationRequest, BoostRequest, SponsorRequest) — don't
+        // duplicate them here. Only donations, payment links, and broker fees
+        // live in the Payment ledger.
+        if (type === 'verification' || type === 'boost' || type === 'sponsor') continue;
         const userId = meta.user_id ? String(meta.user_id) : '';
         candidates.push({
           moyasar_payment_id: String(p.id || ''),

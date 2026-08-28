@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Users, Tag, Flag, LifeBuoy, DollarSign, ShoppingBag, Wallet, X, TrendingUp, ShieldCheck } from "lucide-react";
+import { Users, Tag, Flag, LifeBuoy, DollarSign, ShoppingBag, Wallet, X, TrendingUp, ShieldCheck, Rocket, Heart, Link2, Building2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { formatPrice } from "@/lib/format";
@@ -25,26 +25,21 @@ export default function AdminDashboard({ onNavigate }) {
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const [users, items, reports, tickets, ratings, boosts, verifications, offers] = await Promise.all([
+      const [users, items, reports, tickets, offers, sponsorReqs, pendingBoosts, pendingVerifs, payRes] = await Promise.all([
         base44.entities.User.list("-created_date", 500),
         base44.entities.Item.list("-created_date", 500),
         base44.entities.Report.list("-created_date", 200),
         base44.entities.SupportTicket.list("-created_date", 200),
-        base44.entities.Rating.list("-created_date", 500),
-        base44.entities.BoostRequest.list("-created_date", 500),
-        base44.entities.VerificationRequest.list("-created_date", 500),
         base44.entities.Offer.list("-created_date", 500),
+        base44.entities.SponsorRequest.list("-created_date", 200),
+        base44.entities.BoostRequest.filter({ status: "pending" }, "-created_date", 200).catch(() => []),
+        base44.entities.VerificationRequest.filter({ status: "pending" }, "-created_date", 200).catch(() => []),
+        // searchPayments aggregates ALL paid services server-side: boosts,
+        // verifications, sponsorships, donations, payment links, broker fees.
+        base44.functions.invoke("searchPayments", { type: "all", page: 1, limit: 10 }).catch(() => null),
       ]);
-      // Exclude generated seed/test listings (seller_id starts with "seed-")
       const realItems = (items || []).filter((i) => !(i.seller_id || "").startsWith("seed-"));
       const soldOffers = (offers || []).filter((o) => (o.status === "accepted" || o.status === "completed") && !(o.seller_id || "").startsWith("seed-"));
-      const approvedBoosts = (boosts || []).filter((b) => b.status === "approved");
-      const boostRevenue = approvedBoosts.reduce((s, b) => s + (b.amount || 0), 0);
-      const boostUsers = new Set(approvedBoosts.map((b) => b.user_id).filter(Boolean)).size;
-      const approvedVerifications = (verifications || []).filter((v) => v.status === "approved");
-      const verificationRevenue = approvedVerifications.length * VERIFICATION_FEE;
-      const verificationUsers = new Set(approvedVerifications.map((v) => v.user_id).filter(Boolean)).size;
-      const revenue = boostRevenue + verificationRevenue;
       const totalSpent = soldOffers.reduce((s, o) => s + (o.amount || 0), 0);
       const trusted = (users || []).filter((u) => u.is_trusted).length;
       const banned = (users || []).filter((u) => u.is_banned).length;
@@ -54,22 +49,29 @@ export default function AdminDashboard({ onNavigate }) {
         if (u.age_range && ageBuckets[u.age_range] != null) ageBuckets[u.age_range]++;
         if (u.gender && genderBuckets[u.gender] != null) genderBuckets[u.gender]++;
       });
+
+      // Revenue from searchPayments — the single source of truth for platform
+      // income across ALL paid services.
+      const payData = payRes?.data || payRes || {};
+      const payTotals = payData.totals || { total: 0, byType: {} };
+      const payCounts = payData.counts || {};
+
       setStats({
         users: users?.length || 0,
         items: realItems.length,
         sold: soldOffers.length,
         totalSpent,
-        revenue,
-        boostRevenue,
-        boostUsers,
-        verificationRevenue,
-        verificationUsers,
+        revenue: payTotals.total || 0,
+        revenueByType: payTotals.byType || {},
+        boostUsers: payCounts.boost || 0,
+        verificationUsers: payCounts.verification || 0,
         trusted,
         banned,
         reports: (reports || []).filter((r) => !r.resolved).length,
         tickets: (tickets || []).filter((t) => t.status === "open").length,
-        pendingVerifications: (verifications || []).filter((v) => v.status === "pending").length,
-        pendingBoosts: (boosts || []).filter((b) => b.status === "pending").length,
+        pendingVerifications: (pendingVerifs || []).length,
+        pendingBoosts: (pendingBoosts || []).length,
+        pendingSponsors: (sponsorReqs || []).filter((s) => s.status === "pending").length,
         ageBuckets,
         genderBuckets,
       });
@@ -98,6 +100,15 @@ export default function AdminDashboard({ onNavigate }) {
     { icon: ShieldCheck, label: ar ? "موثوقون" : "Trusted", value: stats.trusted, color: "text-cyan-500 bg-cyan-50 dark:bg-cyan-950/30" },
     { icon: Flag, label: ar ? "بلاغات مفتوحة" : "Open Reports", value: stats.reports, color: "text-rose-500 bg-rose-50 dark:bg-rose-950/30" },
     { icon: LifeBuoy, label: ar ? "تذاكر مفتوحة" : "Open Tickets", value: stats.tickets, color: "text-orange-500 bg-orange-50 dark:bg-orange-950/30" },
+  ];
+
+  const REVENUE_TYPES = [
+    { key: "boost", icon: TrendingUp, label: ar ? "التعزيز" : "Boosts", color: "text-amber-600 bg-amber-50 dark:bg-amber-950/20" },
+    { key: "verification", icon: ShieldCheck, label: ar ? "التوثيق" : "Verification", color: "text-cyan-600 bg-cyan-50 dark:bg-cyan-950/20" },
+    { key: "sponsor", icon: Rocket, label: ar ? "الرعاية" : "Sponsorship", color: "text-violet-600 bg-violet-50 dark:bg-violet-950/20" },
+    { key: "donation", icon: Heart, label: ar ? "التبرعات" : "Donations", color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20" },
+    { key: "payment_link", icon: Link2, label: ar ? "روابط الدفع" : "Payment Links", color: "text-indigo-600 bg-indigo-50 dark:bg-indigo-950/20" },
+    { key: "broker_fee", icon: Building2, label: ar ? "وسيط عقاري" : "Broker Fees", color: "text-blue-600 bg-blue-50 dark:bg-blue-950/20" },
   ];
 
   return (
@@ -180,47 +191,26 @@ export default function AdminDashboard({ onNavigate }) {
       {showRevenue && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowRevenue(false)} />
-          <div className="relative w-full sm:max-w-md bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 animate-in fade-in slide-in-from-bottom-[100%] duration-300">
+          <div className="relative w-full sm:max-w-md bg-background rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 animate-in fade-in slide-in-from-bottom-[100%] duration-300 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-lg">{ar ? "تفصيل إيرادات المنصة" : "Platform Revenue Breakdown"}</h3>
               <button onClick={() => setShowRevenue(false)} className="p-1.5 rounded-full hover:bg-muted"><X size={20} /></button>
             </div>
-            <div className="space-y-3">
-              <div className="rounded-2xl border border-amber-200 dark:border-amber-900 p-4 bg-amber-50 dark:bg-amber-950/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center"><TrendingUp size={18} /></div>
-                  <div>
-                    <p className="font-bold text-sm">{ar ? "التمييز (Boosts)" : "Boosts"}</p>
-                    <p className="text-xs text-muted-foreground">{ar ? "إعلانات مميزة مدفوعة" : "Paid featured listings"}</p>
+            <div className="space-y-2">
+              {REVENUE_TYPES.map((rt) => {
+                const Icon = rt.icon;
+                const amount = stats.revenueByType[rt.key] || 0;
+                return (
+                  <div key={rt.key} className="flex items-center gap-3 rounded-2xl border border-border/60 p-3">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${rt.color}`}>
+                      <Icon size={18} />
+                    </div>
+                    <span className="font-bold text-sm flex-1">{rt.label}</span>
+                    <span className="font-extrabold text-sm">{formatPrice(amount, country)}</span>
                   </div>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{ar ? "الإيراد" : "Revenue"}</span>
-                  <span className="font-extrabold">{formatPrice(stats.boostRevenue, country)}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm mt-1">
-                  <span className="text-muted-foreground">{ar ? "عدد البائعين" : "Sellers"}</span>
-                  <span className="font-bold">{stats.boostUsers}</span>
-                </div>
-              </div>
-              <div className="rounded-2xl border border-cyan-200 dark:border-cyan-900 p-4 bg-cyan-50 dark:bg-cyan-950/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-9 h-9 rounded-xl bg-cyan-500 text-white flex items-center justify-center"><ShieldCheck size={18} /></div>
-                  <div>
-                    <p className="font-bold text-sm">{ar ? "التحقق" : "Verification"}</p>
-                    <p className="text-xs text-muted-foreground">{ar ? "طلبات توثيق مدفوعة" : "Paid verification requests"}</p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{ar ? "الإيراد" : "Revenue"}</span>
-                  <span className="font-extrabold">{formatPrice(stats.verificationRevenue, country)}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm mt-1">
-                  <span className="text-muted-foreground">{ar ? "عدد المستخدمين" : "Users"}</span>
-                  <span className="font-bold">{stats.verificationUsers}</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between rounded-2xl bg-muted p-4">
+                );
+              })}
+              <div className="flex items-center justify-between rounded-2xl bg-muted p-4 mt-2">
                 <span className="font-bold text-sm">{ar ? "الإجمالي" : "Total"}</span>
                 <span className="text-xl font-extrabold">{formatPrice(stats.revenue, country)}</span>
               </div>

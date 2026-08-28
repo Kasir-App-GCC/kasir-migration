@@ -833,18 +833,26 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
               {ar ? `تعزيز حالي: ${existingHours} ساعة متبقية` : `Current boost: ${existingHours}h remaining`}
             </p>
           }
-          <input
-            type="range"
-            min={0}
-            max={maxBoost}
-            step={1}
-            value={boostLocked ? 0 : boostHours}
-            onChange={(e) => {
-              const v = Number(e.target.value);
-              setBoostHours(v === 1 ? BOOST_MIN_HOURS : v);
-            }}
-            disabled={maxBoost === 0 || boostLocked}
-            className="w-full accent-amber-500 disabled:opacity-50" />
+          {(() => {
+            const pct = maxBoost > 0 ? Math.round(((boostLocked ? 0 : boostHours) / maxBoost) * 100) : 0;
+            return (
+              <input
+                type="range"
+                dir="ltr"
+                min={0}
+                max={maxBoost}
+                step={1}
+                value={boostLocked ? 0 : boostHours}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setBoostHours(v === 1 ? BOOST_MIN_HOURS : v);
+                }}
+                disabled={maxBoost === 0 || boostLocked}
+                className="w-full h-2.5 rounded-full appearance-none cursor-pointer disabled:opacity-50 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-amber-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-110 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-amber-500 [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-track]:bg-transparent [&::-webkit-slider-runnable-track]:bg-transparent"
+                style={{ background: `linear-gradient(to right, #f59e0b 0%, #f59e0b ${pct}%, hsl(var(--muted)) ${pct}%, hsl(var(--muted)) 100%)` }}
+              />
+            );
+          })()}
           
           <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
             <span>0</span>

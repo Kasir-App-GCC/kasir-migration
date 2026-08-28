@@ -17,7 +17,7 @@ function normalizeDigits(s) {
 }
 
 const MIN_PHONE = 8;
-const MAX_PHONE = 12;
+const MAX_PHONE = 9; // GCC local numbers: 8 (OM/BH/KW/QA) to 9 (SA/AE) digits
 const MAX_ATTACH_TOTAL = 10 * 1024 * 1024; // 10 MB total across all attachments
 
 const CATEGORIES = [

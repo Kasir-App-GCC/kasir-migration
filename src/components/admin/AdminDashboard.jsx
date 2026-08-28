@@ -5,14 +5,12 @@ import { useStore } from "@/lib/store";
 import { formatPrice } from "@/lib/format";
 import { VERIFICATION_FEE } from "@/lib/verificationPayment";
 import { AGE_RANGES, GENDERS } from "@/lib/demographics";
-import AdminRecentActivity from "@/components/admin/AdminRecentActivity";
 import AdminQuickActions from "@/components/admin/AdminQuickActions";
 
 export default function AdminDashboard({ onNavigate }) {
   const { lang, country } = useStore();
   const ar = lang === "ar";
   const [stats, setStats] = useState(null);
-  const [recent, setRecent] = useState({ items: [], users: [], offers: [] });
   const [loading, setLoading] = useState(true);
   const [showRevenue, setShowRevenue] = useState(false);
 
@@ -74,11 +72,6 @@ export default function AdminDashboard({ onNavigate }) {
         pendingSponsors: (sponsorReqs || []).filter((s) => s.status === "pending").length,
         ageBuckets,
         genderBuckets,
-      });
-      setRecent({
-        items: (items || []).slice(0, 5),
-        users: (users || []).slice(0, 5),
-        offers: (offers || []).slice(0, 5),
       });
     } catch {
     } finally {
@@ -143,8 +136,6 @@ export default function AdminDashboard({ onNavigate }) {
           {ar ? `${stats.banned} مستخدم محظور حالياً` : `${stats.banned} user(s) currently banned`}
         </div>
       )}
-
-      <AdminRecentActivity items={recent.items} users={recent.users} offers={recent.offers} />
 
       <div className="rounded-2xl bg-card border border-border/60 p-4">
         <h3 className="font-bold text-sm mb-3">{ar ? "الديموغرافيا" : "Demographics"}</h3>

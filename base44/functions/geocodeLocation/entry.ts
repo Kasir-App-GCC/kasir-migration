@@ -91,9 +91,22 @@ async function reverseGeocodeNominatim(lat, lng, lang) {
 
 export default async function (req) {
   try {
-    // Public endpoint: proxies external geocoding APIs (Nominatim/ArcGIS) only
-    // — no user or app data involved. Unauthenticated visitors need location
-    // detection on public pages (Home auto-detect), so no auth check here.
+    // Security: this is a public function (used on public pages for location
+    // detection), so we can't require login. Instead, we verify the request
+    // comes from a browser on an HTTPS page via the Origin/Referer headers.
+    // This prevents server-to-server abuse (rate-limit exhaustion, proxying)
+    // while allowing the app's own pages — including custom domains — to call.
+    const origin = (req.headers.get("origin") || "").toLowerCase();
+    const referer = (req.headers.get("referer") || "").toLowerCase();
+    const isBrowser =
+      origin.startsWith("https://") ||
+      referer.startsWith("https://") ||
+      origin.startsWith("http://localhost") ||
+      referer.startsWith("http://localhost");
+    if (!isBrowser) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const body = await req.json().catch(() => ({}));
     const country = String(body?.country || "SA").toUpperCase();
     const lang = body?.lang === "ar" ? "ar" : "en";
@@ -104,6 +117,10 @@ export default async function (req) {
     const lat = parseFloat(body?.lat);
     const lng = parseFloat(body?.lng);
     if (!isNaN(lat) && !isNaN(lng) && !body?.query) {
+      // Validate lat/lng ranges to prevent abuse.
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        return Response.json({ name: null, city: null, state: null });
+      }
       let result = null;
       try { result = await reverseGeocodeNominatim(lat, lng, lang); } catch {}
       if (!result || !result.name || result.name.length < 4) {

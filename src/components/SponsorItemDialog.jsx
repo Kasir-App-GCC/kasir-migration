@@ -7,6 +7,7 @@ import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
 import Price from "@/components/Price";
 import { computeSponsorPrice, SPONSOR_MIN_WEEKS, SPONSOR_MAX_WEEKS } from "@/lib/sponsorPricing";
+import SponsorPaymentDialog from "@/components/SponsorPaymentDialog";
 
 // Self-service sponsorship dialog: the seller picks one of their listings
 // (drafts included, badged), picks a duration (1–12 weeks), and submits a
@@ -23,6 +24,8 @@ export default function SponsorItemDialog({ open, onClose }) {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [blockedIds, setBlockedIds] = useState(() => new Set());
+  const [approvedByItem, setApprovedByItem] = useState(() => new Map());
+  const [payRequestId, setPayRequestId] = useState("");
 
   useEffect(() => {
     if (!open || !user) return;
@@ -36,7 +39,14 @@ export default function SponsorItemDialog({ open, onClose }) {
     ])
       .then(([list, reqs]) => {
         setListings(list || []);
-        setBlockedIds(new Set((reqs || []).map((r) => r.item_id)));
+        const pending = new Set();
+        const approved = new Map();
+        (reqs || []).forEach((r) => {
+          if (r.status === "pending") pending.add(r.item_id);
+          else if (r.status === "approved") approved.set(r.item_id, r.id);
+        });
+        setBlockedIds(pending);
+        setApprovedByItem(approved);
       })
       .catch(() => setListings([]))
       .finally(() => setLoading(false));
@@ -74,6 +84,7 @@ export default function SponsorItemDialog({ open, onClose }) {
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose?.(); }}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -126,13 +137,15 @@ export default function SponsorItemDialog({ open, onClose }) {
                     const isSelected = it.id === selectedId;
                     const isCurrentlySponsored = it.admin_sponsored && it.admin_sponsored_until && new Date(it.admin_sponsored_until) > new Date();
                     const isPending = blockedIds.has(it.id);
+                    const approvedReqId = approvedByItem.get(it.id);
+                    const isAwaitingPayment = !!approvedReqId;
                     const isBlocked = isPending || isCurrentlySponsored;
                     return (
                       <button
                         key={it.id}
                         disabled={isBlocked}
-                        onClick={() => setSelectedId(it.id)}
-                        className={`w-full flex items-center gap-2.5 p-2 rounded-xl border text-start transition ${isBlocked ? "opacity-50 cursor-not-allowed border-border/60" : isSelected ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30" : "border-border/60 hover:bg-muted/50"}`}
+                        onClick={() => (isAwaitingPayment ? setPayRequestId(approvedReqId) : setSelectedId(it.id))}
+                        className={`w-full flex items-center gap-2.5 p-2 rounded-xl border text-start transition ${isBlocked ? "opacity-50 cursor-not-allowed border-border/60" : isAwaitingPayment ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30 hover:bg-violet-100/60 dark:hover:bg-violet-950/50" : isSelected ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30" : "border-border/60 hover:bg-muted/50"}`}
                       >
                         <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0">
                           {it.images?.[0] ? <img src={it.images[0]} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Rocket size={16} className="text-muted-foreground" /></div>}
@@ -144,6 +157,11 @@ export default function SponsorItemDialog({ open, onClose }) {
                             {isDraft && (
                               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
                                 <FileText size={9} /> {ar ? "مسودة" : "Draft"}
+                              </span>
+                            )}
+                            {isAwaitingPayment && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-600 text-white">
+                                {ar ? "بانتظار الدفع" : "Awaiting payment"}
                               </span>
                             )}
                             {isBlocked && (
@@ -196,5 +214,7 @@ export default function SponsorItemDialog({ open, onClose }) {
         )}
       </DialogContent>
     </Dialog>
+    <SponsorPaymentDialog open={!!payRequestId} requestId={payRequestId} onClose={() => setPayRequestId("")} />
+    </>
   );
 }

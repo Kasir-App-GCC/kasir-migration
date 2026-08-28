@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useOutletContext } from "react-router-dom";
+import { useNavigate, useOutletContext, useLocation } from "react-router-dom";
 import { Search as SearchIcon, SlidersHorizontal, X, Sparkles, ShoppingBag, Megaphone, Bookmark, BadgeCheck } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import ItemCard from "@/components/ItemCard";
@@ -26,6 +26,7 @@ export default function Search() {
   const t = useT();
   const { toast } = useToast();
   const nav = useNavigate();
+  const location = useLocation();
   const [q, setQ] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
   const [items, setItems] = useState([]);
@@ -51,6 +52,19 @@ export default function Search() {
     const id = setTimeout(() => setDebouncedQ(q.trim()), 350);
     return () => clearTimeout(id);
   }, [q]);
+
+  // Apply a saved search passed via router state (from Profile → Saved searches)
+  // on mount only, then clear the state so it doesn't reapply on back/forward.
+  useEffect(() => {
+    const s = location.state?.savedSearch;
+    if (!s) return;
+    if (s.q) { setQ(s.q); setDebouncedQ(s.q); }
+    if (s.minPrice) setMinPrice(s.minPrice);
+    if (s.maxPrice) setMaxPrice(s.maxPrice);
+    if (s.condition) setCondition([s.condition]);
+    window.history.replaceState({}, "", window.location.pathname);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Mirror loaded items into a ref so cursor pagination reads the latest oldest
   // created_date without re-creating the loadMore callback on every render.

@@ -115,7 +115,9 @@ export function usePopupPayment() {
           closedByUsRef.current = true;
           try { popupRef.current?.close(); } catch {}
           setState("paid");
-          onSuccess?.(r);
+          // Include the invoice id so callers can confirm/record the payment
+          // server-side without re-deriving it from the checkout URL.
+          onSuccess?.({ ...r, invoice_id: invId });
           return;
         }
         if (r.status === "failed") {

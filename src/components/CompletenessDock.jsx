@@ -98,8 +98,8 @@ export default function CompletenessDock({ images, title, description, price, ca
         {checks.map((c, i) => (
           <span
             key={i}
-            className={`w-2 rounded-full transition-all duration-500 ${c.done ? "bg-emerald-500 shadow-[0_0_6px_2px_rgba(16,185,129,0.45)]" : "bg-muted-foreground/20"}`}
-            style={{ height: `${Math.round(26 / checks.length) + 14}px` }}
+            className={`w-3.5 rounded-full transition-all duration-500 ${c.done ? "bg-emerald-500 shadow-[0_0_10px_3px_rgba(16,185,129,0.5)] ring-1 ring-emerald-300/50" : "bg-muted-foreground/25 ring-1 ring-border/40"}`}
+            style={{ height: `${Math.round(40 / checks.length) + 20}px` }}
           />
         ))}
       </button>

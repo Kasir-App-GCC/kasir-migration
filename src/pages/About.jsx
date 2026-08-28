@@ -155,8 +155,13 @@ export default function About() {
       setPayAmount(amt);
       popup.start({
         url: res.data.url,
-        onSuccess: () => {
+        onSuccess: (r) => {
           toast({ title: ar ? "شكراً لدعمك 🌿" : "Thank you for your support 🌿" });
+          // Record the donation into the admin ledger immediately so revenue
+          // reflects without waiting for a manual Payments-tab sync.
+          if (r?.invoice_id) {
+            base44.functions.invoke("confirmDonationPayment", { invoice_id: r.invoice_id }).catch(() => {});
+          }
         },
       });
     } catch (e) {

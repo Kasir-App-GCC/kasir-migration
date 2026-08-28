@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { Wallet, TrendingUp, ShieldCheck, Heart, Link2, ExternalLink, Search, Copy, Loader2, Rocket, Building2 } from "lucide-react";
+import { Wallet, TrendingUp, ShieldCheck, Heart, Link2, ExternalLink, Search, Copy, Loader2, Rocket, Building2, Trash2, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
 import { timeAgo } from "@/lib/format";
+import moment from "moment";
 
 const TYPE_META = {
   boost: { ar: "تعزيز", en: "Boost", icon: TrendingUp, color: "text-amber-600 bg-amber-50 dark:bg-amber-950/30" },
@@ -35,6 +36,9 @@ export default function AdminPayments() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
+  const [baseline, setBaseline] = useState(null);
+  const [showZeroConfirm, setShowZeroConfirm] = useState(false);
+  const [zeroing, setZeroing] = useState(false);
   const reqId = useRef(0);
 
   const copyId = (id) => {
@@ -55,6 +59,7 @@ export default function AdminPayments() {
       setCountsTruncated(!!d.counts_truncated);
       setTotals(d.totals || EMPTY_TOTALS);
       setHasMore(!!d.has_more);
+      setBaseline(d.baseline || null);
       setPage(reset ? 1 : p);
     } catch {}
     if (reset) setLoading(false); else setLoadingMore(false);
@@ -76,8 +81,27 @@ export default function AdminPayments() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, filter]);
 
+  const zeroPayments = async () => {
+    setZeroing(true);
+    try {
+      await base44.functions.invoke("zeroPayments", {});
+      toast({ title: ar ? "تم تصفير السجل" : "Ledger zeroed", description: ar ? "المدفوعات السابقة مستبعدة" : "Past payments excluded" });
+      setShowZeroConfirm(false);
+      // Re-sync (will skip everything before the new baseline) then reload.
+      try { await base44.functions.invoke("syncMoyasarPayments", {}); } catch {}
+      fetchPage(1, true);
+    } catch (e) {
+      toast({ title: ar ? "تعذّر التصفير" : "Couldn't zero", variant: "destructive" });
+    }
+    setZeroing(false);
+  };
+
   const filterChips = ["all", ...TYPE_KEYS];
   const fmtCount = (n) => countsTruncated && n > 0 ? `${n}+` : `${n}`;
+  const baselineLabel = baseline ? (ar
+    ? `يُحتسب منذ ${moment(baseline).format("DD MMM YYYY، h:mm a")}`
+    : `Counting since ${moment(baseline).format("MMM D, YYYY, h:mm a")}`)
+    : null;
 
   if (loading) return <div className="py-10 text-center text-muted-foreground"><div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin mx-auto" /></div>;
 
@@ -87,9 +111,18 @@ export default function AdminPayments() {
         <div className="flex items-center gap-2.5">
           <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center"><Wallet size={20} /></div>
           <div className="flex-1">
-            <p className="text-xs opacity-90 font-semibold">{ar ? "إجمالي المدفوعات (أحدث السجلات)" : "Total Payments (recent records)"}</p>
+            <p className="text-xs opacity-90 font-semibold">{ar ? "إجمالي المدفوعات" : "Total Payments"}</p>
             <p className="text-2xl font-extrabold">{fmt(totals.total, ar)} {ar ? "ر.س" : "SAR"}</p>
+            {baselineLabel && <p className="text-[11px] opacity-80 mt-0.5">{baselineLabel}</p>}
           </div>
+          <button
+            onClick={() => setShowZeroConfirm(true)}
+            disabled={zeroing}
+            className="px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-xs font-bold flex items-center gap-1.5 transition disabled:opacity-60"
+            title={ar ? "تصفير السجل" : "Zero the ledger"}
+          >
+            <Trash2 size={14} /> {ar ? "تصفير" : "Zero"}
+          </button>
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-4">
           {TYPE_KEYS.map((t) => {
@@ -128,6 +161,7 @@ export default function AdminPayments() {
         <div className="text-center py-10 text-muted-foreground">
           <Wallet size={32} className="mx-auto mb-2 opacity-40" />
           <p className="font-semibold text-sm">{ar ? "لا توجد مدفوعات" : "No payments"}</p>
+          {baselineLabel && <p className="text-xs mt-1 opacity-70">{baselineLabel}</p>}
         </div>
       ) : (
         <div className="space-y-2">
@@ -172,6 +206,40 @@ export default function AdminPayments() {
               {loadingMore ? <><Loader2 size={15} className="animate-spin" /> {ar ? "جارٍ التحميل…" : "Loading…"}</> : (ar ? "تحميل المزيد" : "Load more")}
             </button>
           )}
+        </div>
+      )}
+
+      {showZeroConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !zeroing && setShowZeroConfirm(false)} />
+          <div className="relative w-full max-w-sm bg-background rounded-3xl shadow-2xl p-6">
+            <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950/40 flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle size={24} className="text-rose-600" />
+            </div>
+            <h3 className="font-bold text-lg text-center mb-2">{ar ? "تصفير سجل المدفوعات" : "Zero Payment Ledger"}</h3>
+            <p className="text-sm text-muted-foreground text-center mb-5 leading-relaxed">
+              {ar
+                ? "سيتم حذف جميع سجلات المدفوعات الحالية وتعيين تاريخ أساسي. المدفوعات السابقة لن تُحتسب في الإيرادات ولن تعود بعد التحديث. الإجراء لا يمكن التراجع عنه."
+                : "All current payment records will be deleted and a baseline date will be set. Past payments won't be counted in revenue and won't reappear after refresh. This cannot be undone."}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowZeroConfirm(false)}
+                disabled={zeroing}
+                className="flex-1 py-2.5 rounded-xl bg-muted font-bold text-sm hover:bg-muted/70 transition disabled:opacity-60"
+              >
+                {ar ? "إلغاء" : "Cancel"}
+              </button>
+              <button
+                onClick={zeroPayments}
+                disabled={zeroing}
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 text-white font-bold text-sm hover:bg-rose-700 transition disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {zeroing ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                {ar ? "تصفير" : "Zero"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

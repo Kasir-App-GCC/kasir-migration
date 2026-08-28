@@ -32,6 +32,15 @@ export default async function(req: Request): Promise<Response> {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
 
+    // Read the payment baseline — records before this date are excluded from
+    // revenue totals (set by the admin "Zero" action to start counting fresh).
+    let baselineDate: string | null = null;
+    try {
+      const settings = await base44.asServiceRole.entities.AppSetting.filter({ key: 'payment_baseline_date' }, '-created_date', 1);
+      if (settings && settings.length) baselineDate = settings[0].value || null;
+    } catch (e) {}
+    const baselineFilter = baselineDate ? { created_date: { $gte: baselineDate } } : {};
+
     const body = await req.json().catch(() => ({}));
     const q = String(body?.q || '').trim();
     const type = String(body?.type || 'all');
@@ -53,19 +62,23 @@ export default async function(req: Request): Promise<Response> {
         : type === 'payment_link' ? { type: 'payment_link' }
         : type === 'broker_fee' ? { type: 'broker_fee' }
         : { type: { $in: ['donation', 'payment_link', 'broker_fee'] } }),
+      ...baselineFilter,
       ...orFor(['user_name', 'description', 'moyasar_payment_id', 'moyasar_invoice_id']),
     };
     const boostQuery = {
       status: 'approved',
       is_free: { $ne: true },
+      ...baselineFilter,
       ...orFor(['user_name', 'item_title', 'receipt_url']),
     };
     const verQuery = {
       status: 'approved',
+      ...baselineFilter,
       ...orFor(['user_name', 'full_name']),
     };
     const sponsorQuery = {
       status: 'paid',
+      ...baselineFilter,
       ...orFor(['user_name', 'item_title']),
     };
 
@@ -187,6 +200,7 @@ export default async function(req: Request): Promise<Response> {
       has_more: hasMore,
       page,
       limit,
+      baseline: baselineDate,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

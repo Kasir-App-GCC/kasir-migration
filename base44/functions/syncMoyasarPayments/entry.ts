@@ -21,6 +21,14 @@ export default async function(req: Request): Promise<Response> {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
 
+    // Read the payment baseline — Moyasar payments before this date are not
+    // synced into the ledger (set by the admin "Zero" action).
+    let baselineTime = 0;
+    try {
+      const settings = await base44.asServiceRole.entities.AppSetting.filter({ key: 'payment_baseline_date' }, '-created_date', 1);
+      if (settings && settings.length && settings[0].value) baselineTime = new Date(settings[0].value).getTime();
+    } catch (e) {}
+
     const secretKey = secrets.get('MOYASAR_SECRET_KEY');
     if (!secretKey) return Response.json({ error: 'MOYASAR_SECRET_KEY not set' }, { status: 500 });
     const authHeader = 'Basic ' + btoa(secretKey + ':');
@@ -40,6 +48,7 @@ export default async function(req: Request): Promise<Response> {
       invoicesScanned += list.length;
       for (const inv of list) {
         if (String(inv.status || '') !== 'paid') continue;
+        if (baselineTime && inv.created_at && new Date(inv.created_at).getTime() < baselineTime) continue;
         invoiceMeta[String(inv.id)] = inv.metadata || {};
       }
       const totalPages = Number(d?.meta?.total_pages) || 1;
@@ -62,6 +71,8 @@ export default async function(req: Request): Promise<Response> {
       if (!list.length) break;
       scanned += list.length;
       for (const p of list) {
+        // Skip payments before the baseline (admin "Zero" action).
+        if (baselineTime && p.created_at && new Date(p.created_at).getTime() < baselineTime) continue;
         // Metadata lives on the invoice — join by invoice_id. Fall back to the
         // payment's own metadata for directly-created payments (e.g. test charges).
         const meta = (p.invoice_id && invoiceMeta[String(p.invoice_id)]) || p.metadata || {};

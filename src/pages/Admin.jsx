@@ -67,25 +67,38 @@ export default function Admin() {
     );
   }
 
-  const tabs = [
-    { id: "dashboard", icon: LayoutDashboard, label: ar ? "لوحة التحكم" : "Dashboard" },
-    { id: "users", icon: Users, label: ar ? "المستخدمون" : "Users" },
-    { id: "messages", icon: MessageSquare, label: ar ? "الرسائل" : "Messages" },
-    { id: "listings", icon: Tag, label: ar ? "الإعلانات" : "Listings" },
-    { id: "buy_requests", icon: Megaphone, label: ar ? "طلبات الشراء" : "Buy Requests" },
-    { id: "reports", icon: Flag, label: ar ? "البلاغات" : "Reports" },
-    { id: "tickets", icon: LifeBuoy, label: ar ? "التذاكر" : "Tickets" },
-    { id: "blacklist", icon: ShieldX, label: ar ? "الحظر" : "Blacklist" },
-    { id: "verifications", icon: BadgeCheck, label: ar ? "التوثيق" : "Verifications" },
-    { id: "realestate", icon: Building2, label: ar ? "عقارات" : "Real Estate" },
-    { id: "sponsor", icon: Rocket, label: ar ? "رعاية" : "Sponsorship" },
-    { id: "disputes", icon: ShieldAlert, label: ar ? "النزاعات" : "Disputes" },
-    { id: "broadcast", icon: Bell, label: ar ? "إشعار" : "Broadcast" },
-    { id: "otp", icon: ShieldCheck, label: ar ? "تجربة OTP" : "OTP Test" },
-    { id: "payment", icon: CreditCard, label: ar ? "تجربة الدفع" : "Payment Test" },
-    { id: "payment_links", icon: Link2, label: ar ? "روابط الدفع" : "Payment Links" },
-    { id: "payments_received", icon: Wallet, label: ar ? "المدفوعات" : "Payments" },
+  const tabGroups = [
+    { label: "", tabs: [
+      { id: "dashboard", icon: LayoutDashboard, label: ar ? "لوحة التحكم" : "Dashboard" },
+    ]},
+    { label: ar ? "إدارة" : "Manage", tabs: [
+      { id: "users", icon: Users, label: ar ? "المستخدمون" : "Users" },
+      { id: "messages", icon: MessageSquare, label: ar ? "الرسائل" : "Messages" },
+      { id: "listings", icon: Tag, label: ar ? "الإعلانات" : "Listings" },
+      { id: "buy_requests", icon: Megaphone, label: ar ? "طلبات الشراء" : "Buy Requests" },
+    ]},
+    { label: ar ? "إشراف" : "Moderate", tabs: [
+      { id: "reports", icon: Flag, label: ar ? "البلاغات" : "Reports" },
+      { id: "tickets", icon: LifeBuoy, label: ar ? "التذاكر" : "Tickets" },
+      { id: "disputes", icon: ShieldAlert, label: ar ? "النزاعات" : "Disputes" },
+      { id: "blacklist", icon: ShieldX, label: ar ? "الحظر" : "Blacklist" },
+    ]},
+    { label: ar ? "تحقق" : "Verify", tabs: [
+      { id: "verifications", icon: BadgeCheck, label: ar ? "التوثيق" : "Verifications" },
+      { id: "realestate", icon: Building2, label: ar ? "عقارات" : "Real Estate" },
+    ]},
+    { label: ar ? "مالية" : "Finance", tabs: [
+      { id: "sponsor", icon: Rocket, label: ar ? "رعاية" : "Sponsorship" },
+      { id: "payments_received", icon: Wallet, label: ar ? "المدفوعات" : "Payments" },
+      { id: "payment_links", icon: Link2, label: ar ? "روابط الدفع" : "Payment Links" },
+    ]},
+    { label: ar ? "أدوات" : "Tools", tabs: [
+      { id: "broadcast", icon: Bell, label: ar ? "إشعار" : "Broadcast" },
+      { id: "otp", icon: ShieldCheck, label: ar ? "تجربة OTP" : "OTP Test" },
+      { id: "payment", icon: CreditCard, label: ar ? "تجربة الدفع" : "Payment Test" },
+    ]},
   ];
+  const tabs = tabGroups.flatMap((g) => g.tabs);
 
   return (
     <div className="pt-3 space-y-4">
@@ -99,20 +112,26 @@ export default function Admin() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-1 p-1 bg-muted rounded-2xl">
-        {tabs.map((tb) => (
-          <button
-            key={tb.id}
-            onClick={() => { setTab(tb.id); setSearchParams({ tab: tb.id }, { replace: true }); }}
-            className={`px-3 py-2.5 rounded-xl text-sm font-semibold transition flex items-center justify-center gap-1.5 ${tab === tb.id ? "bg-card shadow-sm" : "text-muted-foreground"}`}
-          >
-            <tb.icon size={16} /> {tb.label}
-            {counts[tb.id] > 0 && <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />}
-          </button>
+      <div className="flex flex-wrap items-center gap-1 p-1 bg-muted rounded-2xl">
+        {tabGroups.map((group, gi) => (
+          <React.Fragment key={gi}>
+            {group.label && <span className="px-1.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground/50 hidden sm:inline">{group.label}</span>}
+            {group.tabs.map((tb) => (
+              <button
+                key={tb.id}
+                onClick={() => { setTab(tb.id); setSearchParams({ tab: tb.id }, { replace: true }); }}
+                className={`px-3 py-2.5 rounded-xl text-sm font-semibold transition flex items-center justify-center gap-1.5 ${tab === tb.id ? "bg-card shadow-sm" : "text-muted-foreground"}`}
+              >
+                <tb.icon size={16} /> {tb.label}
+                {counts[tb.id] > 0 && <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />}
+              </button>
+            ))}
+            {gi < tabGroups.length - 1 && <div className="h-6 w-px bg-border/50 hidden sm:block" />}
+          </React.Fragment>
         ))}
       </div>
 
-      {tab === "dashboard" && <AdminDashboard />}
+      {tab === "dashboard" && <AdminDashboard onNavigate={setTab} />}
       {tab === "users" && <AdminUsers />}
       {tab === "messages" && <AdminMessages />}
       {tab === "listings" && <AdminListings />}

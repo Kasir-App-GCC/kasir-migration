@@ -1,106 +1,110 @@
 import React, { useEffect, useState } from "react";
-import { Users, Tag, Flag, LifeBuoy, DollarSign, ShoppingBag, AlertTriangle, Wallet, X, TrendingUp, ShieldCheck, RotateCcw } from "lucide-react";
+import { Users, Tag, Flag, LifeBuoy, DollarSign, ShoppingBag, Wallet, X, TrendingUp, ShieldCheck } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { formatPrice } from "@/lib/format";
 import { VERIFICATION_FEE } from "@/lib/verificationPayment";
 import { AGE_RANGES, GENDERS } from "@/lib/demographics";
+import AdminRecentActivity from "@/components/admin/AdminRecentActivity";
+import AdminQuickActions from "@/components/admin/AdminQuickActions";
 
-export default function AdminDashboard() {
+export default function AdminDashboard({ onNavigate }) {
   const { lang, country } = useStore();
   const ar = lang === "ar";
   const [stats, setStats] = useState(null);
+  const [recent, setRecent] = useState({ items: [], users: [], offers: [] });
   const [loading, setLoading] = useState(true);
   const [showRevenue, setShowRevenue] = useState(false);
-  const RESETS_KEY = "admin_dashboard_resets";
-  const getResets = () => {
-    try { return JSON.parse(localStorage.getItem(RESETS_KEY) || "{}"); } catch { return {}; }
-  };
+
+  // Clear stale localStorage resets from the testing period — all test data
+  // has been purged, so dashboard metrics now reflect real marketplace activity.
+  useEffect(() => {
+    localStorage.removeItem("admin_dashboard_resets");
+  }, []);
 
   const fetchStats = async () => {
     setLoading(true);
     try {
-        const [users, items, reports, tickets, ratings, boosts, verifications, offers] = await Promise.all([
-          base44.entities.User.list("-created_date", 500),
-          base44.entities.Item.list("-created_date", 500),
-          base44.entities.Report.list("-created_date", 200),
-          base44.entities.SupportTicket.list("-created_date", 200),
-          base44.entities.Rating.list("-created_date", 500),
-          base44.entities.BoostRequest.list("-created_date", 500),
-          base44.entities.VerificationRequest.list("-created_date", 500),
-          base44.entities.Offer.list("-created_date", 500),
-        ]);
-        // Exclude generated seed/test listings (seller_id starts with "seed-")
-        // so dashboard stats reflect real marketplace activity only.
-        const realItems = (items || []).filter((i) => !(i.seller_id || "").startsWith("seed-"));
-        // Total Sales = count of agreed (accepted/completed) offers, not item
-        // status — so deleting the item or chat doesn't change the sales count.
-        const soldOffers = (offers || []).filter((o) => (o.status === "accepted" || o.status === "completed") && !(o.seller_id || "").startsWith("seed-"));
-        // Platform revenue = approved boost fees + approved verification fees.
-        // Sold items' prices are the sellers' GMV, NOT the platform's revenue.
-        const approvedBoosts = (boosts || []).filter((b) => b.status === "approved");
-        const boostRevenue = approvedBoosts.reduce((s, b) => s + (b.amount || 0), 0);
-        const boostUsers = new Set(approvedBoosts.map((b) => b.user_id).filter(Boolean)).size;
-        const approvedVerifications = (verifications || []).filter((v) => v.status === "approved");
-        const verificationRevenue = approvedVerifications.length * VERIFICATION_FEE;
-        const verificationUsers = new Set(approvedVerifications.map((v) => v.user_id).filter(Boolean)).size;
-        const revenue = boostRevenue + verificationRevenue;
-        // Total money spent = sum of agreed (accepted/completed) offer amounts,
-        // i.e. the actual transaction value buyers paid, not the listing price.
-        const totalSpent = soldOffers.reduce((s, o) => s + (o.amount || 0), 0);
-        const trusted = (users || []).filter((u) => u.is_trusted).length;
-        const banned = (users || []).filter((u) => u.is_banned).length;
-        const ageBuckets = { under_16: 0, "16_19": 0, "20_29": 0, "30_39": 0, "40_49": 0, "50_plus": 0 };
-        const genderBuckets = { male: 0, female: 0 };
-        (users || []).forEach((u) => {
-          if (u.age_range && ageBuckets[u.age_range] != null) ageBuckets[u.age_range]++;
-          if (u.gender && genderBuckets[u.gender] != null) genderBuckets[u.gender]++;
-        });
-        const openTickets = (tickets || []).filter((t) => t.status === "open").length;
-        const openReports = (reports || []).filter((r) => !r.resolved).length;
-        const resets = getResets();
-        setStats({
-          users: users?.length || 0,
-          items: realItems.length,
-          sold: resets.sold != null ? resets.sold : soldOffers.length,
-          totalSpent: resets.totalSpent != null ? resets.totalSpent : totalSpent,
-          revenue: resets.revenue != null ? resets.revenue : revenue,
-          boostRevenue,
-          boostUsers,
-          verificationRevenue,
-          verificationUsers,
-          trusted,
-          banned,
-          reports: openReports,
-          tickets: openTickets,
-          ageBuckets,
-          genderBuckets,
-        });
-      } catch {
-      } finally {
-        setLoading(false);
-      }
+      const [users, items, reports, tickets, ratings, boosts, verifications, offers] = await Promise.all([
+        base44.entities.User.list("-created_date", 500),
+        base44.entities.Item.list("-created_date", 500),
+        base44.entities.Report.list("-created_date", 200),
+        base44.entities.SupportTicket.list("-created_date", 200),
+        base44.entities.Rating.list("-created_date", 500),
+        base44.entities.BoostRequest.list("-created_date", 500),
+        base44.entities.VerificationRequest.list("-created_date", 500),
+        base44.entities.Offer.list("-created_date", 500),
+      ]);
+      // Exclude generated seed/test listings (seller_id starts with "seed-")
+      const realItems = (items || []).filter((i) => !(i.seller_id || "").startsWith("seed-"));
+      const soldOffers = (offers || []).filter((o) => (o.status === "accepted" || o.status === "completed") && !(o.seller_id || "").startsWith("seed-"));
+      const approvedBoosts = (boosts || []).filter((b) => b.status === "approved");
+      const boostRevenue = approvedBoosts.reduce((s, b) => s + (b.amount || 0), 0);
+      const boostUsers = new Set(approvedBoosts.map((b) => b.user_id).filter(Boolean)).size;
+      const approvedVerifications = (verifications || []).filter((v) => v.status === "approved");
+      const verificationRevenue = approvedVerifications.length * VERIFICATION_FEE;
+      const verificationUsers = new Set(approvedVerifications.map((v) => v.user_id).filter(Boolean)).size;
+      const revenue = boostRevenue + verificationRevenue;
+      const totalSpent = soldOffers.reduce((s, o) => s + (o.amount || 0), 0);
+      const trusted = (users || []).filter((u) => u.is_trusted).length;
+      const banned = (users || []).filter((u) => u.is_banned).length;
+      const ageBuckets = { under_16: 0, "16_19": 0, "20_29": 0, "30_39": 0, "40_49": 0, "50_plus": 0 };
+      const genderBuckets = { male: 0, female: 0 };
+      (users || []).forEach((u) => {
+        if (u.age_range && ageBuckets[u.age_range] != null) ageBuckets[u.age_range]++;
+        if (u.gender && genderBuckets[u.gender] != null) genderBuckets[u.gender]++;
+      });
+      setStats({
+        users: users?.length || 0,
+        items: realItems.length,
+        sold: soldOffers.length,
+        totalSpent,
+        revenue,
+        boostRevenue,
+        boostUsers,
+        verificationRevenue,
+        verificationUsers,
+        trusted,
+        banned,
+        reports: (reports || []).filter((r) => !r.resolved).length,
+        tickets: (tickets || []).filter((t) => t.status === "open").length,
+        pendingVerifications: (verifications || []).filter((v) => v.status === "pending").length,
+        pendingBoosts: (boosts || []).filter((b) => b.status === "pending").length,
+        ageBuckets,
+        genderBuckets,
+      });
+      setRecent({
+        items: (items || []).slice(0, 5),
+        users: (users || []).slice(0, 5),
+        offers: (offers || []).slice(0, 5),
+      });
+    } catch {
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchStats(); }, []);
 
-  if (loading) return <div className="py-10 text-center text-muted-foreground">Loading…</div>;
+  if (loading) return <div className="py-10 text-center text-muted-foreground">{ar ? "جارٍ التحميل…" : "Loading…"}</div>;
   if (!stats) return null;
 
   const cards = [
     { icon: Users, label: ar ? "المستخدمين" : "Users", value: stats.users, color: "text-blue-500 bg-blue-50 dark:bg-blue-950/30" },
     { icon: ShoppingBag, label: ar ? "الإعلانات" : "Listings", value: stats.items, color: "text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30" },
-    { icon: Tag, label: ar ? "إجمالي العروض المقبولة" : "Total Accepted Offers", value: stats.sold, color: "text-amber-500 bg-amber-50 dark:bg-amber-950/30", resetField: "sold" },
-    { icon: Wallet, label: ar ? "إجمالي إنفاق العملاء" : "Total Spent by Customers", value: formatPrice(stats.totalSpent, country), color: "text-indigo-500 bg-indigo-50 dark:bg-indigo-950/30", resetField: "totalSpent" },
-    { icon: DollarSign, label: ar ? "إيرادات المنصة" : "Platform Revenue", value: formatPrice(stats.revenue, country), color: "text-green-500 bg-green-50 dark:bg-green-950/30", onClick: () => setShowRevenue(true), resetField: "revenue" },
-    { icon: AlertTriangle, label: ar ? "موثوقون" : "Trusted", value: stats.trusted, color: "text-cyan-500 bg-cyan-50 dark:bg-cyan-950/30" },
+    { icon: Tag, label: ar ? "العروض المقبولة" : "Accepted Offers", value: stats.sold, color: "text-amber-500 bg-amber-50 dark:bg-amber-950/30" },
+    { icon: Wallet, label: ar ? "إنفاق العملاء" : "Customer Spend", value: formatPrice(stats.totalSpent, country), color: "text-indigo-500 bg-indigo-50 dark:bg-indigo-950/30" },
+    { icon: DollarSign, label: ar ? "إيرادات المنصة" : "Platform Revenue", value: formatPrice(stats.revenue, country), color: "text-green-500 bg-green-50 dark:bg-green-950/30", onClick: () => setShowRevenue(true) },
+    { icon: ShieldCheck, label: ar ? "موثوقون" : "Trusted", value: stats.trusted, color: "text-cyan-500 bg-cyan-50 dark:bg-cyan-950/30" },
     { icon: Flag, label: ar ? "بلاغات مفتوحة" : "Open Reports", value: stats.reports, color: "text-rose-500 bg-rose-50 dark:bg-rose-950/30" },
     { icon: LifeBuoy, label: ar ? "تذاكر مفتوحة" : "Open Tickets", value: stats.tickets, color: "text-orange-500 bg-orange-50 dark:bg-orange-950/30" },
   ];
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+      <AdminQuickActions onNavigate={onNavigate} stats={stats} />
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {cards.map((c) => {
           const inner = (
             <>
@@ -111,38 +115,25 @@ export default function AdminDashboard() {
               <p className="text-xs text-muted-foreground mt-0.5">{c.label}</p>
             </>
           );
-          const resetBtn = c.resetField && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                const next = { ...getResets(), [c.resetField]: 0 };
-                localStorage.setItem(RESETS_KEY, JSON.stringify(next));
-                setStats((s) => ({ ...s, [c.resetField]: 0 }));
-              }}
-              className="absolute top-2 end-2 w-7 h-7 rounded-full bg-muted/60 hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition"
-              title={ar ? "تصفير" : "Reset to zero"}
-            >
-              <RotateCcw size={13} />
-            </button>
-          );
           return c.onClick ? (
-            <button key={c.label} onClick={c.onClick} className="relative text-start rounded-2xl bg-card border border-border/60 p-4 hover:shadow-md hover:border-border transition">
-              {resetBtn}
+            <button key={c.label} onClick={c.onClick} className="text-start rounded-2xl bg-card border border-border/60 p-4 hover:shadow-md hover:border-border transition">
               {inner}
             </button>
           ) : (
-            <div key={c.label} className="relative rounded-2xl bg-card border border-border/60 p-4">
-              {resetBtn}
+            <div key={c.label} className="rounded-2xl bg-card border border-border/60 p-4">
               {inner}
             </div>
           );
         })}
       </div>
+
       {stats.banned > 0 && (
         <div className="rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 p-3 text-sm text-rose-700 dark:text-rose-300">
           {ar ? `${stats.banned} مستخدم محظور حالياً` : `${stats.banned} user(s) currently banned`}
         </div>
       )}
+
+      <AdminRecentActivity items={recent.items} users={recent.users} offers={recent.offers} />
 
       <div className="rounded-2xl bg-card border border-border/60 p-4">
         <h3 className="font-bold text-sm mb-3">{ar ? "الديموغرافيا" : "Demographics"}</h3>
@@ -194,9 +185,7 @@ export default function AdminDashboard() {
               <h3 className="font-bold text-lg">{ar ? "تفصيل إيرادات المنصة" : "Platform Revenue Breakdown"}</h3>
               <button onClick={() => setShowRevenue(false)} className="p-1.5 rounded-full hover:bg-muted"><X size={20} /></button>
             </div>
-
             <div className="space-y-3">
-              {/* Boosts */}
               <div className="rounded-2xl border border-amber-200 dark:border-amber-900 p-4 bg-amber-50 dark:bg-amber-950/20">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center"><TrendingUp size={18} /></div>
@@ -214,8 +203,6 @@ export default function AdminDashboard() {
                   <span className="font-bold">{stats.boostUsers}</span>
                 </div>
               </div>
-
-              {/* Verification */}
               <div className="rounded-2xl border border-cyan-200 dark:border-cyan-900 p-4 bg-cyan-50 dark:bg-cyan-950/20">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-9 h-9 rounded-xl bg-cyan-500 text-white flex items-center justify-center"><ShieldCheck size={18} /></div>
@@ -233,8 +220,6 @@ export default function AdminDashboard() {
                   <span className="font-bold">{stats.verificationUsers}</span>
                 </div>
               </div>
-
-              {/* Total */}
               <div className="flex items-center justify-between rounded-2xl bg-muted p-4">
                 <span className="font-bold text-sm">{ar ? "الإجمالي" : "Total"}</span>
                 <span className="text-xl font-extrabold">{formatPrice(stats.revenue, country)}</span>

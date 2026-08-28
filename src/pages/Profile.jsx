@@ -123,17 +123,6 @@ export default function Profile() {
       changed = true;
     }
 
-    // Popup success_url landing for the broker fee: the Moyasar popup navigated
-    // here after payment. The opener's polling closes the popup immediately, but
-    // if it doesn't, just refresh the user — the webhook already granted the
-    // badge server-side. (Verification uses the verify_payment handler below
-    // which actually calls confirmVerificationPayment for reliability.)
-    if (params.get("broker_paid") === "1") {
-      refreshUser();
-      params.delete("broker_paid");
-      changed = true;
-    }
-
     if (params.get("verify_payment") && params.get("id")) {
       const paymentId = params.get("id");
       setVerifyingPayment(true);

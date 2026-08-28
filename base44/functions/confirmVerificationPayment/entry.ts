@@ -48,56 +48,35 @@ export default async function(req: Request): Promise<Response> {
       const paymentId = (body.paymentId || '').trim();
       if (!paymentId) return Response.json({ error: 'Missing payment ID' }, { status: 400 });
 
-      // The success_url landing passes the VerificationRequest id as `id`. If
-      // the id doesn't resolve as a Moyasar payment/invoice, try looking it up
-      // as a VR and extract the real invoice id from payment_receipt_url.
-      let moyasarId = paymentId;
-      const vr = await base44.asServiceRole.entities.VerificationRequest.get(paymentId).catch(() => null);
-      if (vr && vr.payment_receipt_url && vr.payment_receipt_url.startsWith('moyasar:')) {
-        moyasarId = vr.payment_receipt_url.replace('moyasar:', '');
-      }
-
       let paid = false;
-      // Try the invoice first — invoices carry the metadata we set at creation
-      // (verification_request_id, user_id), which payments may not. Then fall
-      // back to a direct payment lookup (the popup onSuccess passes a payment id).
-      const invRes = await fetch('https://api.moyasar.com/v1/invoices/' + moyasarId, {
+      const payRes = await fetch('https://api.moyasar.com/v1/payments/' + paymentId, {
         headers: { Authorization: authHeader },
       });
-      if (invRes.ok) {
-        const invData = await invRes.json();
-        const paidPayment = (invData.payments || []).find((p) => p.status === 'paid');
-        if (paidPayment) {
+      if (payRes.ok) {
+        const payData = await payRes.json();
+        if (payData.status === 'paid') {
           paid = true;
-          resolvedPaymentId = paidPayment.id;
-          metadata = invData.metadata || paidPayment.metadata || null;
+          metadata = payData.metadata || null;
+          resolvedPaymentId = payData.id;
         }
-      }
-      if (!paid) {
-        const payRes = await fetch('https://api.moyasar.com/v1/payments/' + moyasarId, {
+      } else {
+        const invRes = await fetch('https://api.moyasar.com/v1/invoices/' + paymentId, {
           headers: { Authorization: authHeader },
         });
-        if (payRes.ok) {
-          const payData = await payRes.json();
-          if (payData.status === 'paid') {
+        if (invRes.ok) {
+          const invData = await invRes.json();
+          const paidPayment = (invData.payments || []).find((p) => p.status === 'paid');
+          if (paidPayment) {
             paid = true;
-            metadata = payData.metadata || null;
-            resolvedPaymentId = payData.id;
-            // Payments created from an invoice may not carry the invoice
-            // metadata (verification_request_id, user_id). If empty, fetch the
-            // parent invoice to recover it.
-            if (!metadata && payData.invoice_id) {
-              const invRes2 = await fetch('https://api.moyasar.com/v1/invoices/' + payData.invoice_id, {
-                headers: { Authorization: authHeader },
-              });
-              if (invRes2.ok) {
-                const invData2 = await invRes2.json();
-                metadata = invData2.metadata || null;
-              }
-            }
+            resolvedPaymentId = paidPayment.id;
+            metadata = invData.metadata || paidPayment.metadata || null;
           }
+        } else {
+          const invData = await invRes.json().catch(() => ({}));
+          return Response.json({ error: invData?.message || 'Payment lookup failed' }, { status: 400 });
         }
       }
+
       if (!paid) return Response.json({ ok: false, error: 'Payment not completed' });
 
       // Ownership: the invoice metadata carries the user_id set at checkout.
@@ -124,6 +103,7 @@ export default async function(req: Request): Promise<Response> {
       await base44.asServiceRole.entities.VerificationRequest.update(request.id, {
         status: 'approved',
         reviewed_by: 'system',
+        payment_receipt_url: 'moyasar:' + resolvedPaymentId,
       });
     } else if (userId) {
       // Fallback (legacy/edge case): create an approved record from metadata.

@@ -68,11 +68,13 @@ export function usePopupPayment() {
     let attempts = 0;
     pollRef.current = setInterval(async () => {
       attempts++;
-      // Check the invoice status FIRST. If the popup already closed after the
-      // user paid (Moyasar may auto-close/redirect it), we must still detect
-      // "paid" and fire onSuccess — otherwise the badge is granted only by the
-      // later webhook and the client UI never refreshes, so the user thinks
-      // the payment failed even though it succeeded.
+      // User closed the popup before paying → stop and surface as "closed".
+      if (!closedByUsRef.current && popupRef.current && popupRef.current.closed) {
+        stopPolling();
+        setState("closed");
+        onFail?.({ status: "closed" });
+        return;
+      }
       try {
         const res = await base44.functions.invoke("checkMoyasarInvoiceStatus", { invoice_id: invId });
         const r = res?.data || {};
@@ -95,14 +97,6 @@ export function usePopupPayment() {
           return;
         }
       } catch {}
-      // Only after confirming the invoice isn't paid yet do we treat a closed
-      // popup as a user-initiated cancel.
-      if (!closedByUsRef.current && popupRef.current && popupRef.current.closed) {
-        stopPolling();
-        setState("closed");
-        onFail?.({ status: "closed" });
-        return;
-      }
       if (attempts >= maxAttempts) {
         stopPolling();
         setState("closed");

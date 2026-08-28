@@ -52,12 +52,6 @@ export default async function(req: Request): Promise<Response> {
         currency: 'SAR',
         description: 'رسوم تفعيل شارة الوسيط العقاري - كاسر',
         callback_url: `${origin}/functions/confirmBrokerPayment`,
-        // success_url navigates the popup back to the app (same origin) after
-        // payment so the opener's polling can reliably close it — without this
-        // the popup stays on Moyasar's cross-origin "paid" page and
-        // popup.close() from the opener is blocked. The badge is granted by the
-        // webhook (callback_url); the Profile just refreshes the user on landing.
-        success_url: `${origin}/profile?broker_paid=1`,
         back_url: `${origin}/profile`,
         metadata: {
           type: 'broker_fee',

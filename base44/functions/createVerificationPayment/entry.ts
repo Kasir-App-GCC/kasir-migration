@@ -76,14 +76,8 @@ export default async function(req: Request): Promise<Response> {
         // so the badge is granted even if the user closes the popup before the
         // client confirm lands.
         callback_url: `${origin}/functions/confirmVerificationPayment`,
-        // success_url navigates the popup back to the app (same origin) after
-        // payment so the opener's polling can reliably close it. Crucially, it
-        // also triggers confirmVerificationPayment from the Profile landing
-        // handler — so the badge is granted even if Moyasar's webhook is delayed
-        // AND the popup polling misses the "paid" status (API lag). We pass the
-        // verification request id (available before the invoice is created); the
-        // confirm function resolves it to the real invoice id.
-        success_url: `${origin}/profile?verify_payment=1&id=${pending.id}`,
+        // No success_url: the popup stays on Moyasar's "invoice paid" page and
+        // the app closes it via polling (same as donations) — no in-app redirect.
         back_url: `${origin}/profile`,
         metadata: {
           type: 'verification',

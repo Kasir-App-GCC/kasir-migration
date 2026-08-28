@@ -7,6 +7,7 @@ import { useT } from "@/lib/i18n";
 import { useToast } from "@/components/ui/use-toast";
 import ListingForm from "@/components/ListingForm";
 import BoostPopupPayment from "@/components/BoostPopupPayment";
+import { openCheckoutBlank, closeCheckoutPopup } from "@/hooks/usePopupPayment";
 
 export default function EditListing() {
   const { id } = useParams();
@@ -53,6 +54,9 @@ export default function EditListing() {
     // Strip boost + featured fields: editing must never reset an active boost.
     // The featured clock started at posting time and survives any number of edits.
     const { boost_hours, boost_cross_country, boost_amount, featured, featured_until, featured_cross_country, ...itemData } = data;
+    // Open the checkout popup synchronously during the click so the browser
+    // doesn't block it (window.open after an async gap loses user activation).
+    if (boost_hours > 0) openCheckoutBlank();
     const oldPrice = Number(item?.price);
     // While a boost is active, only allow lowering (or keeping) the price —
     // raising it would devalue the paid promotion.
@@ -85,7 +89,12 @@ export default function EditListing() {
       itemData.status = "available";
       itemData.published_date = new Date().toISOString();
     }
-    await base44.entities.Item.update(id, itemData);
+    try {
+      await base44.entities.Item.update(id, itemData);
+    } catch (e) {
+      if (boost_hours > 0) closeCheckoutPopup();
+      throw e;
+    }
     // Price-drop alert: notify users who saved this listing when the price drops.
     if (Number.isFinite(oldPrice) && Number(itemData.price) > 0 && Number(itemData.price) < oldPrice) {
       try { await base44.functions.invoke("notifyPriceDrop", { item_id: id, old_price: oldPrice, new_price: Number(itemData.price) }); } catch {}
@@ -119,6 +128,7 @@ export default function EditListing() {
           return;
         }
       } catch {}
+      closeCheckoutPopup();
       toast({ title: ar ? "تم حفظ التعديلات" : "Changes saved", description: ar ? "تعذّر إنشاء رابط التعزيز" : "Couldn't create boost link", variant: "destructive" });
     }
     nav(`/item/${id}`);

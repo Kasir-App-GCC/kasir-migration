@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 import Price from "@/components/Price";
 import { computeBoostPrice, BOOST_MIN_HOURS, BOOST_MAX_HOURS } from "@/lib/boostPricing";
 import BoostPopupPayment from "@/components/BoostPopupPayment";
+import { openCheckoutBlank, closeCheckoutPopup } from "@/hooks/usePopupPayment";
 
 // Self-service short-term boost: the seller picks an available (non-draft,
 // not-currently-boosted) listing and a duration (2–168h). The price is
@@ -44,6 +45,11 @@ export default function BoostItemDialog({ open, onClose }) {
   const submit = async () => {
     if (!selectedItem || submitting) return;
     setSubmitting(true);
+    // Open the popup synchronously in the click handler — if we wait until
+    // after the async backend call, the browser blocks it (no user gesture)
+    // and we fall back to a full-page redirect. start() navigates this same
+    // named window to the checkout URL once we have it.
+    openCheckoutBlank();
     try {
       const res = await base44.functions.invoke("createBoostRequest", {
         item_id: selectedItem.id,
@@ -54,6 +60,7 @@ export default function BoostItemDialog({ open, onClose }) {
       if (data.error) throw new Error(data.error);
       setPay({ url: data.url, invoiceId: data.invoiceId, boostRequestId: data.request?.id, amount: data.amount });
     } catch (e) {
+      closeCheckoutPopup();
       toast({ title: ar ? "تعذّر إنشاء التعزيز" : "Couldn't start boost", description: e?.message || "", variant: "destructive" });
     } finally {
       setSubmitting(false);

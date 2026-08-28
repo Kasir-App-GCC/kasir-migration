@@ -12,6 +12,34 @@ import { base44 } from "@/api/base44Client";
 //
 // state: "idle" | "waiting" | "paid" | "failed" | "closed"
 
+const CHECKOUT_WINDOW_NAME = "moyasar_checkout";
+
+// Open a blank checkout popup synchronously during a user gesture so the
+// browser doesn't block it. Call this BEFORE the async backend call that
+// produces the checkout URL — usePopupPayment.start() later navigates this
+// same named window to the real URL. Returns false if the popup was blocked.
+export function openCheckoutBlank() {
+  const w = 460, h = 720;
+  const left = window.screenX + Math.max(0, (window.outerWidth - w) / 2);
+  const top = window.screenY + Math.max(0, (window.outerHeight - h) / 2);
+  const popup = window.open("", CHECKOUT_WINDOW_NAME, `width=${w},height=${h},left=${left},top=${top},scrollbars=yes,resizable=yes`);
+  if (!popup) return false;
+  try {
+    popup.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>...</title><style>body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:system-ui,-apple-system,sans-serif;color:#64748b;background:#f8fafc}.b{text-align:center}.s{width:36px;height:36px;border:3px solid #e2e8f0;border-top-color:#f59e0b;border-radius:50%;animation:sp .8s linear infinite;margin:0 auto 14px}@keyframes sp{to{transform:rotate(360deg)}}</style></head><body><div class="b"><div class="s"></div>جارٍ تجهيز الدفع…<br>Loading payment…</div></body></html>`);
+    popup.document.close();
+  } catch {}
+  return true;
+}
+
+// Close the checkout popup if it's still open (e.g. the backend call failed
+// after openCheckoutBlank already opened it). No-op if no popup exists.
+export function closeCheckoutPopup() {
+  try {
+    const w = window.open("", CHECKOUT_WINDOW_NAME);
+    if (w && !w.closed) w.close();
+  } catch {}
+}
+
 // Pulls the Moyasar invoice id out of a hosted-checkout URL
 // (https://checkout.moyasar.com/invoices/<uuid>?lang=en).
 export function extractInvoiceId(url) {
@@ -57,7 +85,7 @@ export function usePopupPayment() {
     const w = 460, h = 720;
     const left = window.screenX + Math.max(0, (window.outerWidth - w) / 2);
     const top = window.screenY + Math.max(0, (window.outerHeight - h) / 2);
-    const popup = window.open(url, "moyasar_checkout", `width=${w},height=${h},left=${left},top=${top},scrollbars=yes,resizable=yes`);
+    const popup = window.open(url, CHECKOUT_WINDOW_NAME, `width=${w},height=${h},left=${left},top=${top},scrollbars=yes,resizable=yes`);
     if (!popup) {
       window.location.href = url;
       return;

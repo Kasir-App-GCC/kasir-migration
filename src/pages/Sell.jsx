@@ -6,6 +6,7 @@ import { useT } from "@/lib/i18n";
 import { useToast } from "@/components/ui/use-toast";
 import ListingForm from "@/components/ListingForm";
 import BoostPopupPayment from "@/components/BoostPopupPayment";
+import { openCheckoutBlank, closeCheckoutPopup } from "@/hooks/usePopupPayment";
 import { base44Analytics } from "@/lib/analytics";
 
 // Shared seller fields attached to every item (draft or published).
@@ -57,24 +58,33 @@ export default function Sell() {
   const submit = async (data) => {
     const { boost_hours, boost_amount, claim_free_boost } = data;
     const boosted = boost_hours > 0;
+    // Open the checkout popup synchronously during the click so the browser
+    // doesn't block it (window.open after an async gap loses user activation).
+    // start() navigates this same named window to the URL once we have it.
+    if (boosted) openCheckoutBlank();
     // If a draft was saved this session, publish it in place instead of
     // creating a second record.
     let item;
-    if (draftIdRef.current) {
-      await base44.entities.Item.update(draftIdRef.current, {
-        ...itemDataFrom(data),
-        ...sellerFields(user),
-        status: "available",
-        published_date: new Date().toISOString(),
-      });
-      item = { id: draftIdRef.current };
-    } else {
-      item = await base44.entities.Item.create({
-        ...itemDataFrom(data),
-        ...sellerFields(user),
-        status: "available",
-        published_date: new Date().toISOString(),
-      });
+    try {
+      if (draftIdRef.current) {
+        await base44.entities.Item.update(draftIdRef.current, {
+          ...itemDataFrom(data),
+          ...sellerFields(user),
+          status: "available",
+          published_date: new Date().toISOString(),
+        });
+        item = { id: draftIdRef.current };
+      } else {
+        item = await base44.entities.Item.create({
+          ...itemDataFrom(data),
+          ...sellerFields(user),
+          status: "available",
+          published_date: new Date().toISOString(),
+        });
+      }
+    } catch (e) {
+      if (boosted) closeCheckoutPopup();
+      throw e;
     }
     base44Analytics.listingPosted(item.id, data.category);
     if (claim_free_boost) {
@@ -104,6 +114,7 @@ export default function Sell() {
           return;
         }
       } catch {}
+      closeCheckoutPopup();
       toast({ title: ar ? "تم نشر إعلانك" : "Listing posted", description: ar ? "تعذّر إنشاء رابط التعزيز" : "Couldn't create boost link", variant: "destructive" });
     }
     nav("/");

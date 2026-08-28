@@ -60,19 +60,8 @@ export default async function (req) {
       description,
       status: "open",
     });
-    // Notify the respondent so they can post their side of the story.
-    try {
-      await base44.asServiceRole.entities.Notification.create({
-        user_id: respondentId,
-        type: "dispute_opened",
-        text: `تم فتح نزاع ضدك على "${offer.item_title || ""}" — يمكنك الرد عليه`,
-        item_id: offer.item_id || null,
-        item_title: offer.item_title || "",
-        chatroom_id: offer.chatroom_id || null,
-        dispute_id: created.id,
-        actor_name: String(user.name || ""),
-      });
-    } catch {}
+    // Deliberately do NOT notify the respondent — disputes are reviewed by
+    // admins only, and alerting the other party causes friction between users.
     return Response.json({ ok: true, dispute: created });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

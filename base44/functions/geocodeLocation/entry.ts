@@ -100,8 +100,12 @@ export default async function (req) {
     // detection), so we can't require login. Instead, we verify the request
     // comes from the app's own pages via a strict Origin/Referer whitelist.
     // This prevents server-to-server abuse (rate-limit exhaustion, proxying)
-    // while allowing the app's own pages — including custom domains — to call.
-    const ALLOWED_HOSTS = ["kasir-ksa.base44.app"];
+    // while allowing the app's own pages — published app, builder preview,
+    // and custom domains — to call.
+    const isAllowedHost = (host) =>
+      host === "kasir-ksa.base44.app" ||
+      host.endsWith(".base44.app") ||
+      host.endsWith(".base44.com");
     const candidate = req.headers.get("origin") || req.headers.get("referer") || "";
     let isAllowed = false;
     if (candidate) {
@@ -110,7 +114,7 @@ export default async function (req) {
         const host = u.hostname.toLowerCase();
         const isLocal = host === "localhost" || host === "127.0.0.1";
         isAllowed =
-          (u.protocol === "https:" && ALLOWED_HOSTS.includes(host)) ||
+          (u.protocol === "https:" && isAllowedHost(host)) ||
           (isLocal && u.protocol === "http:");
       } catch {}
     }

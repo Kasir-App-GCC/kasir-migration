@@ -1,4 +1,4 @@
-import { getCountry } from "@/lib/countries";
+import { getCountry, getCountryByPhoneCode } from "@/lib/countries";
 
 // Build an E.164 phone string (e.g. +966512345678) from a user's stored
 // country_code + local phone digits. Handles common edge cases: a leading
@@ -27,7 +27,20 @@ export function digitsOnly(e164) {
 }
 
 // GCC local number lengths: 8 digits (OM/BH/KW/QA) to 9 digits (SA/AE).
-// All phone inputs across the app cap the local part at this max so the
-// full E.164 number stays within the valid range for every GCC country.
-export const GCC_MAX_LOCAL = 9;
+// All phone inputs across the app cap the local part at the selected
+// country's length so the full E.164 number stays valid for that country.
 export const GCC_MIN_LOCAL = 8;
+
+// Local number length for a given phone code (e.g. "966" → 9).
+export function localLen(phoneCode) {
+  const c = getCountryByPhoneCode(phoneCode);
+  return c?.phoneLen || 9;
+}
+
+// Local number placeholder for a given phone code (e.g. "966" → "5XXXXXXXX").
+export function localPlaceholder(phoneCode) {
+  const c = getCountryByPhoneCode(phoneCode);
+  const prefix = c?.phonePrefix || "5";
+  const len = c?.phoneLen || 9;
+  return prefix + "X".repeat(len - 1);
+}

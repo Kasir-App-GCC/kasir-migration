@@ -5,7 +5,7 @@ import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { useToast } from "@/components/ui/use-toast";
 import { COUNTRIES, getCountry } from "@/lib/countries";
-import { GCC_MAX_LOCAL, GCC_MIN_LOCAL } from "@/lib/phone";
+import { GCC_MIN_LOCAL, localLen, localPlaceholder } from "@/lib/phone";
 import SheetSelect from "@/components/SheetSelect";
 
 // Convert Arabic-Indic (٠-٩) and Eastern Arabic (۰-۹) digits to ASCII 0-9
@@ -18,7 +18,6 @@ function normalizeDigits(s) {
 }
 
 const MIN_PHONE = GCC_MIN_LOCAL;
-const MAX_PHONE = GCC_MAX_LOCAL;
 const MAX_ATTACH_TOTAL = 10 * 1024 * 1024; // 10 MB total across all attachments
 
 const CATEGORIES = [
@@ -106,9 +105,10 @@ export default function ContactSupportDialog({ open, onClose }) {
   };
 
   const digitsOnly = (s) => normalizeDigits(s).replace(/\D/g, "");
-  const onPhoneChange = (e) => setPhone(digitsOnly(e.target.value).slice(0, MAX_PHONE));
+  const maxPhone = localLen(phoneCode);
+  const onPhoneChange = (e) => setPhone(digitsOnly(e.target.value).slice(0, maxPhone));
   const phoneLen = digitsOnly(phone).length;
-  const phoneValid = phoneLen >= MIN_PHONE && phoneLen <= MAX_PHONE;
+  const phoneValid = phoneLen >= MIN_PHONE && phoneLen <= maxPhone;
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const filesTotal = files.reduce((s, f) => s + f.size, 0);
   const valid = fullName.trim() && phoneValid && emailValid && subject.trim() && message.trim() && filesTotal <= MAX_ATTACH_TOTAL;
@@ -169,8 +169,8 @@ export default function ContactSupportDialog({ open, onClose }) {
               <input
                 value={phone}
                 onChange={onPhoneChange}
-                maxLength={MAX_PHONE}
-                placeholder="5X XXX XXXX"
+                maxLength={maxPhone}
+                placeholder={localPlaceholder(phoneCode)}
                 inputMode="tel"
                 className="flex-1 min-w-0 px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30"
               />

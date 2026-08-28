@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, Loader2, ChevronDown } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { COUNTRIES, getCountry } from "@/lib/countries";
+import { localLen, localPlaceholder } from "@/lib/phone";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -89,8 +90,8 @@ export default function WhatsAppContactDialog({ open, onClose, chatroomId, user,
           </div>
           <input
             value={local}
-            onChange={(e) => setLocal(e.target.value.replace(/[^\d]/g, "").slice(0, 9))}
-            placeholder="512345678"
+            onChange={(e) => setLocal(e.target.value.replace(/[^\d]/g, "").slice(0, localLen(phoneCode)))}
+            placeholder={localPlaceholder(phoneCode)}
             dir="ltr"
             inputMode="tel"
             className="flex-1 px-3 py-3 rounded-xl bg-muted outline-none focus:ring-2 ring-emerald-500/30 text-sm"

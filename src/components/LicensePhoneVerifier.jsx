@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/use-toast";
 import { COUNTRIES, getCountry } from "@/lib/countries";
+import { localLen, localPlaceholder } from "@/lib/phone";
 import { apiErrorMessage } from "@/lib/apiError";
 import SheetSelect from "@/components/SheetSelect";
 
@@ -108,10 +109,10 @@ export default function LicensePhoneVerifier({ onVerified }) {
         </div>
         <input
           value={localNumber}
-          onChange={(e) => setLocalNumber(e.target.value.replace(/[^\d]/g, "").slice(0, 9))}
+          onChange={(e) => setLocalNumber(e.target.value.replace(/[^\d]/g, "").slice(0, localLen(countryCode)))}
           dir="ltr"
           inputMode="tel"
-          placeholder={ar ? "5XXXXXXXX" : "5XXXXXXXX"}
+          placeholder={localPlaceholder(countryCode)}
           className="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-start text-sm"
         />
         <button

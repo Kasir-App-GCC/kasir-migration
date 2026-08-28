@@ -5,7 +5,7 @@ import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { COUNTRIES, getCountry } from "@/lib/countries";
-import { digitsOnly } from "@/lib/phone";
+import { digitsOnly, localLen, localPlaceholder } from "@/lib/phone";
 import { apiErrorMessage } from "@/lib/apiError";
 import SheetSelect from "@/components/SheetSelect";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
@@ -150,10 +150,10 @@ export default function PhoneOtpVerifier({ initialPhone = "", channel = "sms", o
         </div>
         <input
           value={localNumber}
-          onChange={(e) => setLocalNumber(e.target.value.replace(/[^\d]/g, "").slice(0, 9))}
+          onChange={(e) => setLocalNumber(e.target.value.replace(/[^\d]/g, "").slice(0, localLen(countryCode)))}
           dir="ltr"
           inputMode="tel"
-          placeholder={ar ? "5XXXXXXXX" : "5XXXXXXXX"}
+          placeholder={localPlaceholder(countryCode)}
           className="flex-1 min-w-0 px-4 py-3 rounded-2xl bg-muted outline-none focus:ring-2 ring-primary/30 text-start"
         />
         <button

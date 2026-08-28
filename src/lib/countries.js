@@ -202,12 +202,12 @@ const QATAR_CITIES = [
 ];
 
 export const COUNTRIES = [
-  { code: "SA", en: "Saudi Arabia", ar: "السعودية", flag: "🇸🇦", phoneCode: "966", currency: "SAR", currencyAr: "ر.س", cities: SAUDI_CITIES },
-  { code: "AE", en: "UAE", ar: "الإمارات", flag: "🇦🇪", phoneCode: "971", currency: "AED", currencyAr: "د.إ", cities: UAE_CITIES },
-  { code: "OM", en: "Oman", ar: "عُمان", flag: "🇴🇲", phoneCode: "968", currency: "OMR", currencyAr: "ر.ع.", cities: OMAN_CITIES },
-  { code: "BH", en: "Bahrain", ar: "البحرين", flag: "🇧🇭", phoneCode: "973", currency: "BHD", currencyAr: "د.ب", cities: BAHRAIN_CITIES },
-  { code: "KW", en: "Kuwait", ar: "الكويت", flag: "🇰🇼", phoneCode: "965", currency: "KWD", currencyAr: "د.ك", cities: KUWAIT_CITIES },
-  { code: "QA", en: "Qatar", ar: "قطر", flag: "🇶🇦", phoneCode: "974", currency: "QAR", currencyAr: "ر.ق", cities: QATAR_CITIES },
+  { code: "SA", en: "Saudi Arabia", ar: "السعودية", flag: "🇸🇦", phoneCode: "966", phoneLen: 9, phonePrefix: "5", currency: "SAR", currencyAr: "ر.س", cities: SAUDI_CITIES },
+  { code: "AE", en: "UAE", ar: "الإمارات", flag: "🇦🇪", phoneCode: "971", phoneLen: 9, phonePrefix: "5", currency: "AED", currencyAr: "د.إ", cities: UAE_CITIES },
+  { code: "OM", en: "Oman", ar: "عُمان", flag: "🇴🇲", phoneCode: "968", phoneLen: 8, phonePrefix: "9", currency: "OMR", currencyAr: "ر.ع.", cities: OMAN_CITIES },
+  { code: "BH", en: "Bahrain", ar: "البحرين", flag: "🇧🇭", phoneCode: "973", phoneLen: 8, phonePrefix: "3", currency: "BHD", currencyAr: "د.ب", cities: BAHRAIN_CITIES },
+  { code: "KW", en: "Kuwait", ar: "الكويت", flag: "🇰🇼", phoneCode: "965", phoneLen: 8, phonePrefix: "5", currency: "KWD", currencyAr: "د.ك", cities: KUWAIT_CITIES },
+  { code: "QA", en: "Qatar", ar: "قطر", flag: "🇶🇦", phoneCode: "974", phoneLen: 8, phonePrefix: "3", currency: "QAR", currencyAr: "ر.ق", cities: QATAR_CITIES },
 ];
 
 export const ALL_CITIES = COUNTRIES.flatMap((c) => c.cities.map((city) => ({ ...city, country: c.code })));

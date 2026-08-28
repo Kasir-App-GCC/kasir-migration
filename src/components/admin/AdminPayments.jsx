@@ -49,7 +49,7 @@ export default function AdminPayments() {
     try {
       const res = await base44.functions.invoke("searchPayments", { q, type: filter, page: reset ? 1 : p, limit: 50 });
       if (id !== reqId.current) return;
-      const d = res?.data || {};
+      const d = res?.data || res || {};
       setRows((prev) => reset ? (d.rows || []) : [...prev, ...(d.rows || [])]);
       setCounts(d.counts || EMPTY_COUNTS);
       setCountsTruncated(!!d.counts_truncated);

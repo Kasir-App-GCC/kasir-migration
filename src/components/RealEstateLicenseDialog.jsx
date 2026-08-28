@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import LicensePhoneVerifier from "@/components/LicensePhoneVerifier";
 import { usePopupPayment, extractInvoiceId } from "@/hooks/usePopupPayment";
 import PaymentWaitingModal from "@/components/PaymentWaitingModal";
+import { compressImage } from "@/lib/compressImage";
 
 const LICENSE_TYPES = [
   { id: "individual_fal", ar: "رخصة فال (فرد)", en: "FAL (Individual)" },
@@ -76,7 +77,8 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
   const uploadDoc = async (file) => {
     setDocUploading(true);
     try {
-      const r = await base44.integrations.Core.UploadFile({ file });
+      const compressed = await compressImage(file);
+      const r = await base44.integrations.Core.UploadFile({ file: compressed });
       setLicenseDoc(r.file_url);
     } catch {
       toast({ title: ar ? "تعذّر رفع الملف" : "Upload failed", variant: "destructive" });

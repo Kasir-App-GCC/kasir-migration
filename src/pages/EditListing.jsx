@@ -83,6 +83,7 @@ export default function EditListing() {
     // Publishing a draft: flip it live. (Save-as-draft keeps status="draft".)
     if (item?.status === "draft") {
       itemData.status = "available";
+      itemData.published_date = new Date().toISOString();
     }
     await base44.entities.Item.update(id, itemData);
     // Price-drop alert: notify users who saved this listing when the price drops.

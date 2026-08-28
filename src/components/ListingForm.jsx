@@ -888,7 +888,7 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         </button>
       </div>
 
-      <CompletenessDock images={images} title={title} description={description} price={price} category={category} city={city} />
+      <CompletenessDock images={images} title={title} description={description} price={price} category={category} city={city} saRealEstate={saRealEstate} reApproved={reApproved} adLicenseValid={adLicenseValid} />
 
       {mapOpen &&
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">

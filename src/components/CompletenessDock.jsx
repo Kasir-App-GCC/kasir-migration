@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Check, Camera, FileText, MapPin, Tag, X, Sparkles } from "lucide-react";
+import { Check, Camera, FileText, MapPin, Tag, X, Sparkles, ShieldCheck } from "lucide-react";
 
 // A floating, always-visible completeness indicator. Sits as a small circular
-// progress ring at the bottom corner of the viewport while the user scrolls
-// the form; taps expand a checklist popover so they can see exactly what's
-// left to fill in. Replaces the old inline card that disappeared on scroll.
-export default function CompletenessDock({ images, title, description, price, category, city }) {
+// progress ring pinned to the bottom-left (LTR) / bottom-right (RTL) above the
+// bottom nav while the user scrolls the form; taps expand a checklist popover
+// so they can see exactly what's left to fill in.
+//
+// For Saudi real estate listings, extra checks are added:
+//   - No approved FAL license → a permanently-incomplete item caps the bar
+//     below 100% until the seller adds one from their profile.
+//   - Approved FAL license → per-listing ad license details must be complete.
+export default function CompletenessDock({ images, title, description, price, category, city, saRealEstate, reApproved, adLicenseValid }) {
   const ar = document.documentElement?.dir === "rtl";
   const [open, setOpen] = useState(false);
   const popRef = useRef(null);
@@ -15,6 +20,17 @@ export default function CompletenessDock({ images, title, description, price, ca
     { icon: Tag, label: ar ? "السعر والتصنيف" : "Price & category", done: !!price && !!category },
     { icon: MapPin, label: ar ? "الموقع" : "Location set", done: !!city },
   ];
+
+  // Real estate adds extra requirements. Without an approved FAL license the
+  // bar can never reach 100% — the seller must add one from their profile.
+  if (saRealEstate) {
+    if (!reApproved) {
+      checks.push({ icon: ShieldCheck, label: ar ? "ترخيص فال (من الملف الشخصي)" : "FAL license (from profile)", done: false });
+    } else {
+      checks.push({ icon: FileText, label: ar ? "بيانات ترخيص الإعلان" : "Ad license details", done: !!adLicenseValid });
+    }
+  }
+
   const score = checks.filter((c) => c.done).length;
   const pct = Math.round((score / checks.length) * 100);
   const done = pct === 100;
@@ -39,7 +55,11 @@ export default function CompletenessDock({ images, title, description, price, ca
   const offset = C - (pct / 100) * C;
 
   return (
-    <div ref={popRef} className={`fixed bottom-5 ${ar ? "left-4" : "right-4"} z-40 flex flex-col items-end gap-2`}>
+    <div
+      ref={popRef}
+      className={`fixed z-40 flex flex-col items-${ar ? "end" : "start"} gap-2 ${ar ? "right-4" : "left-4"}`}
+      style={{ bottom: "calc(64px + env(safe-area-inset-bottom) + 0.75rem)" }}
+    >
       {/* Expanded checklist */}
       {open && (
         <div className="w-64 rounded-2xl bg-card border border-border/60 shadow-2xl p-3.5 animate-in fade-in slide-in-from-bottom-2 duration-200">

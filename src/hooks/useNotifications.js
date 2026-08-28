@@ -56,7 +56,7 @@ export default function useNotifications() {
             return { id: n.id, type: "boost_approved", text: n.text, name: n.item_title, itemId: n.item_id, date: n.created_date, unread: !n.read };
           }
           if (n.type === "rate") {
-            return { id: n.id, type: "rate", text: n.text, name: n.item_title, image: n.item_image, itemId: n.item_id, date: n.created_date, unread: !n.read };
+            return { id: n.id, type: "rate", text: n.text, name: n.item_title, image: n.item_image, itemId: n.item_id, roomId: n.chatroom_id, date: n.created_date, unread: !n.read };
           }
           if (n.type === "saved_search_match") {
             return { id: n.id, type: "saved_search_match", text: n.text, name: n.item_title, image: n.item_image, itemId: n.item_id, date: n.created_date, unread: !n.read };

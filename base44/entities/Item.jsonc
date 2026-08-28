@@ -89,6 +89,11 @@
       ],
       "default": "available"
     },
+    "published_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the listing was first published (status changed from draft to available). Set once at publishing time; subsequent edits do not reset it. Falls back to created_date for legacy listings."
+    },
     "sold_to": {
       "type": "string"
     },

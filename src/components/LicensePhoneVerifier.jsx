@@ -102,13 +102,13 @@ export default function LicensePhoneVerifier({ onVerified }) {
 
   return (
     <div className="space-y-2.5">
-      <div className="flex gap-2">
+      <div className="flex gap-2" dir="ltr">
         <div className="w-28 shrink-0">
           <SheetSelect value={countryCode} onChange={setCountryCode} options={codeOptions} buttonClassName="px-3 py-2.5" />
         </div>
         <input
           value={localNumber}
-          onChange={(e) => setLocalNumber(e.target.value.replace(/[^\d]/g, ""))}
+          onChange={(e) => setLocalNumber(e.target.value.replace(/[^\d]/g, "").slice(0, 15 - countryCode.length))}
           dir="ltr"
           inputMode="tel"
           placeholder={ar ? "5XXXXXXXX" : "5XXXXXXXX"}

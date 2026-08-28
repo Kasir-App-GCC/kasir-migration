@@ -462,7 +462,7 @@ export default function ItemDetail() {
           <span className="flex items-center gap-1"><MapPin size={14} /> {item.location_name || getCityName(item.city, lang)} <span className="text-base leading-none">{getCountry(item.country).flag}</span></span>
           <span>· {lang === "ar" ? getCondition(item.condition).ar : getCondition(item.condition).en}</span>
           <span>· {lang === "ar" ? cat?.ar : cat?.en}</span>
-          <span>· {timeAgo(item.created_date, lang)}</span>
+          <span>· {timeAgo(item.published_date || item.created_date, lang)}</span>
         </div>
         {(item.willing_to_ship || item.delivers_within_city) && (
           <div className="mt-2 flex flex-wrap gap-2">

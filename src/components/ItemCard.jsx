@@ -182,7 +182,7 @@ export default function ItemCard({ item, onClick, promoted = false, refreshButto
           </span>
           <span className="inline-flex items-center gap-1 shrink-0">
             <Clock size={12} />
-            {timeAgo(item.created_date, lang)}
+            {timeAgo(item.published_date || item.created_date, lang)}
           </span>
         </div>
       </div>

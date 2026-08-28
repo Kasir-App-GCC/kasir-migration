@@ -38,17 +38,17 @@ export default function ChatRoom() {
   const [waContacts, setWaContacts] = useState([]);
   const [waDialogOpen, setWaDialogOpen] = useState(false);
   const endRef = useRef(null);
-  const [kbInset, setKbInset] = useState(0);
+  const [vvHeight, setVvHeight] = useState(() => window.visualViewport?.height || window.innerHeight);
+  const [vvTop, setVvTop] = useState(() => window.visualViewport?.offsetTop || 0);
 
-  // Keep the input bar above the mobile keyboard (visualViewport) so it never
-  // gets pushed off-screen, and re-scroll to the latest message when it opens.
+  // Resize the entire chat container to the visualViewport so the keyboard
+  // never covers the input bar — the container shrinks to the visible area
+  // and the flex layout keeps the input pinned to the bottom edge. This is
+  // the approach used by WhatsApp / Telegram — no manual keyboard insets.
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const update = () => {
-      const kb = window.innerHeight - vv.height - vv.offsetTop;
-      setKbInset(kb > 0 ? kb : 0);
-    };
+    const update = () => { setVvHeight(vv.height); setVvTop(vv.offsetTop); };
     vv.addEventListener("resize", update);
     vv.addEventListener("scroll", update);
     update();
@@ -106,7 +106,7 @@ export default function ChatRoom() {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, offers, kbInset]);
+  }, [messages, offers, vvHeight]);
 
   useEffect(() => {
     setLastChatsSeen(new Date().toISOString());
@@ -393,7 +393,7 @@ export default function ChatRoom() {
   const bothVerified = !!user?.is_trusted && !!otherTrusted;
 
   return (
-    <div className="fixed inset-0 z-40 bg-background flex flex-col">
+    <div className="fixed inset-x-0 z-40 bg-background flex flex-col" style={{ height: `${vvHeight}px`, top: `${vvTop}px` }}>
       <header className="pt-[env(safe-area-inset-top)] border-b border-border/60 bg-background/90 backdrop-blur shrink-0">
         <div className="h-14 flex items-center gap-3 px-4">
         <button onClick={() => nav("/chats")} className="p-1.5 rounded-full hover:bg-muted"><ArrowLeft size={20} className="rtl:rotate-180" /></button>
@@ -579,7 +579,7 @@ export default function ChatRoom() {
         <div ref={endRef} />
       </PullToRefreshScroll>
 
-      <div className="p-3 border-t border-border/60 flex items-center gap-2 shrink-0" style={{ paddingBottom: `calc(env(safe-area-inset-bottom) + ${kbInset}px)` }}>
+      <div className="p-3 border-t border-border/60 flex items-center gap-2 shrink-0 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
         {isBlocked ? (
           <div className="flex-1 flex items-center justify-between gap-2 py-2.5 px-4 rounded-full bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 text-sm font-semibold">
             <span className="flex items-center gap-1.5"><Ban size={15} /> {blockedByMe ? t("blockedUserMsg") : t("blockedByThem")}</span>
@@ -589,12 +589,13 @@ export default function ChatRoom() {
           </div>
         ) : (
           <>
-            <input
+            <textarea
               value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendText()}
+              onChange={(e) => { setText(e.target.value); e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px"; }}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendText(); } }}
               placeholder={t("typeMessage")}
-              className="flex-1 px-4 py-3 rounded-full bg-muted outline-none focus:ring-2 ring-primary/30 text-base"
+              rows={1}
+              className="flex-1 px-4 py-3 rounded-3xl bg-muted outline-none focus:ring-2 ring-primary/30 text-base resize-none max-h-[120px] overflow-y-auto leading-snug"
             />
             <button onClick={() => sendText()} disabled={!text.trim()} className="w-11 h-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50">
               <Send size={18} className="rtl:-scale-x-100" />

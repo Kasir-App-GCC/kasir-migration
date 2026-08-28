@@ -65,6 +65,7 @@ export default function Sell() {
         ...itemDataFrom(data),
         ...sellerFields(user),
         status: "available",
+        published_date: new Date().toISOString(),
       });
       item = { id: draftIdRef.current };
     } else {
@@ -72,6 +73,7 @@ export default function Sell() {
         ...itemDataFrom(data),
         ...sellerFields(user),
         status: "available",
+        published_date: new Date().toISOString(),
       });
     }
     base44Analytics.listingPosted(item.id, data.category);

@@ -49,11 +49,6 @@ export default function CompletenessDock({ images, title, description, price, ca
     };
   }, [open]);
 
-  // Circular ring geometry.
-  const R = 18;
-  const C = 2 * Math.PI * R;
-  const offset = C - (pct / 100) * C;
-
   return (
     <div
       ref={popRef}
@@ -71,9 +66,6 @@ export default function CompletenessDock({ images, title, description, price, ca
             <button onClick={() => setOpen(false)} className="p-1 rounded-full hover:bg-muted -m-1">
               <X size={15} className="text-muted-foreground" />
             </button>
-          </div>
-          <div className="h-1.5 rounded-full bg-muted overflow-hidden mb-3">
-            <div className={`h-full rounded-full transition-all duration-500 ${done ? "bg-emerald-500" : "bg-amber-400"}`} style={{ width: `${pct}%` }} />
           </div>
           <div className="space-y-2">
             {checks.map((c) => (
@@ -97,23 +89,19 @@ export default function CompletenessDock({ images, title, description, price, ca
         </div>
       )}
 
-      {/* Compact circular ring button */}
+      {/* Vertical lights — one segment per section, lights up emerald when complete */}
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label={ar ? "اكتمال الإعلان" : "Listing completeness"}
-        className={`relative w-12 h-12 rounded-full shadow-xl flex items-center justify-center transition-all active:scale-90 ${done ? "bg-emerald-500" : "bg-card border border-border/60"}`}
+        className="flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-card/90 backdrop-blur border border-border/60 shadow-lg active:scale-95 transition"
       >
-        <svg className="absolute inset-0 -rotate-90" width="48" height="48" viewBox="0 0 48 48">
-          <circle cx="24" cy="24" r={R} fill="none" stroke={done ? "rgba(255,255,255,0.25)" : "hsl(var(--muted))"} strokeWidth="3" />
-          <circle
-            cx="24" cy="24" r={R} fill="none"
-            stroke={done ? "#fff" : "#f59e0b"}
-            strokeWidth="3" strokeLinecap="round"
-            strokeDasharray={C} strokeDashoffset={offset}
-            className="transition-all duration-500"
+        {checks.map((c, i) => (
+          <span
+            key={i}
+            className={`w-2 rounded-full transition-all duration-500 ${c.done ? "bg-emerald-500 shadow-[0_0_6px_2px_rgba(16,185,129,0.45)]" : "bg-muted-foreground/20"}`}
+            style={{ height: `${Math.round(26 / checks.length) + 14}px` }}
           />
-        </svg>
-        <span className={`text-xs font-extrabold ${done ? "text-white" : "text-amber-600"}`}>{pct}%</span>
+        ))}
       </button>
     </div>
   );

@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { base44 } from "@/api/base44Client";
-import { syncAvatarToEntities } from "@/lib/syncAvatar";
+import { syncProfileToEntities } from "@/lib/syncAvatar";
 import { userPhoneE164, digitsOnly } from "@/lib/phone";
 import { apiErrorMessage } from "@/lib/apiError";
 import PhoneOtpVerifier from "@/components/PhoneOtpVerifier";
@@ -92,7 +92,8 @@ export default function EditProfileDialog({ open, onClose }) {
       }
       await base44.auth.updateMe(update);
       await checkUserAuth();
-      await syncAvatarToEntities(user.id, avatar);
+      const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
+      await syncProfileToEntities(user.id, { avatar, name: fullName });
       onClose();
     } catch (err) {
       setError(apiErrorMessage(err, ar ? "فشل الحفظ" : "Failed to save"));

@@ -38,6 +38,12 @@ export default function CategoryBar({ categories, onCategoriesChange, subcategor
         <div className="flex gap-2 px-4 min-w-max">
           {CATEGORIES.map((c) => {
             const active = c.id === "all" ? categories.length === 0 : categories.includes(c.id);
+            // The shared layoutId pill only works for a single selection —
+            // multiple active buttons sharing one layoutId leaves all but one
+            // without a background (invisible text). Use the flying spring
+            // pill only when exactly one button is active; for multi-select
+            // fall back to a static background on each selected button.
+            const single = categories.length <= 1;
             return (
               <button
                 key={c.id}
@@ -48,16 +54,24 @@ export default function CategoryBar({ categories, onCategoriesChange, subcategor
                     : "bg-card text-foreground border-border/70 hover:bg-muted"
                 } ${c.featured && !active ? "ring-1 ring-emerald-400/50" : ""}`}
               >
-                {active && (
+                {active && single && (
                   <motion.span
                     layoutId="activeCatPill"
                     className="absolute inset-0 rounded-full bg-primary shadow-sm"
                     transition={{ type: "spring", stiffness: 500, damping: 35, duration: 0.2 }}
                   />
                 )}
+                {active && !single && (
+                  <span className="absolute inset-0 rounded-full bg-primary shadow-sm" />
+                )}
                 <span className="relative z-10 flex items-center gap-1.5">
                   <c.icon size={16} />
                   {lang === "ar" ? c.ar : c.en}
+                  {active && !single && c.id !== "all" && (
+                    <span className="inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-primary-foreground/20 text-[10px] font-bold leading-none">
+                      {categories.length}
+                    </span>
+                  )}
                 </span>
               </button>
             );

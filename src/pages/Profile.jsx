@@ -11,6 +11,7 @@ import BoostItemDialog from "@/components/BoostItemDialog";
 import WebsiteLinkDialog from "@/components/WebsiteLinkDialog";
 import BlockedUsersDialog from "@/components/BlockedUsersDialog";
 import RecentlyViewedDialog from "@/components/RecentlyViewedDialog";
+import DeleteAccountDialog from "@/components/DeleteAccountDialog";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -63,6 +64,7 @@ export default function Profile() {
   const [pushSaving, setPushSaving] = useState(false);
   const [blockedOpen, setBlockedOpen] = useState(false);
   const [recentOpen, setRecentOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState(new Set());
 
@@ -260,7 +262,6 @@ export default function Profile() {
   };
 
   const deleteAccount = async () => {
-    if (!window.confirm(t("deleteAccountConfirm"))) return;
     setDeleting(true);
     try {
       await base44.functions.invoke("deleteAccount", {});
@@ -710,9 +711,8 @@ export default function Profile() {
         <button onClick={() => logout()} className="flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-card border border-border/60 font-semibold text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition">
           <LogOut size={18} /> {t("logout")}
         </button>
-        <button onClick={deleteAccount} disabled={deleting} className="flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-rose-600 text-white font-semibold text-sm hover:bg-rose-700 transition disabled:opacity-50">
-          {deleting ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
-          {deleting ? t("deletingAccount") : t("deleteAccount")}
+        <button onClick={() => setDeleteOpen(true)} className="flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-rose-600 text-white font-semibold text-sm hover:bg-rose-700 transition">
+          <Trash2 size={18} /> {t("deleteAccount")}
         </button>
       </div>
 
@@ -735,6 +735,7 @@ export default function Profile() {
       <WebsiteLinkDialog open={websiteOpen} onClose={() => setWebsiteOpen(false)} />
       <BlockedUsersDialog open={blockedOpen} onClose={() => setBlockedOpen(false)} />
       <RecentlyViewedDialog open={recentOpen} onClose={() => setRecentOpen(false)} />
+      <DeleteAccountDialog open={deleteOpen} onClose={() => setDeleteOpen(false)} onConfirm={deleteAccount} loading={deleting} />
       <VerificationDialog open={verificationOpen} onClose={() => setVerificationOpen(false)} />
     </div>
     </PullToRefresh>

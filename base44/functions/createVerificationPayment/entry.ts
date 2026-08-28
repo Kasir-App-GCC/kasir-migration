@@ -76,8 +76,12 @@ export default async function(req: Request): Promise<Response> {
         // so the badge is granted even if the user closes the popup before the
         // client confirm lands.
         callback_url: `${origin}/functions/confirmVerificationPayment`,
-        // No success_url: the popup stays on Moyasar's "invoice paid" page and
-        // the app closes it via polling (same as donations) — no in-app redirect.
+        // success_url is the user-facing redirect after payment. We embed our
+        // own verification request id (`vr`) so the Profile page can confirm
+        // even if Moyasar appends no id of its own to the redirect URL (mobile
+        // popup-blocked → full redirect flow). Moyasar also appends
+        // `?id=<payment_id>` which Profile reads as the primary `paymentId`.
+        success_url: `${origin}/profile?verify_payment=1&vr=${pending.id}`,
         back_url: `${origin}/profile`,
         metadata: {
           type: 'verification',

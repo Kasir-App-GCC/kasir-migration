@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Settings, Star, Heart, Tag, Sun, Moon, Monitor, LogOut, ChevronRight, Trash2, Pencil, LifeBuoy, Shield, BadgeCheck, RefreshCw, Info, Loader2, Building2, FileText, Rocket, Ban, CheckSquare, Square, Eye } from "lucide-react";
 import VerificationDialog from "@/components/VerificationDialog";
 import RealEstateLicenseDialog from "@/components/RealEstateLicenseDialog";
@@ -102,54 +102,94 @@ export default function Profile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Handle the redirect back from Moyasar after the verification payment.
-  // Moyasar appends ?payment_id=xxx to the callback_url on return.
+  // React to deep-link query params (?pay_sponsor, ?open_license, ?verify_payment)
+  // whenever the URL changes — including when already on /profile — so notification
+  // deep links open their dialogs even without a fresh mount.
+  const location = useLocation();
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    // Moyasar appends the payment/invoice `id` as a query parameter after redirect.
-    if (!params.get("verify_payment") || !params.get("id")) return;
-    setVerifyingPayment(true);
-    base44.functions.invoke("confirmVerificationPayment", { paymentId: params.get("id") })
-      .then(async (res) => {
-        if (res?.data?.ok) {
-          toast({ title: ar ? "تم توثيق حسابك! 🎉" : "Account verified! 🎉" });
-          await refreshUser();
-        } else {
-          toast({ title: ar ? "لم يكتمل الدفع بعد" : "Payment not completed yet", variant: "destructive" });
-        }
-      })
-      .catch(() => toast({ title: ar ? "فشل التحقق من الدفع" : "Payment verification failed", variant: "destructive" }))
-      .finally(() => {
-        setVerifyingPayment(false);
-        params.delete("verify_payment");
-        params.delete("id");
-        window.history.replaceState({}, "", window.location.pathname + (params.toString() ? "?" + params.toString() : ""));
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const params = new URLSearchParams(location.search);
+    let changed = false;
 
-  // Open the Real Estate License dialog when navigated here with ?open_license=1
-  // (e.g. from the "approved — pay 49 SAR" notification).
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    const sid = params.get("pay_sponsor");
+    if (sid) {
+      // Auto-confirm in case this is a redirect back from Moyasar (mobile
+      // popup-blocked → full redirect flow). If the payment isn't complete yet
+      // (user clicked the "pay now" notification before paying), this silently
+      // no-ops and the dialog opens so the user can pay.
+      base44.functions.invoke("confirmSponsorPayment", { requestId: sid })
+        .then(async (res) => {
+          if (res?.data?.ok) toast({ title: ar ? "تم تفعيل الرعاية 🚀" : "Sponsorship activated 🚀" });
+        })
+        .catch(() => {});
+      setSponsorPayId(sid);
+      params.delete("pay_sponsor");
+      params.delete("id");
+      params.delete("paid");
+      changed = true;
+    }
+
     if (params.get("open_license") === "1") {
       setReLicenseOpen(true);
       params.delete("open_license");
-      window.history.replaceState({}, "", window.location.pathname + (params.toString() ? "?" + params.toString() : ""));
+      changed = true;
     }
-  }, []);
 
-  // Open the Sponsor payment dialog when navigated here with ?pay_sponsor=<id>
-  // (from the "sponsor approved — pay now" notification / Moyasar success_url).
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const sid = params.get("pay_sponsor");
-    if (sid) {
-      setSponsorPayId(sid);
-      params.delete("pay_sponsor");
+    if (params.get("verify_payment")) {
+      // Redirect back from Moyasar after a verification payment. Prefer
+      // Moyasar's appended `id` (the payment id); fall back to our own embedded
+      // `vr` (the verification request id) so confirmation works regardless of
+      // what Moyasar appends to the redirect URL.
+      const moyasarId = params.get("id");
+      const vr = params.get("vr");
+      const ref = moyasarId ? { paymentId: moyasarId } : vr ? { verificationRequestId: vr } : null;
+      if (ref) {
+        setVerifyingPayment(true);
+        base44.functions.invoke("confirmVerificationPayment", ref)
+          .then(async (res) => {
+            if (res?.data?.ok) {
+              toast({ title: ar ? "تم توثيق حسابك! 🎉" : "Account verified! 🎉" });
+              await refreshUser();
+            } else {
+              toast({ title: ar ? "لم يكتمل الدفع بعد" : "Payment not completed yet", variant: "destructive" });
+            }
+          })
+          .catch(() => toast({ title: ar ? "فشل التحقق من الدفع" : "Payment verification failed", variant: "destructive" }))
+          .finally(() => setVerifyingPayment(false));
+      }
+      params.delete("verify_payment");
+      params.delete("id");
+      params.delete("vr");
+      changed = true;
+    }
+
+    if (params.get("broker_payment")) {
+      // Redirect back from Moyasar after the broker activation fee. Moyasar
+      // appends `?id=<payment_id>` which we pass to confirmBrokerPayment.
+      const moyasarId = params.get("id");
+      if (moyasarId) {
+        setVerifyingPayment(true);
+        base44.functions.invoke("confirmBrokerPayment", { paymentId: moyasarId })
+          .then(async (res) => {
+            if (res?.data?.ok) {
+              toast({ title: ar ? "تم تفعيل شارة الوسيط العقاري 🎉" : "Broker badge activated 🎉" });
+              await refreshUser();
+            } else {
+              toast({ title: ar ? "لم يكتمل الدفع بعد" : "Payment not completed yet", variant: "destructive" });
+            }
+          })
+          .catch(() => toast({ title: ar ? "فشل التحقق من الدفع" : "Payment verification failed", variant: "destructive" }))
+          .finally(() => setVerifyingPayment(false));
+      }
+      params.delete("broker_payment");
+      params.delete("id");
+      changed = true;
+    }
+
+    if (changed) {
       window.history.replaceState({}, "", window.location.pathname + (params.toString() ? "?" + params.toString() : ""));
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   useEffect(() => {
     loadAll();

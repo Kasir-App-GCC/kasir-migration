@@ -488,9 +488,13 @@ export default function ItemDetail() {
             <CheckCircle size={15} /> {t("sold")}
           </div>
         )}
-        {item.website_url && (
+        {item.website_url && (() => {
+          let url;
+          try { url = new URL(item.website_url); } catch { return null; }
+          if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+          return (
           <a
-            href={item.website_url}
+            href={url.href}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-3 flex items-center gap-3 p-3 rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 text-white hover:from-sky-600 hover:to-blue-700 transition active:scale-[0.99]"
@@ -500,11 +504,12 @@ export default function ItemDetail() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold">{lang === "ar" ? "متوفر على موقع البائع" : "Available on the seller's website"}</p>
-              <p className="text-xs opacity-90 truncate" dir="ltr">{item.website_url.replace(/^https?:\/\//i, "")}</p>
+              <p className="text-xs opacity-90 truncate" dir="ltr">{url.href.replace(/^https?:\/\//i, "")}</p>
             </div>
             <ExternalLink size={18} className="shrink-0 opacity-90" />
           </a>
-        )}
+          );
+        })()}
       </div>
 
       {isOwner && item.featured && item.featured_until && new Date(item.featured_until) > new Date() && (

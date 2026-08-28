@@ -58,6 +58,21 @@ export default async function(req: Request): Promise<Response> {
           paid = true;
           metadata = payData.metadata || null;
           resolvedPaymentId = payData.id;
+          // Moyasar stores our metadata on the INVOICE, not the payment object
+          // the hosted checkout creates. If the payment lacks the verification
+          // request id, join back to the invoice via invoice_id to recover it.
+          if (!metadata?.verification_request_id) {
+            const invIdToFetch = payData.invoice_id || paymentId;
+            try {
+              const invRes2 = await fetch('https://api.moyasar.com/v1/invoices/' + String(invIdToFetch), {
+                headers: { Authorization: authHeader },
+              });
+              if (invRes2.ok) {
+                const invData2 = await invRes2.json();
+                if (invData2.metadata) metadata = { ...(invData2.metadata || {}), ...(metadata || {}) };
+              }
+            } catch {}
+          }
         }
       } else {
         const invRes = await fetch('https://api.moyasar.com/v1/invoices/' + paymentId, {

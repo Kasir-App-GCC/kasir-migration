@@ -124,10 +124,6 @@ export async function fetchSellerInfos(userIds) {
   return out;
 }
 
-export async function fetchTrusted(userId) {
-  return (await fetchSellerInfo(userId)).trusted;
-}
-
 // Update a seller's cached profile and notify mounted hooks so the verified
 // badge appears instantly on already-mounted cards. If `patch` is omitted the
 // entry is deleted (next read re-fetches); otherwise the entry is updated in
@@ -141,19 +137,6 @@ export function invalidateSellerCache(userId, patch) {
     cache.delete(userId);
   }
   notify(userId);
-}
-
-export function useTrusted(userId) {
-  const [trusted, setTrusted] = useState(() => (userId && getCached(userId) ? getCached(userId).trusted : false));
-  useEffect(() => {
-    if (!userId) return;
-    const cached = getCached(userId);
-    if (cached) { setTrusted(cached.trusted); return; }
-    let active = true;
-    fetchSellerInfo(userId).then((info) => { if (active) setTrusted(info.trusted); });
-    return () => { active = false; };
-  }, [userId]);
-  return trusted;
 }
 
 // Returns the full cached seller info: { trusted, rating, count }.

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
 import { base44Analytics } from "@/lib/analytics";
@@ -56,7 +56,7 @@ export function StoreProvider({ children }) {
   const [subcategories, setSubcategories] = useState([]);
 
   // The signed-in user comes from the platform's built-in auth (Google / etc.)
-  const user = auth.user
+  const user = useMemo(() => auth.user
     ? {
         id: auth.user.id,
         name:
@@ -91,7 +91,7 @@ export function StoreProvider({ children }) {
         re_license_link: auth.user.re_license_link || null,
         re_license_doc: auth.user.re_license_doc || null,
       }
-    : null;
+    : null, [auth.user]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -134,9 +134,9 @@ export function StoreProvider({ children }) {
   }, [country]);
   useEffect(() => localStorage.setItem("souqi_tabstack", JSON.stringify(tabStack)), [tabStack]);
 
-  const setTheme = (t) => setThemeState(t);
-  const setLang = (l) => setLangState(l);
-  const toggleFavorite = (id) => {
+  const setTheme = useCallback((t) => setThemeState(t), []);
+  const setLang = useCallback((l) => setLangState(l), []);
+  const toggleFavorite = useCallback((id) => {
     const isFav = favorites.includes(id);
     setFavorites((f) => (isFav ? f.filter((x) => x !== id) : [...f, id]));
     // Best-effort per-listing save count for the seller analytics dashboard.
@@ -146,50 +146,50 @@ export function StoreProvider({ children }) {
       if (isFav) base44.entities.Favorite.deleteMany({ user_id: user.id, item_id: id }).catch(() => {});
       else { base44.entities.Favorite.create({ user_id: user.id, item_id: id }).catch(() => {}); base44Analytics.favoriteAdded(id); }
     }
-  };
-  const setPrefs = (patch) => setPrefsState((p) => ({ ...p, ...patch }));
-  const clearFavorites = () => setFavorites([]);
-  const setLastChatsSeen = (val) => setLastChatsSeenState(val);
-  const setNotifsClearedAt = (val) => setNotifsClearedAtState(val);
-  const setCountry = (c) => {
+  }, [favorites, user?.id]);
+  const setPrefs = useCallback((patch) => setPrefsState((p) => ({ ...p, ...patch })), []);
+  const clearFavorites = useCallback(() => setFavorites([]), []);
+  const setLastChatsSeen = useCallback((val) => setLastChatsSeenState(val), []);
+  const setNotifsClearedAt = useCallback((val) => setNotifsClearedAtState(val), []);
+  const setCountry = useCallback((c) => {
     setCountryState(c);
     setLocationFilter({ mode: "city", city: null, radius: 25 });
-  };
+  }, []);
   const setTabEntry = useCallback((tab, entry) => {
     setTabStack((s) => (s[tab] ? { ...s, [tab]: { ...s[tab], ...entry } } : s));
   }, []);
-  const logout = () => auth.logout(true);
+  const logout = useCallback(() => auth.logout(true), [auth]);
+
+  const value = useMemo(() => ({
+    user,
+    theme,
+    setTheme,
+    lang,
+    setLang,
+    favorites,
+    toggleFavorite,
+    locationFilter,
+    setLocationFilter,
+    prefs,
+    setPrefs,
+    clearFavorites,
+    lastChatsSeen,
+    setLastChatsSeen,
+    notifsClearedAt,
+    setNotifsClearedAt,
+    country: country || "SA",
+    setCountry,
+    tabStack,
+    setTabEntry,
+    categories,
+    setCategories,
+    subcategories,
+    setSubcategories,
+    logout,
+  }), [user, theme, setTheme, lang, setLang, favorites, toggleFavorite, locationFilter, prefs, setPrefs, clearFavorites, lastChatsSeen, setLastChatsSeen, notifsClearedAt, setNotifsClearedAt, country, setCountry, tabStack, setTabEntry, categories, subcategories, logout]);
 
   return (
-    <StoreContext.Provider
-      value={{
-        user,
-        theme,
-        setTheme,
-        lang,
-        setLang,
-        favorites,
-        toggleFavorite,
-        locationFilter,
-        setLocationFilter,
-        prefs,
-        setPrefs,
-        clearFavorites,
-        lastChatsSeen,
-        setLastChatsSeen,
-        notifsClearedAt,
-        setNotifsClearedAt,
-        country: country || "SA",
-        setCountry,
-        tabStack,
-        setTabEntry,
-        categories,
-        setCategories,
-        subcategories,
-        setSubcategories,
-        logout,
-      }}
-    >
+    <StoreContext.Provider value={value}>
       {children}
     </StoreContext.Provider>
   );

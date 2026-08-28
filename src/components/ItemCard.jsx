@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, memo } from "react";
 import { Heart, MapPin, Clock, ChevronLeft, ChevronRight, Star, BadgeCheck, Sparkles, Earth, Truck, Rocket } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -9,7 +9,7 @@ import { useSellerInfo } from "@/lib/useTrusted";
 import { Image } from "@/components/ui/image";
 import TrustedBadge from "@/components/TrustedBadge";
 
-export default function ItemCard({ item, onClick, promoted = false, refreshButton = null }) {
+function ItemCard({ item, onClick, promoted = false, refreshButton = null, sellerInfo: sellerInfoProp }) {
   const { lang, favorites, toggleFavorite } = useStore();
   const t = useT();
   const [idx, setIdx] = useState(0);
@@ -21,7 +21,11 @@ export default function ItemCard({ item, onClick, promoted = false, refreshButto
     : ["https://picsum.photos/seed/" + encodeURIComponent(item.title || item.id) + "/600/600"];
   const cond = getCondition(item.condition);
   const multi = imgs.length > 1;
-  const sellerInfo = useSellerInfo(item.seller_id);
+  // Use the batch-fetched seller info passed from the feed when available;
+  // only fall back to the per-card subscription when no prop is provided
+  // (e.g. standalone renders outside the main feed).
+  const hookInfo = useSellerInfo(sellerInfoProp ? null : item.seller_id);
+  const sellerInfo = sellerInfoProp || hookInfo;
   const crossCountryActive = item.featured_cross_country && item.featured_until && new Date(item.featured_until) > new Date();
   const sponsored = item.admin_sponsored && item.admin_sponsored_until && new Date(item.admin_sponsored_until) > new Date();
 
@@ -189,3 +193,5 @@ export default function ItemCard({ item, onClick, promoted = false, refreshButto
     </div>
   );
 }
+
+export default memo(ItemCard);

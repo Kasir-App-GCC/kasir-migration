@@ -272,25 +272,27 @@ export default function Home() {
   }), [items, categories, subcategories, prefs.showSold, locationFilter, country]);
   // Admin-sponsored items are pinned to the very top of the grid, ahead of the
   // normal created_date ordering, and de-duplicated against the regular feed.
-  const sponsored = sponsoredItems.filter((it) => {
+  const sponsored = useMemo(() => sponsoredItems.filter((it) => {
     if (!prefs.showSold && it.status === "sold") return false;
     if (it.admin_sponsored_until && new Date(it.admin_sponsored_until).getTime() < Date.now()) return false;
     if (it.country !== country) return false;
     if (categories.length && !categories.includes(it.category)) return false;
     if (subcategories.length && !(Array.isArray(it.subcategory) ? it.subcategory.some((s) => subcategories.includes(s)) : subcategories.includes(it.subcategory))) return false;
     return matchLocation(it, locationFilter, country);
-  });
-  const sponsoredIds = new Set(sponsored.map((it) => it.id));
+  }), [sponsoredItems, prefs.showSold, country, categories, subcategories, locationFilter]);
+  const sponsoredIds = useMemo(() => new Set(sponsored.map((it) => it.id)), [sponsored]);
   const ordered = useMemo(() => [...sponsored, ...filtered.filter((it) => !sponsoredIds.has(it.id))], [sponsored, filtered, sponsoredIds]);
-  const now = Date.now();
-  const featured = useMemo(() => featuredItems.filter((it) => {
-    if (it.status === "sold") return false;
-    if (it.featured_until && new Date(it.featured_until).getTime() < now) return false;
-    if (it.country !== country) return false;
-    if (categories.length && !categories.includes(it.category)) return false;
-    if (subcategories.length && !(Array.isArray(it.subcategory) ? it.subcategory.some((s) => subcategories.includes(s)) : subcategories.includes(it.subcategory))) return false;
-    return matchLocation(it, locationFilter, country);
-  }), [featuredItems, now, country, categories, subcategories, locationFilter]);
+  const featured = useMemo(() => {
+    const now = Date.now();
+    return featuredItems.filter((it) => {
+      if (it.status === "sold") return false;
+      if (it.featured_until && new Date(it.featured_until).getTime() < now) return false;
+      if (it.country !== country) return false;
+      if (categories.length && !categories.includes(it.category)) return false;
+      if (subcategories.length && !(Array.isArray(it.subcategory) ? it.subcategory.some((s) => subcategories.includes(s)) : subcategories.includes(it.subcategory))) return false;
+      return matchLocation(it, locationFilter, country);
+    });
+  }, [featuredItems, country, categories, subcategories, locationFilter]);
   const showFeatured = featured.length > 0;
 
   return (

@@ -52,6 +52,10 @@ export default async function(req: Request): Promise<Response> {
         currency: 'SAR',
         description: 'رسوم تفعيل شارة الوسيط العقاري - كاسر',
         callback_url: `${origin}/functions/confirmBrokerPayment`,
+        // success_url returns the user to the profile after paying on mobile
+        // (where the popup may be blocked). The invoice id is read from
+        // sessionStorage (set by the client before redirecting) to confirm.
+        success_url: `${origin}/profile?broker_payment=1`,
         back_url: `${origin}/profile`,
         metadata: {
           type: 'broker_fee',

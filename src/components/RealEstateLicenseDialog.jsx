@@ -91,13 +91,16 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
       if (res?.data?.error) throw new Error(res.data.error);
       if (!res?.data?.url) throw new Error(ar ? "لم يتم إنشاء رابط الدفع" : "No payment URL returned");
       const invoiceId = extractInvoiceId(res.data.url);
+      // Stash the invoice id so the profile page can confirm after a mobile
+      // redirect return (popup blocked → Moyasar redirects to success_url).
+      try { sessionStorage.setItem("broker_invoice_id", invoiceId); } catch {}
       setPayUrl(res.data.url);
       popup.start({
         url: res.data.url,
         invoiceId,
-        onSuccess: async (r) => {
+        onSuccess: async () => {
           try {
-            await base44.functions.invoke("confirmBrokerPayment", { paymentId: r.payment_id || invoiceId, invoiceId });
+            await base44.functions.invoke("confirmBrokerPayment", { invoiceId });
             await refreshUser();
             toast({ title: ar ? "تم تفعيل شارة الوسيط العقاري 🎉" : "Broker badge activated 🎉" });
           } catch (e) {

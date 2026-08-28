@@ -2,12 +2,17 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { secrets } from 'base44:runtime';
 
 // Grants the trusted badge after a verification payment. Two entry points:
-//   1. Client invoke after the popup polling detects "paid": { paymentId }.
-//   2. Moyasar invoice webhook (POST body = the invoice object): the
-//      callback_url points here, so the badge is granted server-side even if
-//      the user closes the popup before the client confirm lands. The webhook
-//      is verified by re-fetching the invoice from Moyasar with the secret key
-//      — a forged body without a real paid invoice grants nothing.
+//   1. Client invoke after the popup polling detects "paid": { verificationRequestId }
+//      — looks up the local VerificationRequest, reads the invoice id from
+//      payment_receipt_url ("moyasar:<invoice_id>"), fetches the invoice directly
+//      from Moyasar, and reads the metadata from the invoice (where Moyasar
+//      stores it for hosted-checkout payments). This mirrors the boost flow and
+//      avoids the fragile payment-first lookup (payment objects often have
+//      empty metadata). Also accepts { invoiceId } for the redirect-return case.
+//   2. Moyasar invoice webhook (POST body = the invoice object): the callback_url
+//      points here, so the badge is granted server-side even if the user closes
+//      the popup before the client confirm lands. Verified by re-fetching the
+//      invoice from Moyasar with the secret key — a forged body grants nothing.
 export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
@@ -33,6 +38,7 @@ export default async function(req: Request): Promise<Response> {
       metadata = invData.metadata || paidPayment.metadata || null;
       resolvedPaymentId = paidPayment.id;
     } else if (isPaymentWebhook) {
+      // Re-fetch the payment to verify (forged body grants nothing).
       const payRes = await fetch('https://api.moyasar.com/v1/payments/' + String(body.id), {
         headers: { Authorization: authHeader },
       });
@@ -41,58 +47,68 @@ export default async function(req: Request): Promise<Response> {
       if (payData.status !== 'paid') return Response.json({ ok: false, error: 'Payment not completed' });
       metadata = payData.metadata || null;
       resolvedPaymentId = String(payData.id);
+      // Metadata lives on the invoice — join back to recover verification_request_id.
+      if (payData.invoice_id) {
+        try {
+          const invRes = await fetch('https://api.moyasar.com/v1/invoices/' + String(payData.invoice_id), {
+            headers: { Authorization: authHeader },
+          });
+          if (invRes.ok) {
+            const invData = await invRes.json();
+            if (invData.metadata) metadata = { ...(invData.metadata || {}), ...(metadata || {}) };
+          }
+        } catch {}
+      }
     } else {
+      // Client confirm. Preferred: verificationRequestId (local record → invoice).
+      // Also accept invoiceId directly (redirect return / back compat).
       const user = await base44.auth.me();
       if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-      const paymentId = (body.paymentId || '').trim();
-      if (!paymentId) return Response.json({ error: 'Missing payment ID' }, { status: 400 });
+      const verificationRequestId = (body.verificationRequestId || '').trim();
+      const invoiceIdParam = (body.invoiceId || body.paymentId || '').trim();
 
-      let paid = false;
-      const payRes = await fetch('https://api.moyasar.com/v1/payments/' + paymentId, {
-        headers: { Authorization: authHeader },
-      });
-      if (payRes.ok) {
-        const payData = await payRes.json();
-        if (payData.status === 'paid') {
-          paid = true;
-          metadata = payData.metadata || null;
-          resolvedPaymentId = payData.id;
-          // Moyasar stores our metadata on the INVOICE, not the payment object
-          // the hosted checkout creates. If the payment lacks the verification
-          // request id, join back to the invoice via invoice_id to recover it.
-          if (!metadata?.verification_request_id) {
-            const invIdToFetch = payData.invoice_id || paymentId;
-            try {
-              const invRes2 = await fetch('https://api.moyasar.com/v1/invoices/' + String(invIdToFetch), {
-                headers: { Authorization: authHeader },
-              });
-              if (invRes2.ok) {
-                const invData2 = await invRes2.json();
-                if (invData2.metadata) metadata = { ...(invData2.metadata || {}), ...(metadata || {}) };
-              }
-            } catch {}
+      // Early idempotency: if we have a local request id, check it first —
+      // an already-approved request means the badge was already granted, so
+      // we short-circuit before hitting Moyasar (the receipt_url stores the
+      // payment id after approval, not the invoice id).
+      if (verificationRequestId) {
+        try {
+          const vr = await base44.asServiceRole.entities.VerificationRequest.get(verificationRequestId);
+          if (vr && vr.status === 'approved') {
+            return Response.json({ ok: true, verified: true, already: true });
           }
-        }
-      } else {
-        const invRes = await fetch('https://api.moyasar.com/v1/invoices/' + paymentId, {
-          headers: { Authorization: authHeader },
-        });
-        if (invRes.ok) {
-          const invData = await invRes.json();
-          const paidPayment = (invData.payments || []).find((p) => p.status === 'paid');
-          if (paidPayment) {
-            paid = true;
-            resolvedPaymentId = paidPayment.id;
-            metadata = invData.metadata || paidPayment.metadata || null;
-          }
-        } else {
-          const invData = await invRes.json().catch(() => ({}));
-          return Response.json({ error: invData?.message || 'Payment lookup failed' }, { status: 400 });
-        }
+        } catch {}
       }
 
-      if (!paid) return Response.json({ ok: false, error: 'Payment not completed' });
+      let lookupInvoiceId = invoiceIdParam;
+
+      // Resolve the invoice id from the local VerificationRequest record —
+      // same pattern as the boost flow (local id → receipt_url → invoice).
+      if (!lookupInvoiceId && verificationRequestId) {
+        try {
+          const vr = await base44.asServiceRole.entities.VerificationRequest.get(verificationRequestId);
+          if (vr?.payment_receipt_url && String(vr.payment_receipt_url).startsWith('moyasar:')) {
+            lookupInvoiceId = String(vr.payment_receipt_url).slice('moyasar:'.length);
+          }
+        } catch {}
+      }
+
+      if (!lookupInvoiceId) return Response.json({ error: 'Missing payment reference' }, { status: 400 });
+
+      // Fetch the invoice directly — metadata lives here, not on the payment.
+      const invRes = await fetch('https://api.moyasar.com/v1/invoices/' + lookupInvoiceId, {
+        headers: { Authorization: authHeader },
+      });
+      if (!invRes.ok) {
+        const invData = await invRes.json().catch(() => ({}));
+        return Response.json({ error: invData?.message || 'Invoice lookup failed' }, { status: 400 });
+      }
+      const invData = await invRes.json();
+      const paidPayment = (invData.payments || []).find((p) => p.status === 'paid');
+      if (!paidPayment) return Response.json({ ok: false, error: 'Payment not completed' });
+      metadata = invData.metadata || paidPayment.metadata || null;
+      resolvedPaymentId = paidPayment.id;
 
       // Ownership: the invoice metadata carries the user_id set at checkout.
       const metaUserId = metadata?.user_id ? String(metadata.user_id) : '';

@@ -93,13 +93,14 @@ export default function VerificationDialog({ open, onClose }) {
       if (!res?.data?.url) throw new Error(ar ? "لم يتم إنشاء رابط الدفع" : "No payment URL returned");
       setSubmitting(false);
       const invoiceId = extractInvoiceId(res.data.url);
+      const verificationRequestId = res.data.requestId;
       setPayUrl(res.data.url);
       popup.start({
         url: res.data.url,
         invoiceId,
         onSuccess: async (r) => {
           try {
-            await base44.functions.invoke("confirmVerificationPayment", { paymentId: invoiceId || r.payment_id });
+            await base44.functions.invoke("confirmVerificationPayment", { verificationRequestId, invoiceId });
             toast({ title: ar ? "تم توثيق حسابك 🎉" : "Account verified 🎉" });
             await refreshUser();
           } catch (e) {

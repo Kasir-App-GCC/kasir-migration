@@ -107,9 +107,9 @@ export default function Profile() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     // Moyasar appends the payment/invoice `id` as a query parameter after redirect.
-    if (!params.get("verify_payment") || !params.get("id")) return;
+    if (!params.get("verify_payment") || !params.get("vrid")) return;
     setVerifyingPayment(true);
-    base44.functions.invoke("confirmVerificationPayment", { paymentId: params.get("id") })
+    base44.functions.invoke("confirmVerificationPayment", { verificationRequestId: params.get("vrid") })
       .then(async (res) => {
         if (res?.data?.ok) {
           toast({ title: ar ? "تم توثيق حسابك! 🎉" : "Account verified! 🎉" });
@@ -122,7 +122,7 @@ export default function Profile() {
       .finally(() => {
         setVerifyingPayment(false);
         params.delete("verify_payment");
-        params.delete("id");
+        params.delete("vrid");
         window.history.replaceState({}, "", window.location.pathname + (params.toString() ? "?" + params.toString() : ""));
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -149,6 +149,32 @@ export default function Profile() {
       params.delete("pay_sponsor");
       window.history.replaceState({}, "", window.location.pathname + (params.toString() ? "?" + params.toString() : ""));
     }
+  }, []);
+
+  // Handle the redirect back from Moyasar after the broker badge payment
+  // (mobile: popup blocked → Moyasar redirects to success_url). The invoice id
+  // was stashed in sessionStorage by the license dialog before redirecting.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("broker_payment") !== "1") return;
+    const invoiceId = sessionStorage.getItem("broker_invoice_id");
+    if (!invoiceId) { params.delete("broker_payment"); window.history.replaceState({}, "", window.location.pathname); return; }
+    setVerifyingPayment(true);
+    base44.functions.invoke("confirmBrokerPayment", { invoiceId })
+      .then(async (res) => {
+        if (res?.data?.ok) {
+          toast({ title: ar ? "تم تفعيل شارة الوسيط العقاري 🎉" : "Broker badge activated 🎉" });
+          await refreshUser();
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        setVerifyingPayment(false);
+        sessionStorage.removeItem("broker_invoice_id");
+        params.delete("broker_payment");
+        window.history.replaceState({}, "", window.location.pathname + (params.toString() ? "?" + params.toString() : ""));
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -284,8 +310,8 @@ export default function Profile() {
 
       <SellerDashboard myListings={publishedListings} ratings={ratings} />
 
-      {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-muted rounded-2xl">
+      {/* Tabs — horizontally scrollable on mobile so all 6 tabs fit */}
+      <div className="flex gap-1 p-1 bg-muted rounded-2xl overflow-x-auto no-scrollbar">
         {[
           { id: "listings", label: t("myListings"), count: publishedListings.length },
           { id: "drafts", label: t("drafts"), count: draftItems.length },
@@ -297,7 +323,7 @@ export default function Profile() {
           <button
             key={tb.id}
             onClick={() => { setTab(tb.id); setSelectMode(false); setSelected(new Set()); }}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition ${tab === tb.id ? "bg-card shadow-sm" : "text-muted-foreground"}`}
+            className={`shrink-0 px-3.5 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition ${tab === tb.id ? "bg-card shadow-sm" : "text-muted-foreground"}`}
           >
             {tb.label} <span className="opacity-60">({tb.count})</span>
           </button>

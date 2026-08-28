@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Heart, Loader2, Sparkles } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -127,6 +127,17 @@ export default function About() {
   const [payUrl, setPayUrl] = useState("");
   const [payAmount, setPayAmount] = useState(0);
   const popup = usePopupPayment();
+
+  // Show a thank-you toast when returning from a successful donation redirect.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("donation") === "success") {
+      toast({ title: ar ? "شكراً لدعمك 🌿" : "Thank you for your support 🌿" });
+      params.delete("donation");
+      window.history.replaceState({}, "", window.location.pathname + (params.toString() ? "?" + params.toString() : ""));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const donate = async () => {
     const amt = custom ? parseFloat(custom) : selected;

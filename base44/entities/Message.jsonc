@@ -32,6 +32,10 @@
     },
     "offer_id": {
       "type": "string"
+    },
+    "reactions": {
+      "type": "object",
+      "description": "Map of emoji -> array of user IDs who reacted with that emoji. e.g. { \"\ud83d\udc4d\": [\"user1\", \"user2\"] }. Kept lightweight \u2014 only stores user IDs, not names."
     }
   },
   "required": [

@@ -15,6 +15,9 @@ const recentItemViews = new Map<string, number>();
 const WINDOW_MS = 60_000;
 const MAX_PER_WINDOW = 20;
 const DEDUPE_MS = 30_000;
+// Prune expired entries periodically to prevent unbounded memory growth.
+const PRUNE_INTERVAL_MS = 5 * 60 * 1000;
+let lastPrune = 0;
 
 function clientIp(req: Request): string {
   const fwd = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "";
@@ -31,6 +34,18 @@ export default async function (req) {
     // Rate limit by IP to curb artificial inflation via the public URL.
     const ip = clientIp(req);
     const now = Date.now();
+    // Periodic pruning: remove expired entries from both Maps to prevent
+    // unbounded memory growth on long-lived instances.
+    if (now - lastPrune > PRUNE_INTERVAL_MS) {
+      lastPrune = now;
+      for (const [k, ts] of ipHits) {
+        const filtered = ts.filter((t) => now - t < WINDOW_MS);
+        if (filtered.length) ipHits.set(k, filtered); else ipHits.delete(k);
+      }
+      for (const [k, t] of recentItemViews) {
+        if (now - t > 24 * 60 * 60 * 1000) recentItemViews.delete(k);
+      }
+    }
     const hits = (ipHits.get(ip) || []).filter((t) => now - t < WINDOW_MS);
     if (hits.length >= MAX_PER_WINDOW) {
       return Response.json({ ok: true, counted: false, reason: "rate_limited" });

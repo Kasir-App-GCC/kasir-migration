@@ -29,10 +29,33 @@ export default async function (req) {
       try { return await base44.entities.Offer.get(id); } catch { return null; }
     };
 
+    // Cap offer amounts to a sane maximum to prevent absurd values cluttering
+    // the offer feed (1 billion SAR is well beyond any plausible GCC listing).
+    const MAX_OFFER_AMOUNT = 1_000_000_000;
+
+    // Create a notification to the other party via the service role. Bilingual
+    // text so both Arabic and English users see a readable message. All
+    // offer-related notifications are created here (server-side) so the
+    // Notification entity's admin-only create RLS doesn't block them.
+    const notify = (targetId, type, text, offer) => {
+      if (!targetId) return;
+      base44.asServiceRole.entities.Notification.create({
+        user_id: targetId,
+        type,
+        text,
+        item_id: offer?.item_id || null,
+        item_title: offer?.item_title || "",
+        item_image: null,
+        chatroom_id: offer?.chatroom_id || null,
+        offer_amount: offer?.amount || null,
+      }).catch(() => {});
+    };
+
     // ---- CREATE (initial buyer offer, or seller counter on a Buy Request) ----
     if (action === "create") {
       const amount = Number(body.amount);
       if (!amount || amount <= 0) return Response.json({ error: "Invalid amount" }, { status: 400 });
+      if (amount > MAX_OFFER_AMOUNT) return Response.json({ error: "Amount too large" }, { status: 400 });
       const direction = body.direction === "seller_counter" ? "seller_counter" : "buyer_offer";
       const buyerId = String(body.buyer_id || "");
       const sellerId = String(body.seller_id || "");
@@ -97,6 +120,12 @@ export default async function (req) {
           });
         } catch {}
       }
+      // Notify the recipient of the new offer.
+      if (direction === "buyer_offer") {
+        notify(sellerId, "offer_received", `عرض جديد على "${created.item_title || ""}" · New offer on "${created.item_title || ""}"`, created);
+      } else {
+        notify(buyerId, "offer_countered", `عارضة من البائع · Seller counter offer`, created);
+      }
       return Response.json({ ok: true, offer: created });
     }
 
@@ -122,6 +151,9 @@ export default async function (req) {
         }
       }
       const updated = await offers.update(offerId, { status: "accepted" });
+      // Notify the initiator that their offer was accepted.
+      const acceptTarget = String(initiator) === String(offer.buyer_id) ? offer.buyer_id : offer.seller_id;
+      notify(acceptTarget, "offer_accepted", `تم قبول عرضك · Your offer was accepted`, updated);
       return Response.json({ ok: true, offer: updated, is_mod_acceptance: !!isMod });
     }
 
@@ -129,6 +161,7 @@ export default async function (req) {
       if (!isRecipient) return Response.json({ error: "Only the recipient can reject" }, { status: 403 });
       if (offer.status !== "pending") return Response.json({ error: "Offer not pending" }, { status: 400 });
       const updated = await offers.update(offerId, { status: "rejected" });
+      notify(initiator, "offer_rejected", `تم رفض عرضك · Your offer was rejected`, updated);
       return Response.json({ ok: true, offer: updated });
     }
 
@@ -136,6 +169,7 @@ export default async function (req) {
       if (!isRecipient) return Response.json({ error: "Only the recipient can reject" }, { status: 403 });
       if (offer.status !== "pending") return Response.json({ error: "Offer not pending" }, { status: 400 });
       const updated = await offers.update(offerId, { status: "not_match" });
+      notify(initiator, "offer_rejected", `ليس ما أبحث عنه · Not what I'm looking for`, updated);
       return Response.json({ ok: true, offer: updated });
     }
 
@@ -144,6 +178,7 @@ export default async function (req) {
       if (offer.status !== "pending") return Response.json({ error: "Offer not pending" }, { status: 400 });
       const amount = Number(body.amount);
       if (!amount || amount <= 0) return Response.json({ error: "Invalid amount" }, { status: 400 });
+      if (amount > MAX_OFFER_AMOUNT) return Response.json({ error: "Amount too large" }, { status: 400 });
       await offers.update(offerId, { status: "countered" });
       const newDirection = offer.direction === "buyer_offer" ? "seller_counter" : "buyer_offer";
       const created = await offers.create({
@@ -159,6 +194,7 @@ export default async function (req) {
         direction: newDirection,
         previous_offer_id: offerId,
       });
+      notify(initiator, "offer_countered", `تمت معارضة عرضك · Your offer was countered`, created);
       return Response.json({ ok: true, created });
     }
 
@@ -167,7 +203,10 @@ export default async function (req) {
       if (offer.status !== "pending") return Response.json({ error: "Offer not pending" }, { status: 400 });
       const amount = Number(body.amount);
       if (!amount || amount <= 0) return Response.json({ error: "Invalid amount" }, { status: 400 });
+      if (amount > MAX_OFFER_AMOUNT) return Response.json({ error: "Amount too large" }, { status: 400 });
       const updated = await offers.update(offerId, { amount });
+      const modTarget = String(initiator) === String(offer.buyer_id) ? offer.seller_id : offer.buyer_id;
+      notify(modTarget, "offer_modified", `تم تعديل العرض · Offer updated`, updated);
       return Response.json({ ok: true, offer: updated });
     }
 
@@ -176,6 +215,7 @@ export default async function (req) {
         return Response.json({ error: "Offer not accepted" }, { status: 400 });
       const amount = Number(body.amount);
       if (!amount || amount <= 0) return Response.json({ error: "Invalid amount" }, { status: 400 });
+      if (amount > MAX_OFFER_AMOUNT) return Response.json({ error: "Amount too large" }, { status: 400 });
       const isSeller = String(offer.seller_id) === String(user.id);
       const newDirection = isSeller ? "seller_counter" : "buyer_offer";
       const created = await offers.create({
@@ -191,6 +231,8 @@ export default async function (req) {
         direction: newDirection,
         previous_offer_id: offerId,
       });
+      const modTarget = String(user.id) === String(offer.buyer_id) ? offer.seller_id : offer.buyer_id;
+      notify(modTarget, "offer_modified", `طلب تعديل العرض المقبول · Modification requested on accepted offer`, created);
       return Response.json({ ok: true, created });
     }
 

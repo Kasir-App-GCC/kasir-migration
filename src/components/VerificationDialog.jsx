@@ -8,7 +8,7 @@ import PhoneOtpVerifier from "@/components/PhoneOtpVerifier";
 import { userPhoneE164, digitsOnly } from "@/lib/phone";
 import { apiErrorMessage } from "@/lib/apiError";
 import { validateNationalId, nationalIdRule } from "@/lib/nationalId";
-import { usePopupPayment, extractInvoiceId } from "@/hooks/usePopupPayment";
+import { usePopupPayment, extractInvoiceId, openCheckoutBlank, closeCheckoutPopup } from "@/hooks/usePopupPayment";
 import PaymentWaitingModal from "@/components/PaymentWaitingModal";
 
 export default function VerificationDialog({ open, onClose }) {
@@ -74,6 +74,7 @@ export default function VerificationDialog({ open, onClose }) {
       return;
     }
     setSubmitting(true);
+    openCheckoutBlank();
     try {
       // Race the function call with a timeout so the dialog never hangs
       // indefinitely (e.g. if the payment gateway is unreachable).
@@ -109,6 +110,7 @@ export default function VerificationDialog({ open, onClose }) {
         },
       });
     } catch (err) {
+      closeCheckoutPopup();
       setError(apiErrorMessage(err, ar ? "فشل الإرسال" : "Failed to submit"));
     } finally {
       setSubmitting(false);

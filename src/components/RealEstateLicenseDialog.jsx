@@ -5,7 +5,7 @@ import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import LicensePhoneVerifier from "@/components/LicensePhoneVerifier";
-import { usePopupPayment, extractInvoiceId } from "@/hooks/usePopupPayment";
+import { usePopupPayment, extractInvoiceId, openCheckoutBlank, closeCheckoutPopup } from "@/hooks/usePopupPayment";
 import PaymentWaitingModal from "@/components/PaymentWaitingModal";
 import { compressImage } from "@/lib/compressImage";
 
@@ -88,6 +88,7 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
 
   const startPayment = async () => {
     setPaying(true);
+    openCheckoutBlank();
     try {
       const res = await base44.functions.invoke("createBrokerPayment", { origin: window.location.origin });
       if (res?.data?.error) throw new Error(res.data.error);
@@ -111,6 +112,7 @@ export default function RealEstateLicenseDialog({ open, onClose }) {
         },
       });
     } catch (e) {
+      closeCheckoutPopup();
       toast({ title: ar ? "تعذّر بدء الدفع" : "Couldn't start payment", variant: "destructive" });
     }
     setPaying(false);

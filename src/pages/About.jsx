@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
-import { usePopupPayment } from "@/hooks/usePopupPayment";
+import { usePopupPayment, openCheckoutBlank, closeCheckoutPopup } from "@/hooks/usePopupPayment";
 import PaymentWaitingModal from "@/components/PaymentWaitingModal";
 
 const STORY = `👋 من وين بدأت الحكاية؟
@@ -146,6 +146,7 @@ export default function About() {
       return;
     }
     setLoading(true);
+    openCheckoutBlank();
     try {
       const res = await base44.functions.invoke("createDonationLink", { amount: amt, origin: window.location.origin });
       if (res?.data?.error) throw new Error(res.data.error);
@@ -159,6 +160,7 @@ export default function About() {
         },
       });
     } catch (e) {
+      closeCheckoutPopup();
       const needLogin = e?.message?.includes("Unauthorized") || e?.message?.includes("401");
       if (needLogin) {
         toast({ title: ar ? "سجّل الدخول أولاً للدعم" : "Please log in to support us" });

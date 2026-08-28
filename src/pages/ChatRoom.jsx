@@ -16,6 +16,7 @@ import confetti from "canvas-confetti";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import WhatsAppContactDialog from "@/components/WhatsAppContactDialog";
 import ChatDateSeparator, { shouldShowSeparator } from "@/components/ChatDateSeparator";
+import TypingIndicator from "@/components/TypingIndicator";
 import { useBlockStatus } from "@/lib/useBlockStatus";
 
 export default function ChatRoom() {
@@ -43,6 +44,9 @@ export default function ChatRoom() {
   const endRef = useRef(null);
   const [vvHeight, setVvHeight] = useState(() => window.visualViewport?.height || window.innerHeight);
   const [vvTop, setVvTop] = useState(() => window.visualViewport?.offsetTop || 0);
+  const [, setTick] = useState(0);
+  const typingTimeoutRef = useRef(null);
+  const isTypingRef = useRef(false);
 
   // Resize the entire chat container to the visualViewport so the keyboard
   // never covers the input bar — the container shrinks to the visible area
@@ -209,6 +213,81 @@ export default function ChatRoom() {
     return unsub;
   }, [otherId, user?.id, reload]);
 
+  // Tick every second so the other party's typing indicator (which expires
+  // after 5s) stops showing without waiting for a new event.
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => {
+      clearInterval(interval);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    };
+  }, []);
+
+  // Debounced typing indicator: set typing_at on first keystroke, auto-clear
+  // after 3s of inactivity or on send. The other party sees animated dots
+  // while their timestamp is within the last 5 seconds.
+  const updateTyping = (typing) => {
+    if (!room || !user || isOfficial) return;
+    const field = isSeller ? "seller_typing_at" : "buyer_typing_at";
+    if (typing) {
+      if (!isTypingRef.current) {
+        isTypingRef.current = true;
+        base44.entities.ChatRoom.update(id, { [field]: new Date().toISOString() }).catch(() => {});
+      }
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => {
+        isTypingRef.current = false;
+        base44.entities.ChatRoom.update(id, { [field]: null }).catch(() => {});
+      }, 3000);
+    } else {
+      if (isTypingRef.current) {
+        isTypingRef.current = false;
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        base44.entities.ChatRoom.update(id, { [field]: null }).catch(() => {});
+      }
+    }
+  };
+
+  const otherTypingAt = room ? (isSeller ? room.buyer_typing_at : room.seller_typing_at) : null;
+  const isOtherTyping = !!otherTypingAt && (Date.now() - new Date(otherTypingAt).getTime() < 5000);
+
+  // Polling safety net: re-fetch offers + messages every 7s so status changes
+  // land even if a realtime subscription event is missed (service-role writes
+  // can occasionally not trigger the client subscription). Only updates state
+  // when something actually changed — no-op polls don't cause re-renders.
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const [ofs, ms] = await Promise.all([
+          base44.entities.Offer.filter({ chatroom_id: id }, "created_date", 100),
+          base44.entities.Message.filter({ chatroom_id: id }, "created_date", 200),
+        ]);
+        if (ofs) setOffers((prev) => {
+          let changed = false;
+          const map = new Map(prev.map((o) => [o.id, o]));
+          for (const o of ofs) {
+            const existing = map.get(o.id);
+            if (!existing || existing.status !== o.status || existing.amount !== o.amount || existing.received_confirmed !== o.received_confirmed) {
+              map.set(o.id, o); changed = true;
+            }
+          }
+          if (!changed) return prev;
+          return Array.from(map.values()).sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+        });
+        if (ms) setMessages((prev) => {
+          const map = new Map(prev.map((m) => [m.id, m]));
+          let changed = false;
+          for (const m of ms) {
+            if (!map.has(m.id)) { map.set(m.id, m); changed = true; }
+          }
+          if (!changed) return prev;
+          return Array.from(map.values()).sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+        });
+      } catch {}
+    }, 7000);
+    return () => clearInterval(interval);
+  }, [id]);
+
   const goToProfile = () => {
     if (!otherId || isOfficial) return;
     nav(`/user/${otherId}?name=${encodeURIComponent(otherName || "")}&avatar=${encodeURIComponent(avatar || "")}`);
@@ -216,6 +295,7 @@ export default function ChatRoom() {
 
   const sendText = async (value) => {
     if (isBlocked) return;
+    updateTyping(false);
     const body = (value ?? text).trim();
     if (!body) return;
     setText("");
@@ -449,6 +529,10 @@ export default function ChatRoom() {
             </p>
             {isOfficial ? (
               <p className="text-xs text-muted-foreground truncate">{officialLabel} · {ar ? "محادثة رسمية" : "Official chat"}</p>
+            ) : isOtherTyping ? (
+              <p className="text-xs text-primary font-semibold truncate flex items-center gap-1">
+                <TypingIndicator lang={lang} />
+              </p>
             ) : room?.item_title ? (
               <p className="text-xs text-muted-foreground truncate">{room.item_title} · <Price value={room.item_price} lang={lang} country={itemCountry} /></p>
             ) : null}
@@ -598,6 +682,14 @@ export default function ChatRoom() {
             );
           })
         )}
+        {isOtherTyping && (
+          <div className="flex items-end gap-2 justify-start animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div className="w-6 h-6 rounded-full bg-primary/10 shrink-0" />
+            <div className="px-4 py-3 rounded-2xl bg-muted rounded-bl-md">
+              <TypingIndicator lang={lang} />
+            </div>
+          </div>
+        )}
         <div ref={endRef} />
       </PullToRefreshScroll>
 
@@ -613,8 +705,9 @@ export default function ChatRoom() {
           <>
             <textarea
               value={text}
-              onChange={(e) => { setText(e.target.value); e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px"; }}
+              onChange={(e) => { setText(e.target.value); e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px"; updateTyping(true); }}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendText(); } }}
+              onBlur={() => updateTyping(false)}
               placeholder={t("typeMessage")}
               rows={1}
               className="flex-1 px-4 py-3 rounded-3xl bg-muted outline-none focus:ring-2 ring-primary/30 text-base resize-none max-h-[120px] overflow-y-auto leading-snug"

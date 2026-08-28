@@ -23,6 +23,7 @@ export default function Chats() {
   const [lastMsgTime, setLastMsgTime] = useState({});
   const roomsRef = useRef([]);
   const lastFocusRef = useRef(0);
+  const [, setTick] = useState(0);
 
   const offerIsIncoming = (o, userId) => {
     if (!o || !userId) return false;
@@ -103,16 +104,34 @@ export default function Chats() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadRooms]);
 
+  // Re-evaluate typing indicators every 2s (typing_at expires after 5s).
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), 2000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     if (!user) return;
     const onRoom = (event) => {
       // Only react to structural changes. Update events (last-seen pings, last_message
-      // bumps) would otherwise trigger a refetch storm and can overlap/clear the list.
+      // bumps) would otherwise trigger a refetch storm and can overlap/clear the list —
+      // EXCEPT typing_at fields, which we patch in-place for the live typing indicator.
       if (event?.type === "create") { loadRooms(); return; }
       if (event?.type === "delete") {
         const id = event?.data?.id;
         if (id) setRooms((prev) => prev.filter((r) => r.id !== id));
         return;
+      }
+      if (event?.type === "update") {
+        const r = event?.data;
+        if (!r?.id) return;
+        setRooms((prev) => {
+          const idx = prev.findIndex((rr) => rr.id === r.id);
+          if (idx === -1) return prev;
+          const copy = [...prev];
+          copy[idx] = { ...copy[idx], buyer_typing_at: r.buyer_typing_at, seller_typing_at: r.seller_typing_at };
+          return copy;
+        });
       }
     };
     const onMsg = async (event) => {
@@ -202,6 +221,11 @@ export default function Chats() {
   const otherAvatar = (r) => avatars[otherId(r)] || (r.seller_id === user.id ? r.buyer_avatar : r.seller_avatar);
   const otherId = (r) => (r.seller_id === user.id ? r.buyer_id : r.seller_id);
   const isOfficialForMe = (r) => r.is_official && r.seller_id !== user.id;
+  const otherTypingAt = (r) => (r.seller_id === user.id ? r.buyer_typing_at : r.seller_typing_at);
+  const isOtherTyping = (r) => {
+    const t = otherTypingAt(r);
+    return !!t && Date.now() - new Date(t).getTime() < 5000;
+  };
 
   const sortedRooms = [...rooms].sort((a, b) => {
     const ta = lastMsgTime[a.id] ? new Date(lastMsgTime[a.id]).getTime() : new Date(a.created_date).getTime();
@@ -268,7 +292,7 @@ export default function Chats() {
                     </span>
                     <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(lastMsgTime[r.id] || r.created_date, lang)}</span>
                   </div>
-                  <p className={`text-sm truncate ${unread[r.id] ? "text-foreground font-medium" : "text-muted-foreground"}`}>{r.last_message || (r.is_official ? (lang === "ar" ? "محادثة رسمية" : "Official chat") : r.item_title)}</p>
+                  <p className={`text-sm truncate ${isOtherTyping(r) ? "text-primary font-semibold" : unread[r.id] ? "text-foreground font-medium" : "text-muted-foreground"}`}>{isOtherTyping(r) ? (lang === "ar" ? "يكتب..." : "typing...") : (r.last_message || (r.is_official ? (lang === "ar" ? "محادثة رسمية" : "Official chat") : r.item_title))}</p>
                   </div>
                   {r.item_price != null && !r.is_official && (
                     <span className="text-xs font-bold text-primary whitespace-nowrap"><Price value={r.item_price} lang={lang} /></span>

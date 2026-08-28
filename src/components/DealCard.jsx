@@ -42,11 +42,11 @@ export default function DealCard({ offer, user, lang, otherName, meetup, onMeetu
   };
 
   return (
-    <div className="rounded-2xl border-2 border-primary/20 bg-primary/[0.02] p-3 space-y-3">
+    <div className="rounded-2xl border-2 border-emerald-200 dark:border-emerald-900/50 bg-gradient-to-br from-emerald-50/50 to-amber-50/30 dark:from-emerald-950/20 dark:to-amber-950/10 p-3 space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
             <Handshake size={16} />
           </div>
           <div className="min-w-0">
@@ -57,15 +57,20 @@ export default function DealCard({ offer, user, lang, otherName, meetup, onMeetu
         <Price value={offer.amount} lang={lang} country={itemCountry} className="font-extrabold text-sm shrink-0" />
       </div>
 
-      {/* Stage progress */}
-      <div className="flex items-center justify-around">
+      {/* Stage progress — connected line stepper */}
+      <div className="flex items-center">
         {stages.map((s, i) => (
-          <div key={i} className="flex flex-col items-center gap-1">
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${s.done ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"}`}>
-              {s.done ? <Check size={14} /> : i + 1}
+          <React.Fragment key={i}>
+            <div className="flex flex-col items-center gap-1 shrink-0">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${s.done ? "bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-md shadow-emerald-500/30" : "bg-muted text-muted-foreground border border-border/60"}`}>
+                {s.done ? <Check size={15} /> : i + 1}
+              </div>
+              <span className="text-[10px] font-semibold text-muted-foreground">{s.label}</span>
             </div>
-            <span className="text-[10px] font-semibold text-muted-foreground">{s.label}</span>
-          </div>
+            {i < stages.length - 1 && (
+              <div className={`flex-1 h-1 rounded-full mx-1.5 mb-4 transition-all duration-500 ${s.done ? "bg-emerald-500" : "bg-muted"}`} />
+            )}
+          </React.Fragment>
         ))}
       </div>
 

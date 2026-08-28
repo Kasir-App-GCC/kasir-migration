@@ -47,6 +47,16 @@
       "type": "string",
       "format": "date-time"
     },
+    "buyer_typing_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last timestamp the buyer was actively typing (ephemeral; cleared on send or after a few seconds of inactivity). Used to show a live typing indicator to the other party."
+    },
+    "seller_typing_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last timestamp the seller was actively typing (ephemeral; cleared on send or after a few seconds of inactivity). Used to show a live typing indicator to the other party."
+    },
     "hidden_for_buyer": {
       "type": "boolean",
       "default": false

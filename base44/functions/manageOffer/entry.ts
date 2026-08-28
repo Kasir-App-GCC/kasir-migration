@@ -45,6 +45,22 @@ export default async function (req) {
         if (!item) return Response.json({ error: "Item not found" }, { status: 404 });
         if (item.status === "sold") return Response.json({ error: "Item sold" }, { status: 400 });
         if (String(item.seller_id) !== String(sellerId)) return Response.json({ error: "Seller mismatch" }, { status: 400 });
+        // Prevent duplicate active offers: a buyer can only have one pending OR
+        // accepted offer per item per chatroom at a time. Rejected/countered
+        // offers don't block a new one. This stops the "send multiple offers"
+        // bug where a buyer could spam new offers while one was still active.
+        const dupeChatroomId = String(body.chatroom_id || "");
+        if (dupeChatroomId) {
+          const existing = await base44.entities.Offer.filter({
+            chatroom_id: dupeChatroomId,
+            item_id: String(body.item_id),
+            buyer_id: buyerId,
+            status: { $in: ["pending", "accepted"] },
+          }, "-created_date", 10);
+          if (existing && existing.length > 0) {
+            return Response.json({ error: "You already have an active offer for this item" }, { status: 409 });
+          }
+        }
       }
       // Prevent injecting an offer into someone else's chatroom: when a
       // chatroom is provided, the offer's buyer/seller must match the room's.

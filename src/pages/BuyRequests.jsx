@@ -125,6 +125,11 @@ export default function BuyRequests() {
         let name = city ? (lang === "ar" ? city.ar : city.en) : "";
         try {
           const res = await base44.functions.invoke("geocodeLocation", { lat: latitude, lng: longitude, country: country || "SA", lang });
+          if (res?.data?.outOfArea) {
+            toast({ title: lang === "ar" ? "الموقع خارج نطاق دول الخليج" : "Location is outside the GCC", variant: "destructive" });
+            setLocating(false);
+            return;
+          }
           if (res?.data?.name) name = String(res.data.name).slice(0, 120);
         } catch {}
         setForm((prev) => ({ ...prev, city: city ? city.en : prev.city, location_name: name }));

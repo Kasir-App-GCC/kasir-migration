@@ -30,7 +30,10 @@ export default function LocationFilter({ open, onClose, defaultTab, autoDetect }
     (async () => {
       try {
         const res = await base44.functions.invoke("geocodeLocation", { lat: mapPos.lat, lng: mapPos.lng, country: country || "SA", lang });
-        if (active && res?.data?.name) setMapName(String(res.data.name).slice(0, 120));
+        if (active) {
+          if (res?.data?.outOfArea) setMapName(lang === "ar" ? "خارج نطاق دول الخليج" : "Outside the GCC");
+          else if (res?.data?.name) setMapName(String(res.data.name).slice(0, 120));
+        }
       } catch {}
     })();
     return () => { active = false; };
@@ -47,6 +50,10 @@ export default function LocationFilter({ open, onClose, defaultTab, autoDetect }
       let geo = null;
       try {
         const res = await base44.functions.invoke("geocodeLocation", { lat: detectedCoords.lat, lng: detectedCoords.lng, country: country || "SA", lang });
+        if (res?.data?.outOfArea) {
+          if (active) setDetectedName(lang === "ar" ? "خارج نطاق دول الخليج" : "Outside the GCC");
+          return;
+        }
         if (res?.data) geo = res.data;
         if (res?.data?.name) name = String(res.data.name).slice(0, 120);
       } catch {}

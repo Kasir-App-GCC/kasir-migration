@@ -2,6 +2,31 @@ const CC_BY_COUNTRY = {
   SA: "SA", AE: "AE", OM: "OM", BH: "BH", KW: "KW", QA: "QA",
 };
 
+// GCC-only enforcement: the marketplace operates exclusively in Saudi Arabia,
+// UAE, Oman, Bahrain, Kuwait, and Qatar. Locations outside the GCC (e.g.
+// Jordan, Iraq, Iran) are rejected at the geocoding layer so every location
+// field across the app (listing form, buy requests, map) is covered in one
+// place. A generous bounding box gives a fast first reject; the country code
+// returned by the geocoding API gives the precise second check.
+const GCC_CODES = new Set(["SA", "AE", "OM", "BH", "KW", "QA"]);
+const CC3_TO_CC2 = { SAU: "SA", ARE: "AE", OMN: "OM", BHR: "BH", KWT: "KW", QAT: "QA" };
+const GCC_BBOX = { minLat: 15, maxLat: 33, minLng: 34, maxLng: 61 };
+
+function inGccBbox(lat, lng) {
+  return (
+    lat >= GCC_BBOX.minLat && lat <= GCC_BBOX.maxLat &&
+    lng >= GCC_BBOX.minLng && lng <= GCC_BBOX.maxLng
+  );
+}
+
+function normalizeCc(raw) {
+  if (!raw) return "";
+  const upper = String(raw).toUpperCase();
+  if (GCC_CODES.has(upper)) return upper;
+  if (CC3_TO_CC2[upper]) return CC3_TO_CC2[upper];
+  return upper;
+}
+
 // ArcGIS World Geocoding — free, no API key, much better coverage for Saudi/Gulf
 // short/informal addresses than OpenStreetMap. Falls back to Nominatim if empty.
 async function geocodeArcGIS(query, cc, lang) {
@@ -28,7 +53,7 @@ async function geocodeArcGIS(query, cc, lang) {
         lng: typeof lng === "number" ? lng : parseFloat(lng),
       };
     })
-    .filter((d) => !isNaN(d.lat) && !isNaN(d.lng));
+    .filter((d) => !isNaN(d.lat) && !isNaN(d.lng) && inGccBbox(d.lat, d.lng));
 }
 
 async function geocodeNominatim(query, cc, lang) {
@@ -44,7 +69,7 @@ async function geocodeNominatim(query, cc, lang) {
   const data = await r.json();
   return (Array.isArray(data) ? data : [])
     .map((d) => ({ label: d.display_name, lat: parseFloat(d.lat), lng: parseFloat(d.lon) }))
-    .filter((d) => !isNaN(d.lat) && !isNaN(d.lng));
+    .filter((d) => !isNaN(d.lat) && !isNaN(d.lng) && inGccBbox(d.lat, d.lng));
 }
 
 // Reverse geocode lat/lng → a short, accurate place name.
@@ -63,7 +88,7 @@ async function reverseGeocodeArcGIS(lat, lng, lang) {
   const a = data?.address;
   if (!a) return null;
   // Prefer a concise locality-level label; fall back to longer labels.
-  return { name: a.Match_addr || a.ShortLabel || a.LongLabel || null, city: a.City || "", state: a.Region || a.Subregion || "" };
+  return { name: a.Match_addr || a.ShortLabel || a.LongLabel || null, city: a.City || "", state: a.Region || a.Subregion || "", cc: normalizeCc(a.CountryCode || a.country_code || "") };
 }
 
 async function reverseGeocodeNominatim(lat, lng, lang) {
@@ -86,7 +111,7 @@ async function reverseGeocodeNominatim(lat, lng, lang) {
   // If we only got one part, fall back to a trimmed display_name (first 3 components).
   if (!name && data.display_name) name = data.display_name.split(",").slice(0, 3).join(",").trim();
   if (!name) return null;
-  return { name, city: a.city || a.town || a.village || "", state: a.state || a.state_district || "" };
+  return { name, city: a.city || a.town || a.village || "", state: a.state || a.state_district || "", cc: normalizeCc(a.country_code || "") };
 }
 
 // Security: this is a public function (used on public pages for location
@@ -127,6 +152,11 @@ export default async function (req) {
     const country = String(body?.country || "SA").toUpperCase();
     const lang = body?.lang === "ar" ? "ar" : "en";
 
+    // GCC-only: reject any request targeting a non-GCC country.
+    if (!GCC_CODES.has(country)) {
+      return Response.json({ error: "Location must be within the GCC" }, { status: 400 });
+    }
+
     // Reverse geocoding: lat/lng → place name.
     // Nominatim first (more reliable locality names for Saudi/Gulf),
     // ArcGIS as fallback.
@@ -137,10 +167,20 @@ export default async function (req) {
       if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
         return Response.json({ name: null, city: null, state: null });
       }
+      // Fast reject: coordinates clearly outside the GCC bounding box (e.g.
+      // Jordan, Iraq, Iran) — no need to call the geocoding APIs.
+      if (!inGccBbox(lat, lng)) {
+        return Response.json({ name: null, city: null, state: null, outOfArea: true });
+      }
       let result = null;
       try { result = await reverseGeocodeNominatim(lat, lng, lang); } catch {}
       if (!result || !result.name || result.name.length < 4) {
         try { const r2 = await reverseGeocodeArcGIS(lat, lng, lang); if (r2) result = r2; } catch {}
+      }
+      // Precise check: the geocoding API's country code must be GCC. This
+      // catches coordinates inside the bbox but in a neighboring country.
+      if (result && result.cc && !GCC_CODES.has(result.cc)) {
+        return Response.json({ name: null, city: null, state: null, outOfArea: true });
       }
       return Response.json(result
         ? { name: result.name, city: result.city || null, state: result.state || null }

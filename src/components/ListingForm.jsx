@@ -107,6 +107,10 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
         lat: la, lng: ln, country: country || "SA", lang
       });
       const d = res?.data;
+      if (d?.outOfArea) {
+        toast({ title: ar ? "الموقع خارج نطاق دول الخليج" : "Location is outside the GCC", variant: "destructive" });
+        return;
+      }
       if (d?.name) setLocationName(String(d.name).slice(0, 120));
       // Resolve the canonical major city from the reverse-geocoded region
       // (e.g. "Riyadh Region" → "Riyadh", not the sub-municipality "Diriyah").
@@ -124,7 +128,10 @@ export default function ListingForm({ initial, submitLabel, submittingLabel, onS
     const handle = setTimeout(async () => {
       try {
         const res = await base44.functions.invoke("geocodeLocation", { lat: mapPos.lat, lng: mapPos.lng, country: country || "SA", lang });
-        if (!cancelled && res?.data?.name) setMapHint(String(res.data.name).slice(0, 120));
+        if (!cancelled) {
+          if (res?.data?.outOfArea) setMapHint(ar ? "خارج نطاق دول الخليج" : "Outside the GCC");
+          else if (res?.data?.name) setMapHint(String(res.data.name).slice(0, 120));
+        }
       } catch {}
     }, 400);
     return () => {cancelled = true;clearTimeout(handle);};

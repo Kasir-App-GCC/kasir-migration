@@ -327,7 +327,7 @@ const ar = {
   featured: "الأسر المنتجة",
   featuredDesc: "منتجات منزلية من أسر سعودية",
   browseAll: "تصفح الكل",
-  newArrivals: "وصل حديثاً",
+  newArrivals: "أُضيف حديثاً",
   condition_new: "جديد",
   condition_like_new: "كالجديد",
   condition_excellent: "ممتاز",

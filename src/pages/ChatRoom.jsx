@@ -66,20 +66,23 @@ export default function ChatRoom() {
   }, []);
 
   const loadAll = useCallback(async () => {
+    // Fetch the three timeline streams in parallel. A failure in any one
+    // degrades to an empty list rather than hanging the whole chat render.
     const [ms, ofs, was] = await Promise.all([
-      base44.entities.Message.filter({ chatroom_id: id }, "created_date", 200),
-      base44.entities.Offer.filter({ chatroom_id: id }, "created_date", 100),
-      base44.entities.WhatsAppContact.filter({ chatroom_id: id }, "created_date", 100),
+      base44.entities.Message.filter({ chatroom_id: id }, "-created_date", 200).catch(() => []),
+      base44.entities.Offer.filter({ chatroom_id: id }, "-created_date", 100).catch(() => []),
+      base44.entities.WhatsAppContact.filter({ chatroom_id: id }, "-created_date", 100).catch(() => []),
     ]);
     setMessages(ms || []);
     setOffers(ofs || []);
     setWaContacts(was || []);
+    // Non-blocking: fetch ratings in the background so a slow query doesn't
+    // stall the chat. The rating state updates when the promise resolves.
     if (ofs && ofs.length && user?.id) {
-      try {
-        const offerIds = ofs.map((o) => o.id);
-        const ratings = await base44.entities.Rating.filter({ rater_user_id: user.id, offer_id: { $in: offerIds } }, "-created_date", 100);
-        setRatedOffers(new Set((ratings || []).map((r) => r.offer_id)));
-      } catch {}
+      const offerIds = ofs.map((o) => o.id);
+      base44.entities.Rating.filter({ rater_user_id: user.id, offer_id: { $in: offerIds } }, "-created_date", 100)
+        .then((ratings) => setRatedOffers(new Set((ratings || []).map((r) => r.offer_id))))
+        .catch(() => {});
     }
   }, [id, user?.id]);
 
@@ -96,12 +99,16 @@ export default function ChatRoom() {
           try { const it = await base44.entities.Item.get(r.item_id); if (it?.country) setItemCountry(it.country); } catch {}
         }
         const otherId = r && String(r.seller_id) === String(user?.id) ? r.buyer_id : r?.seller_id;
+        // Non-blocking: fetch the other party's profile in the background so
+        // a slow/hanging backend function never stalls the chat render. The
+        // trusted badge and avatar pop in when the promise resolves.
         if (otherId) {
-          try {
-            const p = await base44.functions.invoke("getPublicProfile", { user_id: otherId });
-            setOtherTrusted(!!p?.data?.is_trusted);
-            if (p?.data?.avatar) setOtherAvatar(p.data.avatar);
-          } catch {}
+          base44.functions.invoke("getPublicProfile", { user_id: otherId })
+            .then((p) => {
+              setOtherTrusted(!!p?.data?.is_trusted);
+              if (p?.data?.avatar) setOtherAvatar(p.data.avatar);
+            })
+            .catch(() => {});
         }
         await loadAll();
       } catch {
@@ -121,6 +128,14 @@ export default function ChatRoom() {
         setLoading(false);
       }
     })();
+  }, [id]);
+
+  // Safety net: if the initial load hangs on a slow backend response, stop
+  // showing the spinner after 8 seconds so the user sees the chat shell
+  // instead of spinning forever. The polling effect fills in data when it lands.
+  useEffect(() => {
+    const timeout = setTimeout(() => setLoading(false), 8000);
+    return () => clearTimeout(timeout);
   }, [id]);
 
   useEffect(() => {

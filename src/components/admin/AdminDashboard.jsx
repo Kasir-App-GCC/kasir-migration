@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Users, Tag, Flag, LifeBuoy, DollarSign, ShoppingBag, Wallet, X, TrendingUp, ShieldCheck, Rocket, Heart, Link2, Building2 } from "lucide-react";
+import { Users, Tag, Flag, LifeBuoy, DollarSign, ShoppingBag, Wallet, X, TrendingUp, ShieldCheck, Rocket, Heart, Link2, Building2, RotateCcw } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { formatPrice } from "@/lib/format";
@@ -38,7 +38,16 @@ export default function AdminDashboard({ onNavigate }) {
       ]);
       const realItems = (items || []).filter((i) => !(i.seller_id || "").startsWith("seed-"));
       const soldOffers = (offers || []).filter((o) => (o.status === "accepted" || o.status === "completed") && !(o.seller_id || "").startsWith("seed-"));
-      const totalSpent = soldOffers.reduce((s, o) => s + (o.amount || 0), 0);
+      // Customer Spend only aggregates offers the buyer confirmed receiving
+      // (received_confirmed = true). A stored reset date lets admins zero the
+      // metric so only receipts after that point are counted.
+      const spendResetDate = localStorage.getItem("customer_spend_reset_date");
+      const confirmedReceipts = (offers || []).filter(
+        (o) => o.received_confirmed === true &&
+               !(o.seller_id || "").startsWith("seed-") &&
+               (!spendResetDate || new Date(o.updated_date) >= new Date(spendResetDate))
+      );
+      const totalSpent = confirmedReceipts.reduce((s, o) => s + (o.amount || 0), 0);
       const trusted = (users || []).filter((u) => u.is_trusted).length;
       const banned = (users || []).filter((u) => u.is_banned).length;
       const ageBuckets = { under_16: 0, "16_19": 0, "20_29": 0, "30_39": 0, "40_49": 0, "50_plus": 0 };
@@ -81,6 +90,12 @@ export default function AdminDashboard({ onNavigate }) {
 
   useEffect(() => { fetchStats(); }, []);
 
+  const resetCustomerSpend = () => {
+    if (!window.confirm(ar ? "تصفير إنفاق العملاء؟ سيُحتسب فقط ما يأتي بعد الآن." : "Reset Customer Spend? Only receipts from now on will be counted.")) return;
+    localStorage.setItem("customer_spend_reset_date", new Date().toISOString());
+    fetchStats();
+  };
+
   if (loading) return <div className="py-10 text-center text-muted-foreground">{ar ? "جارٍ التحميل…" : "Loading…"}</div>;
   if (!stats) return null;
 
@@ -88,7 +103,7 @@ export default function AdminDashboard({ onNavigate }) {
     { icon: Users, label: ar ? "المستخدمين" : "Users", value: stats.users, color: "text-blue-500 bg-blue-50 dark:bg-blue-950/30" },
     { icon: ShoppingBag, label: ar ? "الإعلانات" : "Listings", value: stats.items, color: "text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30" },
     { icon: Tag, label: ar ? "العروض المقبولة" : "Accepted Offers", value: stats.sold, color: "text-amber-500 bg-amber-50 dark:bg-amber-950/30" },
-    { icon: Wallet, label: ar ? "إنفاق العملاء" : "Customer Spend", value: formatPrice(stats.totalSpent, country), color: "text-indigo-500 bg-indigo-50 dark:bg-indigo-950/30" },
+    { icon: Wallet, label: ar ? "إنفاق العملاء" : "Customer Spend", value: formatPrice(stats.totalSpent, country), color: "text-indigo-500 bg-indigo-50 dark:bg-indigo-950/30", onReset: resetCustomerSpend },
     { icon: DollarSign, label: ar ? "إيرادات المنصة" : "Platform Revenue", value: formatPrice(stats.revenue, country), color: "text-green-500 bg-green-50 dark:bg-green-950/30", onClick: () => setShowRevenue(true) },
     { icon: ShieldCheck, label: ar ? "موثوقون" : "Trusted", value: stats.trusted, color: "text-cyan-500 bg-cyan-50 dark:bg-cyan-950/30" },
     { icon: Flag, label: ar ? "بلاغات مفتوحة" : "Open Reports", value: stats.reports, color: "text-rose-500 bg-rose-50 dark:bg-rose-950/30" },
@@ -124,7 +139,16 @@ export default function AdminDashboard({ onNavigate }) {
               {inner}
             </button>
           ) : (
-            <div key={c.label} className="rounded-2xl bg-card border border-border/60 p-4">
+            <div key={c.label} className="relative rounded-2xl bg-card border border-border/60 p-4">
+              {c.onReset && (
+                <button
+                  onClick={c.onReset}
+                  className="absolute top-2 end-2 p-1.5 rounded-full hover:bg-muted text-muted-foreground transition"
+                  title={ar ? "تصفير" : "Reset"}
+                >
+                  <RotateCcw size={14} />
+                </button>
+              )}
               {inner}
             </div>
           );

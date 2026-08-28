@@ -297,6 +297,23 @@ export default function ItemDetail() {
     } catch {}
   };
 
+  // Auto-open the "mark as sold" dialog when arriving from a completion
+  // notification (?sold=1) — only for the item owner.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("sold") !== "1") return;
+    if (!user || !item || item.seller_id !== user.id) return;
+    if (item.status === "sold") {
+      params.delete("sold");
+      window.history.replaceState({}, "", window.location.pathname + (params.toString() ? "?" + params.toString() : ""));
+      return;
+    }
+    openSold();
+    params.delete("sold");
+    window.history.replaceState({}, "", window.location.pathname + (params.toString() ? "?" + params.toString() : ""));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item, user]);
+
   if (loading) {
     return <div className="py-10 text-center text-muted-foreground"><div className="w-7 h-7 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin mx-auto" /></div>;
   }

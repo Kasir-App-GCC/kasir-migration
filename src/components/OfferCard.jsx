@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, X, Pencil, ArrowLeftRight, Clock, Star, ShieldAlert } from "lucide-react";
+import { Check, X, Pencil, ArrowLeftRight, Clock } from "lucide-react";
 import Price from "@/components/Price";
 import OfferNegotiationBar from "@/components/OfferNegotiationBar";
 
@@ -171,51 +171,7 @@ export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, 
         </div>
       )}
 
-      {(offer.status === "accepted" || offer.status === "completed") && (
-        <div className="mt-2 space-y-1.5">
-          {offer.status === "accepted" && !canConfirmReceipt && !offer.received_confirmed && (
-            <p className="text-[11px] text-center text-muted-foreground">{t("agreedArrange")}</p>
-          )}
-          {offer.status === "accepted" && onRequestMod && !modOpen && !hasMeetup && (
-            <button onClick={() => { setModVal(String(offer.amount)); setModOpen(true); }} className="w-full py-2 rounded-xl bg-muted text-xs font-bold flex items-center justify-center gap-1.5">
-              <Pencil size={13} /> {lang === "ar" ? "طلب تعديل العرض" : "Request modification"}
-            </button>
-          )}
-          {offer.status === "accepted" && modOpen && (
-            <div className="flex gap-1.5">
-              <input
-                autoFocus
-                value={modVal}
-                onChange={(e) => setModVal(e.target.value.replace(/\D/g, ""))}
-                placeholder={lang === "ar" ? "السعر الجديد" : "New price"}
-                inputMode="numeric"
-                className="flex-1 min-w-0 px-2.5 py-2 rounded-xl bg-muted outline-none text-sm"
-              />
-              <button disabled={busy || !modVal} onClick={submitMod} className="px-3 rounded-xl bg-primary text-primary-foreground text-xs font-bold disabled:opacity-50">{t("send")}</button>
-              <button onClick={() => setModOpen(false)} className="px-2 rounded-xl bg-muted text-xs">{t("cancel")}</button>
-            </div>
-          )}
-          {offer.status === "accepted" && offer.buyer_id === user.id && !offer.received_confirmed && onConfirm && canConfirmReceipt && (
-            <button onClick={() => onConfirm(offer)} className="w-full py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5">
-              <Check size={13} /> {t("confirmReceipt")}
-            </button>
-          )}
-          {offer.status === "completed" && onRate && !ratedOffers?.has(offer.id) && (() => {
-            const isBuyer = offer.buyer_id === user.id;
-            const rateLabel = isBuyer ? (lang === "ar" ? "قيّم البائع" : "Rate the seller") : (lang === "ar" ? "قيّم المشتري" : "Rate the buyer");
-            return (
-              <button onClick={() => onRate(offer)} className="w-full py-2 rounded-xl bg-amber-400 text-slate-900 text-xs font-bold flex items-center justify-center gap-1.5">
-                <Star size={13} /> {rateLabel}
-              </button>
-            );
-          })()}
-          {onDispute && (
-            <button onClick={() => onDispute(offer)} className="w-full py-2 rounded-xl bg-rose-600 text-white text-xs font-bold flex items-center justify-center gap-1.5">
-              <ShieldAlert size={13} /> {lang === "ar" ? "فتح نزاع" : "Open dispute"}
-            </button>
-          )}
-        </div>
-      )}
+      {/* Accepted/completed offer actions moved to the DealCard in ChatRoom */}
     </div>
   );
 }

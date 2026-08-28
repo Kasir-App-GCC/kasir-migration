@@ -184,11 +184,36 @@ export default async function (req) {
       if (offer.status !== "accepted")
         return Response.json({ error: "Offer not accepted" }, { status: 400 });
       const updated = await offers.update(offerId, { status: "completed", received_confirmed: true });
+      // Notify the seller that the buyer confirmed receipt — they can now
+      // mark the item as sold themselves (no auto-sold).
       try {
-        await base44.asServiceRole.entities.Item.update(offer.item_id, {
-          status: "sold",
-          sold_to: offer.buyer_id,
-          sold_to_name: offer.buyer_name,
+        await base44.asServiceRole.entities.Notification.create({
+          user_id: offer.seller_id,
+          type: "sold",
+          text: `أكّد المشتري استلام "${offer.item_title || ""}" — يمكنك الآن تعليمها كمباعة`,
+          item_id: offer.item_id || null,
+          item_title: offer.item_title || "",
+          reference_id: "mark_sold",
+          actor_name: offer.buyer_name || "",
+        });
+      } catch {}
+      // Fire rate notifications now that the transaction is complete.
+      try {
+        await base44.asServiceRole.entities.Notification.create({
+          user_id: offer.buyer_id, type: "rate",
+          item_id: offer.item_id, item_title: offer.item_title,
+          text: "قيّم البائع · Rate the seller",
+          actor_name: offer.seller_name || "",
+          chatroom_id: offer.chatroom_id,
+          reference_id: offerId,
+        });
+        await base44.asServiceRole.entities.Notification.create({
+          user_id: offer.seller_id, type: "rate",
+          item_id: offer.item_id, item_title: offer.item_title,
+          text: "قيّم المشتري · Rate the buyer",
+          actor_name: offer.buyer_name || "",
+          chatroom_id: offer.chatroom_id,
+          reference_id: offerId,
         });
       } catch {}
       return Response.json({ ok: true, offer: updated });

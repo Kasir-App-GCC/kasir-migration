@@ -37,7 +37,8 @@ export default function NotificationItem({ n, onMarkRead, onClick }) {
       else if (n.roomId) nav(`/chat/${n.roomId}`);
       else if (n.itemId) nav(`/item/${n.itemId}`);
     }
-    else if (n.type === "sold" || n.type === "boost_approved" || n.type === "saved_search_match") { onMarkRead?.(n); if (n.itemId) nav(`/item/${n.itemId}`); }
+    else if (n.type === "sold") { onMarkRead?.(n); if (n.itemId) nav(`/item/${n.itemId}${n.referenceId === "mark_sold" ? "?sold=1" : ""}`); }
+    else if (n.type === "boost_approved" || n.type === "saved_search_match") { onMarkRead?.(n); if (n.itemId) nav(`/item/${n.itemId}`); }
     else if (n.type === "message" || n.type === "offer") nav(`/chat/${n.roomId}`);
     else if (n.roomId) { onMarkRead?.(n); nav(`/chat/${n.roomId}`); }
     onClick?.();

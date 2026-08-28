@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import confetti from "canvas-confetti";
 import { base44 } from "@/api/base44Client";
 import {
   MapPin, Clock, Check, X, Navigation, ShieldAlert, Loader2, Handshake, Package, Banknote, CalendarClock, MapPinned, Star, Truck,
@@ -146,6 +147,14 @@ export default function MeetupFlow({ offer, user, lang, otherName, meetup, onMee
   };
 
   const concluded = meetup && (meetup.status === "completed" || meetup.status === "no_show" || meetup.status === "contested");
+
+  const prevStatusRef = useRef(meetup?.status);
+  useEffect(() => {
+    if (meetup?.status === "completed" && prevStatusRef.current !== "completed") {
+      try { confetti({ particleCount: 60, spread: 60, origin: { y: 0.7 }, colors: ["#10b981", "#fbbf24"] }); } catch {}
+    }
+    prevStatusRef.current = meetup?.status;
+  }, [meetup?.status]);
 
   // ---- No meetup yet ----
   if (!meetup && !plannerOpen) {

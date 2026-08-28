@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, ShieldCheck, Check, CheckCheck, Star, BadgeCheck, Ban, ShieldAlert, MessageCircle } from "lucide-react";
+import { ArrowLeft, Send, ShieldCheck, Check, CheckCheck, BadgeCheck, Ban, MessageCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -11,7 +11,8 @@ import TrustedBadge from "@/components/TrustedBadge";
 import PullToRefreshScroll from "@/components/PullToRefreshScroll";
 import RatingDialog from "@/components/RatingDialog";
 import DisputeDialog from "@/components/DisputeDialog";
-import MeetupFlow from "@/components/MeetupFlow";
+import DealCard from "@/components/DealCard";
+import confetti from "canvas-confetti";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import WhatsAppContactDialog from "@/components/WhatsAppContactDialog";
 import ChatDateSeparator, { shouldShowSeparator } from "@/components/ChatDateSeparator";
@@ -254,21 +255,8 @@ export default function ChatRoom() {
       item_id: offer.item_id, item_title: offer.item_title, chatroom_id: id,
       offer_amount: offer.amount, actor_name: user.name,
     }).catch(() => {});
-    // Only prompt ratings on the first acceptance — a modification acceptance
-    // shouldn't re-trigger duplicate rating prompts.
-    if (!isModAcceptance) {
-      base44.entities.Notification.create({
-        user_id: offer.buyer_id, type: "rate", item_id: offer.item_id, item_title: offer.item_title,
-        text: lang === "ar" ? "قيّم البائع" : "Rate the seller", actor_name: offer.seller_name, chatroom_id: id,
-        reference_id: offer.id,
-      }).catch(() => {});
-      base44.entities.Notification.create({
-        user_id: offer.seller_id, type: "rate", item_id: offer.item_id, item_title: offer.item_title,
-        text: lang === "ar" ? "قيّم المشتري" : "Rate the buyer", actor_name: offer.buyer_name, chatroom_id: id,
-        reference_id: offer.id,
-      }).catch(() => {});
-    }
     try { await base44.functions.invoke("manageOffer", { action: "accept", offer_id: offer.id }); } catch {}
+    try { confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 }, colors: ["#10b981", "#fbbf24", "#3b82f6"] }); } catch {}
     try { await base44.entities.ChatRoom.update(id, { last_message: agreeTxt, hidden_for_buyer: false, hidden_for_seller: false }); } catch {}
   };
 
@@ -488,16 +476,25 @@ export default function ChatRoom() {
       </header>
 
       <PullToRefreshScroll onRefresh={loadAll} className="px-4 py-4 space-y-2">
-        {acceptedOffer && !bothVerified && (
-          <>
-            {!otherTrusted && (
-              <div className="rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 px-3 py-2 flex items-center gap-2 text-xs font-semibold text-amber-700 dark:text-amber-300">
-                <ShieldAlert size={14} className="shrink-0" />
-                <span>{isSeller ? (ar ? "تلتقي مع مشترٍ غير موثّق — خطّط لقاءك بأمان عبر التطبيق" : "You're meeting an unverified buyer — plan your meetup safely through the app") : (ar ? "تلتقي مع بائع غير موثّق — خطّط لقاءك بأمان عبر التطبيق" : "You're meeting an unverified seller — plan your meetup safely through the app")}</span>
-              </div>
-            )}
-            <MeetupFlow offer={acceptedOffer} user={user} lang={lang} otherName={otherName} meetup={acceptedMeetup} onMeetupChange={setAcceptedMeetup} />
-          </>
+        {acceptedOffer && (
+          <DealCard
+            offer={acceptedOffer}
+            user={user}
+            lang={lang}
+            otherName={otherName}
+            meetup={acceptedMeetup}
+            onMeetupChange={setAcceptedMeetup}
+            itemTitle={room?.item_title}
+            itemCountry={itemCountry}
+            otherTrusted={otherTrusted}
+            ratedOffers={ratedOffers}
+            onRate={setRatingOffer}
+            onConfirm={confirmReceipt}
+            onDispute={setDisputeOffer}
+            onRequestMod={!offers.some((p) => p.status === "pending" && p.previous_offer_id === acceptedOffer.id) ? requestModification : undefined}
+            hasMeetup={hasMeetup}
+            meetupCompleted={meetupCompleted}
+          />
         )}
         {loading ? (
           <div className="text-center text-muted-foreground text-sm py-10"><div className="w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin mx-auto" /></div>
@@ -514,10 +511,7 @@ export default function ChatRoom() {
                   {showDate && <ChatDateSeparator date={o.created_date} lang={lang} t={t} />}
                   <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                     <OfferCard offer={o} user={user} lang={lang} t={t} itemPrice={room?.item_price} itemImage={room?.item_image} itemTitle={room?.item_title} country={itemCountry}
-                      ratedOffers={ratedOffers} onRate={setRatingOffer} onConfirm={confirmReceipt} onDispute={setDisputeOffer}
-                      onAccept={acceptOffer} onReject={rejectOffer} onCounter={counterOffer} onModify={modifyOffer} onNotMatch={notMatchOffer}
-                      onRequestMod={o.status === "accepted" && !offers.some((p) => p.status === "pending" && p.previous_offer_id === o.id) ? requestModification : undefined}
-                      hasMeetup={hasMeetup && o.id === acceptedOffer?.id} meetupCompleted={meetupCompleted && o.id === acceptedOffer?.id} />
+                      onAccept={acceptOffer} onReject={rejectOffer} onCounter={counterOffer} onModify={modifyOffer} onNotMatch={notMatchOffer} />
                   </div>
                 </React.Fragment>
               );
@@ -552,36 +546,15 @@ export default function ChatRoom() {
             if (m.sender_id === "system") {
               const offer = offers.find((o) => o.id === m.offer_id);
               const isBuyer = room?.buyer_id === user.id;
-              const meetupDone = hasMeetup && acceptedMeetup?.status === "completed";
-              const receiptReady = meetupDone || (!hasMeetup && Date.now() - new Date(offer?.updated_date || offer?.created_date || Date.now()).getTime() > 3600000);
-              const needsConfirm = offer && offer.status === "accepted" && !offer.received_confirmed && isBuyer && receiptReady;
               const waiting = offer && offer.status === "accepted" && !offer.received_confirmed && !isBuyer;
-              const canRate = offer && offer.status === "completed" && !ratedOffers.has(offer.id);
               const displayText = waiting ? t("agreedWaitingReceipt") : m.text;
               return (
                 <React.Fragment key={`s-${i}`}>
                   {showDate && <ChatDateSeparator date={m.created_date} lang={lang} t={t} />}
                   <div className="flex justify-center">
-                    <div className="max-w-[85%] rounded-2xl bg-primary/5 border border-primary/20 px-4 py-3 text-center">
-                      <div className="flex items-center justify-center gap-1.5 text-primary font-bold text-xs mb-1">
-                        <ShieldCheck size={14} /> {t("adminName")}
-                      </div>
-                      <p className="text-sm">{displayText}</p>
-                      {needsConfirm && (
-                        <button onClick={() => confirmReceipt(offer)} className="mt-2.5 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 mx-auto">
-                          <Check size={14} /> {t("confirmReceipt")}
-                        </button>
-                      )}
-                      {canRate && (
-                        <button onClick={() => setRatingOffer(offer)} className="mt-2.5 px-4 py-2 rounded-xl bg-amber-400 text-slate-900 text-xs font-bold flex items-center justify-center gap-1.5 mx-auto">
-                          <Star size={14} /> {t("rateNow")}
-                        </button>
-                      )}
-                      {offer && (offer.status === "accepted" || offer.status === "completed") && (
-                        <button onClick={() => setDisputeOffer(offer)} className="mt-2 px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 mx-auto">
-                          <ShieldAlert size={14} /> {ar ? "فتح نزاع" : "Open dispute"}
-                        </button>
-                      )}
+                    <div className="max-w-[85%] flex items-center gap-2 rounded-2xl bg-primary/5 border border-primary/15 px-3 py-2">
+                      <ShieldCheck size={14} className="text-primary/50 shrink-0" />
+                      <p className="text-xs text-muted-foreground">{displayText}</p>
                     </div>
                   </div>
                 </React.Fragment>
@@ -599,7 +572,7 @@ export default function ChatRoom() {
                       {showAvatar ? <img src={avatar} className="w-full h-full object-cover" /> : <div className="w-full h-full" />}
                     </div>
                   )}
-                  <div className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm ${mine ? "bg-primary text-primary-foreground rounded-br-md" : "bg-muted rounded-bl-md"}`}>
+                  <div className={`max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm animate-in fade-in slide-in-from-bottom-2 duration-200 ${mine ? "bg-gradient-to-br from-primary to-primary/85 text-primary-foreground rounded-br-md" : "bg-muted rounded-bl-md"}`}>
                     {!mine && showName && otherName && (
                       <p className="flex items-center gap-1 text-[11px] font-semibold mb-0.5 text-foreground/80">
                         {otherName}

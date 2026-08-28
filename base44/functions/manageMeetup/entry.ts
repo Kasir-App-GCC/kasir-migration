@@ -256,11 +256,41 @@ export default async function (req) {
               received_confirmed: true,
             });
           } catch {}
+          // Fetch offer to resolve party names for notifications.
+          let offerData = null;
+          try { offerData = await base44.entities.Offer.get(fresh.offer_id); } catch {}
+          const buyerName = offerData?.buyer_name || "";
+          const sellerName = offerData?.seller_name || "";
+          // Notify the seller that the meetup completed — they can now mark
+          // the item as sold themselves (no auto-sold).
           try {
-            await base44.asServiceRole.entities.Item.update(fresh.item_id, {
-              status: "sold",
-              sold_to: fresh.buyer_id,
-              sold_to_name: fresh.buyer_name,
+            await base44.asServiceRole.entities.Notification.create({
+              user_id: fresh.seller_id,
+              type: "sold",
+              text: `اكتمل لقاء "${fresh.item_title || ""}" بنجاح — يمكنك الآن تعليم الإعلان كمباع`,
+              item_id: fresh.item_id || null,
+              item_title: fresh.item_title || "",
+              reference_id: "mark_sold",
+              actor_name: buyerName,
+            });
+          } catch {}
+          // Fire rate notifications now that the transaction is complete.
+          try {
+            await base44.asServiceRole.entities.Notification.create({
+              user_id: fresh.buyer_id, type: "rate",
+              item_id: fresh.item_id, item_title: fresh.item_title,
+              text: "قيّم البائع · Rate the seller",
+              actor_name: sellerName,
+              chatroom_id: fresh.chatroom_id,
+              reference_id: fresh.offer_id,
+            });
+            await base44.asServiceRole.entities.Notification.create({
+              user_id: fresh.seller_id, type: "rate",
+              item_id: fresh.item_id, item_title: fresh.item_title,
+              text: "قيّم المشتري · Rate the buyer",
+              actor_name: buyerName,
+              chatroom_id: fresh.chatroom_id,
+              reference_id: fresh.offer_id,
             });
           } catch {}
         } else if (anyNoShow) {

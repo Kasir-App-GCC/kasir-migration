@@ -20,12 +20,21 @@
   ],
   "rls": {
     "create": {
-      "$or": [
+      "$and": [
         {
-          "data.blocker_id": "{{user.id}}"
+          "$or": [
+            {
+              "data.blocker_id": "{{user.id}}"
+            },
+            {
+              "created_by_id": "{{user.id}}"
+            }
+          ]
         },
         {
-          "created_by_id": "{{user.id}}"
+          "data.blocked_id": {
+            "$ne": "{{user.id}}"
+          }
         }
       ]
     },

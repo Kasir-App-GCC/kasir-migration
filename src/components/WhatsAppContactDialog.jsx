@@ -89,7 +89,7 @@ export default function WhatsAppContactDialog({ open, onClose, chatroomId, user,
           </div>
           <input
             value={local}
-            onChange={(e) => setLocal(e.target.value.replace(/[^\d]/g, "").slice(0, 15 - phoneCode.length))}
+            onChange={(e) => setLocal(e.target.value.replace(/[^\d]/g, "").slice(0, 9))}
             placeholder="512345678"
             dir="ltr"
             inputMode="tel"

@@ -108,7 +108,7 @@ export default function LicensePhoneVerifier({ onVerified }) {
         </div>
         <input
           value={localNumber}
-          onChange={(e) => setLocalNumber(e.target.value.replace(/[^\d]/g, "").slice(0, 15 - countryCode.length))}
+          onChange={(e) => setLocalNumber(e.target.value.replace(/[^\d]/g, "").slice(0, 9))}
           dir="ltr"
           inputMode="tel"
           placeholder={ar ? "5XXXXXXXX" : "5XXXXXXXX"}

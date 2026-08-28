@@ -5,6 +5,7 @@ import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { useToast } from "@/components/ui/use-toast";
 import { COUNTRIES, getCountry } from "@/lib/countries";
+import { GCC_MAX_LOCAL, GCC_MIN_LOCAL } from "@/lib/phone";
 import SheetSelect from "@/components/SheetSelect";
 
 // Convert Arabic-Indic (٠-٩) and Eastern Arabic (۰-۹) digits to ASCII 0-9
@@ -16,8 +17,8 @@ function normalizeDigits(s) {
   });
 }
 
-const MIN_PHONE = 8;
-const MAX_PHONE = 9; // GCC local numbers: 8 (OM/BH/KW/QA) to 9 (SA/AE) digits
+const MIN_PHONE = GCC_MIN_LOCAL;
+const MAX_PHONE = GCC_MAX_LOCAL;
 const MAX_ATTACH_TOTAL = 10 * 1024 * 1024; // 10 MB total across all attachments
 
 const CATEGORIES = [

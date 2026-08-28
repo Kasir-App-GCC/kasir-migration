@@ -25,3 +25,9 @@ export function userPhoneE164(user) {
 export function digitsOnly(e164) {
   return (e164 || "").replace(/[^\d]/g, "");
 }
+
+// GCC local number lengths: 8 digits (OM/BH/KW/QA) to 9 digits (SA/AE).
+// All phone inputs across the app cap the local part at this max so the
+// full E.164 number stays within the valid range for every GCC country.
+export const GCC_MAX_LOCAL = 9;
+export const GCC_MIN_LOCAL = 8;

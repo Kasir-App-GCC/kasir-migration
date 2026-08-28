@@ -89,38 +89,39 @@ async function reverseGeocodeNominatim(lat, lng, lang) {
   return { name, city: a.city || a.town || a.village || "", state: a.state || a.state_district || "" };
 }
 
+// Security: this is a public function (used on public pages for location
+// detection), so we can't require login. Instead of a fragile Origin/Referer
+// check (which breaks across the published app, builder preview, and custom
+// domains, and is trivially spoofed by non-browser callers), we rate-limit
+// per IP — the same pattern used by incrementItemViews. This prevents the
+// server-to-server abuse / third-party rate-limit exhaustion the access
+// control was meant to stop, while working from any legitimate app domain.
+const ipHits = new Map<string, number[]>();
+const RATE_WINDOW_MS = 60_000;
+const RATE_MAX_PER_WINDOW = 30;
+
+function clientIp(req: Request): string {
+  const fwd = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "";
+  return fwd.split(",")[0].trim() || "anon";
+}
+
 export default async function (req) {
   try {
     // Security: this is a public function (used on public pages for location
-    // detection), so we can't require login. Instead, we verify the request
-    // comes from a browser on an HTTPS page via the Origin/Referer headers.
-    // This prevents server-to-server abuse (rate-limit exhaustion, proxying)
-    // while allowing the app's own pages — including custom domains — to call.
-    // Security: this is a public function (used on public pages for location
-    // detection), so we can't require login. Instead, we verify the request
-    // comes from the app's own pages via a strict Origin/Referer whitelist.
-    // This prevents server-to-server abuse (rate-limit exhaustion, proxying)
-    // while allowing the app's own pages — published app, builder preview,
-    // and custom domains — to call.
-    const isAllowedHost = (host) =>
-      host === "kasir-ksa.base44.app" ||
-      host.endsWith(".base44.app") ||
-      host.endsWith(".base44.com");
-    const candidate = req.headers.get("origin") || req.headers.get("referer") || "";
-    let isAllowed = false;
-    if (candidate) {
-      try {
-        const u = new URL(candidate);
-        const host = u.hostname.toLowerCase();
-        const isLocal = host === "localhost" || host === "127.0.0.1";
-        isAllowed =
-          (u.protocol === "https:" && isAllowedHost(host)) ||
-          (isLocal && u.protocol === "http:");
-      } catch {}
+    // detection), so we can't require login. Instead of a fragile Origin/Referer
+    // check (which breaks across the published app, builder preview, and custom
+    // domains, and is trivially spoofed by non-browser callers), we rate-limit
+    // per IP — the same pattern used by incrementItemViews. This prevents the
+    // server-to-server abuse / third-party rate-limit exhaustion the access
+    // control was meant to stop, while working from any legitimate app domain.
+    const ip = clientIp(req);
+    const now = Date.now();
+    const hits = (ipHits.get(ip) || []).filter((t) => now - t < RATE_WINDOW_MS);
+    if (hits.length >= RATE_MAX_PER_WINDOW) {
+      return Response.json({ error: "Too many requests" }, { status: 429 });
     }
-    if (!isAllowed) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
+    hits.push(now);
+    ipHits.set(ip, hits);
 
     const body = await req.json().catch(() => ({}));
     const country = String(body?.country || "SA").toUpperCase();

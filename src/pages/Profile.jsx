@@ -310,8 +310,8 @@ export default function Profile() {
 
       <SellerDashboard myListings={publishedListings} ratings={ratings} />
 
-      {/* Tabs — horizontally scrollable on mobile so all 6 tabs fit */}
-      <div className="flex gap-1 p-1 bg-muted rounded-2xl overflow-x-auto no-scrollbar">
+      {/* Tabs — 3×2 grid on mobile (all visible), single row on desktop */}
+      <div className="grid grid-cols-3 sm:flex sm:flex-1 gap-1 p-1 bg-muted rounded-2xl">
         {[
           { id: "listings", label: t("myListings"), count: publishedListings.length },
           { id: "drafts", label: t("drafts"), count: draftItems.length },
@@ -323,7 +323,7 @@ export default function Profile() {
           <button
             key={tb.id}
             onClick={() => { setTab(tb.id); setSelectMode(false); setSelected(new Set()); }}
-            className={`shrink-0 px-3.5 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition ${tab === tb.id ? "bg-card shadow-sm" : "text-muted-foreground"}`}
+            className={`px-2 sm:px-3.5 py-2.5 rounded-xl text-sm font-semibold text-center transition ${tab === tb.id ? "bg-card shadow-sm" : "text-muted-foreground"}`}
           >
             {tb.label} <span className="opacity-60">({tb.count})</span>
           </button>

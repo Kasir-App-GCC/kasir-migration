@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, X, Tag, Pencil, ArrowLeftRight, Clock, Star, ShieldAlert } from "lucide-react";
+import { Check, X, Pencil, ArrowLeftRight, Clock, Star, ShieldAlert } from "lucide-react";
 import Price from "@/components/Price";
+import OfferNegotiationBar from "@/components/OfferNegotiationBar";
 
 export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, itemTitle, country, onAccept, onReject, onCounter, onModify, onNotMatch, ratedOffers, onRate, onConfirm, onDispute, hasMeetup, meetupCompleted, onRequestMod }) {
   const nav = useNavigate();
@@ -90,10 +91,7 @@ export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, 
           <span>· {t("originalPrice")}</span>
         </div>
       )}
-      <div className="flex items-center justify-center gap-1.5 py-2 bg-amber-100/70 dark:bg-amber-950/40 rounded-xl">
-        <Tag size={15} className="text-amber-600" />
-        <span className="text-lg font-extrabold"><Price value={offer.amount} lang={lang} country={country} /></span>
-      </div>
+      <OfferNegotiationBar offerAmount={offer.amount} itemPrice={itemPrice} lang={lang} country={country} />
 
       {offer.status === "pending" && isRecipient && !counterOpen && (
         <div className={`grid ${offer.direction === "seller_counter" ? "grid-cols-2" : "grid-cols-3"} gap-1.5 mt-2.5`}>
@@ -115,17 +113,38 @@ export default function OfferCard({ offer, user, lang, t, itemPrice, itemImage, 
       )}
 
       {offer.status === "pending" && isRecipient && counterOpen && (
-        <div className="mt-2.5 flex gap-1.5">
-          <input
-            autoFocus
-            value={counterVal}
-            onChange={(e) => setCounterVal(e.target.value.replace(/\D/g, ""))}
-            placeholder={t("enterCounter")}
-            inputMode="numeric"
-            className="flex-1 min-w-0 px-2.5 py-2 rounded-xl bg-muted outline-none text-sm"
-          />
-          <button disabled={busy || !counterVal} onClick={submitCounter} className="px-3 rounded-xl bg-primary text-primary-foreground text-xs font-bold disabled:opacity-50">{t("send")}</button>
-          <button onClick={() => setCounterOpen(false)} className="px-2 rounded-xl bg-muted text-xs">{t("cancel")}</button>
+        <div className="mt-2.5 space-y-1.5">
+          {Number(itemPrice) > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {[
+                { l: "90%", v: Math.round(Number(itemPrice) * 0.9) },
+                { l: "80%", v: Math.round(Number(itemPrice) * 0.8) },
+                { l: lang === "ar" ? "منتصف" : "½", v: Math.round((Number(itemPrice) + Number(offer.amount)) / 2) },
+                { l: lang === "ar" ? "تقريب" : "Round", v: Math.round(Number(offer.amount) / 10) * 10 },
+              ].filter((c) => c.v > 0).map((c) => (
+                <button
+                  key={c.l}
+                  type="button"
+                  onClick={() => setCounterVal(String(c.v))}
+                  className="px-2 py-1 rounded-lg bg-muted text-[11px] font-semibold hover:bg-primary/10 hover:text-primary transition"
+                >
+                  {c.l}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-1.5">
+            <input
+              autoFocus
+              value={counterVal}
+              onChange={(e) => setCounterVal(e.target.value.replace(/\D/g, ""))}
+              placeholder={t("enterCounter")}
+              inputMode="numeric"
+              className="flex-1 min-w-0 px-2.5 py-2 rounded-xl bg-muted outline-none text-sm"
+            />
+            <button disabled={busy || !counterVal} onClick={submitCounter} className="px-3 rounded-xl bg-primary text-primary-foreground text-xs font-bold disabled:opacity-50">{t("send")}</button>
+            <button onClick={() => setCounterOpen(false)} className="px-2 rounded-xl bg-muted text-xs">{t("cancel")}</button>
+          </div>
         </div>
       )}
 

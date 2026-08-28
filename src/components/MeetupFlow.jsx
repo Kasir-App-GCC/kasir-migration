@@ -4,6 +4,7 @@ import {
   MapPin, Clock, Check, X, Navigation, ShieldAlert, Loader2, Handshake, Package, Banknote, CalendarClock, MapPinned, Star, Truck,
 } from "lucide-react";
 import MapPinPicker from "@/components/MapPinPicker";
+import TimelineStep from "@/components/TimelineStep";
 import RatingDialog from "@/components/RatingDialog";
 import DisputeDialog from "@/components/DisputeDialog";
 import { useToast } from "@/components/ui/use-toast";
@@ -261,225 +262,237 @@ export default function MeetupFlow({ offer, user, lang, otherName, meetup, onMee
     );
   }
 
+  const hasPlace = meetup.meetup_type !== "agree_separately";
+  const placeDone = ["place_confirmed", "time_proposed", "confirmed", "completed", "no_show", "contested"].includes(meetup.status);
+  const placeActive = meetup.status === "place_proposed";
+  const timeDone = ["confirmed", "completed", "no_show", "contested"].includes(meetup.status);
+  const timeActive = meetup.status === "time_proposed" || meetup.status === "place_confirmed";
+  const meetupActive = meetup.status === "confirmed";
+  const meetupDone = concluded && meetup.status === "completed";
+
+  let checkInSub = "";
+  if (meetup.status === "confirmed") {
+    if (iCheckedIn && otherCheckedIn) checkInSub = ar ? "كلاكما حاضر ✅" : "Both present ✅";
+    else if (iCheckedIn) checkInSub = ar ? "حضرت — بانتظار الطرف الآخر" : "You're here — waiting for the other party";
+    else if (inWindow) checkInSub = ar ? "اضغط عند وصولك" : "Tap when you arrive";
+    else if (mt && now < mt - CHECK_IN_EARLY_MS) checkInSub = ar ? "يُفتح عند الموعد" : "Opens at meetup time";
+    else if (pastWindow) checkInSub = ar ? "انتهت نافذة الحضور" : "Check-in window closed";
+  }
+
   return (
     <Section>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-1">
         <p className="font-bold text-sm flex items-center gap-1.5"><MapPin size={15} /> {ar ? "لقاء التسليم" : "Handover meetup"}</p>
         <StatusPill />
       </div>
 
-      {/* Place */}
-      {meetup.meetup_type !== "agree_separately" && !suggestingPlace && (
-        <div className="rounded-xl bg-muted p-2.5">
-          <p className="text-[11px] text-muted-foreground flex items-center gap-1"><MapPinned size={12} /> {ar ? "المكان" : "Place"}</p>
-          <p className="text-sm font-semibold mt-0.5">{meetup.place_name || (ar ? "محدد على الخريطة" : "Pinned on map")}</p>
-          {mapsUrl && (
-            <a href={mapsUrl} target="_blank" rel="noreferrer" className="text-[11px] text-primary underline mt-0.5 inline-block">
-              {ar ? "فتح في الخرائط" : "Open in Maps"}
-            </a>
+      <div className="mt-1">
+        {/* ---- Place step ---- */}
+        {hasPlace && (
+          <TimelineStep
+            state={placeDone ? "done" : placeActive ? "active" : "pending"}
+            icon={MapPinned}
+            title={ar ? "المكان" : "Place"}
+            subtitle={meetup.place_name || (ar ? "محدد على الخريطة" : "Pinned on map")}
+          >
+            {mapsUrl && (
+              <a href={mapsUrl} target="_blank" rel="noreferrer" className="text-[11px] text-primary underline inline-flex items-center gap-1">
+                <MapPin size={11} /> {ar ? "فتح في الخرائط" : "Open in Maps"}
+              </a>
+            )}
+            {meetup.status === "place_proposed" && (
+              <p className="text-[11px] text-muted-foreground">
+                {placeMine
+                  ? ar ? `بانتظار موافقة ${otherName || "الطرف الآخر"}` : `Waiting for ${otherName || "the other party"} to confirm`
+                  : ar ? "اقترح عليك المكان" : "They proposed this place"}
+              </p>
+            )}
+            {suggestingPlace && (
+              <div className="space-y-2">
+                <input
+                  value={placeName}
+                  onChange={(e) => setPlaceName(e.target.value.slice(0, 80))}
+                  placeholder={ar ? "اسم المكان (اختياري)" : "Place name (optional)"}
+                  className="w-full px-3 py-2 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm"
+                />
+                <MapPinPicker
+                  center={place || (item?.lat && item?.lng ? { lat: item.lat, lng: item.lng } : { lat: 24.7136, lng: 46.6753 })}
+                  radius={0}
+                  onPick={setPlace}
+                />
+                <div className="flex gap-2">
+                  <button onClick={doRepropose} disabled={busy} className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
+                    {ar ? "إرسال المكان" : "Send place"}
+                  </button>
+                  <button onClick={() => setSuggestingPlace(false)} className="px-3 py-2 rounded-xl bg-muted text-xs font-bold">{ar ? "إلغاء" : "Cancel"}</button>
+                </div>
+              </div>
+            )}
+            {!suggestingPlace && meetup.status === "place_proposed" && !placeMine && (
+              <div className="flex gap-2">
+                <button onClick={() => act({ action: "confirm_place", meetup_id: meetup.id })} disabled={busy} className="flex-1 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
+                  <Check size={14} /> {ar ? "تأكيد المكان" : "Confirm place"}
+                </button>
+                <button onClick={startSuggest} disabled={busy} className="flex-1 py-2 rounded-xl bg-muted text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
+                  <MapPin size={14} /> {ar ? "اقتراح مكان آخر" : "Suggest another"}
+                </button>
+              </div>
+            )}
+            {!suggestingPlace && meetup.status === "place_proposed" && placeMine && meetup.meetup_type === "meet_at_place" && (
+              <button onClick={startSuggest} disabled={busy} className="w-full py-2 rounded-xl bg-muted text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
+                <MapPin size={14} /> {ar ? "تعديل المكان" : "Adjust place"}
+              </button>
+            )}
+          </TimelineStep>
+        )}
+
+        {/* ---- Time step ---- */}
+        <TimelineStep
+          state={timeDone ? "done" : timeActive ? "active" : "pending"}
+          icon={Clock}
+          title={ar ? "الموعد" : "Time"}
+          subtitle={mt ? fmt(meetup.meetup_time, ar) : (ar ? "لم يُحدد بعد" : "Not set yet")}
+        >
+          {meetup.status === "place_confirmed" && (
+            <div className="space-y-2">
+              <label className="text-xs text-muted-foreground flex items-center gap-1"><Clock size={12} /> {ar ? "اقترح موعد اللقاء" : "Propose a meetup time"}</label>
+              <input
+                type="datetime-local"
+                value={timeInput}
+                min={toLocalInput(new Date())}
+                onChange={(e) => setTimeInput(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm"
+              />
+              <button onClick={submitTime} disabled={busy || !timeInput} className="w-full py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
+                {ar ? "إرسال الموعد" : "Send time"}
+              </button>
+            </div>
           )}
-          {meetup.status === "place_proposed" && (
-            <p className="text-[11px] text-muted-foreground mt-1">
-              {placeMine
-                ? ar ? `بانتظار موافقة ${otherName || "الطرف الآخر"}` : `Waiting for ${otherName || "the other party"} to confirm`
-                : ar ? "اقترح عليك المكان" : "They proposed this place"}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Suggest / adjust place (map picker) */}
-      {suggestingPlace && (
-        <div className="space-y-2">
-          <input
-            value={placeName}
-            onChange={(e) => setPlaceName(e.target.value.slice(0, 80))}
-            placeholder={ar ? "اسم المكان (اختياري)" : "Place name (optional)"}
-            className="w-full px-3 py-2 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm"
-          />
-          <MapPinPicker
-            center={place || (item?.lat && item?.lng ? { lat: item.lat, lng: item.lng } : { lat: 24.7136, lng: 46.6753 })}
-            radius={0}
-            onPick={setPlace}
-          />
-          <div className="flex gap-2">
-            <button onClick={doRepropose} disabled={busy} className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
-              {ar ? "إرسال المكان" : "Send place"}
-            </button>
-            <button onClick={() => setSuggestingPlace(false)} className="px-3 py-2 rounded-xl bg-muted text-xs font-bold">{ar ? "إلغاء" : "Cancel"}</button>
-          </div>
-        </div>
-      )}
-
-      {/* Place actions */}
-      {!suggestingPlace && meetup.status === "place_proposed" && !placeMine && (
-        <div className="flex gap-2">
-          <button onClick={() => act({ action: "confirm_place", meetup_id: meetup.id })} disabled={busy} className="flex-1 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
-            <Check size={14} /> {ar ? "تأكيد المكان" : "Confirm place"}
-          </button>
-          <button onClick={startSuggest} disabled={busy} className="flex-1 py-2 rounded-xl bg-muted text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
-            <MapPin size={14} /> {ar ? "اقتراح مكان آخر" : "Suggest another"}
-          </button>
-        </div>
-      )}
-      {!suggestingPlace && meetup.status === "place_proposed" && placeMine && meetup.meetup_type === "meet_at_place" && (
-        <button onClick={startSuggest} disabled={busy} className="w-full py-2 rounded-xl bg-muted text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
-          <MapPin size={14} /> {ar ? "تعديل المكان" : "Adjust place"}
-        </button>
-      )}
-
-      {/* Time */}
-      {!suggestingPlace && meetup.status === "place_confirmed" && (
-        <div className="space-y-2">
-          <label className="text-xs text-muted-foreground flex items-center gap-1"><Clock size={12} /> {ar ? "اقترح موعد اللقاء" : "Propose a meetup time"}</label>
-          <input
-            type="datetime-local"
-            value={timeInput}
-            min={toLocalInput(new Date())}
-            onChange={(e) => setTimeInput(e.target.value)}
-            className="w-full px-3 py-2 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm"
-          />
-          <button onClick={submitTime} disabled={busy || !timeInput} className="w-full py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
-            {ar ? "إرسال الموعد" : "Send time"}
-          </button>
-        </div>
-      )}
-
-      {!suggestingPlace && mt && (
-        <div className="rounded-xl bg-muted p-2.5">
-          <p className="text-[11px] text-muted-foreground flex items-center gap-1"><CalendarClock size={12} /> {ar ? "الموعد" : "Time"}</p>
-          <p className="text-sm font-semibold mt-0.5">{fmt(meetup.meetup_time, ar)}</p>
-          {meetup.status === "time_proposed" && (
-            <p className="text-[11px] text-muted-foreground mt-1">
+          {mt && meetup.status === "time_proposed" && (
+            <p className="text-[11px] text-muted-foreground">
               {timeMine
                 ? ar ? `بانتظار تأكيد ${otherName || "الطرف الآخر"}` : `Waiting for ${otherName || "the other party"} to confirm`
                 : ar ? "اقترح عليك الموعد" : "They proposed this time"}
             </p>
           )}
-        </div>
-      )}
-
-      {/* Time actions */}
-      {!suggestingPlace && meetup.status === "time_proposed" && !timeMine && (
-        <div className="flex gap-2">
-          <button onClick={() => act({ action: "confirm_time", meetup_id: meetup.id })} disabled={busy} className="flex-1 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
-            <Check size={14} /> {ar ? "تأكيد الموعد" : "Confirm time"}
-          </button>
-          <button onClick={() => { setChangingTime(true); setTimeInput(""); }} disabled={busy} className="flex-1 py-2 rounded-xl bg-muted text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
-            <Clock size={14} /> {ar ? "اقترح وقت آخر" : "Propose another"}
-          </button>
-        </div>
-      )}
-      {!suggestingPlace && meetup.status === "time_proposed" && timeMine && (
-        <button onClick={() => setChangingTime((v) => !v)} className="w-full py-2 rounded-xl bg-muted text-xs font-bold flex items-center justify-center gap-1.5">
-          <Clock size={14} /> {ar ? "تعديل الموعد" : "Adjust time"}
-        </button>
-      )}
-      {!suggestingPlace && (changingTime || (meetup.status === "time_proposed" && timeMine)) && (
-        <div className="space-y-2">
-          <input
-            type="datetime-local"
-            value={timeInput}
-            min={toLocalInput(new Date())}
-            onChange={(e) => setTimeInput(e.target.value)}
-            className="w-full px-3 py-2 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm"
-          />
-          <button onClick={submitTime} disabled={busy || !timeInput} className="w-full py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold disabled:opacity-50">
-            {ar ? "تحديث الموعد" : "Update time"}
-          </button>
-        </div>
-      )}
-
-      {/* Confirmed: change + check-in */}
-      {!suggestingPlace && meetup.status === "confirmed" && (
-        <>
-          {canChangeTime && (
+          {meetup.status === "time_proposed" && !timeMine && (
+            <div className="flex gap-2">
+              <button onClick={() => act({ action: "confirm_time", meetup_id: meetup.id })} disabled={busy} className="flex-1 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
+                <Check size={14} /> {ar ? "تأكيد الموعد" : "Confirm time"}
+              </button>
+              <button onClick={() => { setChangingTime(true); setTimeInput(""); }} disabled={busy} className="flex-1 py-2 rounded-xl bg-muted text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
+                <Clock size={14} /> {ar ? "اقترح وقت آخر" : "Propose another"}
+              </button>
+            </div>
+          )}
+          {meetup.status === "time_proposed" && timeMine && (
+            <button onClick={() => setChangingTime((v) => !v)} className="w-full py-2 rounded-xl bg-muted text-xs font-bold flex items-center justify-center gap-1.5">
+              <Clock size={14} /> {ar ? "تعديل الموعد" : "Adjust time"}
+            </button>
+          )}
+          {(changingTime || (meetup.status === "time_proposed" && timeMine)) && (
             <div className="space-y-2">
-              {!changingTime ? (
-                <button onClick={() => setChangingTime(true)} className="w-full py-2 rounded-xl bg-muted text-xs font-bold flex items-center justify-center gap-1.5">
-                  <Clock size={14} /> {ar ? `طلب تغيير الموعد (${2 - myChanges} متبقّي)` : `Request time change (${2 - myChanges} left)`}
-                </button>
-              ) : (
-                <>
-                  <input
-                    type="datetime-local"
-                    value={timeInput}
-                    min={toLocalInput(new Date())}
-                    onChange={(e) => setTimeInput(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm"
-                  />
-                  <div className="flex gap-2">
-                    <button onClick={submitTime} disabled={busy || !timeInput} className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold disabled:opacity-50">{ar ? "إرسال" : "Send"}</button>
-                    <button onClick={() => setChangingTime(false)} className="px-3 py-2 rounded-xl bg-muted text-xs font-bold">{ar ? "إلغاء" : "Cancel"}</button>
-                  </div>
-                </>
+              <input
+                type="datetime-local"
+                value={timeInput}
+                min={toLocalInput(new Date())}
+                onChange={(e) => setTimeInput(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm"
+              />
+              <button onClick={submitTime} disabled={busy || !timeInput} className="w-full py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold disabled:opacity-50">
+                {ar ? "تحديث الموعد" : "Update time"}
+              </button>
+            </div>
+          )}
+        </TimelineStep>
+
+        {/* ---- Check-in step ---- */}
+        <TimelineStep
+          state={meetupDone ? "done" : meetupActive ? "active" : "pending"}
+          icon={Navigation}
+          title={ar ? "الحضور" : "Check-in"}
+          subtitle={checkInSub}
+        >
+          {meetup.status === "confirmed" && (
+            <>
+              {canChangeTime && (
+                <div className="space-y-2">
+                  {!changingTime ? (
+                    <button onClick={() => setChangingTime(true)} className="w-full py-2 rounded-xl bg-muted text-xs font-bold flex items-center justify-center gap-1.5">
+                      <Clock size={14} /> {ar ? `طلب تغيير الموعد (${2 - myChanges} متبقّي)` : `Request time change (${2 - myChanges} left)`}
+                    </button>
+                  ) : (
+                    <>
+                      <input
+                        type="datetime-local"
+                        value={timeInput}
+                        min={toLocalInput(new Date())}
+                        onChange={(e) => setTimeInput(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-muted outline-none focus:ring-2 ring-primary/30 text-sm"
+                      />
+                      <div className="flex gap-2">
+                        <button onClick={submitTime} disabled={busy || !timeInput} className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold disabled:opacity-50">{ar ? "إرسال" : "Send"}</button>
+                        <button onClick={() => setChangingTime(false)} className="px-3 py-2 rounded-xl bg-muted text-xs font-bold">{ar ? "إلغاء" : "Cancel"}</button>
+                      </div>
+                    </>
+                  )}
+                </div>
               )}
-            </div>
+              {!iCheckedIn && inWindow && (
+                <button onClick={checkIn} disabled={busy} className="w-full py-2.5 rounded-xl bg-sky-600 text-white text-sm font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
+                  {busy ? <Loader2 size={15} className="animate-spin" /> : <Navigation size={15} />} {ar ? "أنا في المكان" : "I'm at the meetup"}
+                </button>
+              )}
+              {pastWindow && otherCheckedIn && !iCheckedIn && (
+                <p className="text-[11px] text-amber-600 font-semibold text-center">{ar ? "الطرف الآخر وصل ولم تصل بعد." : "The other party showed up but you didn't."}</p>
+              )}
+            </>
           )}
+        </TimelineStep>
 
-          {!iCheckedIn && inWindow && (
-            <button onClick={checkIn} disabled={busy} className="w-full py-2.5 rounded-xl bg-sky-600 text-white text-sm font-bold flex items-center justify-center gap-1.5 disabled:opacity-50">
-              {busy ? <Loader2 size={15} className="animate-spin" /> : <Navigation size={15} />} {ar ? "أنا في المكان" : "I'm at the meetup"}
+        {/* ---- Outcome step ---- */}
+        {outcomesOpen && !concluded && (
+          <TimelineStep state="active" icon={ShieldAlert} title={ar ? "النتيجة" : "Outcome"} isLast>
+            {isBuyer ? (
+              <div className="grid gap-1.5">
+                <OutBtn onClick={() => act({ action: "set_outcome", meetup_id: meetup.id, outcome: "received" })} disabled={busy} icon={Check} ar="استلمت السلعة" en="I received the item" tone="emerald" />
+                <OutBtn onClick={() => act({ action: "set_outcome", meetup_id: meetup.id, outcome: "not_as_described" })} disabled={busy} icon={ShieldAlert} ar="السلعة غير مطابقة" en="Item not as described" tone="amber" />
+                <OutBtn onClick={() => act({ action: "set_outcome", meetup_id: meetup.id, outcome: "seller_no_show" })} disabled={busy} icon={X} ar="البائع لم يحضر" en="Seller didn't show up" tone="rose" />
+              </div>
+            ) : (
+              <div className="grid gap-1.5">
+                <OutBtn onClick={() => act({ action: "set_outcome", meetup_id: meetup.id, outcome: "paid" })} disabled={busy} icon={Banknote} ar="استلمت المبلغ" en="I received the payment" tone="emerald" />
+                <OutBtn onClick={() => act({ action: "set_outcome", meetup_id: meetup.id, outcome: "not_paid" })} disabled={busy} icon={ShieldAlert} ar="لم أستلم المبلغ" en="Didn't receive payment" tone="amber" />
+                <OutBtn onClick={() => act({ action: "set_outcome", meetup_id: meetup.id, outcome: "buyer_no_show" })} disabled={busy} icon={X} ar="المشتري لم يحضر" en="Buyer didn't show up" tone="rose" />
+              </div>
+            )}
+            {(isBuyer ? meetup.buyer_outcome : meetup.seller_outcome) && (
+              <p className="text-[11px] text-muted-foreground text-center">{ar ? "تم تسجيل نتيجتك — بانتظار الطرف الآخر." : "Your outcome is recorded — waiting for the other party."}</p>
+            )}
+          </TimelineStep>
+        )}
+
+        {/* ---- Conclusion step ---- */}
+        {concluded && (
+          <TimelineStep state="done" icon={meetup.status === "completed" ? Check : ShieldAlert} title={ar ? "الخاتمة" : "Conclusion"} isLast>
+            {meetup.status === "completed" ? (
+              <p className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1"><Check size={12} /> {ar ? "اكتمل اللقاء بنجاح" : "Meetup completed successfully"}</p>
+            ) : meetup.status === "contested" ? (
+              <p className="text-[11px] text-amber-600 font-semibold flex items-center gap-1"><ShieldAlert size={12} /> {ar ? "نتيجة متنازع عليها — يمكنك فتح نزاع للمراجعة" : "Contested outcome — open a dispute for review"}</p>
+            ) : (
+              <p className="text-[11px] text-rose-500 font-semibold flex items-center gap-1"><ShieldAlert size={12} /> {ar ? "تم تسجيل تخلّف عن الحضور — راجعه الإدارة" : "No-show recorded — admin will review"}</p>
+            )}
+            {!rated && (
+              <button onClick={() => setRatingOpen(true)} className="w-full py-2 rounded-xl bg-amber-400 text-slate-900 text-xs font-bold flex items-center justify-center gap-1.5">
+                <Star size={13} /> {isBuyer ? (ar ? "قيّم البائع" : "Rate the seller") : (ar ? "قيّم المشتري" : "Rate the buyer")}
+              </button>
+            )}
+            <button onClick={() => setDisputeOpen(true)} className="w-full py-2 rounded-xl bg-rose-600 text-white text-xs font-bold flex items-center justify-center gap-1.5">
+              <ShieldAlert size={13} /> {ar ? "فتح نزاع" : "Open dispute"}
             </button>
-          )}
-          {!iCheckedIn && mt && now < mt - CHECK_IN_EARLY_MS && (
-            <p className="text-[11px] text-muted-foreground text-center">{ar ? "يُفتح تأكيد الحضور عند موعد اللقاء." : "Check-in opens at the meetup time."}</p>
-          )}
-          {!iCheckedIn && pastWindow && (
-            <p className="text-[11px] text-rose-500 font-semibold text-center">{ar ? "انتهت نافذة تأكيد الحضور." : "Check-in window has closed."}</p>
-          )}
-          {iCheckedIn && (
-            <p className="text-[11px] text-emerald-600 font-semibold text-center flex items-center justify-center gap-1"><Check size={12} /> {ar ? "تم تأكيد حضورك" : "You checked in"}{!otherCheckedIn ? (ar ? " — بانتظار الطرف الآخر" : " — waiting for the other party") : ""}</p>
-          )}
-          {pastWindow && otherCheckedIn && !iCheckedIn && (
-            <p className="text-[11px] text-amber-600 font-semibold text-center">{ar ? "الطرف الآخر وصل ولم تصل بعد." : "The other party showed up but you didn't."}</p>
-          )}
-        </>
-      )}
-
-      {/* Outcomes */}
-      {!suggestingPlace && outcomesOpen && !concluded && (
-        <div className="space-y-2 pt-1 border-t border-border/60">
-          <p className="text-xs font-bold flex items-center gap-1.5"><ShieldAlert size={13} className="text-rose-500" /> {ar ? "نتيجة اللقاء" : "Meetup outcome"}</p>
-          {isBuyer ? (
-            <div className="grid gap-1.5">
-              <OutBtn onClick={() => act({ action: "set_outcome", meetup_id: meetup.id, outcome: "received" })} disabled={busy} icon={Check} ar="استلمت السلعة" en="I received the item" tone="emerald" />
-              <OutBtn onClick={() => act({ action: "set_outcome", meetup_id: meetup.id, outcome: "not_as_described" })} disabled={busy} icon={ShieldAlert} ar="السلعة غير مطابقة" en="Item not as described" tone="amber" />
-              <OutBtn onClick={() => act({ action: "set_outcome", meetup_id: meetup.id, outcome: "seller_no_show" })} disabled={busy} icon={X} ar="البائع لم يحضر" en="Seller didn't show up" tone="rose" />
-            </div>
-          ) : (
-            <div className="grid gap-1.5">
-              <OutBtn onClick={() => act({ action: "set_outcome", meetup_id: meetup.id, outcome: "paid" })} disabled={busy} icon={Banknote} ar="استلمت المبلغ" en="I received the payment" tone="emerald" />
-              <OutBtn onClick={() => act({ action: "set_outcome", meetup_id: meetup.id, outcome: "not_paid" })} disabled={busy} icon={ShieldAlert} ar="لم أستلم المبلغ" en="Didn't receive payment" tone="amber" />
-              <OutBtn onClick={() => act({ action: "set_outcome", meetup_id: meetup.id, outcome: "buyer_no_show" })} disabled={busy} icon={X} ar="المشتري لم يحضر" en="Buyer didn't show up" tone="rose" />
-            </div>
-          )}
-          {(isBuyer ? meetup.buyer_outcome : meetup.seller_outcome) && (
-            <p className="text-[11px] text-muted-foreground text-center">{ar ? "تم تسجيل نتيجتك — بانتظار الطرف الآخر." : "Your outcome is recorded — waiting for the other party."}</p>
-          )}
-        </div>
-      )}
-
-      {/* Conclusion summary + rate/dispute */}
-      {concluded && (
-        <div className="space-y-2 pt-1 border-t border-border/60">
-          {meetup.status === "completed" ? (
-            <p className="text-[11px] text-emerald-600 font-semibold text-center flex items-center justify-center gap-1"><Check size={12} /> {ar ? "اكتمل اللقاء بنجاح" : "Meetup completed successfully"}</p>
-          ) : meetup.status === "contested" ? (
-            <p className="text-[11px] text-amber-600 font-semibold text-center flex items-center justify-center gap-1"><ShieldAlert size={12} /> {ar ? "نتيجة متنازع عليها — يمكنك فتح نزاع للمراجعة" : "Contested outcome — open a dispute for review"}</p>
-          ) : (
-            <p className="text-[11px] text-rose-500 font-semibold text-center flex items-center justify-center gap-1"><ShieldAlert size={12} /> {ar ? "تم تسجيل تخلّف عن الحضور — راجعه الإدارة" : "No-show recorded — admin will review"}</p>
-          )}
-          {!rated && (
-            <button onClick={() => setRatingOpen(true)} className="w-full py-2 rounded-xl bg-amber-400 text-slate-900 text-xs font-bold flex items-center justify-center gap-1.5">
-              <Star size={13} /> {isBuyer ? (ar ? "قيّم البائع" : "Rate the seller") : (ar ? "قيّم المشتري" : "Rate the buyer")}
-            </button>
-          )}
-          <button onClick={() => setDisputeOpen(true)} className="w-full py-2 rounded-xl bg-rose-600 text-white text-xs font-bold flex items-center justify-center gap-1.5">
-            <ShieldAlert size={13} /> {ar ? "فتح نزاع" : "Open dispute"}
-          </button>
-        </div>
-      )}
+          </TimelineStep>
+        )}
+      </div>
 
       {/* Cancel while planning */}
       {!concluded && ["place_proposed", "place_confirmed", "time_proposed", "confirmed"].includes(meetup.status) && (

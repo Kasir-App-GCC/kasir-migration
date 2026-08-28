@@ -40,25 +40,10 @@ export default async function (req: Request): Promise<Response> {
       if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
       const invoiceIdParam = (body.invoiceId || "").trim();
-      const sponsorRequestId = (body.requestId || "").trim();
-
-      let lookupInvoiceId = invoiceIdParam;
-
-      // No Moyasar invoice id? Resolve it from the SponsorRequest (created at
-      // admin approval time) using our own embedded reference, so confirmation
-      // works even if Moyasar appends no id of its own to the redirect URL
-      // (mobile popup-blocked → full redirect flow).
-      if (!lookupInvoiceId && sponsorRequestId) {
-        try {
-          const sr = await base44.asServiceRole.entities.SponsorRequest.get(sponsorRequestId);
-          if (sr?.invoice_id) lookupInvoiceId = String(sr.invoice_id);
-        } catch {}
-      }
-
-      if (!lookupInvoiceId) return Response.json({ error: "Missing invoice reference" }, { status: 400 });
+      if (!invoiceIdParam) return Response.json({ error: "Missing invoice reference" }, { status: 400 });
 
       let paid = false;
-      const invRes = await fetch("https://api.moyasar.com/v1/invoices/" + lookupInvoiceId, {
+      const invRes = await fetch("https://api.moyasar.com/v1/invoices/" + invoiceIdParam, {
         headers: { Authorization: authHeader },
       });
       if (invRes.ok) {

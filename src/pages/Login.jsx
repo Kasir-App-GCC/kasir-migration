@@ -12,23 +12,6 @@ import { safeReturnTo } from "@/lib/authReturnTo";
 import { useAuth } from "@/lib/AuthContext";
 import { appParams } from "@/lib/app-params";
 
-// Trusted host suffixes for the OAuth platform endpoint. Anything else in a
-// client-supplied ?app_base_url= param is rejected to prevent an open redirect
-// to an attacker-controlled domain (e.g. phishing during Google/Apple sign-in).
-const TRUSTED_OAUTH_HOSTS = ["kasir-app.com", "base44.app"];
-const trustedAppBaseUrl = () => {
-  const raw = appParams.appBaseUrl;
-  const fallback = import.meta.env.VITE_BASE44_APP_BASE_URL || window.location.origin;
-  if (!raw) return fallback;
-  try {
-    const { hostname } = new URL(raw);
-    const ok = TRUSTED_OAUTH_HOSTS.some((h) => hostname === h || hostname.endsWith("." + h));
-    return ok ? raw : fallback;
-  } catch {
-    return fallback;
-  }
-};
-
 // On mobile inside an iframe (e.g. the builder preview), the SDK's popup-based
 // OAuth flow doesn't complete reliably — the popup tab can't postMessage back
 // to the backgrounded opener, so the first Apple/Google tap silently fails and
@@ -42,7 +25,7 @@ const oauthRedirect = (provider, fromUrl) => {
   if (inIframe && isMobile) {
     const redirectUrl = new URL(fromUrl, window.location.origin).toString();
     const providerPath = provider === "google" ? "" : `/${provider}`;
-    const loginUrl = `${trustedAppBaseUrl()}/api/apps/auth${providerPath}/login?app_id=${appParams.appId}&from_url=${encodeURIComponent(redirectUrl)}`;
+    const loginUrl = `${appParams.appBaseUrl}/api/apps/auth${providerPath}/login?app_id=${appParams.appId}&from_url=${encodeURIComponent(redirectUrl)}`;
     window.top.location.href = loginUrl;
     return;
   }

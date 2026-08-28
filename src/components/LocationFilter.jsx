@@ -5,6 +5,7 @@ import { useT } from "@/lib/i18n";
 import { getCityName } from "@/lib/constants";
 import { getCities, nearestCityInCountry, resolveCityFromGeocode } from "@/lib/countries";
 import MapPinPicker from "@/components/MapPinPicker";
+import RadiusSlider from "@/components/RadiusSlider";
 import { base44 } from "@/api/base44Client";
 
 export default function LocationFilter({ open, onClose, defaultTab, autoDetect }) {
@@ -268,7 +269,7 @@ export default function LocationFilter({ open, onClose, defaultTab, autoDetect }
                 <span className="text-sm text-muted-foreground">{t("radius")}</span>
                 <span className="text-2xl font-extrabold">{radius} <span className="text-sm font-medium text-muted-foreground">{t("km")}</span></span>
               </div>
-              <input type="range" min={1} max={200} value={radius} onChange={(e) => setRadius(Number(e.target.value))} className="w-full accent-primary" />
+              <RadiusSlider value={radius} onChange={setRadius} />
               <div className="flex justify-between text-[11px] text-muted-foreground mt-1">
                 <span>1 {t("km")}</span>
                 <span>200 {t("km")}</span>
@@ -324,14 +325,7 @@ export default function LocationFilter({ open, onClose, defaultTab, autoDetect }
                       {radius} <span className="text-sm font-medium text-muted-foreground">{t("km")}</span>
                     </span>
                   </div>
-                  <input
-                    type="range"
-                    min={1}
-                    max={200}
-                    value={radius}
-                    onChange={(e) => setRadius(Number(e.target.value))}
-                    className="w-full accent-primary"
-                  />
+                  <RadiusSlider value={radius} onChange={setRadius} />
                   <div className="flex justify-between text-[11px] text-muted-foreground mt-1">
                     <span>1 {t("km")}</span>
                     <span>200 {t("km")}</span>

@@ -99,11 +99,11 @@ export default function VerificationDialog({ open, onClose }) {
         invoiceId,
         onSuccess: async (r) => {
           try {
-            await base44.functions.invoke("confirmVerificationPayment", { paymentId: r.payment_id || invoiceId });
+            await base44.functions.invoke("confirmVerificationPayment", { paymentId: invoiceId || r.payment_id });
             toast({ title: ar ? "تم توثيق حسابك 🎉" : "Account verified 🎉" });
             await refreshUser();
           } catch (e) {
-            toast({ title: ar ? "تم الدفع لكن التعذّر من التحقق — سيتوثق تلقائياً خلال دقيقة" : "Payment received — verification will complete within a minute", variant: "destructive" });
+            toast({ title: ar ? "تم الدفع — سيكتمل التوثيق تلقائياً خلال ٥ دقائق" : "Payment received — verification will complete within 5 minutes", variant: "destructive" });
           }
         },
       });

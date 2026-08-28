@@ -46,27 +46,10 @@ export default async function(req: Request): Promise<Response> {
       if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
       const paymentId = (body.paymentId || '').trim();
-      const verificationRequestId = (body.verificationRequestId || '').trim();
-
-      let lookupId = paymentId;
-
-      // No Moyasar id? Resolve the invoice id from the VerificationRequest's
-      // payment_receipt_url using our own embedded reference (the `vr` query
-      // param), so confirmation works even if Moyasar appends no id of its own
-      // to the redirect URL (mobile popup-blocked → full redirect flow).
-      if (!lookupId && verificationRequestId) {
-        try {
-          const vr = await base44.asServiceRole.entities.VerificationRequest.get(verificationRequestId);
-          if (vr?.payment_receipt_url && String(vr.payment_receipt_url).startsWith('moyasar:')) {
-            lookupId = String(vr.payment_receipt_url).slice('moyasar:'.length);
-          }
-        } catch {}
-      }
-
-      if (!lookupId) return Response.json({ error: 'Missing payment reference' }, { status: 400 });
+      if (!paymentId) return Response.json({ error: 'Missing payment ID' }, { status: 400 });
 
       let paid = false;
-      const payRes = await fetch('https://api.moyasar.com/v1/payments/' + lookupId, {
+      const payRes = await fetch('https://api.moyasar.com/v1/payments/' + paymentId, {
         headers: { Authorization: authHeader },
       });
       if (payRes.ok) {
@@ -77,7 +60,7 @@ export default async function(req: Request): Promise<Response> {
           resolvedPaymentId = payData.id;
         }
       } else {
-        const invRes = await fetch('https://api.moyasar.com/v1/invoices/' + lookupId, {
+        const invRes = await fetch('https://api.moyasar.com/v1/invoices/' + paymentId, {
           headers: { Authorization: authHeader },
         });
         if (invRes.ok) {

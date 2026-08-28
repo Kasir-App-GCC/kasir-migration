@@ -155,7 +155,7 @@ export default function ContactSupportDialog({ open, onClose }) {
 
           <div>
             <label className="text-sm font-semibold mb-1.5 block">{t("supportPhone")}</label>
-            <div className="flex gap-2">
+            <div className="flex gap-2" dir="ltr">
               <div className="shrink-0">
                 <SheetSelect
                   value={phoneCode}

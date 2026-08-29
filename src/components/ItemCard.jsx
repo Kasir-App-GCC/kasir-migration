@@ -186,10 +186,12 @@ function ItemCard({ item, onClick, promoted = false, refreshButton = null, selle
             {sellerInfo.trusted && (
               <BadgeCheck size={13} className="shrink-0 text-sky-500 fill-sky-500/20" />
             )}
-            <span className="inline-flex items-center gap-0.5 shrink-0">
-              <Star size={11} className="fill-amber-400 text-amber-400" />
-              <span className="font-semibold text-foreground/80">{(sellerInfo.rating ?? 5).toFixed(1)}</span>
-            </span>
+            {sellerInfo.rating != null && (
+              <span className="inline-flex items-center gap-0.5 shrink-0">
+                <Star size={11} className="fill-amber-400 text-amber-400" />
+                <span className="font-semibold text-foreground/80">{sellerInfo.rating.toFixed(1)}</span>
+              </span>
+            )}
           </div>
         )}
         <div className="flex items-center justify-between mt-1.5 text-xs text-muted-foreground">

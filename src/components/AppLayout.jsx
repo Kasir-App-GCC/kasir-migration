@@ -40,10 +40,10 @@ export default function AppLayout() {
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, x: 24 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -24 }}
-              transition={{ duration: 0.18, ease: "easeOut" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
             >
               <Outlet context={{ categories, setCategories, subcategories, setSubcategories, openLocation: () => { setLocDefaultTab("radius"); setLocAutoDetect(true); setLocOpen(true); } }} />
             </motion.div>

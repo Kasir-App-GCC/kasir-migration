@@ -170,7 +170,7 @@ export default function MeetupFlow({ offer, user, lang, otherName, meetup, onMee
     );
   }
 
-  if (!meetup && plannerOpen) {
+  if ((!meetup || meetup.status === "cancelled") && plannerOpen) {
     const center = item?.lat && item?.lng ? { lat: item.lat, lng: item.lng } : { lat: 24.7136, lng: 46.6753 };
     return (
       <div className="rounded-2xl border border-border/60 bg-card p-3 space-y-3">

@@ -388,16 +388,41 @@ export default function ChatRoom() {
       const res = await base44.functions.invoke("sendMessage", { chatroom_id: id, text: body });
       const msg = res?.data?.message;
       if (msg) setMessages((prev) => {
-        const i = prev.findIndex((x) => x.id === tempId);
-        if (i === -1) {
-          const j = prev.findIndex((x) => x.id === msg.id);
-          if (j === -1) return [...prev, msg];
-          const copy = [...prev]; copy[j] = msg; return copy;
-        }
-        const copy = [...prev]; copy[i] = msg; return copy;
+        // Remove the optimistic temp, then upsert the real message — avoids
+        // a duplicate when the realtime subscription already inserted it.
+        const next = prev.filter((x) => x.id !== tempId);
+        const j = next.findIndex((x) => x.id === msg.id);
+        if (j === -1) return [...next, msg];
+        const copy = [...next]; copy[j] = msg; return copy;
       });
     } catch {
       setMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, _pending: false, _failed: true } : m));
+    }
+  };
+
+  const sendWhatsAppCard = async () => {
+    if (!room) return;
+    // Auto-send the verified WhatsApp number as a card; otherwise open the
+    // dialog so the user can type a number to share.
+    if (user?.whatsapp_verified && user?.whatsapp_number) {
+      const e164 = "+" + String(user.whatsapp_number).replace(/[^\d]/g, "");
+      try {
+        await base44.entities.WhatsAppContact.create({
+          chatroom_id: id,
+          buyer_id: room.buyer_id || null,
+          seller_id: room.seller_id || null,
+          sender_id: user.id,
+          sender_name: user.name,
+          phone: e164,
+        });
+        await base44.entities.ChatRoom.update(id, {
+          last_message: ar ? "تم إرسال بطاقة واتساب" : "WhatsApp contact shared",
+          hidden_for_buyer: false,
+          hidden_for_seller: false,
+        });
+      } catch {}
+    } else {
+      setWaDialogOpen(true);
     }
   };
 
@@ -643,13 +668,6 @@ export default function ChatRoom() {
         {!isOfficial && otherId && (
           <div className="flex items-center gap-1 shrink-0">
             <button
-              onClick={() => setWaDialogOpen(true)}
-              className="p-2 rounded-full hover:bg-emerald-50 dark:hover:bg-emerald-950/30 shrink-0"
-              title={ar ? "مشاركة رقم واتساب" : "Share WhatsApp number"}
-            >
-              <WhatsAppIcon size={18} className="text-emerald-600" />
-            </button>
-            <button
               onClick={() => (blockedByMe ? unblock() : block(otherName))}
               className="p-2 rounded-full hover:bg-muted shrink-0"
               title={blockedByMe ? t("unblockUser") : t("blockUser")}
@@ -808,6 +826,13 @@ export default function ChatRoom() {
           </div>
         ) : (
           <>
+            <button
+              onClick={sendWhatsAppCard}
+              className="w-11 h-11 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 flex items-center justify-center shrink-0"
+              title={ar ? "مشاركة رقم واتساب" : "Share WhatsApp number"}
+            >
+              <WhatsAppIcon size={20} />
+            </button>
             <textarea
               value={text}
               onChange={(e) => { setText(e.target.value); e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px"; updateTyping(true); }}

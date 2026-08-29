@@ -10,6 +10,7 @@ import Price from "@/components/Price";
 import CurrencySymbol from "@/components/CurrencySymbol";
 import PullToRefresh from "@/components/PullToRefresh";
 import CitySearchSelect from "@/components/CitySearchSelect";
+import SheetSelect from "@/components/SheetSelect";
 import BuyRequestCard from "@/components/BuyRequestCard";
 import BuyRequestFilters from "@/components/BuyRequestFilters";
 import BuyRequestOfferDialog from "@/components/BuyRequestOfferDialog";
@@ -393,20 +394,18 @@ export default function BuyRequests() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground block mb-1.5">{lang === "ar" ? "القسم" : "Category"}</label>
-                  <select
+                  <SheetSelect
                     value={form.category}
-                    onChange={(e) => setForm((prev) => {
-                      const newCat = e.target.value;
+                    onChange={(newCat) => setForm((prev) => {
                       const available = new Set([...BUY_REQUEST_TAGS, ...getBuyRequestTagsForCategory(newCat, [])].map((t) => t.en));
                       return { ...prev, category: newCat, subcategory: [], tags: prev.tags.filter((t) => available.has(t)) };
                     })}
-                    className="w-full px-3 py-2.5 rounded-xl bg-muted outline-none"
-                  >
-                    <option value="">{lang === "ar" ? "اختر القسم" : "Select category"}</option>
-                    {CATEGORIES.filter((c) => c.id !== "all").map((c) => (
-                      <option key={c.id} value={c.id}>{lang === "ar" ? c.ar : c.en}</option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "", label: lang === "ar" ? "اختر القسم" : "Select category" },
+                      ...CATEGORIES.filter((c) => c.id !== "all").map((c) => ({ value: c.id, label: lang === "ar" ? c.ar : c.en })),
+                    ]}
+                    placeholder={lang === "ar" ? "اختر القسم" : "Select category"}
+                  />
                 </div>
                 {form.category && getSubcategories(form.category).length > 0 && (
                   <div>

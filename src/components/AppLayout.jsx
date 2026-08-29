@@ -1,5 +1,6 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { Outlet, useLocation } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import TopBar from "./TopBar";
 import BottomNav from "./BottomNav";
 import CategoryBar from "./CategoryBar";
@@ -36,7 +37,17 @@ export default function AppLayout() {
       {showCats && <CategoryBar categories={categories} onCategoriesChange={setCategories} subcategories={subcategories} onSubcategoriesChange={setSubcategories} />}
       <main className={`max-w-5xl mx-auto px-4 pt-1 ${mainPad}`}>
         <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-7 h-7 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" /></div>}>
-          <Outlet context={{ categories, setCategories, subcategories, setSubcategories, openLocation: () => { setLocDefaultTab("radius"); setLocAutoDetect(true); setLocOpen(true); } }} />
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, x: 24 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -24 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+            >
+              <Outlet context={{ categories, setCategories, subcategories, setSubcategories, openLocation: () => { setLocDefaultTab("radius"); setLocAutoDetect(true); setLocOpen(true); } }} />
+            </motion.div>
+          </AnimatePresence>
         </Suspense>
       </main>
       {!noBottomNav && <BottomNav />}

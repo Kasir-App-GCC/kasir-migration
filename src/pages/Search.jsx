@@ -13,6 +13,7 @@ import { nearbyCities } from "@/lib/countries";
 import { getSellerInfos } from "@/lib/sellerCache";
 import { readFeedCache, writeFeedCache } from "@/lib/feedCache";
 import PullToRefresh from "@/components/PullToRefresh";
+import SheetSelect from "@/components/SheetSelect";
 import EmptyState from "@/components/EmptyState";
 import { escapeRegex } from "@/lib/regexEscape";
 import { debounce } from "lodash";
@@ -396,16 +397,17 @@ export default function Search() {
           >
             <BadgeCheck size={13} /> {t("verifiedOnly")}
           </button>
-          <select
+          <SheetSelect
             value={sort}
-            onChange={(e) => setSort(e.target.value)}
-            className="bg-transparent text-foreground font-medium outline-none"
-          >
-            <option value="newest">{t("newest")}</option>
-            <option value="priceLowHigh">{t("priceLowHigh")}</option>
-            <option value="priceHighLow">{t("priceHighLow")}</option>
-            <option value="distance">{t("distance")}</option>
-          </select>
+            onChange={setSort}
+            options={[
+              { value: "newest", label: t("newest") },
+              { value: "priceLowHigh", label: t("priceLowHigh") },
+              { value: "priceHighLow", label: t("priceHighLow") },
+              { value: "distance", label: t("distance") },
+            ]}
+            buttonClassName="w-auto px-2 py-1 rounded-full bg-transparent text-xs font-medium"
+          />
         </div>
       </div>
 

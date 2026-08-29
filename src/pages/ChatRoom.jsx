@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, ShieldCheck, Check, CheckCheck, BadgeCheck, Ban, MessageCircle } from "lucide-react";
+import { ArrowLeft, Send, ShieldCheck, Check, CheckCheck, BadgeCheck, Ban, MessageCircle, Clock, AlertCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -370,15 +370,35 @@ export default function ChatRoom() {
     const body = (value ?? text).trim();
     if (!body) return;
     setText("");
+    // Optimistic insert with a sending indicator so the bubble appears
+    // instantly; replaced by the real message once the backend confirms.
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const optimistic = {
+      id: tempId,
+      chatroom_id: id,
+      sender_id: user?.id,
+      sender_name: user?.name,
+      text: body,
+      kind: "text",
+      created_date: new Date().toISOString(),
+      _pending: true,
+    };
+    setMessages((prev) => [...prev, optimistic]);
     try {
       const res = await base44.functions.invoke("sendMessage", { chatroom_id: id, text: body });
       const msg = res?.data?.message;
       if (msg) setMessages((prev) => {
-        const i = prev.findIndex((x) => x.id === msg.id);
-        if (i === -1) return [...prev, msg];
+        const i = prev.findIndex((x) => x.id === tempId);
+        if (i === -1) {
+          const j = prev.findIndex((x) => x.id === msg.id);
+          if (j === -1) return [...prev, msg];
+          const copy = [...prev]; copy[j] = msg; return copy;
+        }
         const copy = [...prev]; copy[i] = msg; return copy;
       });
-    } catch {}
+    } catch {
+      setMessages((prev) => prev.map((m) => m.id === tempId ? { ...m, _pending: false, _failed: true } : m));
+    }
   };
 
   const sysMsg = (text, offerId) =>
@@ -754,6 +774,8 @@ export default function ChatRoom() {
                         {new Date(m.created_date).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
                       </span>
                       {mine && (() => {
+                        if (m._pending) return <Clock size={13} className="opacity-60 animate-pulse" />;
+                        if (m._failed) return <AlertCircle size={13} className="text-rose-300" />;
                         if (m.read_at) return <CheckCheck size={13} className="text-sky-300" />;
                         if (m.delivered_at) return <CheckCheck size={13} className="opacity-60" />;
                         return <Check size={13} className="opacity-60" />;

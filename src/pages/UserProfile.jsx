@@ -99,15 +99,18 @@ export default function UserProfile() {
   const toggleFollow = async () => {
     if (!user?.id || followBusy) return;
     setFollowBusy(true);
+    const wasFollowing = isFollowing;
+    const prevFollowId = followId;
+    // Optimistic: toggle the UI instantly so the button reacts on tap.
+    setIsFollowing(!wasFollowing);
+    setFollowersCount((c) => Math.max(0, c + (wasFollowing ? -1 : 1)));
     try {
-      if (isFollowing && followId) {
-        await base44.entities.UserFollow.delete(followId);
-        setIsFollowing(false); setFollowId(null);
-        setFollowersCount((c) => Math.max(0, c - 1));
+      if (wasFollowing && prevFollowId) {
+        await base44.entities.UserFollow.delete(prevFollowId);
+        setFollowId(null);
       } else {
         const r = await base44.entities.UserFollow.create({ follower_id: user.id, followed_id: id });
-        setIsFollowing(true); setFollowId(r?.id || null);
-        setFollowersCount((c) => c + 1);
+        setFollowId(r?.id || null);
         // Notify the followed user so the follow has a real effect.
         try {
           const me = [user.first_name, user.last_name].filter(Boolean).join(" ") || user.username || "—";
@@ -120,7 +123,12 @@ export default function UserProfile() {
           });
         } catch {}
       }
-    } catch {}
+    } catch {
+      // Revert on failure so the state stays truthful.
+      setIsFollowing(wasFollowing);
+      setFollowId(prevFollowId);
+      setFollowersCount((c) => Math.max(0, c + (wasFollowing ? 1 : -1)));
+    }
     setFollowBusy(false);
   };
 
